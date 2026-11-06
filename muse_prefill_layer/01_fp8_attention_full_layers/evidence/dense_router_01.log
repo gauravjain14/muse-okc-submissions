@@ -1,0 +1,20 @@
+✓ Initialized. View run at 
+<modal-run-url>
+✓ Created objects.
+├── 🔨 Created mount 
+│   muse-opt/muse_prefill_layer/dev/modal_run.py
+├── 🔨 Created mount muse-opt/muse_prefill_layer
+└── 🔨 Created function run.
+cublasLt 130101 2.14.1+cu130 NVIDIA H200
+router M   753 mm x2 + add (codex)                                                        25.3 us ( 249.2 TF/s) err 3.23e-06
+router M   753 lt N512 algo 6 {'id': 66, 'tile': 33, 'split': 4, 'red': 2, 'swz': 0, 'custom': 3, 'stages': 35} + add     21.4 us ( 294.6 TF/s) err 3.23e-06
+router M   753 lt N256 x2 beta=1 ({'id': 66, 'tile': 26, 'split': 4, 'red': 2, 'swz': 0, 'custom': 1, 'stages': 35} / {'id': 66, 'tile': 26, 'split': 4, 'red': 2, 'swz': 0, 'custom': 1, 'stages': 35})     24.4 us ( 258.9 TF/s) err 3.23e-06
+router M  3012 mm x2 + add (codex)                                                        51.0 us ( 495.8 TF/s) err 9.42e-06
+router M  3012 lt N512 algo 0 {'id': 66, 'tile': 402, 'split': 1, 'red': 0, 'swz': 0, 'custom': 3, 'stages': 35} + add     44.7 us ( 565.4 TF/s) err 9.42e-06
+router M  3012 lt N256 x2 beta=1 ({'id': 66, 'tile': 320, 'split': 1, 'red': 0, 'swz': 0, 'custom': 3, 'stages': 35} / {'id': 66, 'tile': 320, 'split': 1, 'red': 0, 'swz': 0, 'custom': 3, 'stages': 35})     48.4 us ( 522.2 TF/s) err 9.42e-06
+router M 16384 mm x2 + add (codex)                                                       202.2 us ( 679.7 TF/s) err 9.43e-06
+router M 16384 lt N512 algo 0 {'id': 66, 'tile': 24, 'split': 1, 'red': 0, 'swz': 0, 'custom': 7, 'stages': 35} + add    195.6 us ( 702.5 TF/s) err 9.43e-06
+router M 16384 lt N256 x2 beta=1 ({'id': 66, 'tile': 23, 'split': 1, 'red': 0, 'swz': 0, 'custom': 4, 'stages': 35} / {'id': 66, 'tile': 23, 'split': 1, 'red': 0, 'swz': 0, 'custom': 4, 'stages': 35})    194.3 us ( 707.2 TF/s) err 9.43e-06
+Stopping app - local entrypoint completed.
+✓ App completed. View run at 
+<modal-run-url>

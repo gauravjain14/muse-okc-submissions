@@ -1,0 +1,15 @@
+{
+  "output": "muse-opt-codex/muse_decode_layer/variants/d03_kperm.py",
+  "base": "muse-opt-codex/muse_decode_layer/variants/d02_precomputed_gates.py",
+  "donor": "muse-opt-codex/muse_decode_layer/sources/alygg77/kernels/muse_decode_layer.py",
+  "replaced": [
+    "MOE_CUDA_SRC",
+    "_ma_ext",
+    "_moe",
+    "_wgs_copy",
+    "_ma_prepare"
+  ],
+  "sha256": "3f219115ab5b413a4f8f29a609d4e684f78e0c120bbc5df4c92be8ceec1e86d3",
+  "bytes": 865091,
+  "change": "Lossless 256-K permutation shared by NVFP4 codes, FP8 scales and activation staging; B4FIN native build for 16 < T <= 32."
+}

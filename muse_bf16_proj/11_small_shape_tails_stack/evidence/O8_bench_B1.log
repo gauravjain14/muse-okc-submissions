@@ -1,0 +1,18 @@
+[sbx] waited 8s for a GPU
+[sbx] box 0
+[bo22L] prepare 6.1s
+[o8] prepare 5.4s
+fixed graph cost 5.36 us
+decode 1  m=1    o         sglang    5.47 | bo22L    3.49 x1.567 | o8    3.53 x1.548   sol   3.50
+decode 1  m=1    pooler    sglang   20.13 | bo22L   11.53 x1.745 | o8   11.46 x1.756   sol  13.99
+decode 1  m=1    router    sglang    9.20 | bo22L    2.54 x3.616 | o8    2.48 x3.703   sol   1.75
+verify 1  m=8    o         sglang    5.23 | bo22L    3.85 x1.361 | o8    3.63 x1.443   sol   3.53
+verify 1  m=8    pooler    sglang   20.05 | bo22L   12.25 x1.636 | o8   12.21 x1.642   sol  14.02
+verify 1  m=8    router    sglang   25.14 | bo22L    2.54 x9.904 | o8    2.59 x9.692   sol   1.78
+
+per-load speedups:
+  decode 1  sglang   34.80 | bo22L   17.57 x1.981 | o8   17.48 x1.991
+  verify 1  sglang   50.42 | bo22L   18.64 x2.705 | o8   18.43 x2.736
+GEOMEAN bo22L: x2.3148 over 2 loads   judge-projected (+1.0 us/shape) x2.1300
+GEOMEAN o8: x2.3339 over 2 loads   judge-projected (+1.0 us/shape) x2.1450
+REMOTE_EXIT 0

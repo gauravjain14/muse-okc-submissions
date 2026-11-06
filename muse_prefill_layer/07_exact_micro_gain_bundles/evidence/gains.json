@@ -1,0 +1,388 @@
+{
+  "strategy": "Preserve and stack every repeatable improvement. No off-board judge checks until a passing full-layer local run measures below194000us. Original scored-submission gate also remains: passing official check below194000us unless explicitly overridden by the user.",
+  "official_best_us": 196176.47564631957,
+  "checkpoint": "research/integrated/bundle14_fast_normalize.py",
+  "gains": [
+    {
+      "name": "native epilogue cleanup",
+      "checkpoint": "bundle3_native_epi",
+      "full_paired_speedup": 1.0010766736408543
+    },
+    {
+      "name": "ten-width public MoE",
+      "checkpoint": "bundle4_public_ten",
+      "full_paired_speedup": 1.0018062066398237
+    },
+    {
+      "name": "large compact PG tails",
+      "checkpoint": "bundle5_ten_pg",
+      "full_paired_speedup": 1.001317686666454
+    },
+    {
+      "name": "empty-prefix packed attention mask",
+      "component_saving_us": "4\u20135 at8192/16384 tokens",
+      "bit_identical": true
+    },
+    {
+      "name": "public combine unit-scale elimination",
+      "component_saving_us": "0.66\u20130.83 large",
+      "bit_identical": true
+    },
+    {
+      "name": "identity BF16 gather copy",
+      "component_saving_us": "0.08\u20130.43 medium",
+      "bit_identical": true
+    },
+    {
+      "name": "reuse boundary RMS factor",
+      "component_saving_us": {
+        "753": 0.448,
+        "3012": 0.608
+      },
+      "extra_write_included": true,
+      "bit_identical": true
+    },
+    {
+      "name": "cache attention EXPQ bias",
+      "component_saving_us": [
+        4.096,
+        19.648,
+        12.656,
+        55.44,
+        132.176
+      ],
+      "bit_identical": true
+    },
+    {
+      "name": "cache EXPQ bias in unsplit sliding unit1",
+      "path": "research/attention/bundle9_unsplit_shared.py",
+      "component_saving_us": {
+        "medium": 0.816,
+        "large": 2.544
+      },
+      "whole_pair_saving_us": {
+        "medium": 0.713,
+        "large": 3.692
+      },
+      "unit2_unchanged": true,
+      "all_eight_scored_correct": true,
+      "hard_check": "passed18"
+    },
+    {
+      "name": "clear only live native accumulator columns",
+      "path": "research/integrated/bundle10_clear.py",
+      "component_saving_us": [
+        0,
+        1.2,
+        1.1
+      ],
+      "whole_pair_saving_us": {
+        "753_sliding": 2.088,
+        "753_full": 1.02
+      },
+      "all_eight_scored_correct": true,
+      "hard_checks": 18
+    },
+    {
+      "name": "cache scalar full-attention thresholds",
+      "path": "research/integrated/bundle11_threshold_keep.py",
+      "component_us_saved": [
+        1.552,
+        6.544,
+        4.784,
+        13.952,
+        30.608
+      ],
+      "bit_identical": true
+    },
+    {
+      "name": "retain boundary coefficients across persistent rows",
+      "path": "research/integrated/bundle11_threshold_keep.py",
+      "component_us_saved": 1.584,
+      "positive_pairs": "17/20",
+      "bit_identical": true
+    },
+    {
+      "name": "unsplit sliding scalar thresholds",
+      "path": "research/attention/bundle10_scalar_threshold_unsplit.py",
+      "paired_savings_us": {
+        "medium": [
+          0.296,
+          0.512
+        ],
+        "large": [
+          1.48,
+          1.864
+        ]
+      },
+      "reversed_order_confirmed": true,
+      "bit_identical": true
+    },
+    {
+      "name": "router FP32 fast sigmoid",
+      "path": "research/router/bundle11_fast_sigmoid.py",
+      "paired_savings_us": {
+        "753": 0.216,
+        "3012": 0.616,
+        "16384": 1.624
+      },
+      "all18_component_checks": true,
+      "same_topk_in_checks": true,
+      "max_weight_delta": 5.96e-08
+    },
+    {
+      "name": "first attention tile zero-accumulator rescale cleanup",
+      "path": "research/attention/bundle10_first_zero.py",
+      "two_run_full_paired_savings_us": {
+        "1": 0.576,
+        "3": 0.928,
+        "4": 1.096,
+        "6": 0.568,
+        "7": -0.584
+      },
+      "bit_identical": true,
+      "note": "Small aggregate gain; last full case ties within timing noise. Preserve for full stack."
+    },
+    {
+      "name": "public fine MoE for512+ tokens",
+      "path": "research/moe/bundle11_public_small_fine.py",
+      "paired_turn1_speedups": [
+        1.0016303814561511,
+        1.0025908421842846
+      ],
+      "hard_checks": 18,
+      "fresh_timing_inputs": 88
+    },
+    {
+      "name": "sentinel routing for PG only",
+      "path": "research/attention/bundle11_router_sentinel_pg_whole.py",
+      "large_paired_saving_us": 5.552,
+      "positive_pairs": "16/16",
+      "status": "PG-only source and target gates passed; stacked and full validated"
+    },
+    {
+      "name": "MoE down-epilogue address rematerialization for non-PG kernels",
+      "path": "research/integrated/bundle13_cleanup_stack.py",
+      "component_savings_us": [
+        1.553,
+        1.198,
+        0.79,
+        2.042
+      ],
+      "source": "research/moe/bundle12_public_remat_nonpg_v2.py",
+      "note": "Specialize by existing PG dispatch; leave large PG address computation unchanged."
+    },
+    {
+      "name": "remove unused public item timestamp instrumentation",
+      "path": "research/integrated/bundle13_cleanup_stack.py",
+      "component_savings_us": [
+        0.464,
+        0.969,
+        4.425
+      ],
+      "source": "research/moe/bundle12_public_no_item_trace.py",
+      "note": "Combined non-PG MoE now zero stack/spills; PG retains independently measured no-trace variant."
+    },
+    {
+      "name": "sort per-lane PG router candidates once",
+      "path": "research/integrated/bundle13_cleanup_stack.py",
+      "component_repeat_savings_us": [
+        0.36,
+        0.352
+      ],
+      "bit_identical": true,
+      "source": "research/router/bundle12_sorted_topk_pg.py"
+    },
+    {
+      "name": "fuse public work-counter reset into combine",
+      "path": "research/integrated/bundle13_cleanup_stack.py",
+      "component_savings_us": [
+        1.166,
+        2.682,
+        3.039
+      ],
+      "source": "research/moe/bundle12_fused_counter_reset_v2.py",
+      "note": "577-int scratch, prepared zero, fully reset every timed call; removes one launch."
+    },
+    {
+      "name": "FP32 fast reciprocal for route-weight normalization",
+      "path": "research/integrated/bundle14_fast_normalize.py",
+      "component_repeat_savings_us": {
+        "small": [
+          0.04,
+          0.08
+        ],
+        "medium": [
+          0.424,
+          0.232
+        ],
+        "large": [
+          1.008,
+          0.944
+        ]
+      },
+      "full_paired_speedup_vs13": 1.000257827595224,
+      "hard_edge_checks": 18,
+      "scored_checks": 16,
+      "note": "Preserve repeatable tiny gain; no new official result for14 yet."
+    },
+    {
+      "name": "208-row expert tail tiles on non-PG only",
+      "path": "research/integrated/bundle15_n208_nonpg.py",
+      "sha256": "eb06a464767c0618eeb62cd01c75bfe0039f9e8b4c7a608e2037fe78abbde06e",
+      "full_speedup_vs_bundle14": 1.0007561864494743,
+      "scored_checks": 16,
+      "hard_edge_checks": 18,
+      "retained": true,
+      "official_score": null
+    },
+    {
+      "name": "Coalesced non-PG gather",
+      "path": "research/integrated/bundle16_coalesced_gather.py",
+      "sha256": "6638f9d21a1f3182987a141dccf3bcc80639ff3e1ae8471a526c9f6cd4babd6e",
+      "full_speedup_vs_bundle15": 1.0031750515887423,
+      "scored_checks": 16,
+      "hard_edge_checks": 18,
+      "retained": true,
+      "official_score": null,
+      "medium_excess_sectors_before": 2269617,
+      "medium_excess_sectors_after": 1713
+    },
+    {
+      "name": "Parallel PG metadata without redundant tail prefix scans",
+      "path": "research/integrated/bundle17_parallel_metadata.py",
+      "sha256": "d51538eca435f194d14317d92d181432039f0d33c0b2f09be8b0c1ed6d4dfd33",
+      "full_speedup_vs_bundle16": 1.0009860393315397,
+      "scored_checks": 16,
+      "hard_edge_checks": 18,
+      "retained": true,
+      "official_score": null,
+      "component_p32_us_saved": [
+        17.696,
+        18.44
+      ],
+      "component_p64_skip_additional_us_saved": [
+        2.232,
+        2.128
+      ]
+    },
+    {
+      "name": "Medium combine cache retention",
+      "path": "research/integrated/bundle18_medium_combine_cache.py",
+      "sha256": "7099ff261110af744547848aec12c499dc6936e243d658c5feda6902da43984d",
+      "full_speedup_vs_bundle17": 1.000525875316391,
+      "scored_checks": 16,
+      "hard_edge_checks": 18,
+      "retained": true,
+      "official_score": null,
+      "component_bit_identical": true,
+      "component_medium_savings_us": [
+        1.192,
+        1.064
+      ],
+      "other_sizes_use_original_policy": true
+    },
+    {
+      "name": "Small expert matrix stores",
+      "path": "research/integrated/bundle19_small_matrix_stores.py",
+      "sha256": "67d60e4ed1f8f26dbb710244b4cfb9b06f33b7a7987ffe81c01f050aecee8297",
+      "full_speedup_vs_bundle18": 0.9999065652477079,
+      "scored_checks": 16,
+      "hard_edge_checks": 18,
+      "retained": true,
+      "official_score": null,
+      "component_savings_us": [
+        0.2400055528,
+        1.0079965,
+        0.2960041165
+      ],
+      "component_bit_identical": true,
+      "all_non_small_binaries_identical": true,
+      "changed_small_case_savings_us": [
+        0.043268629,
+        0.118806033
+      ],
+      "note": "Small positive component/changed-case evidence; no claim that aggregate absolute local score improved."
+    },
+    {
+      "checkpoint": "research/integrated/bundle20_small_warp_mma.py",
+      "sha256": "45df0d1b41d3f50e5d52e2df39d3dd6e93ff1924c09d72d75b2dffe54440e3d3",
+      "change": "Warp MMA only for8-row expert tiles at512<=T<2048; same accumulation streams and BF16 output",
+      "speedup_vs_previous": 1.0007627504383227,
+      "local_score_us": 198098.92055324288,
+      "validation": "16 scored and18 hard/edge checks; three bit-exact component inputs; duplicate-copy Nsight positive; non-small binary words identical",
+      "benchmark": "research/bundle19_mma8_full.json"
+    },
+    {
+      "checkpoint": "research/integrated/bundle21_decode_reuse.py",
+      "sha256": "9cce96e7a1fd0d940364506da96c1a41bb087fded0734a0871174790a21b27a0",
+      "change": "Reuse one rotated FP4 word in small-shape dequantization; bit-identical arithmetic",
+      "speedup_vs_previous": 1.0010123403790387,
+      "local_score_us": 198187.67790987686,
+      "validation": {
+        "benchmark": "research/bundle20_decode_reuse_full.json",
+        "hard_edges": "research/bundle20_decode_reuse_hard.json",
+        "scored_checks": 16,
+        "hard_edge_checks": 18,
+        "reps": 64,
+        "small_repeat_benchmark": "research/bundle20_reuse_width24_probe.json",
+        "unchanged_binary": "research/decode_reuse20_unchanged_binary.json",
+        "component": "research/bundle20_decode_reuse_component.json"
+      }
+    },
+    {
+      "checkpoint": "research/integrated/bundle22_medium_decode_reuse.py",
+      "sha256": "b56afbc805f71212e370737a78650cbd4ca5fc7b579a0d73baaef90d01da3f02",
+      "change": "Extend exact decode rotate reuse to medium non-PG expert kernels",
+      "speedup_vs_previous": 0.9999015747101946,
+      "local_score_us": 198170.96680931345,
+      "validation": {
+        "benchmark": "research/bundle21_medium_reuse_full.json",
+        "hard_edges": "research/bundle21_medium_reuse_hard.json",
+        "scored_checks": 16,
+        "hard_edge_checks": 18,
+        "reps": 64,
+        "component": "research/bundle21_medium_decode_reuse_component.json",
+        "unchanged_binary": "research/medium_reuse_unchanged_binary.json",
+        "medium_load_speedup": 1.0002705768203253,
+        "retention_basis": "Three fresh bit-identical component gains0.504-3.008us; two positive medium full-layer load comparisons; small/large compiled kernels identical. No new absolute score claim."
+      }
+    },
+    {
+      "checkpoint": "research/integrated/bundle23_gate_queue.py",
+      "sha256": "bd39eec310c038765888ba0ad8938d7dee9aa9d16abb14b43a7a22e6ea45d6cc",
+      "change": "Mix first half of small gate-projection jobs in chunks of8; preserve largest-first gate drain and original down ordering",
+      "speedup_vs_previous": 1.0003211881010647,
+      "local_score_us": 197708.45648869907,
+      "validation": {
+        "benchmark": "research/gate_queue_full.json",
+        "hard_edges": "research/gate_queue_hard.json",
+        "scored_checks": 16,
+        "hard_edge_checks": 18,
+        "reps": 64,
+        "component": "research/gate_queue_component.json",
+        "unchanged_binary": "research/gate_queue_unchanged_binary.json",
+        "small_load_speedup": 1.001191428054712,
+        "retention_basis": "Three fresh bit-identical component gains0.752-2.984us,116/120positivepairs; positive full-layer small-load comparison; four non-small kernel binaries identical."
+      }
+    }
+  ],
+  "notes": [
+    "Component gains are preserved even when too small to resolve individually in full-layer timing.",
+    "Full-layer speedups from separate runs do not establish an exact cumulative score.",
+    "No leaderboard submissions before passing official check below194000us.",
+    "Bundle8compact official check passed199955.328807us; no leaderboard submission because194000us gate remains.",
+    "Bundle11 official check passed199454.169947us. No leaderboard submission;194000us gate still applies.",
+    "Bundle12 officially passed198050.455700us. No leaderboard submission;194000us gate remains.",
+    "Bundle14 official check f4dcd2496f2c439f passed196176.475646us. Best official check updated; original194000us scored-submission gate remains.",
+    "User tightened gate: no off-board checks unless a passing full-layer local run measures below194000us; a projection or isolated component gain does not satisfy this gate."
+  ],
+  "official_job": "f4dcd2496f2c439f",
+  "direct_relative_to_submitted": 1.0061255526035813,
+  "local_full_speedup_vs_official8": 1.0018633893583695,
+  "local_full_speedup_vs_official11": 1.0031869230103891,
+  "local_checkpoint": "research/integrated/bundle23_gate_queue.py",
+  "local_full_speedup_vs_official12": 1.002121410039494,
+  "local_full_speedup_vs_official13": 1.000257827595224,
+  "local_full_speedup_vs_official14": 1.0054520215169824
+}

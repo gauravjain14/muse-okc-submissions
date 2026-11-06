@@ -1,0 +1,44 @@
+shape    time  TASKfl  datafl          r/d  per class: dur/floor (excess)
+d1s      67.9    40.0    43.0    2.4/ 2.38  qkv 8.4/7.9 (+0.6); attn 3.4/0.1 (+3.2); o 4.8/3.5 (+1.3); bnd1 3.9/0.0 (+3.8); pool+router 17.8/15.7 (+2.1); route 2.9/0.0 (+2.9); moe 22.8/14.0 (+8.8); unpool 5.2/1.8 (+3.4); bnd2 4.9/0.0 (+4.9); gaps 0.7, head 1.7, overlap 10.1  [score 0.178%/us]
+d1f      74.3    44.2    50.2    2.9/ 2.88  qkv 8.4/7.9 (+0.5); attn 9.9/4.3 (+5.6); o 4.9/3.5 (+1.4); bnd1 3.9/0.0 (+3.8); pool+router 17.7/15.7 (+2.0); route 2.9/0.0 (+2.9); moe 29.6/17.0 (+12.6); unpool 5.2/1.8 (+3.5); bnd2 5.0/0.0 (+5.0); gaps 0.8, head 1.8, overlap 10.3  [score 0.062%/us]
+d16s    133.2    76.7    88.5   31.5/ 7.50  qkv 8.9/7.9 (+0.9); attn 6.0/1.8 (+4.2); o 5.1/3.6 (+1.5); bnd1 3.4/0.4 (+3.0); pool 14.5/14.1 (+0.4); router 4.1/1.8 (+2.3); route 2.2/0.1 (+2.1); moe 66.5/44.3 (+22.2); unpool 14.0/14.1 (-0.1); bnd2 3.8/0.4 (+3.4); gaps 3.0, head 3.1, overlap 0.1  [score 0.081%/us]
+d16f    208.5   137.5   156.0   32.1/ 7.50  qkv 8.8/7.9 (+0.8); attn 87.1/69.3 (+17.8); o 5.2/3.6 (+1.6); bnd1 3.5/0.4 (+3.1); pool 14.5/14.1 (+0.4); router 4.1/1.8 (+2.3); route 2.1/0.1 (+2.0); moe 65.6/44.3 (+21.3); unpool 14.0/14.1 (-0.1); bnd2 3.8/0.4 (+3.4); gaps 3.4, head 1.6, overlap 0.1  [score 0.028%/us]
+d32s    153.8    84.5   101.3   59.2/ 9.12  qkv 9.5/8.0 (+1.5); attn 9.8/3.6 (+6.2); o 5.8/3.7 (+2.1); bnd1 3.5/0.8 (+2.7); pool 15.2/14.2 (+1.0); router 4.5/1.9 (+2.6); route 2.1/0.2 (+2.0); moe 82.1/53.9 (+28.1); unpool 15.7/14.3 (+1.5); bnd2 3.9/0.8 (+3.2); gaps 3.3, head 1.7, overlap 0.1  [score 0.064%/us]
+d32f    307.7   208.1   234.9   62.5/ 8.88  qkv 9.6/8.0 (+1.6); attn 166.6/138.7 (+27.9); o 5.6/3.7 (+1.9); bnd1 3.5/0.8 (+2.7); pool 15.1/14.2 (+0.9); router 4.4/1.9 (+2.6); route 2.3/0.2 (+2.1); moe 78.7/52.5 (+26.2); unpool 15.5/14.3 (+1.3); bnd2 3.9/0.8 (+3.1); gaps 3.7, head 1.7, overlap 0.2  [score 0.022%/us]
+v1s     114.2    62.3    73.9   14.1/ 7.50  qkv 8.8/7.9 (+0.9); attn 3.9/0.1 (+3.8); o 5.0/3.6 (+1.5); bnd1 3.8/0.2 (+3.6); pool+router 19.0/15.8 (+3.2); route 2.3/0.0 (+2.2); moe 57.1/44.3 (+12.8); unpool 3.9/1.8 (+2.1); bnd2 3.7/0.2 (+3.5); gaps 2.8, head 3.1, overlap 0.1  [score 0.108%/us]
+v1f     115.8    66.4    75.2   13.6/ 7.00  qkv 8.9/7.9 (+1.0); attn 11.7/4.3 (+7.3); o 5.0/3.6 (+1.4); bnd1 3.8/0.2 (+3.6); pool+router 19.0/15.8 (+3.1); route 2.1/0.0 (+2.1); moe 56.8/41.3 (+15.5); unpool 3.9/1.8 (+2.1); bnd2 3.7/0.2 (+3.5); gaps 2.9, head 3.1, overlap 0.1  [score 0.038%/us]
+v16s    242.7   126.6   161.7  205.6/18.25  qkv 12.6/8.4 (+4.2); attn 11.3/1.9 (+9.4); o 6.5/4.4 (+2.1); bnd1 4.1/3.1 (+1.1); pool 20.6/14.9 (+5.8); router 5.3/2.2 (+3.1); route 2.4/0.7 (+1.7); moe 156.5/108.1 (+48.4); unpool 18.7/15.1 (+3.7); bnd2 4.3/3.1 (+1.3); gaps 4.0, head 3.1, overlap 0.0  [score 0.047%/us]
+v16f    324.3   188.7   233.7  203.2/19.00  qkv 12.7/8.4 (+4.3); attn 92.2/69.4 (+22.7); o 6.5/4.4 (+2.1); bnd1 4.2/3.1 (+1.2); pool 20.9/14.9 (+6.0); router 5.4/2.2 (+3.2); route 2.4/0.7 (+1.7); moe 156.2/112.5 (+43.7); unpool 18.6/15.1 (+3.5); bnd2 4.4/3.1 (+1.3); gaps 4.3, head 3.4, overlap 0.0  [score 0.016%/us]
+v32s    313.3   143.8   190.2  402.5/20.88  qkv 15.9/9.0 (+6.9); attn 14.7/3.8 (+10.9); o 8.5/5.4 (+3.1); bnd1 6.9/6.1 (+0.7); pool 26.3/15.7 (+10.6); router 6.4/2.6 (+3.8); route 3.1/1.4 (+1.8); moe 190.9/124.0 (+66.9); unpool 24.5/16.2 (+8.4); bnd2 6.9/6.1 (+0.8); gaps 3.7, head 3.3, overlap 0.0  [score 0.035%/us]
+v32f    472.3   267.2   324.6  403.9/20.75  qkv 16.1/9.0 (+7.1); attn 171.7/138.9 (+32.8); o 8.4/5.4 (+3.0); bnd1 6.9/6.1 (+0.7); pool 26.2/15.7 (+10.5); router 6.4/2.6 (+3.8); route 3.0/1.4 (+1.6); moe 197.9/123.3 (+74.6); unpool 24.6/16.2 (+8.4); bnd2 7.0/6.1 (+0.9); gaps 3.9, head 3.3, overlap 0.0  [score 0.012%/us]
+
+Top places by score impact (excess over the class floor x weight / load / 6):
+   2.336% of score  v32s  moe              190.9 us vs floor  124.0 (excess   66.9 us)
+   2.271% of score  v16s  moe              156.5 us vs floor  108.1 (excess   48.4 us)
+   1.799% of score  d32s  moe               82.1 us vs floor   53.9 (excess   28.1 us)
+   1.797% of score  d16s  moe               66.5 us vs floor   44.3 (excess   22.2 us)
+   1.563% of score  d1s   moe               22.8 us vs floor   14.0 (excess    8.8 us)
+   1.380% of score  v1s   moe               57.1 us vs floor   44.3 (excess   12.8 us)
+   0.905% of score  v32f  moe              197.9 us vs floor  123.3 (excess   74.6 us)
+   0.869% of score  d1s   bnd2               4.9 us vs floor    0.0 (excess    4.9 us)
+   0.781% of score  d1f   moe               29.6 us vs floor   17.0 (excess   12.6 us)
+   0.713% of score  v16f  moe              156.2 us vs floor  112.5 (excess   43.7 us)
+   0.683% of score  d1s   bnd1               3.9 us vs floor    0.0 (excess    3.8 us)
+   0.620% of score  d32f  attn             166.6 us vs floor  138.7 (excess   27.9 us)
+   0.604% of score  d1s   unpool             5.2 us vs floor    1.8 (excess    3.4 us)
+   0.601% of score  d16f  moe               65.6 us vs floor   44.3 (excess   21.3 us)
+   0.583% of score  d32f  moe               78.7 us vs floor   52.5 (excess   26.2 us)
+
+By class, summed over shapes (score % if that class ran at its floor, linearized):
+  moe             15.31%
+  attn             5.06%
+  bnd2             2.46%
+  bnd1             2.11%
+  unpool           1.86%
+  exposed gaps     1.65%
+  route            1.60%
+  o                1.15%
+  qkv              1.10%
+  pool             0.99%
+  pool+router      0.95%
+  router           0.86%

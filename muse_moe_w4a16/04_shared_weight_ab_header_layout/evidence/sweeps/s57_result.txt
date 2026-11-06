@@ -1,0 +1,56 @@
+v89                           : 16:89.0(2.028x) 8:70.8(2.091x) 2.059x
+v89 early                     : 16:88.4(2.049x) 8:70.0(2.114x) 2.081x
+v89                           : 16:89.9(2.032x) 8:71.2(2.090x) 2.061x
+v89 early                     : 16:88.6(2.043x) 8:70.7(2.103x) 2.073x
+v89                           : 16:90.2(2.027x) 8:70.9(2.093x) 2.060x
+v89 early                     : 16:88.8(2.046x) 8:70.6(2.099x) 2.072x
+v89                           : 16:89.7(2.033x) 8:70.7(2.088x) 2.060x
+v89 early                     : 16:89.5(2.029x) 8:70.4(2.107x) 2.068x
+=== bs 32: 17016 events
+  first item ready: min 7.4 med 7.8 max 7.8 us
+  per CTA: item spans (ready->compute end) 97.5, epilogues 7.1, between items 2.6 us over 8.0 gaps (median gap 0.32, max 2.21)
+  last epilogue: min 112.1 med 114.8 max 117.2; combine start med 115.1 max 117.5; end max 122.2 us
+  producer dependency waits: 0 totalling 0.0 us (max 0.00)
+  CTAs computing per 2us bin: 0 0 0 21 132 132 132 132 132 132 132 132 86 40 110 130 132 132 132 132 132 92 113 122 132 132 132 132 132 132 108 100 119 132 132 132 132 126 129 94 111 128 124 131 89 123 128 124 112 106 128 112 119 105 105 108 97 54 3 0 0 0
+  comb-end     median 116.90  max 122.24 us
+  ntiles 18 n1 576 total 1184
+=== bs 128: 18216 events
+  first item ready: min 7.6 med 7.7 max 7.8 us
+  per CTA: item spans (ready->compute end) 162.3, epilogues 8.7, between items 3.6 us over 11.0 gaps (median gap 0.29, max 3.97)
+  last epilogue: min 179.7 med 182.1 max 184.8; combine start med 182.4 max 185.2; end max 190.0 us
+  producer dependency waits: 0 totalling 0.0 us (max 0.00)
+  CTAs computing per 2us bin: 0 0 0 21 132 132 132 132 132 132 132 132 132 132 129 126 111 117 78 132 132 132 132 132 132 129 115 123 90 132 132 132 132 132 132 124 104 97 131 132 132 132 132 132 123 99 108 132 132 132 132 132 131 121 90 119 132 132 132 132 132 130 115 97 132 132 132 132 120 120 132 132 128 102 121 114 117 126 118 120 120 101 120 110 106 113 104 115 109 109 89 27 0 0 0
+  comb-end     median 186.40  max 189.98 us
+  ntiles 33 n1 1056 total 1584
+=== bs 256: 18792 events
+  first item ready: min 11.6 med 12.0 max 12.1 us
+  per CTA: item spans (ready->compute end) 205.8, epilogues 16.1, between items 5.0 us over 12.5 gaps (median gap 0.32, max 2.59)
+  last epilogue: min 236.1 med 238.6 max 241.6; combine start med 239.0 max 242.0; end max 251.9 us
+  producer dependency waits: 0 totalling 0.0 us (max 0.00)
+  CTAs computing per 2us bin: 0 0 0 0 0 8 131 132 132 132 132 132 132 132 111 106 132 132 132 132 132 132 119 41 84 132 132 126 121 124 129 132 132 132 132 126 107 107 101 121 123 123 129 132 132 132 132 121 108 102 114 121 129 132 132 132 131 105 106 109 122 129 132 132 132 128 106 103 113 124 129 132 132 132 119 111 106 114 126 130 132 132 129 106 113 128 128 129 132 132 132 107 93 122 132 132 101 93 129 132 132 130 129 121 105 117 91 101 112 98 108 107 100 99 105 99 102 102 84 41 3 0 0 0 0 0
+  comb-end     median 246.64  max 251.90 us
+  ntiles 37 n1 1184 total 1776
+=== bs 32: 16248 events
+  first item ready: min 6.4 med 6.8 max 7.1 us
+  per CTA: item spans (ready->compute end) 74.2, epilogues 6.0, between items 1.9 us over 6.0 gaps (median gap 0.29, max 1.47)
+  last epilogue: min 85.6 med 88.9 max 90.9; combine start med 89.2 max 91.2; end max 94.6 us
+  producer dependency waits: 0 totalling 0.0 us (max 0.00)
+  CTAs computing per 2us bin: 0 0 0 81 132 132 132 132 132 132 132 132 54 71 130 111 131 132 132 132 132 111 101 132 117 130 132 132 132 130 80 125 128 125 115 106 120 111 129 99 111 107 102 111 47 1 0 0
+  comb-end     median  90.34  max  94.62 us
+  ntiles 14 n1 448 total 928
+=== bs 128: 18360 events
+  first item ready: min 7.6 med 7.7 max 7.8 us
+  per CTA: item spans (ready->compute end) 164.0, epilogues 8.9, between items 3.9 us over 11.4 gaps (median gap 0.29, max 2.91)
+  last epilogue: min 182.5 med 184.0 max 188.2; combine start med 184.3 max 188.5; end max 193.0 us
+  producer dependency waits: 0 totalling 0.0 us (max 0.00)
+  CTAs computing per 2us bin: 0 0 0 22 132 132 132 132 132 132 132 132 122 107 129 132 132 91 101 132 132 131 130 118 130 132 131 103 112 132 129 125 121 130 132 131 106 109 132 130 121 128 131 131 130 97 120 131 129 121 129 131 131 125 97 126 131 128 122 129 131 131 116 102 130 130 130 132 132 132 129 117 118 101 127 125 122 129 131 122 112 105 106 121 94 119 104 110 117 97 120 84 34 7 0 0 0
+  comb-end     median 189.44  max 193.02 us
+  ntiles 34 n1 1088 total 1632
+=== bs 256: 18504 events
+  first item ready: min 9.9 med 10.0 max 10.3 us
+  per CTA: item spans (ready->compute end) 195.6, epilogues 14.6, between items 4.8 us over 11.7 gaps (median gap 0.32, max 1.86)
+  last epilogue: min 222.4 med 225.1 max 229.2; combine start med 225.5 max 229.6; end max 237.4 us
+  producer dependency waits: 0 totalling 0.0 us (max 0.00)
+  CTAs computing per 2us bin: 0 0 0 0 1 123 132 132 132 132 132 132 132 132 132 132 132 129 109 89 132 103 97 107 132 132 132 132 132 132 123 81 131 122 111 108 128 132 132 132 132 132 132 92 113 109 120 125 132 132 132 132 132 123 96 114 119 119 131 132 132 132 132 108 102 112 123 125 132 132 132 131 103 106 119 121 129 132 132 132 117 117 132 132 132 130 107 91 107 125 132 131 113 120 132 132 128 105 101 122 97 106 108 82 110 100 92 113 94 100 109 73 51 21 0 0 0 0 0
+  comb-end     median 233.14  max 237.41 us
+  ntiles 35 n1 1120 total 1680

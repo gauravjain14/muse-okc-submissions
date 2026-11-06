@@ -1,0 +1,46 @@
+LT_X_ALGOS {(16384, 'pooler'): ('tn', (66, 29, 1, 0, 0, 1, 35, 0, 3), True), (16384, 'qkv_gate'): ('tn', (66, 409, 1, 0, 0, 1, 35, 0, 3), True), (16384, 'router512'): ('tn', (66, 408, 1, 0, 0, 3, 35, 0, 5), True), (3012, 'fused'): ('nn', (66, 408, 1, 0, 0, 3, 35, 0, 5), True), (3012, 'o'): ('tn', (66, 408, 1, 0, 0, 3, 35, 0, 5), True), (3012, 'qkv_gate'): ('tn', (66, 496, 1, 0, 0, 5, 35, 0, 2), True), (3012, 'qkv_smt'): ('tn', (66, 408, 1, 0, 0, 1, 35, 0, 6), True), (3012, 'unpooler'): ('tn', (66, 408, 1, 0, 0, 1, 35, 0, 3), True), (753, 'fused'): ('tn', (66, 185, 1, 0, 0, 4, 35, 0, 2), True), (753, 'o'): ('tn', (66, 33, 1, 0, 0, 1, 35, 0, 2), True), (753, 'unpooler'): ('nn', (66, 31, 1, 0, 0, 4, 35, 0, 5), True)}
+SK2_ROUTE []
+_PREFILL_LT_PLANS {(16384, 4096, 8192): 'DenseLtX#0', (16384, 8192, 4096): 'LtMatmul#6', (16384, 8192, 1024): 'DenseLt#6', (16384, 2304, 8192): 'DenseLtX#0', (3012, 2304, 8192): 'DenseLtX#0', (3012, 8192, 1024): 'DenseLtX#0', (3012, 8192, 4096): 'DenseLtX#0', (753, 8192, 1024): 'DenseLtX#0', (753, 8192, 4096): 'DenseLtX(nn)#0'}
+SK2_LT0_PLANS {(3012, 4608, 8192, True): 'DenseLtX(nn)#0', (3012, 8192, 4096, False): 'DenseLtX#0'}
+qkv_smt {3012: 'DenseLtX', 753: 'DenseLt'}
+fused_plans {753: 'DenseLtX#0', 3012: 'DenseLtX(nn)#0'}
+router512_plans {16384: 'DenseLtX#0'}
+case 0: [('nvjet_sm90_tst_112x128_64x7_1x2_h_bz_TNN', [2, 63, 1], 39.1), ('nvjet_sm90_tst_128x96_64x7_1x1_v_ssched_bz_TNT', [1, 132, 1], 18.7), ('nvjet_sm90_tss_144x192_64x5_1x1_v_bz_coopB_TNN', [1, 128, 1], 76.0), ('nvjet_sm90_tst_192x128_64x5_1x2_v_bz_coopA_NNN', [2, 66, 1], 64.3)]
+case 1: [('nvjet_sm90_tst_128x128_64x6_2x2_h_bz_TNT', [4, 27, 1], 43.5), ('nvjet_sm90_tst_128x96_64x7_1x1_v_ssched_bz_TNT', [1, 132, 1], 19.5), ('nvjet_sm90_tss_144x192_64x5_1x1_v_bz_coopB_TNN', [1, 128, 1], 73.4), ('nvjet_sm90_tst_192x128_64x5_1x2_v_bz_coopA_NNN', [2, 66, 1], 65.1)]
+case 2: [('nvjet_sm90_tst_256x104_64x4_1x1_v_bz_coopA_TNT', [1, 132, 1], 147.3), ('nvjet_sm90_tst_128x168_64x5_1x2_h_ssched_bz_TNT', [2, 66, 1], 63.1), ('nvjet_sm90_tss_128x168_64x5_1x2_h_ssched_bz_NNT', [2, 66, 1], 282.1), ('nvjet_sm90_tst_128x168_64x5_2x1_v_ssched_bz_TNT', [2, 66, 1], 249.4)]
+case 3: [('nvjet_sm90_tst_128x168_64x5_2x2_v_ssched_bz_TNT', [4, 27, 1], 169.0), ('nvjet_sm90_tst_128x168_64x5_1x2_h_ssched_bz_TNT', [2, 66, 1], 63.8), ('nvjet_sm90_tss_128x168_64x5_1x2_h_ssched_bz_NNT', [2, 66, 1], 281.3), ('nvjet_sm90_tst_128x168_64x5_2x1_v_ssched_bz_TNT', [2, 66, 1], 251.8)]
+case 4: [('nvjet_sm90_tst_128x176_64x5_2x1_v_ssched_bz_TNT', [2, 66, 1], 759.9), ('nvjet_sm90_tst_128x160_64x5_2x1_v_ssched_bz_TNT', [2, 66, 1], 1332.7), ('nvjet_sm90_tss_128x168_64x5_1x2_h_ssched_bz_TNT', [2, 66, 1], 173.8)]
+case 5: [('nvjet_sm90_tst_128x176_64x5_2x1_v_ssched_bz_TNT', [2, 66, 1], 779.8), ('nvjet_sm90_tst_128x160_64x5_2x1_v_ssched_bz_TNT', [2, 66, 1], 1374.7), ('nvjet_sm90_tss_128x168_64x5_1x2_h_ssched_bz_TNT', [2, 66, 1], 178.3)]
+CHECK_PLANS_OK
+FIXED_US 4.320 (one 5.296 two 6.272)
+DRAW fields_seed=11 router_seed=7595436449497252824
+RESULT case=0 turn 1     sliding b1 ctx80000 q753 sglang=1097.7 base=541.8us x2.0259 v2=538.2us x2.0397 v2o=539.2us x2.0355
+RESULT case=1 turn 1     full    b1 ctx80000 q753 sglang=1431.5 base=716.0us x1.9994 v2=711.9us x2.0109 v2o=714.6us x2.0032
+RESULT case=2 turn 4     sliding b4 ctx80000 q753 sglang=3354.4 base=1778.0us x1.8865 v2=1764.0us x1.9015 v2o=1761.6us x1.9042
+RESULT case=3 turn 4     full    b4 ctx80000 q753 sglang=4909.6 base=2539.5us x1.9333 v2=2527.7us x1.9423 v2o=2526.6us x1.9432
+RESULT case=4 first turn full    b1 ctx0 q16384 sglang=17416.5 base=8767.8us x1.9864 v2=8659.9us x2.0112 v2o=8710.7us x1.9994
+RESULT case=5 first turn sliding b1 ctx32768 q16384 sglang=17779.7 base=8952.4us x1.9860 v2=8970.4us x1.9820 v2o=9147.2us x1.9437
+RESULT case=6 first turn full    b1 ctx32768 q16384 sglang=20872.5 base=10229.7us x2.0404 v2=10161.9us x2.0540 v2o=10322.5us x2.0220
+RESULT case=7 first turn full    b1 ctx65536 q16384 sglang=26162.2 base=12431.6us x2.1045 v2=12287.8us x2.1291 v2o=12434.8us x2.1040
+DRAW_SCORE fields_seed=11 base: x1.9741 (196.244 ms) {"turn 1": 2.0175, "turn 4": 1.9021, "first turn": 2.0047}
+DRAW_SCORE fields_seed=11 v2: x1.9839 (195.278 ms) {"turn 1": 2.0306, "turn 4": 1.9151, "first turn": 2.0078}
+DRAW_SCORE fields_seed=11 v2o: x1.9715 (196.502 ms) {"turn 1": 2.0253, "turn 4": 1.9171, "first turn": 1.9735}
+DRAW fields_seed=22 router_seed=3225630594405768948
+RESULT case=0 turn 1     sliding b1 ctx80000 q753 sglang=1068.2 base=542.9us x1.9674 v2=541.4us x1.9729 v2o=539.1us x1.9815
+RESULT case=1 turn 1     full    b1 ctx80000 q753 sglang=1547.6 base=783.5us x1.9752 v2=779.5us x1.9856 v2o=780.3us x1.9833
+RESULT case=2 turn 4     sliding b4 ctx80000 q753 sglang=3369.0 base=1795.6us x1.8762 v2=1777.0us x1.8959 v2o=1775.1us x1.8979
+RESULT case=3 turn 4     full    b4 ctx80000 q753 sglang=5110.6 base=2623.9us x1.9477 v2=2609.8us x1.9582 v2o=2615.9us x1.9537
+RESULT case=4 first turn full    b1 ctx0 q16384 sglang=19117.3 base=9372.5us x2.0397 v2=9328.8us x2.0493 v2o=9414.4us x2.0307
+RESULT case=5 first turn sliding b1 ctx32768 q16384 sglang=17019.3 base=8788.1us x1.9366 v2=8822.0us x1.9292 v2o=8864.6us x1.9199
+RESULT case=6 first turn full    b1 ctx32768 q16384 sglang=22420.6 base=10841.4us x2.0681 v2=10751.1us x2.0854 v2o=10886.1us x2.0596
+RESULT case=7 first turn full    b1 ctx65536 q16384 sglang=25806.7 base=12419.2us x2.0780 v2=12105.7us x2.1318 v2o=12412.9us x2.0790
+DRAW_SCORE fields_seed=22 base: x1.9481 (198.863 ms) {"turn 1": 1.97, "turn 4": 1.9003, "first turn": 1.9749}
+DRAW_SCORE fields_seed=22 v2: x1.9571 (197.953 ms) {"turn 1": 1.9771, "turn 4": 1.917, "first turn": 1.9777}
+DRAW_SCORE fields_seed=22 v2o: x1.9533 (198.336 ms) {"turn 1": 1.9821, "turn 4": 1.9168, "first turn": 1.9615}
+PANEL base: x1.9610 (197.549 ms) draws 1.9741 1.9481
+PANEL v2: x1.9704 (196.611 ms) draws 1.9839 1.9571
+PANEL v2o: x1.9624 (197.417 ms) draws 1.9715 1.9533
+RELATIVE v2/base: 1.0049 1.0046 mean 1.0048
+RELATIVE v2o/base: 0.9987 1.0027 mean 1.0007
+REPLICA_RC=0
+REMOTE_EXIT 0

@@ -1,0 +1,37 @@
+t3f              local x1.5167   judge-projected (+1.0 us/shape) x1.4594   (+1.4 us/shape) x1.4401
+vj               local x1.5921   judge-projected (+1.0 us/shape) x1.5251   (+1.4 us/shape) x1.5026
+al               local x1.6598   judge-projected (+1.0 us/shape) x1.5835   (+1.4 us/shape) x1.5579
+oracle best-of   local x1.6800   judge-projected (+1.0 us/shape) x1.6000   (+1.4 us/shape) x1.5732
+bo1 composition  local x1.6743   judge-projected (+1.0 us/shape) x1.5952   (+1.4 us/shape) x1.5687
+
+per-shape winner (local us):
+  decode 1  m=1   qkv_gate  sglang  12.94  t3f   6.75  vj   7.32  al   7.28  -> t3f
+  decode 1  m=1   o         sglang   5.41  t3f   3.56  vj   3.54  al   3.58  -> vj
+  decode 1  m=1   pooler    sglang  19.52  t3f  11.21  vj  12.26  al  11.73  -> t3f
+  decode 1  m=1   unpooler  sglang   5.60  t3f   2.19  vj   2.20  al   2.08  -> al
+  decode 1  m=1   router    sglang   8.91  t3f   2.42  vj   2.22  al   2.25  -> vj
+  decode 16 m=16  qkv_gate  sglang  12.88  t3f  10.15  vj   8.11  al   8.24  -> vj
+  decode 16 m=16  o         sglang   5.22  t3f   4.59  vj   4.13  al   3.93  -> al
+  decode 16 m=16  pooler    sglang  20.10  t3f  14.48  vj  12.84  al  12.53  -> al
+  decode 16 m=16  unpooler  sglang  16.88  t3f  13.95  vj  12.25  al  12.51  -> vj
+  decode 16 m=16  router    sglang  14.02  t3f   4.23  vj   3.57  al   3.23  -> al
+  decode 32 m=32  qkv_gate  sglang  13.20  t3f  11.32  vj   9.50  al   9.24  -> al
+  decode 32 m=32  o         sglang   5.78  t3f   4.75  vj   4.50  al   4.29  -> al
+  decode 32 m=32  pooler    sglang  20.43  t3f  15.78  vj  13.49  al  13.76  -> vj
+  decode 32 m=32  unpooler  sglang  17.44  t3f  15.21  vj  13.55  al  13.50  -> al
+  decode 32 m=32  router    sglang  14.30  t3f   4.31  vj   3.96  al   4.01  -> vj
+  verify 1  m=8   qkv_gate  sglang  13.09  t3f   9.32  vj   8.44  al   7.96  -> al
+  verify 1  m=8   o         sglang   5.38  t3f   4.17  vj   4.41  al   3.82  -> al
+  verify 1  m=8   pooler    sglang  20.05  t3f  13.80  vj  12.79  al  12.27  -> al
+  verify 1  m=8   unpooler  sglang   5.74  t3f   2.50  vj   3.01  al   2.87  -> t3f
+  verify 1  m=8   router    sglang  25.07  t3f   3.85  vj   3.64  al   2.96  -> al
+  verify 16 m=128 qkv_gate  sglang  15.86  t3f  15.08  vj  13.39  al  12.57  -> al
+  verify 16 m=128 o         sglang   5.97  t3f   6.17  vj   5.99  al   5.51  -> al
+  verify 16 m=128 pooler    sglang  24.00  t3f  19.49  vj  20.28  al  19.06  -> al
+  verify 16 m=128 unpooler  sglang  18.26  t3f  17.92  vj  17.69  al  17.51  -> al
+  verify 16 m=128 router    sglang  15.31  t3f   6.50  vj   4.52  al   4.57  -> vj
+  verify 32 m=256 qkv_gate  sglang  18.14  t3f  16.32  vj  18.30  al  16.24  -> al
+  verify 32 m=256 o         sglang   7.95  t3f   7.99  vj   7.98  al   7.37  -> al
+  verify 32 m=256 pooler    sglang  28.90  t3f  23.26  vj  26.06  al  22.71  -> al
+  verify 32 m=256 unpooler  sglang  23.34  t3f  22.84  vj  23.29  al  22.35  -> al
+  verify 32 m=256 router    sglang  16.29  t3f   8.60  vj   5.71  al   5.66  -> al

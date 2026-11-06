@@ -1,0 +1,945 @@
+--- 03_cublaslt_config_search/build.py
++++ 04_many_cta_gemv_m1/build.py
+@@ -1978,6 +1978,7 @@
+ # ======================================================================== component: NVRTC helper
+ """NVRTC compile + driver-API launch on torch's current stream (graph-capturable)."""
+ import ctypes
++import os
+ import struct
+ 
+ import torch
+@@ -2306,6 +2307,7 @@
+       }
+     }
+   }
++  if (threadIdx.x == 0) TR(7);
+   __syncthreads();
+   if (threadIdx.x == 0) TR(6);
+   const int nq = ng * 2;
+@@ -2351,7 +2353,7 @@
+ _k1_LAYER_K = {"qkv_gate": 8192, "o": 1024, "pooler": 8192, "pooler1": 8192, "unpooler": 4096, "unpslice": 4096}
+ # layer -> (C, Q, GW, WR, WK, D)
+ _k1_CFG = {
+-    "qkv_gate": (2, 66, 5, 1, 16, 4),
++    "qkv_gate": (2, 66, 5, 1, 16, 3),
+     "pooler": (2, 66, 4, 2, 8, 4),
+     "pooler1": (1, 132, 4, 1, 16, 4),
+     "o": (1, 132, 4, 2, 8, 4),
+@@ -2585,7 +2587,7 @@
+   TMap tmx;
+   const u8* w; const u8* ovf; const uint4* hdr; u16* out;
+   long long M, N, G, Q;
+-  u32 base2, ovstride, ovoff, pad;
++  u32 base2, ovstride, ovoff, rcvoff;
+   unsigned long long* trace;
+ };
+ __device__ __forceinline__ unsigned long long gtime() { unsigned long long t; asm volatile("mov.u64 %0, %%globaltimer;" : "=l"(t)); return t; }
+@@ -2630,6 +2632,13 @@
+   asm volatile("barrier.cluster.arrive.release.aligned;\nbarrier.cluster.wait.acquire.aligned;" ::: "memory");
+ }
+ __device__ __forceinline__ u32 cluster_rank() { u32 r; asm volatile("mov.u32 %0, %%cluster_ctarank;" : "=r"(r)); return r; }
++__device__ __forceinline__ void st_async4(u32 addr, u32 bar, u32 rank, float4 v) {
++  u32 ra, rb;
++  asm("mapa.shared::cluster.u32 %0, %1, %2;" : "=r"(ra) : "r"(addr), "r"(rank));
++  asm("mapa.shared::cluster.u32 %0, %1, %2;" : "=r"(rb) : "r"(bar), "r"(rank));
++  asm volatile("st.async.shared::cluster.mbarrier::complete_tx::bytes.v4.f32 [%0], {%1,%2,%3,%4}, [%5];"
++               :: "r"(ra), "f"(v.x), "f"(v.y), "f"(v.z), "f"(v.w), "r"(rb) : "memory");
++}
+ __device__ __forceinline__ void st_dsmem4(u32 addr, u32 rank, float4 v) {
+   u32 ra; asm("mapa.shared::cluster.u32 %0, %1, %2;" : "=r"(ra) : "r"(addr), "r"(rank));
+   asm volatile("st.shared::cluster.v4.f32 [%0], {%1,%2,%3,%4};" :: "r"(ra), "f"(v.x), "f"(v.y), "f"(v.z), "f"(v.w) : "memory");
+@@ -2696,7 +2705,7 @@
+   constexpr int SB = COMP ? 32 * 12 * GW : 32 * 16 * GW;   // global bytes per warp step
+   static_assert(NKT * WK * 32 * C == KT * 32, "K split");
+   static_assert(WK % 2 == 0, "x chunks are whole 64-k boxes");
+-  static_assert(8 * (1 + 2 * R) + 4 * R <= 1024, "barrier area");
++  static_assert(8 * (1 + 2 * R) + 4 * R <= 1016, "barrier area");   // [1016] = split-K receive barrier
+   extern __shared__ __align__(1024) unsigned char sm[];
+   // barriers: [0] overflow, [1 + j] x slot j full, [1 + R + j] x slot j empty (NCW consumer warps)
+   const u32 bar0 = smem_u32(sm);
+@@ -2726,6 +2735,14 @@
+     TR(0);
+     mbar_init(bar0, 1);
+     for (int j = 0; j < R; ++j) { mbar_init(bar0 + 8 * (1 + j), 1); *(u32*)(sm + 8 * (1 + 2 * R) + 4 * j) = 0u; }
++    if (C > 1) {
++      // split-K partials from the other ranks of the cluster land in a dedicated buffer (not aliasing x):
++      // (C-1) ranks x M tokens x my quads x 16 B
++      const int nq0 = nrows / 4;
++      const int nmy0 = (int)((r + 1) * nq0 / C) - (int)(r * nq0 / C);
++      mbar_init(bar0 + 1016, 1);
++      mbar_expect_arrive(bar0 + 1016, (u32)((C - 1) * M * nmy0 * 16));
++    }
+     asm volatile("fence.mbarrier_init.release.cluster;" ::: "memory");
+ #pragma unroll 1
+     for (int i = 0; i < R && i < NKT; ++i) {
+@@ -2738,6 +2755,7 @@
+     }
+   }
+   __syncthreads();
++  if (C > 1) asm volatile("barrier.cluster.arrive.relaxed.aligned;" ::: "memory");  // receive barriers initialised
+   float acc[GW][MT][4];
+ #pragma unroll
+   for (int j = 0; j < GW; ++j)
+@@ -2836,10 +2854,9 @@
+   }
+   __syncthreads();                                // everyone is done with x
+   if (threadIdx.x == 0) TR(3);
+-  if (C > 1) asm volatile("barrier.cluster.arrive.relaxed.aligned;" ::: "memory");  // my x area is free for pushes
+   float* part = (float*)(sm + 1024);
+   float* red2 = part + WK * TOKP * RS;
+-  float* recv = red2 + TOKP * RS;
++  float* recv = (float*)(sm + p.rcvoff);
+ #pragma unroll
+   for (int j = 0; j < GW; ++j) {
+     if (j < gcount && wid < NCW && (wr * GW + j) * 8 + 2 * (lane & 3) < nrows) {
+@@ -2855,7 +2872,7 @@
+   __syncthreads();
+   if (threadIdx.x == 0) TR(6);
+   const int nq = nrows / 4;
+-  if (C > 1) asm volatile("barrier.cluster.wait.acquire.aligned;" ::: "memory");
++  if (C > 1) asm volatile("barrier.cluster.wait.acquire.aligned;" ::: "memory");   // pairs with the arrive at start
+   const int qa = (int)(r * nq / C), qb = (int)((r + 1) * nq / C);
+   for (int e = threadIdx.x; e < M * nq; e += blockDim.x) {
+     const int t = e / nq, qd = e % nq, n = qd * 4;
+@@ -2872,20 +2889,25 @@
+       u32 owner = 0;
+ #pragma unroll
+       for (int c2 = 1; c2 < C; ++c2) if (qd >= (c2 * nq) / C) owner = (u32)c2;
+-      st_dsmem4(smem_u32(&recv[t * RS + n]), owner, s);
++      const int sl = (int)r < (int)owner ? (int)r : (int)r - 1;   // one receive slot per source rank
++      st_async4(smem_u32(&recv[(sl * TOKP + t) * RS + n]), bar0 + 1016, owner, s);
+     } else {
+       *(float4*)&red2[t * RS + n] = s;
+     }
+   }
+   if (C > 1) {
+-    cluster_sync_all();
++    mbar_wait(bar0 + 1016, 0);                    // the other ranks' partials for my quads
++    __syncthreads();                              // red2 from all threads
+     if (threadIdx.x == 0) TR(4);
+     const int nmy = qb - qa;
+     for (int e = threadIdx.x; e < M * nmy; e += blockDim.x) {
+       const int t = e / nmy, n = (qa + e % nmy) * 4;
+       float4 s = *(const float4*)&red2[t * RS + n];
+-      const float4 v = *(const float4*)&recv[t * RS + n];
+-      s.x += v.x; s.y += v.y; s.z += v.z; s.w += v.w;
++#pragma unroll
++      for (int sl = 0; sl < C - 1; ++sl) {
++        const float4 v = *(const float4*)&recv[(sl * TOKP + t) * RS + n];
++        s.x += v.x; s.y += v.y; s.z += v.z; s.w += v.w;
++      }
+       uint2 o; o.x = pack_bf2(s.x, s.y); o.y = pack_bf2(s.z, s.w);
+       *(uint2*)(p.out + (size_t)t * p.N + (size_t)r0 + n) = o;
+     }
+@@ -2926,16 +2948,18 @@
+     nkt = kc // 32 // wk
+     tokp = (tokb + 15) // 16 * 16
+     chb = tokb * wk * 64
+-    epi = (wk + 2) * tokp * (gw * wr * 8 + 8) * 4
++    epi = (wk + 1 + max(c - 1, 1)) * tokp * (gw * wr * 8 + 8) * 4
+     ovm = _k1t_OVMAX if comp else 0
+     r = nkt
+     while r > 2 and 1024 + max(r * chb + 1024, epi) + ovm > _k1t_SMEM_MAX:
+         r -= 1
+     ovoff = 1024 + (max(r * chb + 1024, epi) + 1023) // 1024 * 1024
+-    smem = max(ovoff + ovm, 120 * 1024)  # one CTA per SM
++    rcvoff = ovoff + ovm
++    rcv = (c - 1) * tokp * (gw * wr * 8 + 8) * 4 if c > 1 else 0
++    smem = max(rcvoff + rcv, 120 * 1024)  # one CTA per SM
+     if smem > _k1t_SMEM_MAX:
+         smem = 10**9
+-    return dict(ovoff=ovoff, smem=smem, nkt=nkt, r=r)
++    return dict(ovoff=ovoff, smem=smem, nkt=nkt, r=r, rcvoff=rcvoff)
+ 
+ 
+ def _k1t__needed():
+@@ -3131,7 +3155,7 @@
+     dm = _k1t__dims(lname, tokb, comp)
+     tm = _k1t_x_tmap3(x, m, k, tokb, wk // 2)
+     args = tm + struct.pack("<QQQQqqqqIIIIQ", ent["w"].data_ptr(), ent["ovf"].data_ptr(), ent["hdr"].data_ptr(),
+-                            out.data_ptr(), m, n, ent["GU"], q, ent["base2"], ent["ovstride"], dm["ovoff"], 0,
++                            out.data_ptr(), m, n, ent["GU"], q, ent["base2"], ent["ovstride"], dm["ovoff"], dm["rcvoff"],
+                             _k1t_TRACE.data_ptr() if _k1t_TRACE is not None else 0)
+     args += b"\0" * (256 - len(args))
+     pw = 0
+@@ -3298,6 +3322,7 @@
+   const int M = (int)p.M;
+   const unsigned char* wsrc = p.w + (size_t)(rt * S + ks) * (RR * KK * (CMP ? 3 : 4));
+   const u32 base2 = (u32)p.base2;
++  const u32 zgen = (FL & 256) ? *(volatile const u32*)(p.cnt + 64 + b) : 0u;
+   __shared__ int esc_e[CMP ? 32 : 1];
+   __shared__ float esc_d[CMP ? 32 : 1];
+   __shared__ float corr[CMP ? TT * RR : 1];
+@@ -3400,6 +3425,25 @@
+       __syncwarp();
+       if (lane == 0) mbar_arrive(bars + 8 * (NS + slot));
+     }
++  }
++  if (FL & 256) {     // per-warp epilogue: wait for the zero CTAs, red.add fragments directly (no smem reduction)
++    if (wid < NCW) {
++      const u32 target = zgen + ZCTAS;
++      while ((int)(ld_acquire_u32(p.cnt) - target) < 0) {}
++#pragma unroll
++      for (int g = 0; g < GW; ++g) {
++        const int n = rt * RR + (wg * GW + g) * 8 + 2 * (lane & 3);
++#pragma unroll
++        for (int mt = 0; mt < MT; ++mt) {
++          const int t = tt * TT + mt * 16 + (lane >> 2);
++          if (t < M) asm volatile("red.global.add.v2.f32 [%0], {%1,%2};" :: "l"(&p.out[(size_t)t * 256 + n]), "f"(acc[g][mt][0]), "f"(acc[g][mt][1]) : "memory");
++          if (t + 8 < M) asm volatile("red.global.add.v2.f32 [%0], {%1,%2};" :: "l"(&p.out[(size_t)(t + 8) * 256 + n]), "f"(acc[g][mt][2]), "f"(acc[g][mt][3]) : "memory");
++        }
++      }
++    }
++    __syncthreads();
++    if (threadIdx.x == 0) p.cnt[64 + b] = zgen + ZCTAS;
++    return;
+   }
+   __syncthreads();  // all stages landed and consumed
+   TRT(3);
+@@ -3728,7 +3772,7 @@
+   u32 ra; asm volatile("mapa.shared::cluster.u32 %0, %1, %2;" : "=r"(ra) : "r"(b), "r"(rank));
+   asm volatile("mbarrier.arrive.release.cluster.shared::cluster.b64 _, [%0];" :: "r"(ra) : "memory");
+ }
+-template <int TN, int KK, int NS, int MC, int ZF, int CA = 0>
++template <int TN, int KK, int NS, int MC, int ZF, int CA = 0, int ZA = 0>
+ __device__ __forceinline__ void rw_body(const PW& p) {
+   constexpr int S = 8192 / KK, NSTG = KK / 64;
+   constexpr int AB = CA ? 12288 : 16384, XB = TN * 128, SB = AB + XB;
+@@ -3760,6 +3804,15 @@
+   }
+   __syncthreads();
+   if (MC) asm volatile("barrier.cluster.arrive.release.aligned;\nbarrier.cluster.wait.acquire.aligned;" ::: "memory");
++  if (ZA && wid == 5) {   // zero tokens [ks*TN/S, (ks+1)*TN/S) x 64 rows of this CTA's output tile, then release
++    const int tz = TN / S, t0 = tt * TN + ks * tz;
++    for (int i = lane; i < tz * 16; i += 32) {
++      const int t = t0 + (i >> 4);
++      if (t < M) *(float4*)&p.out[(size_t)t * 256 + rt * 64 + (i & 15) * 4] = make_float4(0.f, 0.f, 0.f, 0.f);
++    }
++    __syncwarp();
++    if (lane == 0) { __threadfence(); asm volatile("red.release.gpu.global.add.u32 [%0], 1;" :: "l"(p.zc + tt * 4 + rt) : "memory"); }
++  }
+   if (wid == 4) {
+     if (lane == 0) {
+ #pragma unroll 1
+@@ -3883,7 +3936,10 @@
+     __syncthreads();
+   }
+   TR(4);
+-  if (ZF) wait_zero(p.zc, p.zc + 64 + b);
++  if (ZA) {
++    const u32 target = *(volatile const u32*)(p.zc + 64 + b) + S;
++    while ((int)(ld_acquire_u32(p.zc + tt * 4 + rt) - target) < 0) {}
++  } else if (ZF) wait_zero(p.zc, p.zc + 64 + b);
+   else asm volatile("griddepcontrol.wait;" ::: "memory");
+   TR(5);
+   const int tmax = min(TN, M - tt * TN);
+@@ -3894,6 +3950,7 @@
+   }
+   __syncthreads();
+   if (ZF && threadIdx.x == 0) p.zc[64 + b] += ZCTAS;
++  if (ZA && threadIdx.x == 0) p.zc[64 + b] += S;
+   TR(6);
+ }
+ 
+@@ -3991,7 +4048,7 @@
+         for name in ("rt16", "rt32", "rt64"):
+             tt, rr, kk, ks, ns, wk, wg, _ = cfgs[name]
+             nt = 32 * (wk * wg + 1)
+-            for fl in (4, 16, 80):
++            for fl in (4, 16, 272):
+                 s += (f'extern "C" __global__ void __launch_bounds__({nt},1) {name}_f{fl}(const __grid_constant__ P p)'
+                       f' {{ rt_body<{tt},{rr},{kk},{ks},{ns},{wk},{wg},{fl}>(p); }}\n')
+         for name in ("rw64", "rw128b"):
+@@ -4000,13 +4057,15 @@
+                   f' {{ rw_body<{tn},{kk},{ns},0,0>(p); }}\n')
+             s += (f'extern "C" __global__ void __launch_bounds__(160,1) {name}c(const __grid_constant__ PW p)'
+                   f' {{ rw_body<{tn},{kk},{ns},0,0,1>(p); }}\n')
++            s += (f'extern "C" __global__ void __launch_bounds__(192,1) {name}za(const __grid_constant__ PW p)'
++                  f' {{ rw_body<{tn},{kk},{ns},0,0,0,1>(p); }}\n')
+         for m in range(1, 5):
+             s += (f'extern "C" __global__ void __launch_bounds__(256,1) rs{m}(const __grid_constant__ PS p)'
+                   f' {{ rs_body<{m},{_rt_RS_NCH}>(p); }}\n')
+         return s
+     for name, (tt, rr, kk, ks, ns, wk, wg, _) in cfgs.items():
+         nt = 32 * (wk * wg + 1)
+-        for fl in (0, 1, 2, 3, 4, 8, 16, 48, 80, 144):
++        for fl in (0, 1, 2, 3, 4, 8, 16, 48, 80, 144, 272):
+             s += (f'extern "C" __global__ void __launch_bounds__({nt},1) {name}_f{fl}(const __grid_constant__ P p)'
+                   f' {{ rt_body<{tt},{rr},{kk},{ks},{ns},{wk},{wg},{fl}>(p); }}\n')
+     for name, (tn, kk, ns) in _rt_RW_CFGS.items():
+@@ -4019,6 +4078,8 @@
+                   f' {{ rw_body<{tn},{kk},{ns},0,1>(p); }}\n')
+             s += (f'extern "C" __global__ void __launch_bounds__(160,1) {name}c(const __grid_constant__ PW p)'
+                   f' {{ rw_body<{tn},{kk},{ns},0,0,1>(p); }}\n')
++            s += (f'extern "C" __global__ void __launch_bounds__(192,1) {name}za(const __grid_constant__ PW p)'
++                  f' {{ rw_body<{tn},{kk},{ns},0,0,0,1>(p); }}\n')
+     for mt in (1, 2, 4):
+         s += (f'extern "C" __global__ void __cluster_dims__(8,1,1) __launch_bounds__(288,1) rc{mt}(const __grid_constant__ PC p)'
+               f' {{ rc_body<{mt}>(p); }}\n')
+@@ -4390,11 +4451,12 @@
+ _rt_ZMODE = False
+ _rt_DELAY_NS = 0
+ _rt_RWC = False
++_rt_RWZA = False
+ 
+ 
+ # default dispatch (measured 2026-10-27, see NOTES.md); the module-level switches above are for ablations
+ _rt_DISPATCH = True
+-_rt_SMALL_FLAGS = 16
++_rt_SMALL_FLAGS = None   # None: per-M choice below; an int forces one rt epilogue
+ 
+ 
+ def _rt_run_router(x, st):
+@@ -4406,7 +4468,8 @@
+         _rt_USE_RS = m <= 4
+         _rt_USE_RW = m > 64
+         _rt_RW_SEL = {"small": "rw64", "big": "rw128b"}
+-        _rt_FLAGS = _rt_SMALL_FLAGS  # rt: 16 = in-kernel zero CTAs (falls back to PDL below if no sync block exists)
++        # rt: 16 = in-kernel zero CTAs; 272 = same + per-warp direct red.adds (fewer reds at M <= 8 only)
++        _rt_FLAGS = _rt_SMALL_FLAGS if _rt_SMALL_FLAGS is not None else (272 if m <= 8 else 16)
+     out = torch.empty((m, 256), dtype=torch.float32, device=x.device)
+     if _rt_USE_RW and m > 64:
+         name = _rt_RW_SEL["small"] if m <= 128 else _rt_RW_SEL["big"]
+@@ -4418,6 +4481,12 @@
+             ntt = (m + tn - 1) // tn
+         zk = st["zkeys"].get((name, ntt))
+         zptr = st["zc"].data_ptr() + 4 * 4096 * (zk or 0)
++        if _rt_RWZA and zk is not None:
++            params = _rt__tmap_x2(x, m, tn) + struct.pack("QqqqQQ", st["w_rw"][kk].data_ptr(), out.data_ptr(), m, ntt,
++                                                      _rt_TRACE.data_ptr() if _rt_TRACE is not None else 0, zptr)
++            params += b"\0" * ((-len(params)) % 64)
++            st["mod"].launch(name + "za", 4 * ntt * (8192 // kk), 192, _rt_rw_smem(name), params)
++            return out
+         if _rt_RWC and kk in st["w_rwc"] and st["rwc_esc"][kk][3] <= 32:
+             c = st["cmp"]
+             off, ent, dl, _ = st["rwc_esc"][kk]
+@@ -4483,7 +4552,7 @@
+                                              st["ws"].data_ptr(), st["zc"].data_ptr() + 4 * 4096 * zk, m, ntt,
+                                              0, 0, 0, 0, _rt_DELAY_NS, _rt_TRACE.data_ptr() if _rt_TRACE is not None else 0)
+         p2 += b"\0" * ((-len(p2)) % 64)
+-        st["mod"].launch(f"{name}_f{_rt_FLAGS & 208}", 4 + grid, 32 * (wk * wg + 1), _rt_smem_bytes(cfg), p2)
++        st["mod"].launch(f"{name}_f{_rt_FLAGS & 464}", 4 + grid, 32 * (wk * wg + 1), _rt_smem_bytes(cfg), p2)
+         return out
+     if _rt_FLAGS & 8:   # ablation: red.add into out with no zeroing / ordering (wrong values, timing only)
+         st["mod"].launch(f"{name}_f8", grid, 32 * (wk * wg + 1), _rt_smem_bytes(cfg), params)
+@@ -4496,12 +4565,543 @@
+     return out
+ 
+ 
++# ======================================================================== component: GV3 (M=1)
++"""GV3: many-CTA GEMV for M == 1 on 12-bit lossless weights (Codex's GEMV structure, compressed).
++
++One CTA per R rows, full K, thousands of CTAs: the hardware overlaps each CTA's start and reduction with the
++others' streaming. Row blob = [lo bytes: K][codes: K/2][escape slots: E x u32], so a row's escapes arrive with its
++weights (GV lost on serial cold loads of an offset table and then the escape list).
++  lo/codes: pair p (weights 16p..16p+15) = lo bytes [16p, 16p+16), codes [8p, 8p+8) (decode12 order, see gv.py)
++  escape slot: (k << 16) | true bf16 bits; the escaped weight is stored as code 0 / lo 0, which decodes to
++  2^(2H-127) ("wdec"); out += x[k] * (true - wdec). Unused slots hold (0, wdec) and add 0.
++x is read straight from global (L1-cached: the CTAs on an SM share it).
++"""
++import struct
++
++import torch
++
++_gv_SRC = r"""
++typedef unsigned int u32;
++typedef unsigned short u16;
++typedef unsigned char u8;
++struct P {
++  const u8* w; const u16* x; u16* out;
++  long long N;
++  u32 B4, E, RB, wdec;
++  u32 M, pad;
++};
++__device__ __forceinline__ uint4 ldg128(const void* p) {
++  uint4 v; asm volatile("ld.global.nc.L1::no_allocate.v4.u32 {%0,%1,%2,%3}, [%4];" : "=r"(v.x), "=r"(v.y), "=r"(v.z), "=r"(v.w) : "l"(p)); return v;
++}
++__device__ __forceinline__ uint2 ldg64(const void* p) {
++  uint2 v; asm volatile("ld.global.nc.L1::no_allocate.v2.u32 {%0,%1}, [%2];" : "=r"(v.x), "=r"(v.y) : "l"(p)); return v;
++}
++__device__ __forceinline__ u32 ldg32(const void* p) {
++  u32 v; asm volatile("ld.global.nc.L1::no_allocate.u32 %0, [%1];" : "=r"(v) : "l"(p)); return v;
++}
++__device__ __forceinline__ uint4 ldx128(const void* p) {
++  uint4 v; asm volatile("ld.global.nc.v4.u32 {%0,%1,%2,%3}, [%4];" : "=r"(v.x), "=r"(v.y), "=r"(v.z), "=r"(v.w) : "l"(p)); return v;
++}
++__device__ __forceinline__ u16 ldx16(const void* p) {
++  u16 v; asm volatile("ld.global.nc.u16 %0, [%1];" : "=h"(v) : "l"(p)); return v;
++}
++__device__ __forceinline__ u32 prmt(u32 a, u32 b, u32 s) { u32 r; asm("prmt.b32 %0, %1, %2, %3;" : "=r"(r) : "r"(a), "r"(b), "r"(s)); return r; }
++__device__ __forceinline__ uint4 decode12(uint2 lo, u32 nw, u32 B4) {
++  const u32 hiA = ((nw << 4) & 0x80808080u) | ((nw & 0x07070707u) + B4);
++  const u32 hiB = (nw & 0x80808080u) | (((nw >> 4) & 0x07070707u) + B4);
++  uint4 o;
++  o.x = prmt(lo.x, hiA, 0x5140); o.y = prmt(lo.x, hiA, 0x7362);
++  o.z = prmt(lo.y, hiB, 0x5140); o.w = prmt(lo.y, hiB, 0x7362);
++  return o;
++}
++__device__ __forceinline__ float blo(u32 v) { return __uint_as_float(v << 16); }
++__device__ __forceinline__ float bhi(u32 v) { return __uint_as_float(v & 0xFFFF0000u); }
++
++template <int R, int NT, int K>
++__device__ __forceinline__ void gv3_body(const P& p) {
++  constexpr int NP = K / 16;            // weight pairs (16 weights) per row
++  constexpr int PPT = NP / NT;          // pairs per thread
++  static_assert(NP % NT == 0, "pairs divide threads");
++  constexpr int NW = NT / 32;
++  __shared__ float red[NW][R];
++  const int tid = threadIdx.x, lane = tid & 31, wid = tid >> 5;
++  const long long row0 = (long long)blockIdx.x * R;
++  const u8* wb = p.w + row0 * p.RB;
++  uint4 lo[R][PPT];
++  uint2 cd[R][PPT];
++#pragma unroll
++  for (int r = 0; r < R; ++r) {
++#pragma unroll
++    for (int j = 0; j < PPT; ++j) {
++      const int pr = j * NT + tid;
++      lo[r][j] = ldg128(wb + r * p.RB + pr * 16);
++      cd[r][j] = ldg64(wb + r * p.RB + K + pr * 8);
++    }
++  }
++  const int ne = R * (int)p.E;
++  const bool hasesc = (wid == 0) && (lane < ne);
++  const int er = hasesc ? lane / (int)p.E : 0;
++  u32 es = 0;
++  if (hasesc) es = ldg32(wb + er * p.RB + K + K / 2 + (lane - er * (int)p.E) * 4);
++  uint4 xa[PPT], xb[PPT];
++#pragma unroll
++  for (int j = 0; j < PPT; ++j) {
++    const int pr = j * NT + tid;
++    xa[j] = ldx128(p.x + pr * 16);
++    xb[j] = ldx128(p.x + pr * 16 + 8);
++  }
++  float acc[R];
++#pragma unroll
++  for (int r = 0; r < R; ++r) acc[r] = 0.f;
++#pragma unroll
++  for (int j = 0; j < PPT; ++j) {
++    const float xf[16] = {blo(xa[j].x), bhi(xa[j].x), blo(xa[j].y), bhi(xa[j].y), blo(xa[j].z), bhi(xa[j].z), blo(xa[j].w), bhi(xa[j].w),
++                          blo(xb[j].x), bhi(xb[j].x), blo(xb[j].y), bhi(xb[j].y), blo(xb[j].z), bhi(xb[j].z), blo(xb[j].w), bhi(xb[j].w)};
++#pragma unroll
++    for (int r = 0; r < R; ++r) {
++      const uint4 w0 = decode12(make_uint2(lo[r][j].x, lo[r][j].y), cd[r][j].x, p.B4);
++      const uint4 w1 = decode12(make_uint2(lo[r][j].z, lo[r][j].w), cd[r][j].y, p.B4);
++      float a = acc[r];
++      a = fmaf(blo(w0.x), xf[0], a); a = fmaf(bhi(w0.x), xf[1], a); a = fmaf(blo(w0.y), xf[2], a); a = fmaf(bhi(w0.y), xf[3], a);
++      a = fmaf(blo(w0.z), xf[4], a); a = fmaf(bhi(w0.z), xf[5], a); a = fmaf(blo(w0.w), xf[6], a); a = fmaf(bhi(w0.w), xf[7], a);
++      a = fmaf(blo(w1.x), xf[8], a); a = fmaf(bhi(w1.x), xf[9], a); a = fmaf(blo(w1.y), xf[10], a); a = fmaf(bhi(w1.y), xf[11], a);
++      a = fmaf(blo(w1.z), xf[12], a); a = fmaf(bhi(w1.z), xf[13], a); a = fmaf(blo(w1.w), xf[14], a); a = fmaf(bhi(w1.w), xf[15], a);
++      acc[r] = a;
++    }
++  }
++  if (hasesc) {
++    const float xv = __uint_as_float(((u32)ldx16(p.x + (es >> 16))) << 16);
++    const float c = xv * (__uint_as_float(es << 16) - __uint_as_float(p.wdec));
++#pragma unroll
++    for (int r = 0; r < R; ++r) if (r == er) acc[r] += c;
++  }
++#pragma unroll
++  for (int r = 0; r < R; ++r) {
++    float v = acc[r];
++#pragma unroll
++    for (int o = 16; o > 0; o >>= 1) v += __shfl_xor_sync(0xffffffffu, v, o);
++    if (NW == 1) {
++      if (lane == 0) { u16 ob; asm("cvt.rn.bf16.f32 %0, %1;" : "=h"(ob) : "f"(v)); p.out[row0 + r] = ob; }
++    } else if (lane == 0) {
++      red[wid][r] = v;
++    }
++  }
++  if (NW > 1) {
++    __syncthreads();
++    if (tid < R) {
++      float s = 0.f;
++#pragma unroll
++      for (int w = 0; w < NW; ++w) s += red[w][tid];
++      u16 ob; asm("cvt.rn.bf16.f32 %0, %1;" : "=h"(ob) : "f"(s));
++      p.out[row0 + tid] = ob;
++    }
++  }
++}
++
++// M tokens (M <= MT), FP32 FMA. W decoded once per pair to FP32, reused across tokens; x per token from L1.
++template <int R, int NT, int K, int MT>
++__device__ __forceinline__ void gv3m_body(const P& p) {
++  constexpr int NP = K / 16, PPT = NP / NT;
++  static_assert(NP % NT == 0, "pairs divide threads");
++  constexpr int NW = NT / 32;
++  __shared__ float red[NW][R * MT];
++  const int tid = threadIdx.x, lane = tid & 31, wid = tid >> 5;
++  const int M = (int)p.M;
++  const long long row0 = (long long)blockIdx.x * R;
++  const u8* wb = p.w + row0 * p.RB;
++  uint4 lo[R][PPT];
++  uint2 cd[R][PPT];
++#pragma unroll
++  for (int r = 0; r < R; ++r) {
++#pragma unroll
++    for (int j = 0; j < PPT; ++j) {
++      const int pr = j * NT + tid;
++      lo[r][j] = ldg128(wb + r * p.RB + pr * 16);
++      cd[r][j] = ldg64(wb + r * p.RB + K + pr * 8);
++    }
++  }
++  const int ne = R * (int)p.E;
++  const bool hasesc = (wid == 0) && (lane < ne);
++  const int er = hasesc ? lane / (int)p.E : 0;
++  u32 es = 0;
++  if (hasesc) es = ldg32(wb + er * p.RB + K + K / 2 + (lane - er * (int)p.E) * 4);
++  float acc[R][MT];
++#pragma unroll
++  for (int r = 0; r < R; ++r)
++#pragma unroll
++    for (int t = 0; t < MT; ++t) acc[r][t] = 0.f;
++#pragma unroll
++  for (int j = 0; j < PPT; ++j) {
++    const int pr = j * NT + tid;
++    float wf[R][16];
++#pragma unroll
++    for (int r = 0; r < R; ++r) {
++      const uint4 w0 = decode12(make_uint2(lo[r][j].x, lo[r][j].y), cd[r][j].x, p.B4);
++      const uint4 w1 = decode12(make_uint2(lo[r][j].z, lo[r][j].w), cd[r][j].y, p.B4);
++      wf[r][0] = blo(w0.x); wf[r][1] = bhi(w0.x); wf[r][2] = blo(w0.y); wf[r][3] = bhi(w0.y);
++      wf[r][4] = blo(w0.z); wf[r][5] = bhi(w0.z); wf[r][6] = blo(w0.w); wf[r][7] = bhi(w0.w);
++      wf[r][8] = blo(w1.x); wf[r][9] = bhi(w1.x); wf[r][10] = blo(w1.y); wf[r][11] = bhi(w1.y);
++      wf[r][12] = blo(w1.z); wf[r][13] = bhi(w1.z); wf[r][14] = blo(w1.w); wf[r][15] = bhi(w1.w);
++    }
++#pragma unroll
++    for (int t = 0; t < MT; ++t) {
++      if (t < M) {
++        const uint4 xa = ldx128(p.x + (size_t)t * K + pr * 16);
++        const uint4 xb = ldx128(p.x + (size_t)t * K + pr * 16 + 8);
++        const float xf[16] = {blo(xa.x), bhi(xa.x), blo(xa.y), bhi(xa.y), blo(xa.z), bhi(xa.z), blo(xa.w), bhi(xa.w),
++                              blo(xb.x), bhi(xb.x), blo(xb.y), bhi(xb.y), blo(xb.z), bhi(xb.z), blo(xb.w), bhi(xb.w)};
++#pragma unroll
++        for (int r = 0; r < R; ++r) {
++          float a = acc[r][t];
++#pragma unroll
++          for (int i = 0; i < 16; ++i) a = fmaf(wf[r][i], xf[i], a);
++          acc[r][t] = a;
++        }
++      }
++    }
++  }
++  if (hasesc) {
++    const float dl = __uint_as_float(es << 16) - __uint_as_float(p.wdec);
++#pragma unroll
++    for (int t = 0; t < MT; ++t) {
++      if (t < M) {
++        const float xv = __uint_as_float(((u32)ldx16(p.x + (size_t)t * K + (es >> 16))) << 16);
++#pragma unroll
++        for (int r = 0; r < R; ++r) if (r == er) acc[r][t] = fmaf(xv, dl, acc[r][t]);
++      }
++    }
++  }
++#pragma unroll
++  for (int r = 0; r < R; ++r) {
++#pragma unroll
++    for (int t = 0; t < MT; ++t) {
++      float v = acc[r][t];
++#pragma unroll
++      for (int o = 16; o > 0; o >>= 1) v += __shfl_xor_sync(0xffffffffu, v, o);
++      if (lane == 0) red[wid][r * MT + t] = v;
++    }
++  }
++  __syncthreads();
++  if (tid < R * M) {
++    const int r = tid / M, t = tid - r * M;
++    float s = 0.f;
++#pragma unroll
++    for (int w = 0; w < NW; ++w) s += red[w][r * MT + t];
++    u16 ob; asm("cvt.rn.bf16.f32 %0, %1;" : "=h"(ob) : "f"(s));
++    p.out[(size_t)t * p.N + row0 + r] = ob;
++  }
++}
++"""
++
++_gv_LAYER_K = {"qkv_gate": 8192, "o": 1024, "pooler": 8192, "unpslice": 4096}
++# layer -> (R rows per CTA, threads) default
++_gv_CFG = {"qkv_gate": (1, 256), "o": (4, 64), "pooler": (1, 256), "unpslice": (1, 128)}
++
++
++def _gv_kname(layer, r, nt, mb=0):
++    return f"gv3_{layer}_{r}_{nt}" + (f"_{mb}" if mb else "")
++
++
++def _gv_mkname(layer, r, nt):
++    return f"gv3m_{layer}_{r}_{nt}"
++
++
++_gv_MT = 8
++
++
++def _gv_source(cfgs=None, mcfgs=()):
++    """cfgs: iterable of (layer, R, NT) for M == 1 (default CFG); mcfgs: same for the M <= 8 variant"""
++    cfgs = [(l, r, nt) for l, (r, nt) in _gv_CFG.items()] if cfgs is None else cfgs
++    s = _gv_SRC
++    for c in sorted(set(tuple(c) + (0,) * (4 - len(c)) for c in cfgs)):
++        layer, r, nt, mb = c
++        lb = f"{nt}, {mb}" if mb else f"{nt}"
++        s += (f'extern "C" __global__ void __launch_bounds__({lb}) {_gv_kname(layer, r, nt, mb)}(const __grid_constant__ P p) '
++              f'{{ gv3_body<{r},{nt},{_gv_LAYER_K[layer]}>(p); }}\n')
++    for layer, r, nt in sorted(set(mcfgs)):
++        s += (f'extern "C" __global__ void __launch_bounds__({nt}) {_gv_mkname(layer, r, nt)}(const __grid_constant__ P p) '
++              f'{{ gv3m_body<{r},{nt},{_gv_LAYER_K[layer]},{_gv_MT}>(p); }}\n')
++    return s
++
++
++def _gv_compress(w):
++    u = w.contiguous().view(torch.int16).to(torch.int32) & 0xFFFF
++    s, e = u >> 15, (u >> 7) & 0xFF
++    hist = torch.bincount(e.flatten(), minlength=256).cpu()
++    cs = torch.cat([torch.zeros(1, dtype=torch.long), hist.cumsum(0)])
++    best, H = -1, 0
++    for h in range(0, 121):
++        inside = int(cs[2 * h + 16] - cs[2 * h])
++        if inside > best:
++            best, H = inside, h
++    idx = (e >> 1) - H
++    esc = (idx < 0) | (idx > 7)
++    code = torch.where(esc, torch.zeros_like(e), (s << 3) | idx)
++    lo = torch.where(esc, torch.zeros_like(u), u & 0xFF)
++    return code, lo, H, esc, u
++
++
++def _gv_prepare_layer(w, emax=64):
++    """-> dict, or None if some row has more than emax escapes (caller keeps its BF16 path)"""
++    n, k = w.shape
++    code, lo, H, esc, u = _gv_compress(w)
++    cnt = esc.sum(1)
++    mx = int(cnt.max())
++    if mx > emax:
++        return None
++    E = max(4, (mx + 3) // 4 * 4)
++    nch = k // 8
++    lo8 = lo.to(torch.uint8).view(n, k)
++    cc = code.to(torch.int32).view(n, nch, 8)
++    cw = (cc[..., 0:4] | (cc[..., 4:8] << 4)).to(torch.uint8).view(n, k // 2)
++    wdec = H << 8                                                         # bf16 bits of a decoded escape
++    slots = torch.full((n, E), wdec, dtype=torch.int64, device=w.device)
++    nn, kk = esc.nonzero(as_tuple=True)                                   # row-major order
++    if len(nn):
++        first = torch.zeros(n + 1, dtype=torch.int64, device=w.device)
++        first[1:] = torch.cumsum(cnt, 0)
++        rank = torch.arange(len(nn), device=w.device) - first[nn]
++        slots[nn, rank] = (kk.to(torch.int64) << 16) | u[nn, kk].to(torch.int64)
++    s32 = slots.to(torch.int32)                                           # k < 2^15: always < 2^31
++    blob = torch.cat([lo8, cw, s32.contiguous().view(torch.uint8).view(n, 4 * E)], 1).contiguous()
++    rb = blob.shape[1]
++    assert rb % 16 == 0
++    return {"w": blob.view(-1), "B4": H * 0x01010101, "E": E, "RB": rb, "wdec": wdec << 16, "n": n, "k": k,
++            "n_esc": int(len(nn)), "emax": mx}
++
++
++def _gv_launch(mod, lname, ent, x, out, cfg=None):
++    cfg = tuple(cfg or _gv_CFG[lname])
++    r, nt = cfg[0], cfg[1]
++    mb = cfg[2] if len(cfg) > 2 else 0
++    n = out.shape[-1]
++    assert r * ent["E"] <= 32 and n % r == 0
++    m = x.shape[0]
++    args = struct.pack("<QQQqIIIIII", ent["w"].data_ptr(), x.data_ptr(), out.data_ptr(), n, ent["B4"], ent["E"],
++                       ent["RB"], ent["wdec"], m, 0)
++    if m == 1:
++        mod.launch(_gv_kname(lname, r, nt, mb), n // r, nt, 0, args)
++    else:
++        assert m <= _gv_MT
++        mod.launch(_gv_mkname(lname, r, nt), n // r, nt, 0, args)
++
++
++# ======================================================================== component: GM (o, M<=8)
++"""GM: many-CTA tensor-core GEMV for small M (<= 32) on 12-bit lossless weights, for layers whose x fits in L1 (o).
++
++CTA = one 16-row tile x full K; NW warps split K; mma.m16n8k16 with W as A (16 rows) and x as B (n8 token tiles),
++x fragments read from global (L1-cached: every CTA on an SM reads the same x). Everything a warp streams is
++issued at its start; the hardware overlaps CTAs (GV3's structure, with tensor cores for the token dimension).
++
++k order inside a 32-k block (two mma k16 steps): lane t takes k = 8t..8t+7; step 0 uses 8t..8t+3, step 1 uses
++8t+4..8t+7 (a consistent permutation of k for A and B). So one 16 B load of x[tok][32p + 8t ..] feeds both steps,
++and the A fragment for (step, lane g/t) is the 8 weights
++  [W[g][k0], W[g][k0+1], W[g+8][k0], W[g+8][k0+1], W[g][k0+2], W[g][k0+3], W[g+8][k0+2], W[g+8][k0+3]]
++(k0 = 32p + 8t + 4*step) -> decode12 order (o.x..o.w = a0..a3).
++Tile blob: lo [S/2 step pairs][32 lanes][16 B], codes [S/4 step quads][32 lanes][16 B], slots [16 rows][E] u32.
++Escapes (out-of-window exponents) as in GV3: stored as code 0 / lo 0 (decodes to wdec), corrected after the
++reduction from per-row (k, true bits) slots.
++"""
++import struct
++
++import torch
++
++
++_gm_SRC = r"""
++typedef unsigned int u32;
++typedef unsigned short u16;
++typedef unsigned char u8;
++struct P {
++  const u8* w; const u16* x; u16* out;
++  long long N;
++  u32 B4, E, TB, wdec;
++  u32 M, pad;
++};
++__device__ __forceinline__ uint4 ldg128(const void* p) {
++  uint4 v; asm volatile("ld.global.nc.L1::no_allocate.v4.u32 {%0,%1,%2,%3}, [%4];" : "=r"(v.x), "=r"(v.y), "=r"(v.z), "=r"(v.w) : "l"(p)); return v;
++}
++__device__ __forceinline__ uint4 ldx128(const void* p) {
++  uint4 v; asm volatile("ld.global.nc.v4.u32 {%0,%1,%2,%3}, [%4];" : "=r"(v.x), "=r"(v.y), "=r"(v.z), "=r"(v.w) : "l"(p)); return v;
++}
++__device__ __forceinline__ u32 ldx32(const void* p) {
++  u32 v; asm volatile("ld.global.nc.u32 %0, [%1];" : "=r"(v) : "l"(p)); return v;
++}
++__device__ __forceinline__ u16 ldx16(const void* p) {
++  u16 v; asm volatile("ld.global.nc.u16 %0, [%1];" : "=h"(v) : "l"(p)); return v;
++}
++__device__ __forceinline__ u32 prmt(u32 a, u32 b, u32 s) { u32 r; asm("prmt.b32 %0, %1, %2, %3;" : "=r"(r) : "r"(a), "r"(b), "r"(s)); return r; }
++__device__ __forceinline__ uint4 decode12(uint2 lo, u32 nw, u32 B4) {
++  const u32 hiA = ((nw << 4) & 0x80808080u) | ((nw & 0x07070707u) + B4);
++  const u32 hiB = (nw & 0x80808080u) | (((nw >> 4) & 0x07070707u) + B4);
++  uint4 o;
++  o.x = prmt(lo.x, hiA, 0x5140); o.y = prmt(lo.x, hiA, 0x7362);
++  o.z = prmt(lo.y, hiB, 0x5140); o.w = prmt(lo.y, hiB, 0x7362);
++  return o;
++}
++__device__ __forceinline__ void mma16816(float* d, const uint4 a, u32 b0, u32 b1) {
++  asm("mma.sync.aligned.m16n8k16.row.col.f32.bf16.bf16.f32 {%0,%1,%2,%3}, {%4,%5,%6,%7}, {%8,%9}, {%0,%1,%2,%3};"
++      : "+f"(d[0]), "+f"(d[1]), "+f"(d[2]), "+f"(d[3]) : "r"(a.x), "r"(a.y), "r"(a.z), "r"(a.w), "r"(b0), "r"(b1));
++}
++
++// NW warps split the S = K/16 steps of one 16-row tile; NT8 n8 token tiles (M <= 8*NT8)
++template <int NW, int K, int NT8, int EMAX>   // EMAX * 16 <= NW * 32
++__device__ __forceinline__ void gm_body(const P& p) {
++  constexpr int S = K / 16, SW = S / NW;          // steps per warp
++  static_assert(SW % 4 == 0, "steps per warp: multiple of 4");
++  constexpr int NPAIR = SW / 2, NQUAD = SW / 4;
++  __shared__ float red[NW][16][8 * NT8 + 1];
++  __shared__ u32 slot[16 * EMAX];
++  const int tid = threadIdx.x, lane = tid & 31, wid = tid >> 5;
++  const int g = lane >> 2, t = lane & 3;
++  const int M = (int)p.M;
++  const u8* tb = p.w + (size_t)blockIdx.x * p.TB;
++  const u8* lob = tb + (size_t)(wid * NPAIR) * 512 + lane * 16;
++  const u8* cdb = tb + (size_t)(S / 2) * 512 + (size_t)(wid * NQUAD) * 512 + lane * 16;
++  uint4 lo[NPAIR], cd[NQUAD];
++#pragma unroll
++  for (int i = 0; i < NPAIR; ++i) lo[i] = ldg128(lob + i * 512);
++#pragma unroll
++  for (int i = 0; i < NQUAD; ++i) cd[i] = ldg128(cdb + i * 512);
++  const int ns = 16 * (int)p.E;
++  const u8* sb = tb + (size_t)(S / 2) * 512 + (size_t)(S / 4) * 512;
++  // escape slots: into registers now (no wait), into smem after the main loop
++  u32 myslot = 0;
++  if (tid < ns) myslot = ldx32(sb + tid * 4);
++  float acc[NT8][4];
++#pragma unroll
++  for (int n = 0; n < NT8; ++n) acc[n][0] = acc[n][1] = acc[n][2] = acc[n][3] = 0.f;
++  const int kw = wid * SW * 16;                    // this warp's first k
++  uint4 xb[NPAIR][NT8];                            // all of this warp's x fragments, issued up front
++#pragma unroll
++  for (int pi = 0; pi < NPAIR; ++pi) {
++#pragma unroll
++    for (int n = 0; n < NT8; ++n) {
++      const int tok = n * 8 + g;
++      xb[pi][n] = tok < M ? ldx128(p.x + (size_t)tok * K + kw + pi * 32 + t * 8) : make_uint4(0, 0, 0, 0);
++    }
++  }
++#pragma unroll
++  for (int pi = 0; pi < NPAIR; ++pi) {
++    // codes: quad q holds steps 4q..4q+3 -> u32 per step; pair pi = steps 2pi, 2pi+1 -> quad pi/2, words 2*(pi&1), +1
++    const uint4 cq = cd[pi >> 1];
++    const u32 cs0 = (pi & 1) ? cq.z : cq.x, cs1 = (pi & 1) ? cq.w : cq.y;
++    const uint4 a0 = decode12(make_uint2(lo[pi].x, lo[pi].y), cs0, p.B4);
++    const uint4 a1 = decode12(make_uint2(lo[pi].z, lo[pi].w), cs1, p.B4);
++#pragma unroll
++    for (int n = 0; n < NT8; ++n) {
++      mma16816(acc[n], a0, xb[pi][n].x, xb[pi][n].y);
++      mma16816(acc[n], a1, xb[pi][n].z, xb[pi][n].w);
++    }
++  }
++  if (tid < ns) slot[tid] = myslot;
++#pragma unroll
++  for (int n = 0; n < NT8; ++n) {
++    red[wid][g][n * 8 + 2 * t] = acc[n][0];
++    red[wid][g][n * 8 + 2 * t + 1] = acc[n][1];
++    red[wid][g + 8][n * 8 + 2 * t] = acc[n][2];
++    red[wid][g + 8][n * 8 + 2 * t + 1] = acc[n][3];
++  }
++  __syncthreads();
++  const float wdec = __uint_as_float(p.wdec);
++  const long long row0 = (long long)blockIdx.x * 16;
++  for (int i = tid; i < 16 * M; i += NW * 32) {
++    const int tok = i >> 4, r = i & 15;
++    float s = 0.f;
++#pragma unroll
++    for (int w = 0; w < NW; ++w) s += red[w][r][tok];
++    for (int e = 0; e < (int)p.E; ++e) {
++      const u32 es = slot[r * p.E + e];
++      const float dl = __uint_as_float(es << 16) - wdec;
++      if (dl != 0.f) s = fmaf(__uint_as_float(((u32)ldx16(p.x + (size_t)tok * K + (es >> 16))) << 16), dl, s);
++    }
++    u16 ob; asm("cvt.rn.bf16.f32 %0, %1;" : "=h"(ob) : "f"(s));
++    p.out[(size_t)tok * p.N + row0 + r] = ob;
++  }
++}
++"""
++
++_gm_LAYER_K = {"o": 1024}
++_gm_EMAX = 16
++
++
++def _gm_kname(layer, nw, nt8, mb=0):
++    return f"gm_{layer}_{nw}_{nt8}_{mb}"
++
++
++def _gm_source(cfgs):
++    """cfgs: iterable of (layer, NW, NT8[, min blocks per SM])"""
++    s = _gm_SRC
++    for c in sorted(set(tuple(c) + (0,) * (4 - len(c)) for c in cfgs)):
++        layer, nw, nt8, mb = c
++        lb = f"{nw * 32}, {mb}" if mb else f"{nw * 32}"
++        s += (f'extern "C" __global__ void __launch_bounds__({lb}) {_gm_kname(layer, nw, nt8, mb)}(const __grid_constant__ P p) '
++              f'{{ gm_body<{nw},{_gm_LAYER_K[layer]},{nt8},{min(_gm_EMAX, nw * 2)}>(p); }}\n')
++    return s
++
++
++def _gm_prepare_layer(w):
++    """-> dict, or None if some row has more than EMAX escapes"""
++    n, k = w.shape
++    assert n % 16 == 0 and k % 64 == 0
++    code, lo, H, esc, u = _gv_compress(w)
++    cnt = esc.sum(1)
++    mx = int(cnt.max())
++    if mx > _gm_EMAX:
++        return None
++    E = max(1, mx)
++    S = k // 16
++    T = n // 16
++    # weight order per (tile, step, lane): 8 weights [g k0, g k0+1, g+8 k0, g+8 k0+1, g k0+2, g k0+3, g+8 k0+2, g+8 k0+3]
++    # k0 = 32*(step//2) + 8*t + 4*(step%2)
++    dev = w.device
++    st = torch.arange(S, device=dev)
++    ln = torch.arange(32, device=dev)
++    g, t = ln // 4, ln % 4
++    k0 = (32 * (st // 2))[:, None] + (8 * t)[None, :] + (4 * (st % 2))[:, None]          # [S, 32]
++    rr = torch.stack([g, g, g + 8, g + 8, g, g, g + 8, g + 8], 1)                           # [32, 8]
++    kk = k0[:, :, None] + torch.tensor([0, 1, 0, 1, 2, 3, 2, 3], device=dev)[None, None, :]  # [S, 32, 8]
++    rows = torch.arange(T, device=dev)[:, None, None, None] * 16 + rr[None, None, :, :]      # [T, 1, 32, 8]
++    rows = rows.expand(T, S, 32, 8)
++    kidx = kk[None].expand(T, S, 32, 8)
++    lo_g = lo[rows, kidx].to(torch.uint8)                                                  # [T, S, 32, 8]
++    cc = code[rows, kidx].to(torch.int32)
++    cw = (cc[..., 0:4] | (cc[..., 4:8] << 4)).to(torch.uint8)                               # [T, S, 32, 4]
++    # lo: [T][S/2 pairs][32][16 B] = steps 2p, 2p+1 for the lane
++    lo_p = lo_g.view(T, S // 2, 2, 32, 8).permute(0, 1, 3, 2, 4).reshape(T, S // 2 * 512)
++    cd_q = cw.view(T, S // 4, 4, 32, 4).permute(0, 1, 3, 2, 4).reshape(T, S // 4 * 512)
++    wdec = H << 8
++    slots = torch.full((n, E), wdec, dtype=torch.int64, device=dev)
++    nn, kq = esc.nonzero(as_tuple=True)
++    if len(nn):
++        first = torch.zeros(n + 1, dtype=torch.int64, device=dev)
++        first[1:] = torch.cumsum(cnt, 0)
++        rank = torch.arange(len(nn), device=dev) - first[nn]
++        slots[nn, rank] = (kq.to(torch.int64) << 16) | u[nn, kq].to(torch.int64)
++    sl = slots.to(torch.int32).view(T, 16 * E).contiguous().view(torch.uint8).view(T, 64 * E)
++    blob = torch.cat([lo_p, cd_q, sl], 1)
++    pad = (-blob.shape[1]) % 128
++    if pad:
++        blob = torch.cat([blob, torch.zeros((T, pad), dtype=torch.uint8, device=dev)], 1)
++    blob = blob.contiguous()
++    return {"w": blob.view(-1), "B4": H * 0x01010101, "E": E, "TB": blob.shape[1], "wdec": wdec << 16, "n": n,
++            "k": k, "n_esc": int(len(nn)), "emax": mx}
++
++
++def _gm_launch(mod, layer, ent, x, out, nw=4, mb=0):
++    m, n = x.shape[0], out.shape[-1]
++    nt8 = (m + 7) // 8
++    assert nt8 <= 4 and n % 16 == 0 and 16 * ent["E"] <= nw * 32 and ent["E"] <= min(_gm_EMAX, nw * 2)
++    args = struct.pack("<QQQqIIIIII", ent["w"].data_ptr(), x.data_ptr(), out.data_ptr(), n, ent["B4"], ent["E"],
++                       ent["TB"], ent["wdec"], m, 0)
++    mod.launch(_gm_kname(layer, nw, nt8, mb), n // 16, nw * 32, 0, args)
++
++
+ 
+ 
+ # ======================================================================== dispatch
+ # Measured choices (claude/out/*): K1s = 12-bit lossless weights, register streaming, M <= 16.
+ _K1_USE = {
+-    "qkv_gate": lambda m: 2 <= m <= 16,
++    "qkv_gate": lambda m: False,      # K1t C=4 below
+     "pooler": lambda m: 1 <= m <= 16,
+     "unpooler": lambda m: 9 <= m <= 16,
+     "o": lambda m: False,
+@@ -4510,7 +5110,17 @@
+ _LIB = {}
+ # exhaustive cuBLASLt search winners (claude/lt_tune.py, claude/lt_128_256.json): (m, layer) -> (layout, settings)
+ _LT = {(128, 'qkv_gate'): ('tn', [66, 92, 1, 0, 0, 0, 35, 0, 5, 0, 130101]), (128, 'o'): ('tn', [66, 18, 1, 0, 0, 0, 35, 0, 5, 0, 130101]), (128, 'pooler'): ('nn', [66, 16, 1, 0, 0, 1, 35, 0, 2, 0, 130101]), (128, 'unpooler'): ('nn', [66, 18, 1, 0, 0, 0, 35, 0, 5, 0, 130101]), (256, 'qkv_gate'): ('tn', [66, 124, 1, 0, 0, 0, 35, 0, 2, 0, 130101]), (256, 'o'): ('nn', [66, 21, 1, 0, 0, 0, 35, 0, 5, 0, 130101]), (256, 'pooler'): ('nn', [66, 18, 1, 0, 0, 0, 35, 0, 2, 0, 130101]), (256, 'unpooler'): ('nn', [66, 21, 1, 0, 0, 0, 35, 0, 2, 0, 130101])}
++# GV3: many-CTA 12-bit GEMV at M == 1 (claude/gv3.py, claude/out/gv3s.log); per layer, configs in preference order
++# (rows per CTA x threads); escape lanes need rows * E <= 32
++_GV_PREF = {"qkv_gate": [(2, 512), (2, 256), (1, 256)], "o": [(8, 64), (4, 64), (2, 64), (1, 64)],
++            "pooler": [(2, 512), (1, 512)], "unpslice": [(1, 256, 8), (1, 256)]}
++# GM: many-CTA tensor-core 12-bit GEMV for o at 2 <= M <= 8 (claude/gm.py, claude/out/gm3.log): (NW warps, min blocks)
++_GM_O = (4, 6)
++# qkv_gate at M <= 16: K1t, 4-CTA clusters (120 SMs), 8-row groups (claude/out/q4.log)
++_k1t_CFG["qkv_gate"] = (4, 30, 5, 2, 8, 3)
++_k1t_HALF_CFGS.discard("qkv_gate")
+ _K1T_USE = {
++    "qkv_gate": lambda m: 2 <= m <= 16,
+     "pooler": lambda m: 17 <= m <= 32,
+     "unpooler": lambda m: 17 <= m <= 32,
+ }
+@@ -4519,16 +5129,35 @@
+ def prepare(weights):
+     st = {"cx": _cx_prepare(weights), "rt": _rt_prepare_router(weights)}
+     k1 = {}
+-    for name in ("qkv_gate", "pooler", "unpooler"):
++    for name in ("pooler", "unpooler"):
+         k1[name] = _k1_prepare_layer(weights[name], name, 1)
+     k1["pooler1"] = _k1_prepare_layer(weights["pooler"], "pooler1", 1)
+     st["k1"] = k1
+-    st["k1mod"] = _cu_Module(_k1_source(layers=("qkv_gate", "pooler", "pooler1", "unpooler")), "k1s.cu")
++    st["k1mod"] = _cu_Module(_k1_source(layers=("pooler", "pooler1", "unpooler")), "k1s.cu")
+     k1t = {}
+-    for v, base in (("pooler32", "pooler"), ("unpooler32", "unpooler")):
++    for v, base in (("pooler32", "pooler"), ("unpooler32", "unpooler"), ("qkv_gate", "qkv_gate")):
+         k1t[v] = _k1t_prepare_layer(weights[base], v, 1)
+     st["k1t"] = k1t
+-    st["k1tmod"] = _cu_Module(_k1t_source(layers=("pooler32", "unpooler32"), tokbs=(32,)), "k1t.cu")
++    st["k1tmod"] = _cu_Module(_k1t_source(layers=("pooler32", "unpooler32", "qkv_gate"), tokbs=(8, 16, 32)), "k1t.cu")
++    gv, gcfg = {}, {}
++    for lname, src in (("qkv_gate", "qkv_gate"), ("o", "o"), ("pooler", "pooler"), ("unpslice", "unpooler")):
++        w = weights[src][:1024].contiguous() if lname == "unpslice" else weights[src]
++        ent = _gv_prepare_layer(w)
++        if ent is None:
++            continue
++        for c in _GV_PREF[lname]:
++            if c[0] * ent["E"] <= 32:
++                gv[lname], gcfg[lname] = ent, tuple(c)
++                break
++    st["gv"], st["gvcfg"] = gv, gcfg
++    st["gvmod"] = _cu_Module(_gv_source([(l,) + c for l, c in gcfg.items()]), "gv3.cu") if gcfg else None
++    ent = _gm_prepare_layer(weights["o"])
++    nw, mb = _GM_O
++    if ent is not None and 16 * ent["E"] <= nw * 32 and ent["E"] <= min(_gm_EMAX, nw * 2):
++        st["gm_o"] = ent
++        st["gmmod"] = _cu_Module(_gm_source([("o", nw, 1, mb)]), "gm.cu")
++    else:
++        st["gm_o"] = None
+     st["wt"] = {k: weights[k].t() for k in ("qkv_gate", "o", "pooler", "unpooler")}
+     for (layer, m), be in _LIB.items():   # build/cached library plans outside the timed calls
+         xw = torch.randn((m, weights[layer].shape[1]), device=weights[layer].device).to(torch.bfloat16)
+@@ -4548,6 +5177,17 @@
+     layer, m, n = cfg["layer"], cfg["m"], cfg["n"]
+     if layer == "router":
+         return _rt_run_router(x, state["rt"])
++    if m == 1:
++        lname = "unpslice" if layer == "unpooler" else layer
++        ent = state["gv"].get(lname)
++        if ent is not None and n == ent["n"] and x.is_contiguous() and x.data_ptr() % 16 == 0:
++            out = torch.empty((1, n), dtype=torch.bfloat16, device=x.device)
++            _gv_launch(state["gvmod"], lname, ent, x, out, state["gvcfg"][lname])
++            return out
++    if layer == "o" and 2 <= m <= 8 and state["gm_o"] is not None and x.is_contiguous() and x.data_ptr() % 16 == 0:
++        out = torch.empty((m, n), dtype=torch.bfloat16, device=x.device)
++        _gm_launch(state["gmmod"], "o", state["gm_o"], x, out, *_GM_O)
++        return out
+     be = _LIB.get((layer, m))
+     if be is not None:
+         return _lib_mm(x, state, layer, n, be)

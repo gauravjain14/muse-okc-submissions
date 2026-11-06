@@ -1,0 +1,34 @@
+✓ Initialized. View run at 
+<modal-run-url>
+✓ Created objects.
+├── 🔨 Created mount 
+│   <scratch>
+│   5-ce57afd4da60/scratchpad/snap.8nvZrV/dev/modal_run.py
+├── 🔨 Created mount 
+│   <scratch>
+│   5-ce57afd4da60/scratchpad/snap.8nvZrV
+└── 🔨 Created function run.
+0 {'batch': 1, 'ctx': 80000, 'layer': 'sliding', 'q_len': 753, 'page': 1, 'dist': 'soft'}
+   attn_fwd       24.4 us
+   nocomb     vs mine 6.26e-01
+   nocomb         20.3 us
+1 {'batch': 1, 'ctx': 80000, 'layer': 'full', 'q_len': 753, 'page': 1, 'dist': 'soft'}
+   attn_fwd      251.5 us
+   nocomb     vs mine 1.17e+00
+   nocomb        220.3 us
+3 {'batch': 4, 'ctx': 80000, 'layer': 'full', 'q_len': 753, 'page': 1, 'dist': 'soft', 'spread': 'agentic'}
+   attn_fwd      956.7 us
+   nocomb     vs mine 1.14e+00
+   nocomb        847.0 us
+6 {'batch': 1, 'ctx': 32768, 'layer': 'full', 'q_len': 16384, 'page': 1, 'dist': 'soft'}
+   attn_fwd     2361.2 us
+   nocomb     vs mine 3.08e-01
+   nocomb       2178.8 us
+7 {'batch': 1, 'ctx': 65536, 'layer': 'full', 'q_len': 16384, 'page': 1, 'dist': 'soft'}
+   attn_fwd     4164.6 us
+   nocomb     vs mine 3.22e-01
+   nocomb       3888.6 us
+Stopping app - local entrypoint completed.
+✓ App completed. View run at 
+<modal-run-url>
+done

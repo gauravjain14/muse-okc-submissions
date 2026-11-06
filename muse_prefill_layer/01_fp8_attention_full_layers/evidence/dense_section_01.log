@@ -1,0 +1,25 @@
+✓ Initialized. View run at 
+<modal-run-url>
+✓ Created objects.
+├── 🔨 Created mount 
+│   muse-opt/muse_prefill_layer/dev/modal_run.py
+├── 🔨 Created mount muse-opt/muse_prefill_layer
+└── 🔨 Created function run.
+M   753 codex                 105.2 us  (vs codex 1.000)
+M   753 pooler+norm only       76.5 us  (vs codex 1.374)
+M   753 serial                102.8 us  (vs codex 1.023) norm err 0.00e+00 ids equal 1.0000
+M   753 fused N4608            90.0 us  (vs codex 1.168) norm err 3.39e-03 ids equal 1.0000
+      fused GEMM alone 81.5 us algo {'id': 66, 'tile': 497, 'split': 1, 'red': 0, 'swz': 0, 'custom': 5, 'stages': 35}
+M  3012 codex                 334.1 us  (vs codex 1.000)
+M  3012 pooler+norm only      278.2 us  (vs codex 1.201)
+M  3012 serial                335.1 us  (vs codex 0.997) norm err 0.00e+00 ids equal 1.0000
+M  3012 fused N4608           321.5 us  (vs codex 1.039) norm err 3.39e-03 ids equal 1.0000
+      fused GEMM alone 295.2 us algo {'id': 66, 'tile': 500, 'split': 1, 'red': 0, 'swz': 0, 'custom': 7, 'stages': 35}
+M 16384 codex                1703.2 us  (vs codex 1.000)
+M 16384 pooler+norm only     1489.9 us  (vs codex 1.143)
+M 16384 serial               1713.5 us  (vs codex 0.994) norm err 0.00e+00 ids equal 1.0000
+M 16384 fused N4608          1706.6 us  (vs codex 0.998) norm err 3.38e-03 ids equal 1.0000
+      fused GEMM alone 1575.9 us algo {'id': 66, 'tile': 24, 'split': 1, 'red': 0, 'swz': 0, 'custom': 7, 'stages': 35}
+Stopping app - local entrypoint completed.
+✓ App completed. View run at 
+<modal-run-url>

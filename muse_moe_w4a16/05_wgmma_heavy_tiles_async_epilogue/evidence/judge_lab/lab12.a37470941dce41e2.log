@@ -1,0 +1,11 @@
+lab: NVIDIA H200, 132 SMs
+lab env: torch 2.14.1+cu130 (cuda 13.0), cuda-python 13.4.3, nvrtc 13.0, driver api 13000
+lab check v148: bs33:2.62e-03 bs33:2.46e-03 bs64:2.65e-03 bs64:2.53e-03 bs128:2.69e-03 bs128:2.61e-03
+lab: experiment took 4 s
+lab bs   1: v142eq 26.2 us (x1.000)  v148 26.3 us (x0.999)  v148b 26.1 us (x1.004)  v142eqb 26.2 us (x1.001)
+lab bs   8: v142eq 72.7 us (x1.000)  v148 73.0 us (x0.997)  v148b 72.7 us (x1.001)  v142eqb 72.4 us (x1.003)
+lab bs  16: v142eq 91.4 us (x1.000)  v148 91.3 us (x0.998)  v148b 91.0 us (x1.002)  v142eqb 91.1 us (x1.001)
+lab bs  32: v142eq 117.7 us (x1.000)  v148 117.7 us (x1.000)  v148b 117.9 us (x0.998)  v142eqb 118.2 us (x0.997)
+lab bs 128: v142eq 184.5 us (x1.000)  v148 183.1 us (x1.023)  v148b 182.7 us (x1.021)  v142eqb 185.6 us (x1.001)
+lab bs 256: v142eq 221.7 us (x1.000)  v148 222.7 us (x1.001)  v148b 222.2 us (x1.002)  v142eqb 222.8 us (x0.999)
+lab: experiment took 12 s

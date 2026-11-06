@@ -1,0 +1,2682 @@
+--- 04_many_cta_gemv_m1/build.py
++++ 05_f11_gemv_m1_no_load_sinking/build.py
+@@ -2,6 +2,12 @@
+ # Third-party code: each segment copied or adapted from another project is marked in place with SPDX-SnippetBegin /
+ # SPDX-SnippetEnd comments that give its source, copyright, license and our changes. Full license texts are in
+ # LICENSES/ and the third-party notices in NOTICE, both at the repository root.
++
++"""muse_bf16_proj top-3 build (claude/t3/build_t3.py): int_v7 base + t3 agent kernels."""
++
++import torch
++
++# ======================================================================== base: int_v7
+ 
+ """muse_bf16_proj: Codex v2 paths + K1s (12-bit lossless weights, M <= 16) + fast router. Built by claude/build_sub.py."""
+ 
+@@ -17,7 +23,7 @@
+ import triton.language as tl
+ 
+ @tr.jit
+-def _cx_pr_gemv(X, W, Y, M: tl.constexpr, N: tl.constexpr, K: tl.constexpr,
++def _b7__cx_pr_gemv(X, W, Y, M: tl.constexpr, N: tl.constexpr, K: tl.constexpr,
+          BN: tl.constexpr, BK: tl.constexpr):
+     rows = tl.program_id(0)*BN + tl.arange(0, BN)
+     token = tl.program_id(1)
+@@ -32,7 +38,7 @@
+     tl.store(Y + token*N + rows, out, rows<N)
+ 
+ @tr.jit
+-def _cx_pr_matmul_transpose(X,W,Y,P,M:tl.constexpr,N:tl.constexpr,K:tl.constexpr,
++def _b7__cx_pr_matmul_transpose(X,W,Y,P,M:tl.constexpr,N:tl.constexpr,K:tl.constexpr,
+                      BN:tl.constexpr,BM:tl.constexpr,BK:tl.constexpr,SK:tl.constexpr):
+     # W @ X.T, putting token dimension on the narrow tensor-core axis.
+     rn=tl.program_id(0)*BN+tl.arange(0,BN)
+@@ -52,28 +58,28 @@
+         tl.store(P+split*M*N+rm[None,:]*N+rn[:,None],acc,(rn[:,None]<N)&(rm[None,:]<M))
+ 
+ @tr.jit
+-def _cx_pr_reduce_split(P,Y,SIZE:tl.constexpr,SK:tl.constexpr,B:tl.constexpr):
++def _b7__cx_pr_reduce_split(P,Y,SIZE:tl.constexpr,SK:tl.constexpr,B:tl.constexpr):
+     ix=tl.program_id(0)*B+tl.arange(0,B)
+     out=tl.full((B,),0,tl.float32)
+     for s in range(SK):
+         out += tl.load(P+s*SIZE+ix,ix<SIZE,0)
+     tl.store(Y+ix,out,ix<SIZE)
+ 
+-def _cx_pr_run(x,w,n,config):
++def _b7__cx_pr_run(x,w,n,config):
+     m,k=x.shape
+     y=torch.empty((m,n),dtype=torch.bfloat16,device=x.device)
+     if config[0]=='gemv':
+         _,bn,bk,nw=config
+-        _cx_pr_gemv[(tr.cdiv(n,bn),m)](x,w,y,m,n,k,bn,bk,num_warps=nw)
++        _b7__cx_pr_gemv[(tr.cdiv(n,bn),m)](x,w,y,m,n,k,bn,bk,num_warps=nw)
+     else:
+         _,bn,bm,bk,sk,nw,ns=config
+         p=torch.empty((sk,m,n),dtype=torch.float32,device=x.device) if sk>1 else y
+-        _cx_pr_matmul_transpose[(tr.cdiv(n,bn),tr.cdiv(m,bm),sk)](x,w,y,p,m,n,k,bn,bm,bk,sk,num_warps=nw,num_stages=ns)
++        _b7__cx_pr_matmul_transpose[(tr.cdiv(n,bn),tr.cdiv(m,bm),sk)](x,w,y,p,m,n,k,bn,bm,bk,sk,num_warps=nw,num_stages=ns)
+         if sk>1:
+-            _cx_pr_reduce_split[(tr.cdiv(m*n,256),)](p,y,m*n,sk,256)
++            _b7__cx_pr_reduce_split[(tr.cdiv(m*n,256),)](p,y,m*n,sk,256)
+     return y
+ 
+-def _cx_pr_configs(m,n,k,quick=False):
++def _b7__cx_pr_configs(m,n,k,quick=False):
+     if m==1:
+         return [('gemv',bn,bk,nw) for bn,bk,nw in [(4,512,4),(4,1024,4),(8,512,4),(8,1024,8)]]
+     if quick:
+@@ -88,7 +94,7 @@
+     return opts
+ 
+ 
+-def _cx_pr_configs_wide(m,n,k,quick=False):
++def _b7__cx_pr_configs_wide(m,n,k,quick=False):
+     # First pooler NCU profile identified weight-load dependency stalls.
+     # More K in registers / one-iteration partitions test additional ILP.
+     if m==1:
+@@ -126,7 +132,7 @@
+ 
+ 
+ @triton.jit
+-def _cx_rt__router_simt(
++def _b7__cx_rt__router_simt(
+     X, W, Y, PARTIAL,
+     M: tl.constexpr, N: tl.constexpr, K: tl.constexpr,
+     SX0: tl.constexpr, SX1: tl.constexpr,
+@@ -156,7 +162,7 @@
+ 
+ 
+ @triton.jit
+-def _cx_rt__router_dot(
++def _b7__cx_rt__router_dot(
+     X, HI, LO, Y, PARTIAL,
+     M: tl.constexpr, N: tl.constexpr, K: tl.constexpr,
+     SX0: tl.constexpr, SX1: tl.constexpr,
+@@ -220,7 +226,7 @@
+ 
+ 
+ @triton.jit
+-def _cx_rt__router_reduce(
++def _b7__cx_rt__router_reduce(
+     PARTIAL, Y,
+     ELEMENTS: tl.constexpr, SPLIT_K: tl.constexpr,
+     BLOCK_SPLIT: tl.constexpr, BLOCK: tl.constexpr,
+@@ -235,7 +241,7 @@
+     tl.store(Y + indices, tl.sum(partial, axis=0), indices < ELEMENTS)
+ 
+ 
+-def _cx_rt_prepare_router(w):
++def _b7__cx_rt_prepare_router(w):
+     """Keep exact FP32 weights and prepare the permitted BF16 hi/lo pair."""
+     if w.ndim != 2 or w.dtype != torch.float32:
+         raise ValueError("router weights must be a two-dimensional FP32 tensor")
+@@ -245,12 +251,12 @@
+     return {"w": w, "hi": hi, "lo": lo, "n": w.shape[0], "k": w.shape[1]}
+ 
+ 
+-def _cx_rt__check_power_of_two(value, name, minimum=1):
++def _b7__cx_rt__check_power_of_two(value, name, minimum=1):
+     if not isinstance(value, int) or value < minimum or value & (value - 1):
+         raise ValueError(f"{name} must be a power of two >= {minimum}")
+ 
+ 
+-def _cx_rt_run_router(x, state, config_tuple):
++def _b7__cx_rt_run_router(x, state, config_tuple):
+     """Compute [M, N] FP32 router logits; configuration depends only on shape."""
+     if x.ndim != 2 or x.dtype != torch.bfloat16:
+         raise ValueError("router activations must be a two-dimensional BF16 tensor")
+@@ -263,20 +269,20 @@
+     kind = config_tuple[0]
+     if kind == "simt" and len(config_tuple) == 5:
+         _, bn, bk, splits, warps = config_tuple
+-        _cx_rt__check_power_of_two(bn, "block_n")
+-        _cx_rt__check_power_of_two(bk, "block_k")
++        _b7__cx_rt__check_power_of_two(bn, "block_n")
++        _b7__cx_rt__check_power_of_two(bk, "block_k")
+     elif kind == "dot" and len(config_tuple) == 8:
+         _, bm, bn, bk, splits, warps, stages, swap = config_tuple
+-        _cx_rt__check_power_of_two(bm, "block_m", 16)
+-        _cx_rt__check_power_of_two(bn, "block_n", 16)
+-        _cx_rt__check_power_of_two(bk, "block_k", 16)
++        _b7__cx_rt__check_power_of_two(bm, "block_m", 16)
++        _b7__cx_rt__check_power_of_two(bn, "block_n", 16)
++        _b7__cx_rt__check_power_of_two(bk, "block_k", 16)
+         if not isinstance(stages, int) or stages < 1:
+             raise ValueError("num_stages must be a positive integer")
+     else:
+         raise ValueError(f"invalid router config: {config_tuple!r}")
+     if not isinstance(splits, int) or splits < 1:
+         raise ValueError("split_k must be a positive integer")
+-    _cx_rt__check_power_of_two(warps, "num_warps")
++    _b7__cx_rt__check_power_of_two(warps, "num_warps")
+ 
+     out = torch.empty((m, n), dtype=torch.float32, device=x.device)
+     if m == 0 or n == 0:
+@@ -287,7 +293,7 @@
+     )
+     if kind == "simt":
+         w = state["w"]
+-        _cx_rt__router_simt[(triton.cdiv(n, bn), m, splits)](
++        _b7__cx_rt__router_simt[(triton.cdiv(n, bn), m, splits)](
+             x, w, out, partial, m, n, k,
+             x.stride(0), x.stride(1), w.stride(0), w.stride(1),
+             BLOCK_N=bn, BLOCK_K=bk, SPLIT_K=splits,
+@@ -295,7 +301,7 @@
+         )
+     else:
+         hi, lo = state["hi"], state["lo"]
+-        _cx_rt__router_dot[(triton.cdiv(m, bm) * triton.cdiv(n, bn), splits)](
++        _b7__cx_rt__router_dot[(triton.cdiv(m, bm) * triton.cdiv(n, bn), splits)](
+             x, hi, lo, out, partial, m, n, k,
+             x.stride(0), x.stride(1), hi.stride(0), hi.stride(1),
+             BLOCK_M=bm, BLOCK_N=bn, BLOCK_K=bk,
+@@ -303,7 +309,7 @@
+             num_warps=warps, num_stages=stages,
+         )
+     if splits > 1:
+-        _cx_rt__router_reduce[(triton.cdiv(m * n, 256),)](
++        _b7__cx_rt__router_reduce[(triton.cdiv(m * n, 256),)](
+             partial, out, m * n, SPLIT_K=splits,
+             BLOCK_SPLIT=triton.next_power_of_2(splits), BLOCK=256,
+             num_warps=4,
+@@ -311,7 +317,7 @@
+     return out
+ 
+ 
+-def _cx_rt_router_configs(m):
++def _b7__cx_rt_router_configs(m):
+     """Full sweep including longer K tiles; the quick sweep stays unchanged."""
+     simt = [
+         ("simt", 1, 256, 1, 4),
+@@ -357,10 +363,10 @@
+     return simt + dot
+ 
+ 
+-def _cx_rt_configs(m, n, k, quick=False):
++def _b7__cx_rt_configs(m, n, k, quick=False):
+     """Benchmark-compatible shape API; quick sweeps contain at most four tuples."""
+     if not quick:
+-        return _cx_rt_router_configs(m)
++        return _b7__cx_rt_router_configs(m)
+     if m == 1:
+         return [
+             ("simt", 1, 256, 1, 4),
+@@ -408,7 +414,7 @@
+ from torch.utils.cpp_extension import load_inline
+ 
+ 
+-_cx_ti__CUDA_SOURCE = r"""
++_b7__cx_ti__CUDA_SOURCE = r"""
+ // SPDX-SnippetBegin
+ // SPDX-SnippetCopyrightText: 2025 NVIDIA CORPORATION <https://github.com/NVIDIA/TensorRT-LLM>
+ // SPDX-License-Identifier: Apache-2.0
+@@ -953,18 +959,18 @@
+ 
+ """
+ 
+-_cx_ti__CPP_SOURCE = r"""
++_b7__cx_ti__CPP_SOURCE = r"""
+ #include <torch/extension.h>
+ at::Tensor tinygemm_forward(at::Tensor x, at::Tensor w, int64_t n, int64_t stages, bool interleave);
+ """
+ 
+ 
+ @lru_cache(maxsize=1)
+-def _cx_ti__extension():
++def _b7__cx_ti__extension():
+     return load_inline(
+         name="muse_hopper_tinygemm_v2",
+-        cpp_sources=_cx_ti__CPP_SOURCE,
+-        cuda_sources=_cx_ti__CUDA_SOURCE,
++        cpp_sources=_b7__cx_ti__CPP_SOURCE,
++        cuda_sources=_b7__cx_ti__CUDA_SOURCE,
+         functions=["tinygemm_forward"],
+         extra_cflags=["-O3", "-std=c++20"],
+         extra_cuda_cflags=[
+@@ -977,13 +983,13 @@
+     )
+ 
+ 
+-def _cx_ti_run(x, w, n, config):
++def _b7__cx_ti_run(x, w, n, config):
+     if len(config) != 3 or config[0] != "tiny" or config[1] not in (4, 8, 16):
+         raise ValueError(f"invalid TinyGEMM configuration: {config!r}")
+-    return _cx_ti__extension().tinygemm_forward(x, w, int(n), int(config[1]), bool(config[2]))
+-
+-
+-def _cx_ti_configs(m, n, k, quick=False):
++    return _b7__cx_ti__extension().tinygemm_forward(x, w, int(n), int(config[1]), bool(config[2]))
++
++
++def _b7__cx_ti_configs(m, n, k, quick=False):
+     if k % 64:
+         return []
+     if quick:
+@@ -1037,7 +1043,7 @@
+ 
+ 
+ @tr.jit
+-def _cx_tm_tma_matmul(
++def _b7__cx_tm_tma_matmul(
+     WD, XD, Y, P,
+     M: tl.constexpr, N: tl.constexpr, K: tl.constexpr,
+     WS0: tl.constexpr, WS1: tl.constexpr,
+@@ -1090,7 +1096,7 @@
+ 
+ 
+ @tr.jit
+-def _cx_tm_tma_reduce_split(P, Y, SIZE: tl.constexpr, SK: tl.constexpr, B: tl.constexpr):
++def _b7__cx_tm_tma_reduce_split(P, Y, SIZE: tl.constexpr, SK: tl.constexpr, B: tl.constexpr):
+     idx = tl.program_id(0) * B + tl.arange(0, B)
+     total = tl.full((B,), 0, tl.float32)
+     for split in tl.static_range(0, SK):
+@@ -1098,7 +1104,7 @@
+     tl.store(Y + idx, total.to(tl.bfloat16), idx < SIZE)
+ 
+ 
+-def _cx_tm__can_describe(tensor):
++def _b7__cx_tm__can_describe(tensor):
+     # TMA requires a 16-byte-aligned base/outer byte stride and unit inner
+     # element stride. Logical dimensions need not be tile multiples.
+     return (
+@@ -1112,7 +1118,7 @@
+ 
+ 
+ @dataclass
+-class _cx_tm_PreparedWeights:
++class _b7__cx_tm_PreparedWeights:
+     tensor: torch.Tensor
+     descriptors: dict = field(default_factory=dict)
+ 
+@@ -1125,16 +1131,16 @@
+         return self.descriptors[key]
+ 
+ 
+-def _cx_tm_prepare(w):
++def _b7__cx_tm_prepare(w):
+     """Retain BF16 weights and optionally reuse their host TMA descriptors."""
+     if not isinstance(w, torch.Tensor) or w.dtype != torch.bfloat16 or w.ndim != 2:
+         raise ValueError("prepare expects a two-dimensional BF16 weight tensor")
+-    return _cx_tm_PreparedWeights(w)
+-
+-
+-def _cx_tm_run(x, w, n, cfg=None):
++    return _b7__cx_tm_PreparedWeights(w)
++
++
++def _b7__cx_tm_run(x, w, n, cfg=None):
+     """Return BF16 x @ w[:n].T; w may be a tensor or PreparedWeights."""
+-    prepared = w if isinstance(w, _cx_tm_PreparedWeights) else None
++    prepared = w if isinstance(w, _b7__cx_tm_PreparedWeights) else None
+     weight = prepared.tensor if prepared is not None else w
+     if x.ndim != 2 or weight.ndim != 2 or x.shape[1] != weight.shape[1]:
+         raise ValueError("x and w must be two-dimensional with matching K")
+@@ -1150,7 +1156,7 @@
+     if m == 0 or n == 0:
+         return y
+     if cfg is None:
+-        cfg = (_cx_tm_configs(m, n, k, quick=True)[0] if k > 0
++        cfg = (_b7__cx_tm_configs(m, n, k, quick=True)[0] if k > 0
+                else ("tma", 64, 16, 128, 1, 4, 3))
+     kind, bn, bm, bk, sk, warps, stages = cfg
+     if kind != "tma":
+@@ -1163,27 +1169,27 @@
+         raise ValueError("unsupported warp or pipeline-stage count")
+ 
+     partial = torch.empty((sk, m, n), dtype=torch.float32, device=x.device) if sk > 1 else y
+-    use_tma = _cx_tm__can_describe(x) and _cx_tm__can_describe(weight)
++    use_tma = _b7__cx_tm__can_describe(x) and _b7__cx_tm__can_describe(weight)
+     if use_tma:
+         wd = (prepared.descriptor(n, bn, bk) if prepared is not None
+               else TensorDescriptor.from_tensor(weight[:n], [bn, bk]))
+         xd = TensorDescriptor.from_tensor(x, [bm, bk])
+     else:
+         wd, xd = weight, x
+-    _cx_tm_tma_matmul[(tr.cdiv(n, bn) * tr.cdiv(m, bm), sk)](
++    _b7__cx_tm_tma_matmul[(tr.cdiv(n, bn) * tr.cdiv(m, bm), sk)](
+         wd, xd, y, partial, m, n, k,
+         weight.stride(0), weight.stride(1), x.stride(0), x.stride(1),
+         bn, bm, bk, sk, stages, use_tma,
+         num_warps=warps, num_stages=stages,
+     )
+     if sk > 1:
+-        _cx_tm_tma_reduce_split[(tr.cdiv(m * n, 256),)](
++        _b7__cx_tm_tma_reduce_split[(tr.cdiv(m * n, 256),)](
+             partial, y, m * n, sk, 256, num_warps=4
+         )
+     return y
+ 
+ 
+-def _cx_tm_configs(m, n, k, quick=False):
++def _b7__cx_tm_configs(m, n, k, quick=False):
+     """Return a bounded sweep; quick has at most four representative configs."""
+     if m < 1 or n < 1 or k < 1:
+         return []
+@@ -1248,7 +1254,7 @@
+     return result
+ 
+ 
+-def _cx_tm_configs_large(m,n,k,quick=False):
++def _b7__cx_tm_configs_large(m,n,k,quick=False):
+     # m256 profile: ~71 MB DRAM in both kernels, but repeated weight reads
+     # through L2 and only 44% tensor activity. Larger token tiles test reuse.
+     return [('tma',64,bm,bk,sk,warps,stages)
+@@ -1272,7 +1278,7 @@
+ 
+ 
+ @tr.jit
+-def _cx_pa_packed_mm(WD, XD, Y, P, M:tl.constexpr,N:tl.constexpr,K:tl.constexpr,
++def _b7__cx_pa_packed_mm(WD, XD, Y, P, M:tl.constexpr,N:tl.constexpr,K:tl.constexpr,
+               BN:tl.constexpr,BM:tl.constexpr,BK:tl.constexpr,SK:tl.constexpr,
+               STAGES:tl.constexpr):
+     pn=tl.program_id(0)
+@@ -1296,7 +1302,7 @@
+ 
+ 
+ @tr.jit
+-def _cx_pa_packed_reduce(P,Y,SIZE:tl.constexpr,SK:tl.constexpr,B:tl.constexpr):
++def _b7__cx_pa_packed_reduce(P,Y,SIZE:tl.constexpr,SK:tl.constexpr,B:tl.constexpr):
+     i=tl.program_id(0)*B+tl.arange(0,B)
+     acc=tl.zeros((B,),tl.float32)
+     for split in tl.static_range(SK):
+@@ -1304,13 +1310,13 @@
+     tl.store(Y+i,acc.to(tl.bfloat16),i<SIZE)
+ 
+ 
+-_cx_pa_PACKINGS=((16,128),(32,128),(64,64),(64,128),(64,256),(128,128))
+-
+-
+-def _cx_pa_prepare(w):
++_b7__cx_pa_PACKINGS=((16,128),(32,128),(64,64),(64,128),(64,256),(128,128))
++
++
++def _b7__cx_pa_prepare(w):
+     n,k=w.shape
+     state={'weight':w,'packed':{}}
+-    for bn,bk in _cx_pa_PACKINGS:
++    for bn,bk in _b7__cx_pa_PACKINGS:
+         npad,kpad=tr.cdiv(n,bn)*bn,tr.cdiv(k,bk)*bk
+         source=w if (n,k)==(npad,kpad) else torch.nn.functional.pad(w,(0,kpad-k,0,npad-n))
+         packed=source.view(npad//bn,bn,kpad//bk,bk).permute(0,2,1,3).contiguous()
+@@ -1318,26 +1324,26 @@
+     return state
+ 
+ 
+-def _cx_pa_run(x,state,n,cfg):
++def _b7__cx_pa_run(x,state,n,cfg):
+     _,bn,bm,bk,sk,nw,ns=cfg
+     m,k=x.shape
+     y=torch.empty((m,n),dtype=torch.bfloat16,device=x.device)
+     partial=torch.empty((sk,m,n),dtype=torch.float32,device=x.device) if sk>1 else y
+     wd=state['packed'][(bn,bk)][1]
+     xd=TensorDescriptor.from_tensor(x,[bm,bk])
+-    _cx_pa_packed_mm[(tr.cdiv(n,bn),tr.cdiv(m,bm),sk)](wd,xd,y,partial,m,n,k,bn,bm,bk,sk,ns,num_warps=nw,num_stages=ns)
+-    if sk>1:_cx_pa_packed_reduce[(tr.cdiv(m*n,256),)](partial,y,m*n,sk,256)
++    _b7__cx_pa_packed_mm[(tr.cdiv(n,bn),tr.cdiv(m,bm),sk)](wd,xd,y,partial,m,n,k,bn,bm,bk,sk,ns,num_warps=nw,num_stages=ns)
++    if sk>1:_b7__cx_pa_packed_reduce[(tr.cdiv(m*n,256),)](partial,y,m*n,sk,256)
+     return y
+ 
+ 
+-def _cx_pa_configs(m,n,k,quick=False):
++def _b7__cx_pa_configs(m,n,k,quick=False):
+     bm=16 if m<=16 else 32 if m<=32 else 64
+     initial=[('packed',64,bm,128,4,4,3),('packed',32,bm,128,4,4,3),
+              ('packed',64,bm,256,1,4,3),('packed',64,bm,128,1,4,4)]
+     if quick:return initial
+     return list(dict.fromkeys(initial+[
+         ('packed',bn,bm,bk,sk,4,ns)
+-        for bn,bk in _cx_pa_PACKINGS for sk in (1,2,4,8) for ns in (2,4)
++        for bn,bk in _b7__cx_pa_PACKINGS for sk in (1,2,4,8) for ns in (2,4)
+         if sk*bk<=k and (bn+bm)*bk*2*ns<200*1024
+     ]))
+ 
+@@ -1381,7 +1387,7 @@
+ 
+ 
+ @tr.jit
+-def _cx_ri__pack_router(W, PAIR, BLOCKED,
++def _b7__cx_ri__pack_router(W, PAIR, BLOCKED,
+                  N: tl.constexpr, K: tl.constexpr, PAD_K: tl.constexpr,
+                  B: tl.constexpr):
+     index = tl.program_id(0) * B + tl.arange(0, B)
+@@ -1401,7 +1407,7 @@
+     tl.store(BLOCKED + block_offset + 128, lo, row < N)
+ 
+ 
+-def _cx_ri_prepare_router(w):
++def _b7__cx_ri_prepare_router(w):
+     """Prepare both permitted hi+lo layouts, retaining exact FP32 for SIMT."""
+     if w.ndim != 2 or w.dtype != torch.float32 or not w.is_cuda:
+         raise ValueError("router weights must be a two-dimensional CUDA FP32 tensor")
+@@ -1411,7 +1417,7 @@
+     pair = torch.empty((n, 2 * k), dtype=torch.bfloat16, device=w.device)
+     blocked = torch.empty((n, 2 * padded_k), dtype=torch.bfloat16, device=w.device)
+     if n and k:
+-        _cx_ri__pack_router[(tr.cdiv(n * padded_k, 256),)](w, pair, blocked, n, k, padded_k, 256)
++        _b7__cx_ri__pack_router[(tr.cdiv(n * padded_k, 256),)](w, pair, blocked, n, k, padded_k, 256)
+     return {
+         "w": w, "pair": pair, "block128": blocked,
+         "n": n, "k": k, "padded_k": padded_k,
+@@ -1427,7 +1433,7 @@
+ 
+ 
+ @tr.jit
+-def _cx_ri_router_interleaved_dot(
++def _b7__cx_ri_router_interleaved_dot(
+     X, PACKED, Y, PARTIAL,
+     M: tl.constexpr, N: tl.constexpr, K: tl.constexpr, PACKED_K: tl.constexpr,
+     XS0: tl.constexpr, XS1: tl.constexpr,
+@@ -1465,7 +1471,7 @@
+ 
+ 
+ @tr.jit
+-def _cx_ri_router_interleaved_simt(
++def _b7__cx_ri_router_interleaved_simt(
+     X, W, Y, M: tl.constexpr, N: tl.constexpr, K: tl.constexpr,
+     XS0: tl.constexpr, XS1: tl.constexpr, BN: tl.constexpr, BK: tl.constexpr,
+ ):
+@@ -1483,7 +1489,7 @@
+ 
+ 
+ @tr.jit
+-def _cx_ri_router_interleaved_reduce(PARTIAL, Y, SIZE: tl.constexpr,
++def _b7__cx_ri_router_interleaved_reduce(PARTIAL, Y, SIZE: tl.constexpr,
+                               SK: tl.constexpr, BLOCK_SPLIT: tl.constexpr,
+                               BLOCK: tl.constexpr):
+     index = tl.program_id(0) * BLOCK + tl.arange(0, BLOCK)
+@@ -1493,7 +1499,7 @@
+     tl.store(Y + index, tl.sum(value, axis=0), index < SIZE)
+ 
+ 
+-def _cx_ri_run_router(x, state, cfg):
++def _b7__cx_ri_run_router(x, state, cfg):
+     """Return FP32 router logits from original FP32 or both BF16 halves."""
+     if x.ndim != 2 or x.dtype != torch.bfloat16:
+         raise ValueError("router activations must be a two-dimensional BF16 tensor")
+@@ -1514,7 +1520,7 @@
+             raise ValueError("SIMT requires FP32 weights, SK1, and BN1/2/4/8")
+         if bk not in (256, 512, 1024, 2048, 4096, 8192):
+             raise ValueError("unsupported SIMT K tile")
+-        _cx_ri_router_interleaved_simt[(tr.cdiv(n, bn), m)](
++        _b7__cx_ri_router_interleaved_simt[(tr.cdiv(n, bn), m)](
+             x, state["w"], output, m, n, k, x.stride(0), x.stride(1), bn, bk,
+             num_warps=warps, num_stages=stages,
+         )
+@@ -1528,13 +1534,13 @@
+         packed = state[layout]
+         group = 1 if layout == "pair" else 128
+         partial = torch.empty((sk, m, n), dtype=torch.float32, device=x.device) if sk > 1 else output
+-        _cx_ri_router_interleaved_dot[(tr.cdiv(n, bn) * tr.cdiv(m, bm), sk)](
++        _b7__cx_ri_router_interleaved_dot[(tr.cdiv(n, bn) * tr.cdiv(m, bm), sk)](
+             x, packed, output, partial, m, n, k, packed.shape[1],
+             x.stride(0), x.stride(1), bm, bn, bk, sk, group,
+             num_warps=warps, num_stages=stages,
+         )
+         if sk > 1:
+-            _cx_ri_router_interleaved_reduce[(tr.cdiv(m * n, 256),)](
++            _b7__cx_ri_router_interleaved_reduce[(tr.cdiv(m * n, 256),)](
+                 partial, output, m * n, sk, tr.next_power_of_2(sk), 256,
+                 num_warps=4,
+             )
+@@ -1543,7 +1549,7 @@
+     return output
+ 
+ 
+-def _cx_ri_configs(m, n, k, quick=False):
++def _b7__cx_ri_configs(m, n, k, quick=False):
+     """At most four quick tuples; full sweep covers two layouts and SK8/16/32."""
+     if m < 1 or n < 1 or k < 1:
+         return []
+@@ -1631,9 +1637,9 @@
+ from torch.utils.cpp_extension import load_inline
+ 
+ 
+-_cx_lt_MAX_WORKSPACE_BYTES = 256 * 1024 * 1024
+-
+-_cx_lt__CPP_SOURCE = r"""
++_b7__cx_lt_MAX_WORKSPACE_BYTES = 256 * 1024 * 1024
++
++_b7__cx_lt__CPP_SOURCE = r"""
+ #include <torch/extension.h>
+ #include <ATen/cuda/CUDAContextLight.h>
+ #include <c10/cuda/CUDAGuard.h>
+@@ -1859,10 +1865,10 @@
+ 
+ 
+ @lru_cache(maxsize=1)
+-def _cx_lt__extension():
++def _b7__cx_lt__extension():
+     return load_inline(
+         name="muse_cublaslt_static_v1",
+-        cpp_sources=_cx_lt__CPP_SOURCE,
++        cpp_sources=_b7__cx_lt__CPP_SOURCE,
+         functions=["lt_heuristics", "lt_workspace", "lt_run"],
+         extra_cflags=["-O3", "-std=c++20"],
+         extra_ldflags=["-lcublasLt", "-lcublas"],
+@@ -1871,7 +1877,7 @@
+     )
+ 
+ 
+-def _cx_lt_prepare(w):
++def _b7__cx_lt_prepare(w):
+     if w.ndim != 2 or w.dtype != torch.bfloat16:
+         raise ValueError("cuBLASLt candidate expects rank-two BF16 weights")
+     w = w.contiguous()
+@@ -1881,25 +1887,25 @@
+ 
+ 
+ @lru_cache(maxsize=None)
+-def _cx_lt__heuristics(m, n, k, nn, count, device):
+-    return tuple(tuple(row) for row in _cx_lt__extension().lt_heuristics(m, n, k, nn, count, device))
+-
+-
+-def _cx_lt_configs(m, n, k, quick=False):
++def _b7__cx_lt__heuristics(m, n, k, nn, count, device):
++    return tuple(tuple(row) for row in _b7__cx_lt__extension().lt_heuristics(m, n, k, nn, count, device))
++
++
++def _b7__cx_lt_configs(m, n, k, quick=False):
+     if m <= 0 or n <= 0 or k <= 0:
+         return []
+     count = 2 if quick else 32
+     device = torch.cuda.current_device()
+     result = []
+     for layout in ("tn", "nn"):
+-        for row in _cx_lt__heuristics(m, n, k, layout == "nn", count, device):
++        for row in _b7__cx_lt__heuristics(m, n, k, layout == "nn", count, device):
+             candidate = ("lt", layout, *row)
+             if candidate not in result:
+                 result.append(candidate)
+     return result
+ 
+ 
+-def _cx_lt_describe_config(cfg):
++def _b7__cx_lt_describe_config(cfg):
+     fields = ("kind", "layout", "algorithm_id", "tile_id", "split_k",
+               "reduction_scheme", "cta_swizzle", "custom_option", "stages_id",
+               "inner_shape_id", "cluster_shape_id", "workspace_bytes", "cublaslt_version")
+@@ -1908,7 +1914,7 @@
+     return dict(zip(fields, cfg))
+ 
+ 
+-def _cx_lt_run(x, state, n, cfg):
++def _b7__cx_lt_run(x, state, n, cfg):
+     if len(cfg) != 13 or cfg[0] != "lt" or cfg[1] not in ("tn", "nn"):
+         raise ValueError(f"invalid cuBLASLt configuration: {cfg!r}")
+     if x.ndim != 2 or x.dtype != torch.bfloat16 or x.shape[1] != state["k"]:
+@@ -1923,7 +1929,7 @@
+     lda = weight.shape[1] if nn else k
+     settings = tuple(int(value) for value in cfg[2:11])
+     version = int(cfg[12])
+-    extension = _cx_lt__extension()
++    extension = _b7__cx_lt__extension()
+     required = extension.lt_workspace(m, n, k, lda, nn, settings, version, x.device.index)
+     # A distinct allocation per invocation is captured in the CUDA graph. No
+     # shared mutable workspace can race across separately captured invocations.
+@@ -1931,25 +1937,25 @@
+     return extension.lt_run(x, weight, n, nn, settings, version, workspace)
+ 
+ 
+-_cx__CHOICES = {'8/qkv_gate': ('tiny', ['tiny', 8, False]), '8/o': ('packed', ['packed', 64, 16, 128, 1, 4, 4]), '8/pooler': ('tiny', ['tiny', 8, False]), '8/unpooler': ('tiny', ['tiny', 16, False]), '16/qkv_gate': ('tma', ['tma', 64, 16, 128, 4, 4, 4]), '16/o': ('triton', ['mm', 64, 16, 256, 1, 4, 3]), '16/pooler': ('tma', ['tma', 64, 16, 128, 4, 4, 4]), '16/unpooler': ('torch_transpose', ['nn']), '32/qkv_gate': ('tma', ['tma', 64, 32, 128, 4, 4, 4]), '32/o': ('packed', ['packed', 64, 32, 128, 1, 4, 4]), '32/pooler': ('tma', ['tma', 64, 32, 128, 4, 4, 4]), '32/unpooler': ('torch_transpose', ['nn']), '128/qkv_gate': ('lt', ['lt', 'nn', 66, 17, 3, 2, 0, 0, 35, 0, 4, 3538960, 130101]), '128/o': ('torch_transpose', ['nn']), '128/pooler': ('torch', []), '128/unpooler': ('lt', ['lt', 'nn', 66, 18, 1, 0, 0, 3, 35, 0, 5, 0, 130101]), '256/qkv_gate': ('lt', ['lt', 'tn', 66, 184, 4, 2, 0, 2, 35, 0, 5, 9437200, 130101]), '256/o': ('torch', []), '256/pooler': ('torch_transpose', ['nn']), '256/unpooler': ('torch', []), '1/router': ('router_interleaved', ['simt', 'fp32', 1, 1, 8192, 1, 4, 1]), '8/router': ('router_interleaved', ['interleaved', 'block128', 16, 64, 256, 32, 4, 2]), '16/router': ('router', ['dot', 16, 32, 256, 32, 4, 2, False]), '32/router': ('router', ['dot', 32, 64, 256, 32, 4, 2, False]), '128/router': ('router_interleaved', ['interleaved', 'block128', 32, 64, 128, 32, 4, 2]), '256/router': ('router_interleaved', ['interleaved', 'block128', 32, 64, 128, 16, 4, 2]), '1/qkv_gate': ('triton', ['gemv', 1, 8192, 8]), '1/o': ('triton', ['gemv', 2, 1024, 4]), '1/pooler': ('triton', ['gemv', 1, 4096, 8]), '1/unpooler': ('triton', ['gemv', 1, 4096, 8])}
+-
+-
+-def _cx_prepare(weights):
+-    _cx_ti__extension()
+-    _cx_lt__extension()
++_b7__cx__CHOICES = {'8/qkv_gate': ('tiny', ['tiny', 8, False]), '8/o': ('packed', ['packed', 64, 16, 128, 1, 4, 4]), '8/pooler': ('tiny', ['tiny', 8, False]), '8/unpooler': ('tiny', ['tiny', 16, False]), '16/qkv_gate': ('tma', ['tma', 64, 16, 128, 4, 4, 4]), '16/o': ('triton', ['mm', 64, 16, 256, 1, 4, 3]), '16/pooler': ('tma', ['tma', 64, 16, 128, 4, 4, 4]), '16/unpooler': ('torch_transpose', ['nn']), '32/qkv_gate': ('tma', ['tma', 64, 32, 128, 4, 4, 4]), '32/o': ('packed', ['packed', 64, 32, 128, 1, 4, 4]), '32/pooler': ('tma', ['tma', 64, 32, 128, 4, 4, 4]), '32/unpooler': ('torch_transpose', ['nn']), '128/qkv_gate': ('lt', ['lt', 'nn', 66, 17, 3, 2, 0, 0, 35, 0, 4, 3538960, 130101]), '128/o': ('torch_transpose', ['nn']), '128/pooler': ('torch', []), '128/unpooler': ('lt', ['lt', 'nn', 66, 18, 1, 0, 0, 3, 35, 0, 5, 0, 130101]), '256/qkv_gate': ('lt', ['lt', 'tn', 66, 184, 4, 2, 0, 2, 35, 0, 5, 9437200, 130101]), '256/o': ('torch', []), '256/pooler': ('torch_transpose', ['nn']), '256/unpooler': ('torch', []), '1/router': ('router_interleaved', ['simt', 'fp32', 1, 1, 8192, 1, 4, 1]), '8/router': ('router_interleaved', ['interleaved', 'block128', 16, 64, 256, 32, 4, 2]), '16/router': ('router', ['dot', 16, 32, 256, 32, 4, 2, False]), '32/router': ('router', ['dot', 32, 64, 256, 32, 4, 2, False]), '128/router': ('router_interleaved', ['interleaved', 'block128', 32, 64, 128, 32, 4, 2]), '256/router': ('router_interleaved', ['interleaved', 'block128', 32, 64, 128, 16, 4, 2]), '1/qkv_gate': ('triton', ['gemv', 1, 8192, 8]), '1/o': ('triton', ['gemv', 2, 1024, 4]), '1/pooler': ('triton', ['gemv', 1, 4096, 8]), '1/unpooler': ('triton', ['gemv', 1, 4096, 8])}
++
++
++def _b7__cx_prepare(weights):
++    _b7__cx_ti__extension()
++    _b7__cx_lt__extension()
+     return {
+         'weights': weights,
+-        'lt': {name:_cx_lt_prepare(w) for name,w in weights.items() if name!='router'},
+-        'router': _cx_rt_prepare_router(weights['router']),
+-        'router_interleaved': _cx_ri_prepare_router(weights['router']),
+-        'packed': {'o':_cx_pa_prepare(weights['o'])},
++        'lt': {name:_b7__cx_lt_prepare(w) for name,w in weights.items() if name!='router'},
++        'router': _b7__cx_rt_prepare_router(weights['router']),
++        'router_interleaved': _b7__cx_ri_prepare_router(weights['router']),
++        'packed': {'o':_b7__cx_pa_prepare(weights['o'])},
+         'transposed': {name:w.T.contiguous() for name,w in weights.items() if name!='router'},
+     }
+ 
+ 
+ 
+ 
+-def _cx_kernel_fn(data,state):
++def _b7__cx_kernel_fn(data,state):
+     x=data['x']
+     layer=data['config']['layer']
+     n=data['config']['n']
+@@ -1960,18 +1966,18 @@
+     elif m<=32:bucket=32
+     elif m<=192:bucket=128
+     else:bucket=256
+-    family,cfg=_cx__CHOICES[str(bucket)+'/'+layer]
++    family,cfg=_b7__cx__CHOICES[str(bucket)+'/'+layer]
+     if layer=='router':
+-        if family=='router_interleaved':return _cx_ri_run_router(x,state['router_interleaved'],cfg)
+-        return _cx_rt_run_router(x,state['router'],cfg)
++        if family=='router_interleaved':return _b7__cx_ri_run_router(x,state['router_interleaved'],cfg)
++        return _b7__cx_rt_run_router(x,state['router'],cfg)
+     w=state['weights'][layer]
+     if m>384:return torch.mm(x,w[:n].T)
+-    if family=='triton':return _cx_pr_run(x,w,n,cfg)
++    if family=='triton':return _b7__cx_pr_run(x,w,n,cfg)
+     if family=='cuda':return cu_run(x,w,n,cfg)
+-    if family=='tiny':return _cx_ti_run(x,w,n,cfg)
+-    if family=='tma':return _cx_tm_run(x,w,n,cfg)
+-    if family=='packed':return _cx_pa_run(x,state['packed'][layer],n,cfg)
+-    if family=='lt':return _cx_lt_run(x,state['lt'][layer],n,cfg)
++    if family=='tiny':return _b7__cx_ti_run(x,w,n,cfg)
++    if family=='tma':return _b7__cx_tm_run(x,w,n,cfg)
++    if family=='packed':return _b7__cx_pa_run(x,state['packed'][layer],n,cfg)
++    if family=='lt':return _b7__cx_lt_run(x,state['lt'][layer],n,cfg)
+     if family=='torch_transpose':return torch.mm(x,state['transposed'][layer][:,:n])
+     return torch.mm(x,w[:n].T)
+ 
+@@ -1984,7 +1990,7 @@
+ import torch
+ 
+ 
+-class _cu_Module:
++class _b7__cu_Module:
+     def __init__(self, src, name="k.cu", opts=()):
+         from cuda.bindings import driver, nvrtc
+         self.driver = driver
+@@ -2052,7 +2058,7 @@
+         self._check(err, f"launch {name}")
+ 
+ 
+-def _cu_pack(*vals):
++def _b7__cu_pack(*vals):
+     """Pack kernel params: tensors/ints as 8-byte words (kernels take a struct of u64/i64/pointers)."""
+     out = b""
+     for v in vals:
+@@ -2083,7 +2089,7 @@
+ 
+ import torch
+ 
+-_k1_SRC = r"""
++_b7__k1_SRC = r"""
+ typedef unsigned long long u64;
+ typedef unsigned int u32;
+ typedef unsigned short u16;
+@@ -2350,9 +2356,9 @@
+ }
+ """
+ 
+-_k1_LAYER_K = {"qkv_gate": 8192, "o": 1024, "pooler": 8192, "pooler1": 8192, "unpooler": 4096, "unpslice": 4096}
++_b7__k1_LAYER_K = {"qkv_gate": 8192, "o": 1024, "pooler": 8192, "pooler1": 8192, "unpooler": 4096, "unpslice": 4096}
+ # layer -> (C, Q, GW, WR, WK, D)
+-_k1_CFG = {
++_b7__k1_CFG = {
+     "qkv_gate": (2, 66, 5, 1, 16, 3),
+     "pooler": (2, 66, 4, 2, 8, 4),
+     "pooler1": (1, 132, 4, 1, 16, 4),
+@@ -2360,52 +2366,52 @@
+     "unpooler": (1, 132, 4, 2, 8, 4),
+     "unpslice": (1, 128, 1, 1, 16, 4),
+ }
+-_k1_VARIANT = {("pooler", 8): "pooler1"}   # (layer, tokb) -> config key
+-_k1_OVMAX = 8192
+-_k1_TOKBS = (8, 16)
+-_k1_SMEM_MAX = 227 * 1024
+-
+-
+-def _k1_kname(layer, tokb, comp):
++_b7__k1_VARIANT = {("pooler", 8): "pooler1"}   # (layer, tokb) -> config key
++_b7__k1_OVMAX = 8192
++_b7__k1_TOKBS = (8, 16)
++_b7__k1_SMEM_MAX = 227 * 1024
++
++
++def _b7__k1_kname(layer, tokb, comp):
+     return f"k1s_{layer}_{tokb}_{comp}"
+ 
+ 
+-def _k1__dims(layer, tokb, comp):
+-    c, q, gw, wr, wk, d = _k1_CFG[layer]
+-    kc = _k1_LAYER_K[layer] // c
++def _b7__k1__dims(layer, tokb, comp):
++    c, q, gw, wr, wk, d = _b7__k1_CFG[layer]
++    kc = _b7__k1_LAYER_K[layer] // c
+     tokp = (tokb + 15) // 16 * 16
+     xb = tokb * kc * 2
+     if xb > 200 * 1024:
+         return dict(ovoff=0, smem=10**9, nkt=kc // 32 // wk)
+     epi = (wk + 2) * tokp * (gw * wr * 8 + 8) * 4
+     ovoff = 1024 + (max(xb + 1024, epi) + 1023) // 1024 * 1024
+-    smem = max(ovoff + (_k1_OVMAX if comp else 0), 120 * 1024)  # one CTA per SM
++    smem = max(ovoff + (_b7__k1_OVMAX if comp else 0), 120 * 1024)  # one CTA per SM
+     return dict(ovoff=ovoff, smem=smem, nkt=kc // 32 // wk)
+ 
+ 
+-def _k1_source(layers=None, tokbs=(8, 16)):
+-    s = _k1_SRC
+-    for layer, (c, q, gw, wr, wk, d) in _k1_CFG.items():
++def _b7__k1_source(layers=None, tokbs=(8, 16)):
++    s = _b7__k1_SRC
++    for layer, (c, q, gw, wr, wk, d) in _b7__k1_CFG.items():
+         if layers and layer not in layers:
+             continue
+-        kt = _k1_LAYER_K[layer] // 32
++        kt = _b7__k1_LAYER_K[layer] // 32
+         for tokb in tokbs:
+             for comp in (0, 1):
+-                dm = _k1__dims(layer, tokb, comp)
+-                if dm["smem"] > _k1_SMEM_MAX:
++                dm = _b7__k1__dims(layer, tokb, comp)
++                if dm["smem"] > _b7__k1_SMEM_MAX:
+                     continue
+                 nt = 32 * wr * wk
+                 cl = f"__cluster_dims__({c},1,1) " if c > 1 else ""
+-                s += (f'extern "C" __global__ void {cl}__launch_bounds__({nt},1) {_k1_kname(layer, tokb, comp)}'
++                s += (f'extern "C" __global__ void {cl}__launch_bounds__({nt},1) {_b7__k1_kname(layer, tokb, comp)}'
+                       f'(const __grid_constant__ P p) {{ k1s_body<{c},{tokb},{gw},{wr},{wk},{dm["nkt"]},{d},{kt},{comp}>(p); }}\n')
+     return s
+ 
+ 
+-def _k1__frag(t, n, k):
++def _b7__k1__frag(t, n, k):
+     return t.contiguous().view(n // 8, 8, k // 32, 2, 2, 4, 2).permute(0, 2, 1, 5, 3, 4, 6).reshape(n // 8, k // 32, 32, 8)
+ 
+ 
+-def _k1_compress(w):
++def _b7__k1_compress(w):
+     u = w.contiguous().view(torch.int16).to(torch.int32) & 0xFFFF
+     s, e = u >> 15, (u >> 7) & 0xFF
+     hist = torch.bincount(e.flatten(), minlength=256).cpu()
+@@ -2422,20 +2428,20 @@
+     return code, lo, H, esc
+ 
+ 
+-def _k1_prepare_layer(w, layer, comp):
+-    c, q, gw, wr, wk, d = _k1_CFG[layer]
++def _b7__k1_prepare_layer(w, layer, comp):
++    c, q, gw, wr, wk, d = _b7__k1_CFG[layer]
+     n, k = w.shape
+     G, KT = n // 8, k // 32
+     kc = k // c
+     nkt = kc // 32 // wk
+     dev = w.device
+-    raw16 = _k1__frag(w, n, k).contiguous().view(G, KT, 32, 8)        # bf16 [G, KT, lane, 8]
++    raw16 = _b7__k1__frag(w, n, k).contiguous().view(G, KT, 32, 8)        # bf16 [G, KT, lane, 8]
+     if comp:
+-        code, lo, H, esc = _k1_compress(w)
+-        cl = _k1__frag(lo, n, k).to(torch.uint8)                     # [G, KT, 32, 8]
+-        cc = _k1__frag(code, n, k).to(torch.int32)
++        code, lo, H, esc = _b7__k1_compress(w)
++        cl = _b7__k1__frag(lo, n, k).to(torch.uint8)                     # [G, KT, 32, 8]
++        cc = _b7__k1__frag(code, n, k).to(torch.int32)
+         cw = (cc[..., 0:4] | (cc[..., 4:8] << 4)).to(torch.uint8)  # [G, KT, 32, 4]
+-        rawt = _k1__frag(esc.to(torch.int32), n, k).reshape(G, KT, 256).any(-1)   # [G, KT]
++        rawt = _b7__k1__frag(esc.to(torch.int32), n, k).reshape(G, KT, 256).any(-1)   # [G, KT]
+         rb = raw16.view(torch.uint8).view(G, KT, 32, 16)
+         cl = torch.where(rawt[..., None, None], rb[..., 0:8], cl)
+         cw = torch.where(rawt[..., None, None], rb[..., 8:12], cw)
+@@ -2498,7 +2504,7 @@
+         parts.append(blk.reshape(-1))
+     if comp:
+         ovstride = (ovstride + 127) // 128 * 128
+-        if ovstride > _k1_OVMAX:
++        if ovstride > _b7__k1_OVMAX:
+             raise RuntimeError(f"{layer}: overflow {ovstride} > OVMAX")
+         ovf_all = torch.zeros((q * c, max(ovstride, 128)), dtype=torch.uint8, device=dev)
+         for i, ob in enumerate(ovs):
+@@ -2512,13 +2518,13 @@
+             "ovstride": 0, "base2": 0, "n_raw": 0, "base": None}
+ 
+ 
+-_k1__TM_CACHE = {}
+-
+-
+-def _k1_x_tmap3(x, m, k, tokb, nb):
++_b7__k1__TM_CACHE = {}
++
++
++def _b7__k1_x_tmap3(x, m, k, tokb, nb):
+     key = (x.data_ptr(), m, k, tokb, nb)
+-    if key in _k1__TM_CACHE:
+-        return _k1__TM_CACHE[key]
++    if key in _b7__k1__TM_CACHE:
++        return _b7__k1__TM_CACHE[key]
+     from cuda.bindings import driver as d
+     err, tm = d.cuTensorMapEncodeTiled(
+         d.CUtensorMapDataType.CU_TENSOR_MAP_DATA_TYPE_BFLOAT16, d.cuuint32_t(3), x.data_ptr(),
+@@ -2530,33 +2536,33 @@
+     if int(err) != 0:
+         raise RuntimeError(f"cuTensorMapEncodeTiled failed: {err}")
+     b = b"".join(struct.pack("<Q", int(v)) for v in tm.opaque)
+-    if len(_k1__TM_CACHE) > 64:
+-        _k1__TM_CACHE.clear()
+-    _k1__TM_CACHE[key] = b
++    if len(_b7__k1__TM_CACHE) > 64:
++        _b7__k1__TM_CACHE.clear()
++    _b7__k1__TM_CACHE[key] = b
+     return b
+ 
+ 
+-_k1_TRACE = None
+-
+-
+-def _k1_cfg_key(layer, m, n):
++_b7__k1_TRACE = None
++
++
++def _b7__k1_cfg_key(layer, m, n):
+     lname = "unpslice" if (layer == "unpooler" and n == 1024) else layer
+     tokb = 8 if m <= 8 else 16
+-    return _k1_VARIANT.get((lname, tokb), lname), tokb
+-
+-
+-def _k1_launch(mod, layer, ent, x, out, m, n, comp):
+-    lname, tokb = _k1_cfg_key(layer, m, n)
+-    c, q, gw, wr, wk, d = _k1_CFG[lname]
+-    k = _k1_LAYER_K[lname]
++    return _b7__k1_VARIANT.get((lname, tokb), lname), tokb
++
++
++def _b7__k1_launch(mod, layer, ent, x, out, m, n, comp):
++    lname, tokb = _b7__k1_cfg_key(layer, m, n)
++    c, q, gw, wr, wk, d = _b7__k1_CFG[lname]
++    k = _b7__k1_LAYER_K[lname]
+     kc = k // c
+-    dm = _k1__dims(lname, tokb, comp)
+-    tm = _k1_x_tmap3(x, m, k, tokb, wk // 2)
++    dm = _b7__k1__dims(lname, tokb, comp)
++    tm = _b7__k1_x_tmap3(x, m, k, tokb, wk // 2)
+     args = tm + struct.pack("<QQQQqqqqIIIIQ", ent["w"].data_ptr(), ent["ovf"].data_ptr(), ent["hdr"].data_ptr(),
+                             out.data_ptr(), m, n, n // 8, q, ent["base2"], ent["ovstride"], dm["ovoff"], 0,
+-                            _k1_TRACE.data_ptr() if _k1_TRACE is not None else 0)
++                            _b7__k1_TRACE.data_ptr() if _b7__k1_TRACE is not None else 0)
+     args += b"\0" * (256 - len(args))
+-    mod.launch(_k1_kname(lname, tokb, comp), q * c, 32 * wr * wk, dm["smem"], args)
++    mod.launch(_b7__k1_kname(lname, tokb, comp), q * c, 32 * wr * wk, dm["smem"], args)
+ 
+ 
+ # ======================================================================== component: K1t (M=32)
+@@ -2577,7 +2583,7 @@
+ 
+ import torch
+ 
+-_k1t_SRC = r"""
++_b7__k1t_SRC = r"""
+ typedef unsigned long long u64;
+ typedef unsigned int u32;
+ typedef unsigned short u16;
+@@ -2916,10 +2922,10 @@
+ }
+ """
+ 
+-_k1t_LAYER_K = {"qkv_gate": 8192, "o": 1024, "pooler": 8192, "pooler1": 8192, "unpooler": 4096, "unpslice": 4096,
++_b7__k1t_LAYER_K = {"qkv_gate": 8192, "o": 1024, "pooler": 8192, "pooler1": 8192, "unpooler": 4096, "unpslice": 4096,
+            "qkv32": 8192, "pooler32": 8192, "unpooler32": 4096, "o32": 1024}
+ # layer -> (C, Q, GW, WR, WK, D)
+-_k1t_CFG = {
++_b7__k1t_CFG = {
+     "qkv_gate": (2, 66, 5, 1, 16, 3),
+     "pooler": (2, 66, 4, 2, 8, 4),
+     "pooler1": (1, 132, 4, 1, 16, 4),
+@@ -2931,73 +2937,73 @@
+     "unpooler32": (1, 132, 4, 2, 8, 3),
+     "o32": (1, 132, 4, 2, 8, 3),
+ }
+-_k1t_VARIANT = {("pooler", 8): "pooler1", ("qkv_gate", 32): "qkv32", ("pooler", 32): "pooler32",
++_b7__k1t_VARIANT = {("pooler", 8): "pooler1", ("qkv_gate", 32): "qkv32", ("pooler", 32): "pooler32",
+            ("unpooler", 32): "unpooler32", ("o", 32): "o32"}   # (layer, tokb) -> config key
+-_k1t_OVMAX = 8192
+-_k1t_TOKBS = (8, 16, 32)
+-_k1t_SMEM_MAX = 227 * 1024
+-
+-
+-def _k1t_kname(layer, tokb, comp):
++_b7__k1t_OVMAX = 8192
++_b7__k1t_TOKBS = (8, 16, 32)
++_b7__k1t_SMEM_MAX = 227 * 1024
++
++
++def _b7__k1t_kname(layer, tokb, comp):
+     return f"k1t_{layer}_{tokb}_{comp}"
+ 
+ 
+-def _k1t__dims(layer, tokb, comp):
+-    c, q, gw, wr, wk, d = _k1t_CFG[layer]
+-    kc = _k1t_LAYER_K[layer] // c
++def _b7__k1t__dims(layer, tokb, comp):
++    c, q, gw, wr, wk, d = _b7__k1t_CFG[layer]
++    kc = _b7__k1t_LAYER_K[layer] // c
+     nkt = kc // 32 // wk
+     tokp = (tokb + 15) // 16 * 16
+     chb = tokb * wk * 64
+     epi = (wk + 1 + max(c - 1, 1)) * tokp * (gw * wr * 8 + 8) * 4
+-    ovm = _k1t_OVMAX if comp else 0
++    ovm = _b7__k1t_OVMAX if comp else 0
+     r = nkt
+-    while r > 2 and 1024 + max(r * chb + 1024, epi) + ovm > _k1t_SMEM_MAX:
++    while r > 2 and 1024 + max(r * chb + 1024, epi) + ovm > _b7__k1t_SMEM_MAX:
+         r -= 1
+     ovoff = 1024 + (max(r * chb + 1024, epi) + 1023) // 1024 * 1024
+     rcvoff = ovoff + ovm
+     rcv = (c - 1) * tokp * (gw * wr * 8 + 8) * 4 if c > 1 else 0
+     smem = max(rcvoff + rcv, 120 * 1024)  # one CTA per SM
+-    if smem > _k1t_SMEM_MAX:
++    if smem > _b7__k1t_SMEM_MAX:
+         smem = 10**9
+     return dict(ovoff=ovoff, smem=smem, nkt=nkt, r=r, rcvoff=rcvoff)
+ 
+ 
+-def _k1t__needed():
++def _b7__k1t__needed():
+     out = set()
+     for layer in ("qkv_gate", "o", "pooler", "unpooler", "unpslice"):
+-        for tokb in _k1t_TOKBS:
++        for tokb in _b7__k1t_TOKBS:
+             if layer == "unpslice" and tokb > 8:
+                 continue
+-            out.add((_k1t_VARIANT.get((layer, tokb), layer), tokb))
++            out.add((_b7__k1t_VARIANT.get((layer, tokb), layer), tokb))
+     return out
+ 
+ 
+-def _k1t_source(layers=None, tokbs=None, comps=(1,)):
+-    s = _k1t_SRC
+-    for key, tokb in sorted(_k1t__needed()):
++def _b7__k1t_source(layers=None, tokbs=None, comps=(1,)):
++    s = _b7__k1t_SRC
++    for key, tokb in sorted(_b7__k1t__needed()):
+         if layers and key not in layers:
+             continue
+         if tokbs and tokb not in tokbs:
+             continue
+-        c, q, gw, wr, wk, d = _k1t_CFG[key]
+-        kt = _k1t_LAYER_K[key] // 32
++        c, q, gw, wr, wk, d = _b7__k1t_CFG[key]
++        kt = _b7__k1t_LAYER_K[key] // 32
+         for comp in comps:
+-            dm = _k1t__dims(key, tokb, comp)
+-            if dm["smem"] > _k1t_SMEM_MAX:
++            dm = _b7__k1t__dims(key, tokb, comp)
++            if dm["smem"] > _b7__k1t_SMEM_MAX:
+                 continue
+             pw = 0
+             nt = 32 * (wr * wk + pw)
+             cl = f"__cluster_dims__({c},1,1) " if c > 1 else ""
+-            s += (f'extern "C" __global__ void {cl}__launch_bounds__({nt},1) {_k1t_kname(key, tokb, comp)}'
+-                  f'(const __grid_constant__ P p) {{ k1t_body<{c},{tokb},{gw},{wr},{wk},{dm["nkt"]},{d},{kt},{comp},{dm["r"]},{pw},{1 if key in _k1t_HALF_CFGS else 0}>(p); }}\n')
++            s += (f'extern "C" __global__ void {cl}__launch_bounds__({nt},1) {_b7__k1t_kname(key, tokb, comp)}'
++                  f'(const __grid_constant__ P p) {{ k1t_body<{c},{tokb},{gw},{wr},{wk},{dm["nkt"]},{d},{kt},{comp},{dm["r"]},{pw},{1 if key in _b7__k1t_HALF_CFGS else 0}>(p); }}\n')
+     return s
+ 
+ 
+-def _k1t__frag(t, n, k):
++def _b7__k1t__frag(t, n, k):
+     return t.contiguous().view(n // 8, 8, k // 32, 2, 2, 4, 2).permute(0, 2, 1, 5, 3, 4, 6).reshape(n // 8, k // 32, 32, 8)
+ 
+ 
+-def _k1t_compress(w):
++def _b7__k1t_compress(w):
+     u = w.contiguous().view(torch.int16).to(torch.int32) & 0xFFFF
+     s, e = u >> 15, (u >> 7) & 0xFF
+     hist = torch.bincount(e.flatten(), minlength=256).cpu()
+@@ -3014,12 +3020,12 @@
+     return code, lo, H, esc
+ 
+ 
+-_k1t_HALF_CFGS = {"qkv_gate", "qkv32"}
+-
+-
+-def _k1t_prepare_layer(w, layer, comp):
+-    c, q, gw, wr, wk, d = _k1t_CFG[layer]
+-    half = layer in _k1t_HALF_CFGS
++_b7__k1t_HALF_CFGS = {"qkv_gate", "qkv32"}
++
++
++def _b7__k1t_prepare_layer(w, layer, comp):
++    c, q, gw, wr, wk, d = _b7__k1t_CFG[layer]
++    half = layer in _b7__k1t_HALF_CFGS
+     unit = 4 if half else 8
+     n, k = w.shape
+     GU = n // unit
+@@ -3029,7 +3035,7 @@
+     rg = wr * gw
+     dev = w.device
+     if comp:
+-        code, lo, H, esc = _k1t_compress(w)
++        code, lo, H, esc = _b7__k1t_compress(w)
+     parts, ovs = [], []
+     ovstride = 0
+     hdr_all = torch.zeros((q * c, wr * wk, 8), dtype=torch.int64)
+@@ -3046,11 +3052,11 @@
+         r0, nr = u0 * unit, (u1 - u0) * unit
+         assert nr <= rg * 8, (layer, nr, rg)
+         if comp:
+-            cl = _k1t__frag(take(lo, r0, nr), rg * 8, k).to(torch.uint8)                  # [rg, KT, 32, 8]
+-            cc = _k1t__frag(take(code, r0, nr), rg * 8, k).to(torch.int32)
++            cl = _b7__k1t__frag(take(lo, r0, nr), rg * 8, k).to(torch.uint8)                  # [rg, KT, 32, 8]
++            cc = _b7__k1t__frag(take(code, r0, nr), rg * 8, k).to(torch.int32)
+             cw = (cc[..., 0:4] | (cc[..., 4:8] << 4)).to(torch.uint8)               # [rg, KT, 32, 4]
+-            rawt = _k1t__frag(take(esc.to(torch.int32), r0, nr), rg * 8, k).reshape(rg, KT, 256).any(-1)
+-            rb = _k1t__frag(take(w, r0, nr), rg * 8, k).contiguous().view(torch.uint8).view(rg, KT, 32, 16)
++            rawt = _b7__k1t__frag(take(esc.to(torch.int32), r0, nr), rg * 8, k).reshape(rg, KT, 256).any(-1)
++            rb = _b7__k1t__frag(take(w, r0, nr), rg * 8, k).contiguous().view(torch.uint8).view(rg, KT, 32, 16)
+             cl = torch.where(rawt[..., None, None], rb[..., 0:8], cl)
+             cw = torch.where(rawt[..., None, None], rb[..., 8:12], cw)
+             ov = rb[..., 12:16]
+@@ -3095,12 +3101,12 @@
+                 ovs.append(torch.cat(obytes) if obytes else torch.zeros(0, dtype=torch.uint8, device=dev))
+                 ovstride = max(ovstride, base * 128)
+         else:
+-            B = _k1t__frag(take(w, r0, nr), rg * 8, k).contiguous().view(torch.uint8).view(rg, KT, 32, 16)
++            B = _b7__k1t__frag(take(w, r0, nr), rg * 8, k).contiguous().view(torch.uint8).view(rg, KT, 32, 16)
+             blk = B.view(wr, gw, c, nkt, wk, 32, 16).permute(2, 0, 4, 3, 1, 5, 6).reshape(c, wr, wk, nkt, 32 * gw * 16)
+         parts.append(blk.reshape(-1))
+     if comp:
+         ovstride = (ovstride + 127) // 128 * 128
+-        if ovstride > _k1t_OVMAX:
++        if ovstride > _b7__k1t_OVMAX:
+             raise RuntimeError(f"{layer}: overflow {ovstride} > OVMAX")
+         ovf_all = torch.zeros((q * c, max(ovstride, 128)), dtype=torch.uint8, device=dev)
+         for i, ob in enumerate(ovs):
+@@ -3114,13 +3120,13 @@
+             "ovstride": 0, "base2": 0, "n_raw": 0, "base": None, "GU": GU}
+ 
+ 
+-_k1t__TM_CACHE = {}
+-
+-
+-def _k1t_x_tmap3(x, m, k, tokb, nb):
++_b7__k1t__TM_CACHE = {}
++
++
++def _b7__k1t_x_tmap3(x, m, k, tokb, nb):
+     key = (x.data_ptr(), m, k, tokb, nb)
+-    if key in _k1t__TM_CACHE:
+-        return _k1t__TM_CACHE[key]
++    if key in _b7__k1t__TM_CACHE:
++        return _b7__k1t__TM_CACHE[key]
+     from cuda.bindings import driver as d
+     err, tm = d.cuTensorMapEncodeTiled(
+         d.CUtensorMapDataType.CU_TENSOR_MAP_DATA_TYPE_BFLOAT16, d.cuuint32_t(3), x.data_ptr(),
+@@ -3132,34 +3138,34 @@
+     if int(err) != 0:
+         raise RuntimeError(f"cuTensorMapEncodeTiled failed: {err}")
+     b = b"".join(struct.pack("<Q", int(v)) for v in tm.opaque)
+-    if len(_k1t__TM_CACHE) > 64:
+-        _k1t__TM_CACHE.clear()
+-    _k1t__TM_CACHE[key] = b
++    if len(_b7__k1t__TM_CACHE) > 64:
++        _b7__k1t__TM_CACHE.clear()
++    _b7__k1t__TM_CACHE[key] = b
+     return b
+ 
+ 
+-_k1t_TRACE = None
+-
+-
+-def _k1t_cfg_key(layer, m, n):
++_b7__k1t_TRACE = None
++
++
++def _b7__k1t_cfg_key(layer, m, n):
+     lname = "unpslice" if (layer == "unpooler" and n == 1024) else layer
+     tokb = 8 if m <= 8 else (16 if m <= 16 else 32)
+-    return _k1t_VARIANT.get((lname, tokb), lname), tokb
+-
+-
+-def _k1t_launch(mod, layer, ent, x, out, m, n, comp):
+-    lname, tokb = _k1t_cfg_key(layer, m, n)
+-    c, q, gw, wr, wk, d = _k1t_CFG[lname]
+-    k = _k1t_LAYER_K[lname]
++    return _b7__k1t_VARIANT.get((lname, tokb), lname), tokb
++
++
++def _b7__k1t_launch(mod, layer, ent, x, out, m, n, comp):
++    lname, tokb = _b7__k1t_cfg_key(layer, m, n)
++    c, q, gw, wr, wk, d = _b7__k1t_CFG[lname]
++    k = _b7__k1t_LAYER_K[lname]
+     kc = k // c
+-    dm = _k1t__dims(lname, tokb, comp)
+-    tm = _k1t_x_tmap3(x, m, k, tokb, wk // 2)
++    dm = _b7__k1t__dims(lname, tokb, comp)
++    tm = _b7__k1t_x_tmap3(x, m, k, tokb, wk // 2)
+     args = tm + struct.pack("<QQQQqqqqIIIIQ", ent["w"].data_ptr(), ent["ovf"].data_ptr(), ent["hdr"].data_ptr(),
+                             out.data_ptr(), m, n, ent["GU"], q, ent["base2"], ent["ovstride"], dm["ovoff"], dm["rcvoff"],
+-                            _k1t_TRACE.data_ptr() if _k1t_TRACE is not None else 0)
++                            _b7__k1t_TRACE.data_ptr() if _b7__k1t_TRACE is not None else 0)
+     args += b"\0" * (256 - len(args))
+     pw = 0
+-    mod.launch(_k1t_kname(lname, tokb, comp), q * c, 32 * (wr * wk + pw), dm["smem"], args)
++    mod.launch(_b7__k1t_kname(lname, tokb, comp), q * c, 32 * (wr * wk + pw), dm["smem"], args)
+ 
+ 
+ # ======================================================================== component: router
+@@ -3175,7 +3181,7 @@
+ 
+ import torch
+ 
+-_rt_SRC = r"""
++_b7__rt_SRC = r"""
+ typedef unsigned long long u64;
+ typedef unsigned int u32;
+ typedef unsigned short u16;
+@@ -4016,7 +4022,7 @@
+ """
+ 
+ # name: (TT, RR, KK, KS, NS, WK, WG, max_M)
+-_rt_CFGS = {
++_b7__rt_CFGS = {
+     "rt16": (16, 16, 1024, 256, 4, 8, 1, 16),
+     "rt32": (32, 16, 1024, 256, 4, 8, 1, 32),
+     "rt64": (64, 32, 512, 256, 2, 8, 1, 64),
+@@ -4025,26 +4031,26 @@
+ }
+ 
+ 
+-def _rt_smem_bytes(cfg):
++def _b7__rt_smem_bytes(cfg):
+     tt, rr, kk, ks, ns, wk, wg, _ = cfg
+     sb = (tt * ks * 2 + ks * rr * 4 + 1023) // 1024 * 1024
+     return 1024 + 1024 + ns * sb
+ 
+ 
+-_rt_RS_NCH = 4
+-_rt_RS_MAX = 8
+-
+-
+-def _rt_rs_smem(m):
+-    return 1024 + 1024 + _rt_RS_NCH * (2 * 2048 * 4 + m * 2048 * 2)
+-
+-
+-_rt_FULL_SOURCE = False   # True: compile every experimental kernel (ablations); False: only what DISPATCH uses
+-
+-
+-def _rt_source(cfgs=_rt_CFGS):
+-    s = _rt_SRC
+-    if not _rt_FULL_SOURCE:
++_b7__rt_RS_NCH = 4
++_b7__rt_RS_MAX = 8
++
++
++def _b7__rt_rs_smem(m):
++    return 1024 + 1024 + _b7__rt_RS_NCH * (2 * 2048 * 4 + m * 2048 * 2)
++
++
++_b7__rt_FULL_SOURCE = False   # True: compile every experimental kernel (ablations); False: only what DISPATCH uses
++
++
++def _b7__rt_source(cfgs=_b7__rt_CFGS):
++    s = _b7__rt_SRC
++    if not _b7__rt_FULL_SOURCE:
+         for name in ("rt16", "rt32", "rt64"):
+             tt, rr, kk, ks, ns, wk, wg, _ = cfgs[name]
+             nt = 32 * (wk * wg + 1)
+@@ -4052,7 +4058,7 @@
+                 s += (f'extern "C" __global__ void __launch_bounds__({nt},1) {name}_f{fl}(const __grid_constant__ P p)'
+                       f' {{ rt_body<{tt},{rr},{kk},{ks},{ns},{wk},{wg},{fl}>(p); }}\n')
+         for name in ("rw64", "rw128b"):
+-            tn, kk, ns = _rt_RW_CFGS[name]
++            tn, kk, ns = _b7__rt_RW_CFGS[name]
+             s += (f'extern "C" __global__ void __launch_bounds__(160,1) {name}(const __grid_constant__ PW p)'
+                   f' {{ rw_body<{tn},{kk},{ns},0,0>(p); }}\n')
+             s += (f'extern "C" __global__ void __launch_bounds__(160,1) {name}c(const __grid_constant__ PW p)'
+@@ -4061,14 +4067,14 @@
+                   f' {{ rw_body<{tn},{kk},{ns},0,0,0,1>(p); }}\n')
+         for m in range(1, 5):
+             s += (f'extern "C" __global__ void __launch_bounds__(256,1) rs{m}(const __grid_constant__ PS p)'
+-                  f' {{ rs_body<{m},{_rt_RS_NCH}>(p); }}\n')
++                  f' {{ rs_body<{m},{_b7__rt_RS_NCH}>(p); }}\n')
+         return s
+     for name, (tt, rr, kk, ks, ns, wk, wg, _) in cfgs.items():
+         nt = 32 * (wk * wg + 1)
+         for fl in (0, 1, 2, 3, 4, 8, 16, 48, 80, 144, 272):
+             s += (f'extern "C" __global__ void __launch_bounds__({nt},1) {name}_f{fl}(const __grid_constant__ P p)'
+                   f' {{ rt_body<{tt},{rr},{kk},{ks},{ns},{wk},{wg},{fl}>(p); }}\n')
+-    for name, (tn, kk, ns) in _rt_RW_CFGS.items():
++    for name, (tn, kk, ns) in _b7__rt_RW_CFGS.items():
+         mc = 1 if name.endswith("mc") else 0
+         cd = "__cluster_dims__(2,1,1) " if mc else ""
+         s += (f'extern "C" __global__ void {cd}__launch_bounds__(160,1) {name}(const __grid_constant__ PW p)'
+@@ -4084,13 +4090,13 @@
+         s += (f'extern "C" __global__ void __cluster_dims__(8,1,1) __launch_bounds__(288,1) rc{mt}(const __grid_constant__ PC p)'
+               f' {{ rc_body<{mt}>(p); }}\n')
+     s += 'extern "C" __global__ void __launch_bounds__(256,1) rq(const __grid_constant__ PS p) { rq_body<4>(p); }\n'
+-    for m in range(1, _rt_RS_MAX + 1):
++    for m in range(1, _b7__rt_RS_MAX + 1):
+         s += (f'extern "C" __global__ void __launch_bounds__(256,1) rs{m}(const __grid_constant__ PS p)'
+-              f' {{ rs_body<{m},{_rt_RS_NCH}>(p); }}\n')
++              f' {{ rs_body<{m},{_b7__rt_RS_NCH}>(p); }}\n')
+     return s
+ 
+ 
+-class _rt__Mod:
++class _b7__rt__Mod:
+     def __init__(self, src):
+         from cuda.bindings import driver, nvrtc
+         self.d = driver
+@@ -4153,7 +4159,7 @@
+         assert int(err) == 0, err
+ 
+ 
+-def _rt__tmap_x(x, m, box_rows):
++def _b7__rt__tmap_x(x, m, box_rows):
+     from cuda.bindings import driver as d
+     err, tm = d.cuTensorMapEncodeTiled(
+         d.CUtensorMapDataType.CU_TENSOR_MAP_DATA_TYPE_BFLOAT16, d.cuuint32_t(2), x.data_ptr(),
+@@ -4166,7 +4172,7 @@
+     return struct.pack("16Q", *[int(v) for v in tm.opaque])
+ 
+ 
+-def _rt__tmap_x3(x, m):
++def _b7__rt__tmap_x3(x, m):
+     from cuda.bindings import driver as d
+     err, tm = d.cuTensorMapEncodeTiled(
+         d.CUtensorMapDataType.CU_TENSOR_MAP_DATA_TYPE_BFLOAT16, d.cuuint32_t(3), x.data_ptr(),
+@@ -4179,21 +4185,21 @@
+     return struct.pack("16Q", *[int(v) for v in tm.opaque])
+ 
+ 
+-_rt_RC_Q = 15
++_b7__rt_RC_Q = 15
+ # rw configs: name -> (TN tokens per CTA, KK k per CTA, NS ring slots)
+-_rt_RW_CFGS = {"rw128a": (128, 256, 4), "rw128b": (128, 512, 6), "rw64": (64, 512, 6), "rw128bmc": (128, 512, 6),
++_b7__rt_RW_CFGS = {"rw128a": (128, 256, 4), "rw128b": (128, 512, 6), "rw64": (64, 512, 6), "rw128bmc": (128, 512, 6),
+            "rw128cmc": (128, 1024, 6), "rw64mc": (64, 512, 6), "rw256": (256, 256, 4), "rw64n8": (64, 512, 8),
+            "rw128b7": (128, 512, 7)}
+-_rt_RW_SEL = {"small": "rw128a", "big": "rw128b"}   # M <= 128 -> small, else big
+-_rt_USE_RW = True
+-
+-
+-def _rt_rw_smem(name):
+-    tn, kk, ns = _rt_RW_CFGS[name]
++_b7__rt_RW_SEL = {"small": "rw128a", "big": "rw128b"}   # M <= 128 -> small, else big
++_b7__rt_USE_RW = True
++
++
++def _b7__rt_rw_smem(name):
++    tn, kk, ns = _b7__rt_RW_CFGS[name]
+     return 1024 + 1024 + ns * (16384 + tn * 128)
+ 
+ 
+-def _rt__rw_layout(hi, lo, kk):
++def _b7__rt__rw_layout(hi, lo, kk):
+     """[4 row tiles][S k splits][KK/64 stages][hi 64x64 swizzled, lo 64x64 swizzled] bf16."""
+     s = 8192 // kk
+     idx = (torch.arange(8, device=hi.device)[None, :] ^ (torch.arange(64, device=hi.device)[:, None] & 7))
+@@ -4208,7 +4214,7 @@
+     return t.view(4, s, kk // 64, 2, 64 * 64).contiguous().view(-1)
+ 
+ 
+-def _rt__rwc_layout(c, kk):
++def _b7__rt__rwc_layout(c, kk):
+     """[4 rt][S][KK/64 stages][6 chunks][128 threads][16 B]: per thread & k16 step j the 8 A-fragment values
+     v = (kh, h, p) for rows 16w + 8h + g, k = 16j + 8kh + 2q + p (thread = (w, g, q)); chunks: hi bytes j01, j23,
+     lo bytes j01, j23, hi nibble words j0..3, lo nibble words j0..3."""
+@@ -4232,7 +4238,7 @@
+     return t.contiguous().view(-1)
+ 
+ 
+-def _rt__rwc_escapes(c, kk, dev):
++def _b7__rt__rwc_escapes(c, kk, dev):
+     rows = torch.repeat_interleave(torch.arange(256, device=dev), (c["erow"][1:] - c["erow"][:-1]).long())
+     k = c["ek"].long()
+     s_ = 8192 // kk
+@@ -4246,7 +4252,7 @@
+     return off, ent, c["ed"][order].contiguous(), int(cnt.max()) if cnt.numel() else 0
+ 
+ 
+-def _rt__tmap_x2(x, m, box_rows):
++def _b7__rt__tmap_x2(x, m, box_rows):
+     from cuda.bindings import driver as d
+     err, tm = d.cuTensorMapEncodeTiled(
+         d.CUtensorMapDataType.CU_TENSOR_MAP_DATA_TYPE_BFLOAT16, d.cuuint32_t(2), x.data_ptr(),
+@@ -4259,13 +4265,13 @@
+     return struct.pack("16Q", *[int(v) for v in tm.opaque])
+ 
+ 
+-def _rt_rc_smem(mt):
++def _b7__rt_rc_smem(mt):
+     tt = 16 * mt
+     sb = (tt * 256 * 2 + 18 * 256 * 4 + 1023) // 1024 * 1024
+     return 1024 + 1024 + 4 * sb
+ 
+ 
+-def _rt__tmap_x3s(x, m, tt):
++def _b7__rt__tmap_x3s(x, m, tt):
+     """x [m, 8192] as 3D (64 k_inner, m rows, 128 k_outer), box (64, tt, 4), 128B swizzle -> smem [4][tt][128 B]."""
+     from cuda.bindings import driver as d
+     err, tm = d.cuTensorMapEncodeTiled(
+@@ -4279,10 +4285,10 @@
+     return struct.pack("16Q", *[int(v) for v in tm.opaque])
+ 
+ 
+-_rt_RQ_SMEM = 1024 + 1024 + 4 * (32768 + 16384)
+-
+-
+-def _rt__rq_layout(hi, lo):
++_b7__rt_RQ_SMEM = 1024 + 1024 + 4 * (32768 + 16384)
++
++
++def _b7__rt__rq_layout(hi, lo):
+     """[128 CTAs (rows 2b, 2b+1)][256 kt][hi: 8 lanes x 16 B][lo: 8 lanes x 16 B] (lanes = row*4 + tid, row < 2)."""
+     out = []
+     for w in (hi, lo):
+@@ -4291,7 +4297,7 @@
+     return torch.cat(out, 2).contiguous().view(-1)
+ 
+ 
+-def _rt__tmap_x3q(x, m):
++def _b7__rt__tmap_x3q(x, m):
+     from cuda.bindings import driver as d
+     err, tm = d.cuTensorMapEncodeTiled(
+         d.CUtensorMapDataType.CU_TENSOR_MAP_DATA_TYPE_BFLOAT16, d.cuuint32_t(3), x.data_ptr(),
+@@ -4304,11 +4310,11 @@
+     return struct.pack("16Q", *[int(v) for v in tm.opaque])
+ 
+ 
+-def _rt__rc_layout(hi, lo):
++def _b7__rt__rc_layout(hi, lo):
+     """Per cluster q (rows r0..r0+nr) and rank (k slice of 1024): [32 kt][groups: hi rg x 64 B, lo rg x 64 B]."""
+     parts = []
+-    for q in range(_rt_RC_Q):
+-        r0, r1 = q * 256 // _rt_RC_Q, (q + 1) * 256 // _rt_RC_Q
++    for q in range(_b7__rt_RC_Q):
++        r0, r1 = q * 256 // _b7__rt_RC_Q, (q + 1) * 256 // _b7__rt_RC_Q
+         nr = r1 - r0
+         cols = []
+         for g in range((nr + 7) // 8):
+@@ -4322,7 +4328,7 @@
+     return torch.cat(parts)
+ 
+ 
+-def _rt__compress_pair(hi, lo):
++def _b7__rt__compress_pair(hi, lo):
+     """Lossless 24-bit code of the (hi, lo) BF16 pair: per weight a sign+mantissa byte for hi and for lo, a 4-bit hi
+     exponent code (e_hi - base) and a 4-bit lo code (e_hi_dec - 8 - e_lo). Out-of-range / zero exponents decode to a
+     nearby value; their exact difference goes to an escape list (row, k, delta) applied by the zero CTAs."""
+@@ -4359,7 +4365,7 @@
+                 nesc=int(rows.numel()))
+ 
+ 
+-def _rt__cmp_layout(c, rr, kk, ks):
++def _b7__rt__cmp_layout(c, rr, kk, ks):
+     """Tiles (8 rows x 32 k): [lane x (hi bytes 8 | lo bytes 8)] 512 B + [lane x (hi nib u32 | lo nib u32)] 256 B."""
+     def perm(a):
+         return a.view(32, 8, 256, 2, 2, 4, 2).permute(0, 2, 1, 5, 3, 4, 6).contiguous().view(32, 256, 32, 8)
+@@ -4381,38 +4387,38 @@
+     return t.view(-1)
+ 
+ 
+-def _rt__perm_tiles(w):
++def _b7__rt__perm_tiles(w):
+     """[256, 8192] bf16 -> [32 groups][256 k32][256 bf16] in mma B-fragment lane order."""
+     return w.contiguous().view(32, 8, 256, 2, 2, 4, 2).permute(0, 2, 1, 5, 3, 4, 6).contiguous().view(32, 256, 256)
+ 
+ 
+-def _rt__layout(hi_t, lo_t, rr, kk, ks):
++def _b7__rt__layout(hi_t, lo_t, rr, kk, ks):
+     t = torch.stack([hi_t, lo_t], 2)  # [32, 256, 2, 256]
+     nr, s, nstg = 256 // rr, 8192 // kk, kk // ks
+     t = t.view(nr, rr // 8, s, nstg, ks // 32, 2, 256).permute(0, 2, 3, 4, 1, 5, 6).contiguous()
+     return t.view(-1)
+ 
+ 
+-def _rt_prepare_router(weights):
++def _b7__rt_prepare_router(weights):
+     w = weights["router"].float().contiguous()
+     hi = w.to(torch.bfloat16)
+     lo = (w - hi.float()).to(torch.bfloat16)
+-    hi_t, lo_t = _rt__perm_tiles(hi), _rt__perm_tiles(lo)
+-    st = {"mod": _rt__Mod(_rt_source()), "lay": {}}
+-    for name, cfg in _rt_CFGS.items():
++    hi_t, lo_t = _b7__rt__perm_tiles(hi), _b7__rt__perm_tiles(lo)
++    st = {"mod": _b7__rt__Mod(_b7__rt_source()), "lay": {}}
++    for name, cfg in _b7__rt_CFGS.items():
+         key = (cfg[1], cfg[2], cfg[3])
+         if key not in st["lay"]:
+-            st["lay"][key] = _rt__layout(hi_t, lo_t, *key)
+-    c = _rt__compress_pair(hi, lo)
++            st["lay"][key] = _b7__rt__layout(hi_t, lo_t, *key)
++    c = _b7__rt__compress_pair(hi, lo)
+     st["cmp"] = c
+     st["w_cmp"], st["esc"] = {}, {}
+     rows = torch.repeat_interleave(torch.arange(256, device=w.device), (c["erow"][1:] - c["erow"][:-1]).long())
+     ks_ = c["ek"].long()
+-    for name, cfg in _rt_CFGS.items():
++    for name, cfg in _b7__rt_CFGS.items():
+         key = (cfg[1], cfg[2], cfg[3])
+         if key not in st["w_cmp"]:
+             rr, kk = cfg[1], cfg[2]
+-            st["w_cmp"][key] = _rt__cmp_layout(c, *key)
++            st["w_cmp"][key] = _b7__rt__cmp_layout(c, *key)
+             blk = (rows // rr) * (8192 // kk) + ks_ // kk
+             order = torch.argsort(blk * (1 << 24) + (rows % rr) * 8192 + ks_ % kk)
+             nblk = (256 // rr) * (8192 // kk)
+@@ -4421,12 +4427,12 @@
+             off[1:] = cnt.cumsum(0).int()
+             ent = (((rows % rr) << 16) | (ks_ % kk))[order].int().contiguous()
+             st["esc"][key] = (off, ent, c["ed"][order].contiguous(), int(cnt.max()) if cnt.numel() else 0)
+-    st["w_rc"] = _rt__rc_layout(hi, lo)
+-    st["w_rq"] = _rt__rq_layout(hi, lo)
+-    st["w_rw"] = {kk: _rt__rw_layout(hi, lo, kk) for kk in sorted({c[1] for c in _rt_RW_CFGS.values()})}
+-    st["w_rwc"] = {kk: _rt__rwc_layout(st["cmp"], kk) for kk in (512,)}
+-    st["rwc_esc"] = {kk: _rt__rwc_escapes(st["cmp"], kk, w.device) for kk in (512,)}
+-    st["w_rs"] = w.view(128, 2, _rt_RS_NCH, 8192 // _rt_RS_NCH).permute(0, 2, 1, 3).contiguous()
++    st["w_rc"] = _b7__rt__rc_layout(hi, lo)
++    st["w_rq"] = _b7__rt__rq_layout(hi, lo)
++    st["w_rw"] = {kk: _b7__rt__rw_layout(hi, lo, kk) for kk in sorted({c[1] for c in _b7__rt_RW_CFGS.values()})}
++    st["w_rwc"] = {kk: _b7__rt__rwc_layout(st["cmp"], kk) for kk in (512,)}
++    st["rwc_esc"] = {kk: _b7__rt__rwc_escapes(st["cmp"], kk, w.device) for kk in (512,)}
++    st["w_rs"] = w.view(128, 2, _b7__rt_RS_NCH, 8192 // _b7__rt_RS_NCH).permute(0, 2, 1, 3).contiguous()
+     st["ws"] = torch.zeros(1 << 20, dtype=torch.float32, device=w.device)
+     # in-kernel zeroing sync state, one block of 4096 ints per (kernel, grid) key: [0] zf, [64 + b] CTA b's generation.
+     # Each key always launches the same grid, so every CTA index takes part in every call of that key.
+@@ -4437,131 +4443,131 @@
+     return st
+ 
+ 
+-def _rt__cfg_for(m):
+-    for name, cfg in _rt_CFGS.items():
++def _b7__rt__cfg_for(m):
++    for name, cfg in _b7__rt_CFGS.items():
+         if m <= cfg[7]:
+             return name, cfg
+ 
+ 
+-_rt_USE_RS = False
+-_rt_USE_RC = True
+-_rt_USE_RQ = False
+-_rt_FLAGS = 0
+-_rt_TRACE = None
+-_rt_ZMODE = False
+-_rt_DELAY_NS = 0
+-_rt_RWC = False
+-_rt_RWZA = False
++_b7__rt_USE_RS = False
++_b7__rt_USE_RC = True
++_b7__rt_USE_RQ = False
++_b7__rt_FLAGS = 0
++_b7__rt_TRACE = None
++_b7__rt_ZMODE = False
++_b7__rt_DELAY_NS = 0
++_b7__rt_RWC = False
++_b7__rt_RWZA = False
+ 
+ 
+ # default dispatch (measured 2026-10-27, see NOTES.md); the module-level switches above are for ablations
+-_rt_DISPATCH = True
+-_rt_SMALL_FLAGS = None   # None: per-M choice below; an int forces one rt epilogue
+-
+-
+-def _rt_run_router(x, st):
+-    global _rt_USE_RS, _rt_USE_RC, _rt_USE_RW, _rt_RW_SEL, _rt_FLAGS, _rt_USE_RQ
++_b7__rt_DISPATCH = True
++_b7__rt_SMALL_FLAGS = None   # None: per-M choice below; an int forces one rt epilogue
++
++
++def _b7__rt_run_router(x, st):
++    global _b7__rt_USE_RS, _b7__rt_USE_RC, _b7__rt_USE_RW, _b7__rt_RW_SEL, _b7__rt_FLAGS, _b7__rt_USE_RQ
+     m = x.shape[0]
+-    if _rt_DISPATCH:
+-        _rt_USE_RC = False
+-        _rt_USE_RQ = False
+-        _rt_USE_RS = m <= 4
+-        _rt_USE_RW = m > 64
+-        _rt_RW_SEL = {"small": "rw64", "big": "rw128b"}
++    if _b7__rt_DISPATCH:
++        _b7__rt_USE_RC = False
++        _b7__rt_USE_RQ = False
++        _b7__rt_USE_RS = m <= 4
++        _b7__rt_USE_RW = m > 64
++        _b7__rt_RW_SEL = {"small": "rw64", "big": "rw128b"}
+         # rt: 16 = in-kernel zero CTAs; 272 = same + per-warp direct red.adds (fewer reds at M <= 8 only)
+-        _rt_FLAGS = _rt_SMALL_FLAGS if _rt_SMALL_FLAGS is not None else (272 if m <= 8 else 16)
++        _b7__rt_FLAGS = _b7__rt_SMALL_FLAGS if _b7__rt_SMALL_FLAGS is not None else (272 if m <= 8 else 16)
+     out = torch.empty((m, 256), dtype=torch.float32, device=x.device)
+-    if _rt_USE_RW and m > 64:
+-        name = _rt_RW_SEL["small"] if m <= 128 else _rt_RW_SEL["big"]
+-        tn, kk, ns = _rt_RW_CFGS[name]
++    if _b7__rt_USE_RW and m > 64:
++        name = _b7__rt_RW_SEL["small"] if m <= 128 else _b7__rt_RW_SEL["big"]
++        tn, kk, ns = _b7__rt_RW_CFGS[name]
+         ntt = (m + tn - 1) // tn
+         if name.endswith("mc") and ntt != 2:
+             name = {"rw128bmc": "rw128b", "rw128cmc": "rw128b", "rw64mc": "rw64"}[name]
+-            tn, kk, ns = _rt_RW_CFGS[name]
++            tn, kk, ns = _b7__rt_RW_CFGS[name]
+             ntt = (m + tn - 1) // tn
+         zk = st["zkeys"].get((name, ntt))
+         zptr = st["zc"].data_ptr() + 4 * 4096 * (zk or 0)
+-        if _rt_RWZA and zk is not None:
+-            params = _rt__tmap_x2(x, m, tn) + struct.pack("QqqqQQ", st["w_rw"][kk].data_ptr(), out.data_ptr(), m, ntt,
+-                                                      _rt_TRACE.data_ptr() if _rt_TRACE is not None else 0, zptr)
++        if _b7__rt_RWZA and zk is not None:
++            params = _b7__rt__tmap_x2(x, m, tn) + struct.pack("QqqqQQ", st["w_rw"][kk].data_ptr(), out.data_ptr(), m, ntt,
++                                                      _b7__rt_TRACE.data_ptr() if _b7__rt_TRACE is not None else 0, zptr)
+             params += b"\0" * ((-len(params)) % 64)
+-            st["mod"].launch(name + "za", 4 * ntt * (8192 // kk), 192, _rt_rw_smem(name), params)
++            st["mod"].launch(name + "za", 4 * ntt * (8192 // kk), 192, _b7__rt_rw_smem(name), params)
+             return out
+-        if _rt_RWC and kk in st["w_rwc"] and st["rwc_esc"][kk][3] <= 32:
++        if _b7__rt_RWC and kk in st["w_rwc"] and st["rwc_esc"][kk][3] <= 32:
+             c = st["cmp"]
+             off, ent, dl, _ = st["rwc_esc"][kk]
+             b2 = (c["base"] << 7) | (c["base"] << 23)
+-            params = _rt__tmap_x2(x, m, tn) + struct.pack("QqqqQQQQQq", st["w_rwc"][kk].data_ptr(), out.data_ptr(), m, ntt,
++            params = _b7__rt__tmap_x2(x, m, tn) + struct.pack("QqqqQQQQQq", st["w_rwc"][kk].data_ptr(), out.data_ptr(), m, ntt,
+                                                       0, zptr, off.data_ptr(), ent.data_ptr(), dl.data_ptr(), b2)
+             params += b"\0" * ((-len(params)) % 64)
+             st["mod"].launch("rzero", 16, 256, 0, struct.pack("Qq", out.data_ptr(), m * 64))
+-            st["mod"].launch_pdl(name + "c", 4 * ntt * (8192 // kk), 160, _rt_rw_smem(name) + 0, params)
++            st["mod"].launch_pdl(name + "c", 4 * ntt * (8192 // kk), 160, _b7__rt_rw_smem(name) + 0, params)
+             return out
+-        params = _rt__tmap_x2(x, m, tn) + struct.pack("QqqqQQ", st["w_rw"][kk].data_ptr(), out.data_ptr(), m, ntt,
+-                                                  _rt_TRACE.data_ptr() if _rt_TRACE is not None else 0, zptr)
++        params = _b7__rt__tmap_x2(x, m, tn) + struct.pack("QqqqQQ", st["w_rw"][kk].data_ptr(), out.data_ptr(), m, ntt,
++                                                  _b7__rt_TRACE.data_ptr() if _b7__rt_TRACE is not None else 0, zptr)
+         params += b"\0" * ((-len(params)) % 64)
+-        if _rt_ZMODE and zk is not None:
+-            st["mod"].launch(name + "z", 4 + 4 * ntt * (8192 // kk), 160, _rt_rw_smem(name), params)
++        if _b7__rt_ZMODE and zk is not None:
++            st["mod"].launch(name + "z", 4 + 4 * ntt * (8192 // kk), 160, _b7__rt_rw_smem(name), params)
+             return out
+         st["mod"].launch("rzero", 16, 256, 0, struct.pack("Qq", out.data_ptr(), m * 64))
+-        st["mod"].launch_pdl(name, 4 * ntt * (8192 // kk), 160, _rt_rw_smem(name), params)
++        st["mod"].launch_pdl(name, 4 * ntt * (8192 // kk), 160, _b7__rt_rw_smem(name), params)
+         return out
+-    if _rt_USE_RQ and m <= 8:
+-        params = _rt__tmap_x3q(x, m) + struct.pack("QQq", st["w_rq"].data_ptr(), out.data_ptr(), m)
++    if _b7__rt_USE_RQ and m <= 8:
++        params = _b7__rt__tmap_x3q(x, m) + struct.pack("QQq", st["w_rq"].data_ptr(), out.data_ptr(), m)
+         params += b"\0" * ((-len(params)) % 64)
+-        st["mod"].launch("rq", 128, 256, _rt_RQ_SMEM, params)
++        st["mod"].launch("rq", 128, 256, _b7__rt_RQ_SMEM, params)
+         return out
+-    if _rt_USE_RC and m <= 64 and not (_rt_USE_RS and m <= _rt_RS_MAX):
++    if _b7__rt_USE_RC and m <= 64 and not (_b7__rt_USE_RS and m <= _b7__rt_RS_MAX):
+         mt = 1 if m <= 16 else (2 if m <= 32 else 4)
+-        params = _rt__tmap_x3s(x, m, 16 * mt) + struct.pack("QqqQ", st["w_rc"].data_ptr(), out.data_ptr(), m,
+-                                                          _rt_TRACE.data_ptr() if _rt_TRACE is not None else 0)
++        params = _b7__rt__tmap_x3s(x, m, 16 * mt) + struct.pack("QqqQ", st["w_rc"].data_ptr(), out.data_ptr(), m,
++                                                          _b7__rt_TRACE.data_ptr() if _b7__rt_TRACE is not None else 0)
+         params += b"\0" * ((-len(params)) % 64)
+-        st["mod"].launch(f"rc{mt}", 8 * _rt_RC_Q, 288, _rt_rc_smem(mt), params)
++        st["mod"].launch(f"rc{mt}", 8 * _b7__rt_RC_Q, 288, _b7__rt_rc_smem(mt), params)
+         return out
+-    if _rt_USE_RS and m <= _rt_RS_MAX:
+-        params = _rt__tmap_x3(x, m) + struct.pack("QQq", st["w_rs"].data_ptr(), out.data_ptr(), m)
++    if _b7__rt_USE_RS and m <= _b7__rt_RS_MAX:
++        params = _b7__rt__tmap_x3(x, m) + struct.pack("QQq", st["w_rs"].data_ptr(), out.data_ptr(), m)
+         params += b"\0" * ((-len(params)) % 64)
+-        st["mod"].launch(f"rs{m}", 128, 256, _rt_rs_smem(m), params)
++        st["mod"].launch(f"rs{m}", 128, 256, _b7__rt_rs_smem(m), params)
+         return out
+-    name, cfg = _rt__cfg_for(m)
++    name, cfg = _b7__rt__cfg_for(m)
+     tt, rr, kk, ks, ns, wk, wg, _ = cfg
+     ntt = (m + tt - 1) // tt
+     assert ntt * tt * 256 <= st["ws"].numel() and ntt * (256 // rr) <= st["cnt"].numel()
+-    params = _rt__tmap_x(x, m, tt) + struct.pack("QQQQqq", st["lay"][(rr, kk, ks)].data_ptr(), out.data_ptr(),
++    params = _b7__rt__tmap_x(x, m, tt) + struct.pack("QQQQqq", st["lay"][(rr, kk, ks)].data_ptr(), out.data_ptr(),
+                                              st["ws"].data_ptr(), st["cnt"].data_ptr(), m, ntt)
+     params += b"\0" * ((-len(params)) % 64)
+     grid = ntt * (256 // rr) * (8192 // kk)
+     zk = st["zkeys"].get((name, ntt))
+-    if _rt_FLAGS & 16 and zk is None:
+-        _rt_FLAGS = 4
+-    if _rt_FLAGS & 32 and zk is not None and st["esc"][(rr, kk, ks)][3] <= 32:
++    if _b7__rt_FLAGS & 16 and zk is None:
++        _b7__rt_FLAGS = 4
++    if _b7__rt_FLAGS & 32 and zk is not None and st["esc"][(rr, kk, ks)][3] <= 32:
+         c = st["cmp"]
+         off, ent, dl, _ = st["esc"][(rr, kk, ks)]
+         b2 = (c["base"] << 7) | (c["base"] << 23)
+-        p2 = _rt__tmap_x(x, m, tt) + struct.pack("QQQQqqQQQQqQ", st["w_cmp"][(rr, kk, ks)].data_ptr(), out.data_ptr(),
++        p2 = _b7__rt__tmap_x(x, m, tt) + struct.pack("QQQQqqQQQQqQ", st["w_cmp"][(rr, kk, ks)].data_ptr(), out.data_ptr(),
+                                              st["ws"].data_ptr(), st["zc"].data_ptr() + 4 * 4096 * zk, m, ntt,
+                                              x.data_ptr(), off.data_ptr(), ent.data_ptr(), dl.data_ptr(), b2,
+-                                             _rt_TRACE.data_ptr() if _rt_TRACE is not None else 0)
++                                             _b7__rt_TRACE.data_ptr() if _b7__rt_TRACE is not None else 0)
+         p2 += b"\0" * ((-len(p2)) % 64)
+-        st["mod"].launch(f"{name}_f48", 4 + grid, 32 * (wk * wg + 1), _rt_smem_bytes(cfg), p2)
++        st["mod"].launch(f"{name}_f48", 4 + grid, 32 * (wk * wg + 1), _b7__rt_smem_bytes(cfg), p2)
+         return out
+-    _rt_FLAGS &= ~32
+-    if _rt_FLAGS & 16:
+-        tmb = _rt__tmap_x3s(x, m, tt) if _rt_FLAGS & 64 else _rt__tmap_x(x, m, tt)
++    _b7__rt_FLAGS &= ~32
++    if _b7__rt_FLAGS & 16:
++        tmb = _b7__rt__tmap_x3s(x, m, tt) if _b7__rt_FLAGS & 64 else _b7__rt__tmap_x(x, m, tt)
+         p2 = tmb + struct.pack("QQQQqqQQQQqQ", st["lay"][(rr, kk, ks)].data_ptr(), out.data_ptr(),
+                                              st["ws"].data_ptr(), st["zc"].data_ptr() + 4 * 4096 * zk, m, ntt,
+-                                             0, 0, 0, 0, _rt_DELAY_NS, _rt_TRACE.data_ptr() if _rt_TRACE is not None else 0)
++                                             0, 0, 0, 0, _b7__rt_DELAY_NS, _b7__rt_TRACE.data_ptr() if _b7__rt_TRACE is not None else 0)
+         p2 += b"\0" * ((-len(p2)) % 64)
+-        st["mod"].launch(f"{name}_f{_rt_FLAGS & 464}", 4 + grid, 32 * (wk * wg + 1), _rt_smem_bytes(cfg), p2)
++        st["mod"].launch(f"{name}_f{_b7__rt_FLAGS & 464}", 4 + grid, 32 * (wk * wg + 1), _b7__rt_smem_bytes(cfg), p2)
+         return out
+-    if _rt_FLAGS & 8:   # ablation: red.add into out with no zeroing / ordering (wrong values, timing only)
+-        st["mod"].launch(f"{name}_f8", grid, 32 * (wk * wg + 1), _rt_smem_bytes(cfg), params)
++    if _b7__rt_FLAGS & 8:   # ablation: red.add into out with no zeroing / ordering (wrong values, timing only)
++        st["mod"].launch(f"{name}_f8", grid, 32 * (wk * wg + 1), _b7__rt_smem_bytes(cfg), params)
+         return out
+-    if _rt_FLAGS & 4:
++    if _b7__rt_FLAGS & 4:
+         st["mod"].launch("rzero", 16, 256, 0, struct.pack("Qq", out.data_ptr(), m * 64))
+-        st["mod"].launch_pdl(f"{name}_f{_rt_FLAGS}", grid, 32 * (wk * wg + 1), _rt_smem_bytes(cfg), params)
++        st["mod"].launch_pdl(f"{name}_f{_b7__rt_FLAGS}", grid, 32 * (wk * wg + 1), _b7__rt_smem_bytes(cfg), params)
+         return out
+-    st["mod"].launch(f"{name}_f{_rt_FLAGS}", grid, 32 * (wk * wg + 1), _rt_smem_bytes(cfg), params)
++    st["mod"].launch(f"{name}_f{_b7__rt_FLAGS}", grid, 32 * (wk * wg + 1), _b7__rt_smem_bytes(cfg), params)
+     return out
+ 
+ 
+@@ -4580,7 +4586,7 @@
+ 
+ import torch
+ 
+-_gv_SRC = r"""
++_b7__gv_SRC = r"""
+ typedef unsigned int u32;
+ typedef unsigned short u16;
+ typedef unsigned char u8;
+@@ -4793,38 +4799,38 @@
+ }
+ """
+ 
+-_gv_LAYER_K = {"qkv_gate": 8192, "o": 1024, "pooler": 8192, "unpslice": 4096}
++_b7__gv_LAYER_K = {"qkv_gate": 8192, "o": 1024, "pooler": 8192, "unpslice": 4096}
+ # layer -> (R rows per CTA, threads) default
+-_gv_CFG = {"qkv_gate": (1, 256), "o": (4, 64), "pooler": (1, 256), "unpslice": (1, 128)}
+-
+-
+-def _gv_kname(layer, r, nt, mb=0):
++_b7__gv_CFG = {"qkv_gate": (1, 256), "o": (4, 64), "pooler": (1, 256), "unpslice": (1, 128)}
++
++
++def _b7__gv_kname(layer, r, nt, mb=0):
+     return f"gv3_{layer}_{r}_{nt}" + (f"_{mb}" if mb else "")
+ 
+ 
+-def _gv_mkname(layer, r, nt):
++def _b7__gv_mkname(layer, r, nt):
+     return f"gv3m_{layer}_{r}_{nt}"
+ 
+ 
+-_gv_MT = 8
+-
+-
+-def _gv_source(cfgs=None, mcfgs=()):
++_b7__gv_MT = 8
++
++
++def _b7__gv_source(cfgs=None, mcfgs=()):
+     """cfgs: iterable of (layer, R, NT) for M == 1 (default CFG); mcfgs: same for the M <= 8 variant"""
+-    cfgs = [(l, r, nt) for l, (r, nt) in _gv_CFG.items()] if cfgs is None else cfgs
+-    s = _gv_SRC
++    cfgs = [(l, r, nt) for l, (r, nt) in _b7__gv_CFG.items()] if cfgs is None else cfgs
++    s = _b7__gv_SRC
+     for c in sorted(set(tuple(c) + (0,) * (4 - len(c)) for c in cfgs)):
+         layer, r, nt, mb = c
+         lb = f"{nt}, {mb}" if mb else f"{nt}"
+-        s += (f'extern "C" __global__ void __launch_bounds__({lb}) {_gv_kname(layer, r, nt, mb)}(const __grid_constant__ P p) '
+-              f'{{ gv3_body<{r},{nt},{_gv_LAYER_K[layer]}>(p); }}\n')
++        s += (f'extern "C" __global__ void __launch_bounds__({lb}) {_b7__gv_kname(layer, r, nt, mb)}(const __grid_constant__ P p) '
++              f'{{ gv3_body<{r},{nt},{_b7__gv_LAYER_K[layer]}>(p); }}\n')
+     for layer, r, nt in sorted(set(mcfgs)):
+-        s += (f'extern "C" __global__ void __launch_bounds__({nt}) {_gv_mkname(layer, r, nt)}(const __grid_constant__ P p) '
+-              f'{{ gv3m_body<{r},{nt},{_gv_LAYER_K[layer]},{_gv_MT}>(p); }}\n')
++        s += (f'extern "C" __global__ void __launch_bounds__({nt}) {_b7__gv_mkname(layer, r, nt)}(const __grid_constant__ P p) '
++              f'{{ gv3m_body<{r},{nt},{_b7__gv_LAYER_K[layer]},{_b7__gv_MT}>(p); }}\n')
+     return s
+ 
+ 
+-def _gv_compress(w):
++def _b7__gv_compress(w):
+     u = w.contiguous().view(torch.int16).to(torch.int32) & 0xFFFF
+     s, e = u >> 15, (u >> 7) & 0xFF
+     hist = torch.bincount(e.flatten(), minlength=256).cpu()
+@@ -4841,10 +4847,10 @@
+     return code, lo, H, esc, u
+ 
+ 
+-def _gv_prepare_layer(w, emax=64):
++def _b7__gv_prepare_layer(w, emax=64):
+     """-> dict, or None if some row has more than emax escapes (caller keeps its BF16 path)"""
+     n, k = w.shape
+-    code, lo, H, esc, u = _gv_compress(w)
++    code, lo, H, esc, u = _b7__gv_compress(w)
+     cnt = esc.sum(1)
+     mx = int(cnt.max())
+     if mx > emax:
+@@ -4870,8 +4876,8 @@
+             "n_esc": int(len(nn)), "emax": mx}
+ 
+ 
+-def _gv_launch(mod, lname, ent, x, out, cfg=None):
+-    cfg = tuple(cfg or _gv_CFG[lname])
++def _b7__gv_launch(mod, lname, ent, x, out, cfg=None):
++    cfg = tuple(cfg or _b7__gv_CFG[lname])
+     r, nt = cfg[0], cfg[1]
+     mb = cfg[2] if len(cfg) > 2 else 0
+     n = out.shape[-1]
+@@ -4880,10 +4886,10 @@
+     args = struct.pack("<QQQqIIIIII", ent["w"].data_ptr(), x.data_ptr(), out.data_ptr(), n, ent["B4"], ent["E"],
+                        ent["RB"], ent["wdec"], m, 0)
+     if m == 1:
+-        mod.launch(_gv_kname(lname, r, nt, mb), n // r, nt, 0, args)
++        mod.launch(_b7__gv_kname(lname, r, nt, mb), n // r, nt, 0, args)
+     else:
+-        assert m <= _gv_MT
+-        mod.launch(_gv_mkname(lname, r, nt), n // r, nt, 0, args)
++        assert m <= _b7__gv_MT
++        mod.launch(_b7__gv_mkname(lname, r, nt), n // r, nt, 0, args)
+ 
+ 
+ # ======================================================================== component: GM (o, M<=8)
+@@ -4907,7 +4913,7 @@
+ import torch
+ 
+ 
+-_gm_SRC = r"""
++_b7__gm_SRC = r"""
+ typedef unsigned int u32;
+ typedef unsigned short u16;
+ typedef unsigned char u8;
+@@ -5020,33 +5026,33 @@
+ }
+ """
+ 
+-_gm_LAYER_K = {"o": 1024}
+-_gm_EMAX = 16
+-
+-
+-def _gm_kname(layer, nw, nt8, mb=0):
++_b7__gm_LAYER_K = {"o": 1024}
++_b7__gm_EMAX = 16
++
++
++def _b7__gm_kname(layer, nw, nt8, mb=0):
+     return f"gm_{layer}_{nw}_{nt8}_{mb}"
+ 
+ 
+-def _gm_source(cfgs):
++def _b7__gm_source(cfgs):
+     """cfgs: iterable of (layer, NW, NT8[, min blocks per SM])"""
+-    s = _gm_SRC
++    s = _b7__gm_SRC
+     for c in sorted(set(tuple(c) + (0,) * (4 - len(c)) for c in cfgs)):
+         layer, nw, nt8, mb = c
+         lb = f"{nw * 32}, {mb}" if mb else f"{nw * 32}"
+-        s += (f'extern "C" __global__ void __launch_bounds__({lb}) {_gm_kname(layer, nw, nt8, mb)}(const __grid_constant__ P p) '
+-              f'{{ gm_body<{nw},{_gm_LAYER_K[layer]},{nt8},{min(_gm_EMAX, nw * 2)}>(p); }}\n')
++        s += (f'extern "C" __global__ void __launch_bounds__({lb}) {_b7__gm_kname(layer, nw, nt8, mb)}(const __grid_constant__ P p) '
++              f'{{ gm_body<{nw},{_b7__gm_LAYER_K[layer]},{nt8},{min(_b7__gm_EMAX, nw * 2)}>(p); }}\n')
+     return s
+ 
+ 
+-def _gm_prepare_layer(w):
++def _b7__gm_prepare_layer(w):
+     """-> dict, or None if some row has more than EMAX escapes"""
+     n, k = w.shape
+     assert n % 16 == 0 and k % 64 == 0
+-    code, lo, H, esc, u = _gv_compress(w)
++    code, lo, H, esc, u = _b7__gv_compress(w)
+     cnt = esc.sum(1)
+     mx = int(cnt.max())
+-    if mx > _gm_EMAX:
++    if mx > _b7__gm_EMAX:
+         return None
+     E = max(1, mx)
+     S = k // 16
+@@ -5087,119 +5093,806 @@
+             "k": k, "n_esc": int(len(nn)), "emax": mx}
+ 
+ 
+-def _gm_launch(mod, layer, ent, x, out, nw=4, mb=0):
++def _b7__gm_launch(mod, layer, ent, x, out, nw=4, mb=0):
+     m, n = x.shape[0], out.shape[-1]
+     nt8 = (m + 7) // 8
+-    assert nt8 <= 4 and n % 16 == 0 and 16 * ent["E"] <= nw * 32 and ent["E"] <= min(_gm_EMAX, nw * 2)
++    assert nt8 <= 4 and n % 16 == 0 and 16 * ent["E"] <= nw * 32 and ent["E"] <= min(_b7__gm_EMAX, nw * 2)
+     args = struct.pack("<QQQqIIIIII", ent["w"].data_ptr(), x.data_ptr(), out.data_ptr(), n, ent["B4"], ent["E"],
+                        ent["TB"], ent["wdec"], m, 0)
+-    mod.launch(_gm_kname(layer, nw, nt8, mb), n // 16, nw * 32, 0, args)
++    mod.launch(_b7__gm_kname(layer, nw, nt8, mb), n // 16, nw * 32, 0, args)
+ 
+ 
+ 
+ 
+ # ======================================================================== dispatch
+ # Measured choices (claude/out/*): K1s = 12-bit lossless weights, register streaming, M <= 16.
+-_K1_USE = {
++_b7__K1_USE = {
+     "qkv_gate": lambda m: False,      # K1t C=4 below
+     "pooler": lambda m: 1 <= m <= 16,
+     "unpooler": lambda m: 9 <= m <= 16,
+     "o": lambda m: False,
+ }
+ # library GEMMs that beat Codex's picks (claude/out/lib3.log): flashinfer cuDNN backend, plain torch.mm
+-_LIB = {}
++_b7__LIB = {}
+ # exhaustive cuBLASLt search winners (claude/lt_tune.py, claude/lt_128_256.json): (m, layer) -> (layout, settings)
+-_LT = {(128, 'qkv_gate'): ('tn', [66, 92, 1, 0, 0, 0, 35, 0, 5, 0, 130101]), (128, 'o'): ('tn', [66, 18, 1, 0, 0, 0, 35, 0, 5, 0, 130101]), (128, 'pooler'): ('nn', [66, 16, 1, 0, 0, 1, 35, 0, 2, 0, 130101]), (128, 'unpooler'): ('nn', [66, 18, 1, 0, 0, 0, 35, 0, 5, 0, 130101]), (256, 'qkv_gate'): ('tn', [66, 124, 1, 0, 0, 0, 35, 0, 2, 0, 130101]), (256, 'o'): ('nn', [66, 21, 1, 0, 0, 0, 35, 0, 5, 0, 130101]), (256, 'pooler'): ('nn', [66, 18, 1, 0, 0, 0, 35, 0, 2, 0, 130101]), (256, 'unpooler'): ('nn', [66, 21, 1, 0, 0, 0, 35, 0, 2, 0, 130101])}
++_b7__LT = {(128, 'qkv_gate'): ('tn', [66, 92, 1, 0, 0, 0, 35, 0, 5, 0, 130101]), (128, 'o'): ('tn', [66, 18, 1, 0, 0, 0, 35, 0, 5, 0, 130101]), (128, 'pooler'): ('nn', [66, 16, 1, 0, 0, 1, 35, 0, 2, 0, 130101]), (128, 'unpooler'): ('nn', [66, 18, 1, 0, 0, 0, 35, 0, 5, 0, 130101]), (256, 'qkv_gate'): ('tn', [66, 124, 1, 0, 0, 0, 35, 0, 2, 0, 130101]), (256, 'o'): ('nn', [66, 21, 1, 0, 0, 0, 35, 0, 5, 0, 130101]), (256, 'pooler'): ('nn', [66, 18, 1, 0, 0, 0, 35, 0, 2, 0, 130101]), (256, 'unpooler'): ('nn', [66, 21, 1, 0, 0, 0, 35, 0, 2, 0, 130101])}
+ # GV3: many-CTA 12-bit GEMV at M == 1 (claude/gv3.py, claude/out/gv3s.log); per layer, configs in preference order
+ # (rows per CTA x threads); escape lanes need rows * E <= 32
+-_GV_PREF = {"qkv_gate": [(2, 512), (2, 256), (1, 256)], "o": [(8, 64), (4, 64), (2, 64), (1, 64)],
++_b7__GV_PREF = {"qkv_gate": [(2, 512), (2, 256), (1, 256)], "o": [(8, 64), (4, 64), (2, 64), (1, 64)],
+             "pooler": [(2, 512), (1, 512)], "unpslice": [(1, 256, 8), (1, 256)]}
+ # GM: many-CTA tensor-core 12-bit GEMV for o at 2 <= M <= 8 (claude/gm.py, claude/out/gm3.log): (NW warps, min blocks)
+-_GM_O = (4, 6)
++_b7__GM_O = (4, 6)
+ # qkv_gate at M <= 16: K1t, 4-CTA clusters (120 SMs), 8-row groups (claude/out/q4.log)
+-_k1t_CFG["qkv_gate"] = (4, 30, 5, 2, 8, 3)
+-_k1t_HALF_CFGS.discard("qkv_gate")
+-_K1T_USE = {
++_b7__k1t_CFG["qkv_gate"] = (4, 30, 5, 2, 8, 3)
++_b7__k1t_HALF_CFGS.discard("qkv_gate")
++_b7__K1T_USE = {
+     "qkv_gate": lambda m: 2 <= m <= 16,
+     "pooler": lambda m: 17 <= m <= 32,
+     "unpooler": lambda m: 17 <= m <= 32,
+ }
+ 
+ 
+-def prepare(weights):
+-    st = {"cx": _cx_prepare(weights), "rt": _rt_prepare_router(weights)}
++def _b7_prepare(weights):
++    st = {"cx": _b7__cx_prepare(weights), "rt": _b7__rt_prepare_router(weights)}
+     k1 = {}
+     for name in ("pooler", "unpooler"):
+-        k1[name] = _k1_prepare_layer(weights[name], name, 1)
+-    k1["pooler1"] = _k1_prepare_layer(weights["pooler"], "pooler1", 1)
++        k1[name] = _b7__k1_prepare_layer(weights[name], name, 1)
++    k1["pooler1"] = _b7__k1_prepare_layer(weights["pooler"], "pooler1", 1)
+     st["k1"] = k1
+-    st["k1mod"] = _cu_Module(_k1_source(layers=("pooler", "pooler1", "unpooler")), "k1s.cu")
++    st["k1mod"] = _b7__cu_Module(_b7__k1_source(layers=("pooler", "pooler1", "unpooler")), "k1s.cu")
+     k1t = {}
+     for v, base in (("pooler32", "pooler"), ("unpooler32", "unpooler"), ("qkv_gate", "qkv_gate")):
+-        k1t[v] = _k1t_prepare_layer(weights[base], v, 1)
++        k1t[v] = _b7__k1t_prepare_layer(weights[base], v, 1)
+     st["k1t"] = k1t
+-    st["k1tmod"] = _cu_Module(_k1t_source(layers=("pooler32", "unpooler32", "qkv_gate"), tokbs=(8, 16, 32)), "k1t.cu")
++    st["k1tmod"] = _b7__cu_Module(_b7__k1t_source(layers=("pooler32", "unpooler32", "qkv_gate"), tokbs=(8, 16, 32)), "k1t.cu")
+     gv, gcfg = {}, {}
+     for lname, src in (("qkv_gate", "qkv_gate"), ("o", "o"), ("pooler", "pooler"), ("unpslice", "unpooler")):
+         w = weights[src][:1024].contiguous() if lname == "unpslice" else weights[src]
+-        ent = _gv_prepare_layer(w)
++        ent = _b7__gv_prepare_layer(w)
+         if ent is None:
+             continue
+-        for c in _GV_PREF[lname]:
++        for c in _b7__GV_PREF[lname]:
+             if c[0] * ent["E"] <= 32:
+                 gv[lname], gcfg[lname] = ent, tuple(c)
+                 break
+     st["gv"], st["gvcfg"] = gv, gcfg
+-    st["gvmod"] = _cu_Module(_gv_source([(l,) + c for l, c in gcfg.items()]), "gv3.cu") if gcfg else None
+-    ent = _gm_prepare_layer(weights["o"])
+-    nw, mb = _GM_O
+-    if ent is not None and 16 * ent["E"] <= nw * 32 and ent["E"] <= min(_gm_EMAX, nw * 2):
++    st["gvmod"] = _b7__cu_Module(_b7__gv_source([(l,) + c for l, c in gcfg.items()]), "gv3.cu") if gcfg else None
++    ent = _b7__gm_prepare_layer(weights["o"])
++    nw, mb = _b7__GM_O
++    if ent is not None and 16 * ent["E"] <= nw * 32 and ent["E"] <= min(_b7__gm_EMAX, nw * 2):
+         st["gm_o"] = ent
+-        st["gmmod"] = _cu_Module(_gm_source([("o", nw, 1, mb)]), "gm.cu")
++        st["gmmod"] = _b7__cu_Module(_b7__gm_source([("o", nw, 1, mb)]), "gm.cu")
+     else:
+         st["gm_o"] = None
+     st["wt"] = {k: weights[k].t() for k in ("qkv_gate", "o", "pooler", "unpooler")}
+-    for (layer, m), be in _LIB.items():   # build/cached library plans outside the timed calls
++    for (layer, m), be in _b7__LIB.items():   # build/cached library plans outside the timed calls
+         xw = torch.randn((m, weights[layer].shape[1]), device=weights[layer].device).to(torch.bfloat16)
+         for _ in range(2):
+-            _lib_mm(xw, st, layer, weights[layer].shape[0], be)
++            _b7__lib_mm(xw, st, layer, weights[layer].shape[0], be)
+     torch.cuda.synchronize()
+     return st
+ 
+ 
+-def _lib_mm(x, st, layer, n, be):
++def _b7__lib_mm(x, st, layer, n, be):
+     import flashinfer
+     return flashinfer.mm_bf16(x, st["wt"][layer][:, :n], backend=be)
+ 
+ 
+-def kernel_fn(data, state):
++def _b7_kernel_fn(data, state):
+     x, cfg = data["x"], data["config"]
+     layer, m, n = cfg["layer"], cfg["m"], cfg["n"]
+     if layer == "router":
+-        return _rt_run_router(x, state["rt"])
++        return _b7__rt_run_router(x, state["rt"])
+     if m == 1:
+         lname = "unpslice" if layer == "unpooler" else layer
+         ent = state["gv"].get(lname)
+         if ent is not None and n == ent["n"] and x.is_contiguous() and x.data_ptr() % 16 == 0:
+             out = torch.empty((1, n), dtype=torch.bfloat16, device=x.device)
+-            _gv_launch(state["gvmod"], lname, ent, x, out, state["gvcfg"][lname])
++            _b7__gv_launch(state["gvmod"], lname, ent, x, out, state["gvcfg"][lname])
+             return out
+     if layer == "o" and 2 <= m <= 8 and state["gm_o"] is not None and x.is_contiguous() and x.data_ptr() % 16 == 0:
+         out = torch.empty((m, n), dtype=torch.bfloat16, device=x.device)
+-        _gm_launch(state["gmmod"], "o", state["gm_o"], x, out, *_GM_O)
++        _b7__gm_launch(state["gmmod"], "o", state["gm_o"], x, out, *_b7__GM_O)
+         return out
+-    be = _LIB.get((layer, m))
++    be = _b7__LIB.get((layer, m))
+     if be is not None:
+-        return _lib_mm(x, state, layer, n, be)
+-    lt = _LT.get((m, layer))
++        return _b7__lib_mm(x, state, layer, n, be)
++    lt = _b7__LT.get((m, layer))
+     if lt is not None:
+-        return _cx_lt_run(x, state["cx"]["lt"][layer], n, ("lt", lt[0], *lt[1]))
+-    if _K1_USE[layer](m) and x.is_contiguous() and x.data_ptr() % 16 == 0:
++        return _b7__cx_lt_run(x, state["cx"]["lt"][layer], n, ("lt", lt[0], *lt[1]))
++    if _b7__K1_USE[layer](m) and x.is_contiguous() and x.data_ptr() % 16 == 0:
+         out = torch.empty((m, n), dtype=torch.bfloat16, device=x.device)
+-        _k1_launch(state["k1mod"], layer, state["k1"][_k1_cfg_key(layer, m, n)[0]], x, out, m, n, 1)
++        _b7__k1_launch(state["k1mod"], layer, state["k1"][_b7__k1_cfg_key(layer, m, n)[0]], x, out, m, n, 1)
+         return out
+-    if layer in _K1T_USE and _K1T_USE[layer](m) and x.is_contiguous() and x.data_ptr() % 16 == 0:
++    if layer in _b7__K1T_USE and _b7__K1T_USE[layer](m) and x.is_contiguous() and x.data_ptr() % 16 == 0:
+         out = torch.empty((m, n), dtype=torch.bfloat16, device=x.device)
+-        _k1t_launch(state["k1tmod"], layer, state["k1t"][_k1t_cfg_key(layer, m, n)[0]], x, out, m, n, 1)
++        _b7__k1t_launch(state["k1tmod"], layer, state["k1t"][_b7__k1t_cfg_key(layer, m, n)[0]], x, out, m, n, 1)
+         return out
+-    return _cx_kernel_fn(data, state["cx"])
++    return _b7__cx_kernel_fn(data, state["cx"])
++
++
++# ======================================================================== module G: G/gemv1.py
++"""G / gemv1: M == 1 GEMV for qkv_gate, o, pooler and the unpooler slice (claude/t3/G, 2026-11-02).
++
++    state = prepare_gemv1(weights)           # weights: the problem's dict (BF16 [N, K] per layer)
++    out   = run_gemv1(x, config, state)      # x [1, K] bf16, config {"m": 1, "n", "k", "layer"} -> [1, n] bf16
++    run_gemv1 falls back to torch for anything it does not handle (m != 1, router, misaligned x).
++
++Two lossless weight formats (both store each weight as a "fake" bf16 = true * 2^(F - E_lo); the kernel accumulates
++x * fake in FP32 - products exact, same rounding as the true weights - and multiplies each output by 2^(E_lo - F)):
++  F11 (qkv_gate, pooler, unpooler slice): 8-exponent window, lo byte + 3-bit code (s, h) per weight, 32 weights ->
++       8 lo words + 3 code words; escapes (~1.3%) in a per-row slot list (k << 16 | true bf16), see NOTES.md.
++  F12 (o): 16-exponent window, lo byte + 4-bit nibble (s, h), escapes ~1e-4 in per-row slots.
++Kernels:
++  g311 (F11, FMA): CTA = 1 row x 256 threads (K/32), thread = one 32-weight group (k = c*K/4 + 8j + i), every load
++       issued up front (min-blocks set so ptxas does not sink loads), escapes from the row's slot list.
++  tc   (F12, tensor cores): CTA = 16-row tile x 8 warps (K slices), A = decoded weights, B column 0 = x, weight pointer
++       baked into the kernel as a constant (the param bank is a cold miss after the judge's L2 flush).
++"""
++import ctypes
++import struct
++
++import torch
++
++_g1_SRC = r"""
++typedef unsigned int u32;
++typedef unsigned short u16;
++typedef unsigned char u8;
++struct P {
++  const u8* w; const u16* x; u16* out;
++  u32 E, RB;
++  float scale, invscale;
++};
++struct PX { const u16* x; u16* out; };
++template <unsigned long long WA, unsigned EE, unsigned RBB, unsigned SC, unsigned ISC>
++__device__ __forceinline__ P mkp(const PX& q) {
++  P p; unsigned long long a; asm("mov.u64 %0, %1;" : "=l"(a) : "n"(WA)); p.w = (const u8*)a;
++  p.x = q.x; p.out = q.out; p.E = EE; p.RB = RBB; p.scale = __uint_as_float(SC); p.invscale = __uint_as_float(ISC);
++  return p;
++}
++__device__ __forceinline__ uint4 ldg128(const void* p) {
++  uint4 v; asm volatile("ld.global.nc.L1::no_allocate.v4.u32 {%0,%1,%2,%3}, [%4];" : "=r"(v.x), "=r"(v.y), "=r"(v.z), "=r"(v.w) : "l"(p)); return v;
++}
++__device__ __forceinline__ u32 ldg32(const void* p) {
++  u32 v; asm volatile("ld.global.nc.L1::no_allocate.u32 %0, [%1];" : "=r"(v) : "l"(p)); return v;
++}
++__device__ __forceinline__ uint4 ldx128(const void* p) {
++  uint4 v; asm volatile("ld.global.nc.v4.u32 {%0,%1,%2,%3}, [%4];" : "=r"(v.x), "=r"(v.y), "=r"(v.z), "=r"(v.w) : "l"(p)); return v;
++}
++__device__ __forceinline__ u16 ldx16(const void* p) {
++  u16 v; asm volatile("ld.global.nc.u16 %0, [%1];" : "=h"(v) : "l"(p)); return v;
++}
++__device__ __forceinline__ u32 prmt(u32 a, u32 b, u32 s) { u32 r; asm("prmt.b32 %0, %1, %2, %3;" : "=r"(r) : "r"(a), "r"(b), "r"(s)); return r; }
++__device__ __forceinline__ u32 rotr(u32 x, int s) { return __funnelshift_r(x, x, s); }
++__device__ __forceinline__ float blo(u32 v) { return __uint_as_float(v << 16); }
++__device__ __forceinline__ float bhi(u32 v) { return __uint_as_float(v & 0xFFFF0000u); }
++__device__ __forceinline__ u16 f2bf(float v) { u16 o; asm("cvt.rn.bf16.f32 %0, %1;" : "=h"(o) : "f"(v)); return o; }
++__device__ __forceinline__ void mma16816(float* d, const uint4 a, u32 b0, u32 b1) {
++  asm volatile("mma.sync.aligned.m16n8k16.row.col.f32.bf16.bf16.f32 {%0,%1,%2,%3}, {%4,%5,%6,%7}, {%8,%9}, {%0,%1,%2,%3};"
++      : "+f"(d[0]), "+f"(d[1]), "+f"(d[2]), "+f"(d[3]) : "r"(a.x), "r"(a.y), "r"(a.z), "r"(a.w), "r"(b0), "r"(b1));
++}
++
++// ------------------------------------------------------------------ F12 decode: 8 weights from 2 lo words + 1 nibble word
++// hiA = (nw & 0x87878787) | 0x38383838 ; hiB = (rotr(nw, 4) & 0x87878787) | 0x38383838 ; 4 PRMT (3 ALU + 4 PRMT)
++__device__ __forceinline__ u32 hi12(u32 x, u32 M87) {
++  u32 r; asm("lop3.b32 %0, %1, %2, %3, 0xEA;" : "=r"(r) : "r"(x), "r"(M87), "n"(0x38383838)); return r;
++}
++__device__ __forceinline__ uint4 decode12f(u32 L0, u32 L1, u32 nw, u32 M87) {
++  const u32 hiA = hi12(nw, M87), hiB = hi12(rotr(nw, 4), M87);
++  uint4 o;
++  o.x = prmt(L0, hiA, 0x5140); o.y = prmt(L0, hiA, 0x7362);
++  o.z = prmt(L1, hiB, 0x5140); o.w = prmt(L1, hiB, 0x7362);
++  return o;
++}
++__device__ __forceinline__ float esc_delta12(u32 es, float invscale) {   // true * 2^(112-E_lo) - 2^-15
++  return fmaf(__uint_as_float(es << 16), invscale, -__uint_as_float(0x38000000u));
++}
++
++// ------------------------------------------------------------------ F11 decode: 32 weights from 8 lo words + 3 code words
++// X0=W0 X1=rotr(W0,3) X2=W1 X3=rotr(W1,3) X4=W2 X5=rotr(W2,3) X6=sel80(rotr(W0,6),rotr(W1,5)) X7=sel80(rotr(W0,7),rotr(W2,5))
++// hi_g = (X_g & 0x83838383) | 0x3C3C3C3C ; bf16x2 = prmt(lo_g, hi_g, 0x5140 / 0x7362)   (33 ALU per 32 weights)
++__device__ __forceinline__ u32 hi11(u32 x, u32 M83) {
++  u32 r; asm("lop3.b32 %0, %1, %2, %3, 0xEA;" : "=r"(r) : "r"(x), "r"(M83), "n"(0x3C3C3C3C)); return r;
++}
++__device__ __forceinline__ u32 sel80(u32 a, u32 b, u32 M80) {
++  u32 r; asm("lop3.b32 %0, %1, %2, %3, 0xE4;" : "=r"(r) : "r"(a), "r"(b), "r"(M80)); return r;
++}
++__device__ __forceinline__ void dec11_hi(u32 W0, u32 W1, u32 W2, u32* h, u32 M83, u32 M80) {
++  h[0] = hi11(W0, M83);          h[1] = hi11(rotr(W0, 3), M83);
++  h[2] = hi11(W1, M83);          h[3] = hi11(rotr(W1, 3), M83);
++  h[4] = hi11(W2, M83);          h[5] = hi11(rotr(W2, 3), M83);
++  h[6] = hi11(sel80(rotr(W0, 6), rotr(W1, 5), M80), M83);
++  h[7] = hi11(sel80(rotr(W0, 7), rotr(W2, 5), M80), M83);
++}
++__device__ __forceinline__ float esc_delta11(u32 es, float invscale) {   // true * 2^(120-E_lo) - 2^-7
++  return fmaf(__uint_as_float(es << 16), invscale, -__uint_as_float(0x3C000000u));
++}
++
++// ------------------------------------------------------------------ TC: F12, tensor cores (o)
++// CTA = one 16-row tile; warp w = K slice w (SW = K/16/NW mma steps); lane (g, t) A fragment per step:
++// [W[g][k0], W[g][k0+1], W[g+8][k0], W[g+8][k0+1], W[g][k0+2], W[g][k0+3], W[g+8][k0+2], W[g+8][k0+3]],
++// k0 = 32*(step/2) + 8t + 4*(step%2) (the same k permutation for x = B column 0, loaded by lanes g == 0).
++// Tile blob: lo [S/2 pairs][32 lanes][16 B] | nibble words [S/4 quads][32 lanes][16 B] | slots [16 rows][E] u32.
++template <int NW, int K, int EMAXT>
++__device__ __forceinline__ void tc_body(const P& p) {
++  constexpr int S = K / 16, SW = S / NW;
++  static_assert(SW % 4 == 0, "steps per warp: multiple of 4");
++  constexpr int NPAIR = SW / 2, NQUAD = SW / 4;
++  __shared__ float red[NW][16];
++  __shared__ float escc[16 * EMAXT];
++  const int tid = threadIdx.x, lane = tid & 31, wid = tid >> 5;
++  const int g = lane >> 2, t = lane & 3;
++  const u32 M87 = 0x87878787u;
++  const u8* tb = p.w + (size_t)blockIdx.x * p.RB;
++  uint4 lo[NPAIR], cd[NQUAD];
++#pragma unroll
++  for (int i = 0; i < NPAIR; ++i) lo[i] = ldg128(tb + (size_t)(wid * NPAIR + i) * 512 + lane * 16);
++#pragma unroll
++  for (int i = 0; i < NQUAD; ++i) cd[i] = ldg128(tb + (size_t)(S / 2) * 512 + (size_t)(wid * NQUAD + i) * 512 + lane * 16);
++  const int E = (int)p.E, ns = 16 * E;
++  u32 es = 0;
++  if (tid < ns) es = ldg32(tb + (size_t)(S / 2 + S / 4) * 512 + tid * 4);
++  const int kw = wid * SW * 16;
++  uint4 xb[NPAIR];
++#pragma unroll
++  for (int i = 0; i < NPAIR; ++i) xb[i] = (g == 0) ? ldx128(p.x + kw + i * 32 + t * 8) : make_uint4(0, 0, 0, 0);
++  float ecv = 0.f;            // escape correction issued before the mma loop; filler slots (delta 0) skip the gather
++  if (tid < ns) {
++    const float dl = esc_delta12(es, p.invscale);
++    if (dl != 0.f) ecv = __uint_as_float(((u32)ldx16(p.x + (es >> 16))) << 16) * dl;
++  }
++  float acc[4] = {0.f, 0.f, 0.f, 0.f};
++#pragma unroll
++  for (int i = 0; i < NPAIR; ++i) {
++    const uint4 cq = cd[i >> 1];
++    const u32 c0 = (i & 1) ? cq.z : cq.x, c1 = (i & 1) ? cq.w : cq.y;
++    mma16816(acc, decode12f(lo[i].x, lo[i].y, c0, M87), xb[i].x, xb[i].y);
++    mma16816(acc, decode12f(lo[i].z, lo[i].w, c1, M87), xb[i].z, xb[i].w);
++  }
++  if (tid < ns) escc[tid] = ecv;
++  if (t == 0) { red[wid][g] = acc[0]; red[wid][g + 8] = acc[2]; }
++  __syncthreads();
++  if (tid < 16) {
++    float s = 0.f;
++#pragma unroll
++    for (int w = 0; w < NW; ++w) s += red[w][tid];
++    for (int e = 0; e < E; ++e) s += escc[tid * E + e];
++    p.out[(size_t)blockIdx.x * 16 + tid] = f2bf(s * p.scale);
++  }
++}
++
++// ------------------------------------------------------------------ G311: F11, FMA, one row per CTA (qkv, pooler, unpslice)
++// NT = K/32 threads; thread j takes k = c*K/4 + 8j + i (c = 0..3, i = 0..7) -> group weight 8c + i, so every warp load
++// (lo halves, code planes, x quarters) is one contiguous block. Row blob: lo [2][K/32][16 B] | W0[K/32] W1 W2 (u32 planes)
++// | slots [E] u32 ((k << 16) | true bf16; unused slots carry delta 0).
++template <int R, int K, int SPT>
++__device__ __forceinline__ void g311_body(const P& p) {
++  // (this exact form keeps every load ahead of the first FFMA under ptxas 12.1 and 13.0 at 40 registers; a variant that
++  //  folded the escape FMA into the main chain had 2 loads sunk below the FMAs - see NOTES.md, nvrtc_sass.py)
++  constexpr int NT = K / 32, NW = NT / 32;
++  constexpr int RB = K + K / 32 * 12;          // per-row bytes before the slot pool
++  __shared__ float red[NW][R];
++  const int tid = threadIdx.x, lane = tid & 31, wid = tid >> 5;
++  const u32 M83 = 0x83838383u, M80 = 0x80808080u;
++  const long long row0 = (long long)blockIdx.x * R;
++  const u8* cb = p.w + (size_t)blockIdx.x * p.RB;
++  uint4 lo[R][2];
++  u32 W[R][3];
++#pragma unroll
++  for (int r = 0; r < R; ++r) {
++    const u8* rb = cb + r * RB;
++    lo[r][0] = ldg128(rb + tid * 16);
++    lo[r][1] = ldg128(rb + K / 2 + tid * 16);
++#pragma unroll
++    for (int c = 0; c < 3; ++c) W[r][c] = ldg32(rb + K + c * (K / 8) + tid * 4);
++  }
++  const int E = (int)p.E;
++  u32 es[SPT];
++#pragma unroll
++  for (int j = 0; j < SPT; ++j) {
++    const int i = tid + j * NT;
++    es[j] = (i < E) ? ldg32(cb + R * RB + i * 4) : 0u;
++  }
++  uint4 xq[4];
++#pragma unroll
++  for (int i = 0; i < 4; ++i) xq[i] = ldx128(p.x + i * (K / 4) + tid * 8);
++  float acc[R];
++#pragma unroll
++  for (int r = 0; r < R; ++r) acc[r] = 0.f;
++#pragma unroll
++  for (int r = 0; r < R; ++r) {
++    u32 h[8];
++    dec11_hi(W[r][0], W[r][1], W[r][2], h, M83, M80);
++    const u32 lw[8] = {lo[r][0].x, lo[r][0].y, lo[r][0].z, lo[r][0].w, lo[r][1].x, lo[r][1].y, lo[r][1].z, lo[r][1].w};
++    float a = acc[r];
++#pragma unroll
++    for (int gq = 0; gq < 8; ++gq) {
++      const u32 w01 = prmt(lw[gq], h[gq], 0x5140), w23 = prmt(lw[gq], h[gq], 0x7362);
++      const uint4 xv = xq[gq >> 1];
++      const u32 x01 = (gq & 1) ? xv.z : xv.x, x23 = (gq & 1) ? xv.w : xv.y;
++      a = fmaf(blo(w01), blo(x01), a); a = fmaf(bhi(w01), bhi(x01), a);
++      a = fmaf(blo(w23), blo(x23), a); a = fmaf(bhi(w23), bhi(x23), a);
++    }
++    acc[r] = a;
++  }
++#pragma unroll
++  for (int j = 0; j < SPT; ++j) {
++    const int i = tid + j * NT;
++    if (i < E) {
++      const u32 pos = es[j] >> 16;
++      const float c = __uint_as_float(((u32)ldx16(p.x + (pos & (K - 1)))) << 16) * esc_delta11(es[j], p.invscale);
++      const int er = pos >> 13;
++#pragma unroll
++      for (int r = 0; r < R; ++r) if (r == er) acc[r] += c;
++    }
++  }
++#pragma unroll
++  for (int r = 0; r < R; ++r) {
++    float v = acc[r];
++#pragma unroll
++    for (int o = 16; o > 0; o >>= 1) v += __shfl_xor_sync(0xffffffffu, v, o);
++    if (lane == 0) red[wid][r] = v;
++  }
++  __syncthreads();
++  if (tid < R) {
++    float s = 0.f;
++#pragma unroll
++    for (int w = 0; w < NW; ++w) s += red[w][tid];
++    p.out[row0 + tid] = f2bf(s * p.scale);
++  }
++}
++
++// ------------------------------------------------------------------ TCM: F12, tensor cores, 2 <= M <= 8*NT8 (unpooler slice)
++// CTA = RT 16-row tiles x NW warps (K slices); B fragments (x^T, 8 tokens per n-tile) loaded per step pair from global
++// (L1), one pair ahead; per-CTA reduction in smem laid out [warp][token][row] (conflict-free row-contiguous reads).
++
++// XS = 1: x staged in smem (MT x (K+8)); XS = 0: B fragments loaded from global (L1-cached) one step pair ahead.
++template <int RT, int NW, int K, int NT8, int EMAXT, int XS>
++__device__ __forceinline__ void tcm_body(const P& p, int M, long long N) {
++  constexpr int S = K / 16, SW = S / NW;
++  static_assert(SW % 4 == 0, "steps per warp: multiple of 4");
++  constexpr int NPAIR = SW / 2, NQUAD = SW / 4, NT = NW * 32, XP = K + 8, MT = NT8 * 8;
++  extern __shared__ __align__(16) unsigned char smraw[];
++  u16* xs = (u16*)smraw;                                     // [MT][XP] when XS
++  float* red = (float*)(smraw + (XS == 1 ? MT * XP * 2 : 0));     // [NW][MT][RT*16]
++  float* escc = red + NW * RT * 16 * MT;                     // [RT*16*EMAXT][MT]
++  const int tid = threadIdx.x, lane = tid & 31, wid = tid >> 5;
++  const int g = lane >> 2, t = lane & 3;
++  const u32 M87 = 0x87878787u;
++  const u8* tb0 = p.w + (size_t)blockIdx.x * RT * p.RB;
++  uint4 lo[RT][NPAIR], cd[RT][NQUAD];
++#pragma unroll
++  for (int rt = 0; rt < RT; ++rt) {
++    const u8* tb = tb0 + (size_t)rt * p.RB;
++#pragma unroll
++    for (int i = 0; i < NPAIR; ++i) lo[rt][i] = ldg128(tb + (size_t)(wid * NPAIR + i) * 512 + lane * 16);
++#pragma unroll
++    for (int i = 0; i < NQUAD; ++i) cd[rt][i] = ldg128(tb + (size_t)(S / 2) * 512 + (size_t)(wid * NQUAD + i) * 512 + lane * 16);
++  }
++  const int E = (int)p.E, ns = RT * 16 * E;
++  u32 es = 0;
++  if (tid < ns) {
++    const int r = tid / E;
++    es = ldg32(tb0 + (size_t)(r >> 4) * p.RB + (size_t)(S / 2 + S / 4) * 512 + ((r & 15) * E + tid - r * E) * 4);
++  }
++  const int kw = wid * SW * 16;
++  // B fragments of step pair i for n-tile n: x[tok = 8n + g][kw + 32i + 8t .. +7] (16 B: steps 0 and 1)
++  uint4 xb[NT8], xn[NT8];
++  uint4 xall[XS == 5 ? NPAIR : 1][NT8];                     // XS == 5: every B fragment loaded up front
++  if (XS == 5) {
++#pragma unroll
++    for (int i = 0; i < NPAIR; ++i)
++#pragma unroll
++      for (int n = 0; n < NT8; ++n) {
++        const int tok = n * 8 + g;
++        xall[i][n] = tok < M ? ldx128(p.x + (size_t)tok * K + kw + i * 32 + t * 8) : make_uint4(0, 0, 0, 0);
++      }
++  } else if (XS == 1) {
++    for (int c = tid; c < MT * (K / 8); c += NT) {
++      const int tok = c / (K / 8), kc = c - tok * (K / 8);
++      const uint4 v = tok < M ? ldx128(p.x + (size_t)tok * K + kc * 8) : make_uint4(0, 0, 0, 0);
++      *(uint4*)(xs + tok * XP + kc * 8) = v;
++    }
++    __syncthreads();
++  } else {
++#pragma unroll
++    for (int n = 0; n < NT8; ++n) {
++      const int tok = n * 8 + g;
++      xb[n] = tok < M ? ldx128(p.x + (size_t)tok * K + kw + t * 8) : make_uint4(0, 0, 0, 0);
++    }
++  }
++  float acc[RT][NT8][4];
++#pragma unroll
++  for (int rt = 0; rt < RT; ++rt)
++#pragma unroll
++    for (int n = 0; n < NT8; ++n) acc[rt][n][0] = acc[rt][n][1] = acc[rt][n][2] = acc[rt][n][3] = 0.f;
++#pragma unroll
++  for (int i = 0; i < NPAIR; ++i) {
++    if (XS == 5) {
++#pragma unroll
++      for (int n = 0; n < NT8; ++n) xb[n] = xall[XS == 5 ? i : 0][n];
++    } else if (XS) {
++#pragma unroll
++      for (int n = 0; n < NT8; ++n) xb[n] = *(const uint4*)(xs + (n * 8 + g) * XP + kw + i * 32 + t * 8);
++    } else if (i + 1 < NPAIR) {
++#pragma unroll
++      for (int n = 0; n < NT8; ++n) {
++        const int tok = n * 8 + g;
++        xn[n] = tok < M ? ldx128(p.x + (size_t)tok * K + kw + (i + 1) * 32 + t * 8) : make_uint4(0, 0, 0, 0);
++      }
++    }
++#pragma unroll
++    for (int rt = 0; rt < RT; ++rt) {
++      const uint4 cq = cd[rt][i >> 1];
++      const u32 c0 = (i & 1) ? cq.z : cq.x, c1 = (i & 1) ? cq.w : cq.y;
++      const uint4 a0 = decode12f(lo[rt][i].x, lo[rt][i].y, c0, M87);
++      const uint4 a1 = decode12f(lo[rt][i].z, lo[rt][i].w, c1, M87);
++#pragma unroll
++      for (int n = 0; n < NT8; ++n) { mma16816(acc[rt][n], a0, xb[n].x, xb[n].y); mma16816(acc[rt][n], a1, xb[n].z, xb[n].w); }
++    }
++    if (XS == 0 && i + 1 < NPAIR) {
++#pragma unroll
++      for (int n = 0; n < NT8; ++n) xb[n] = xn[n];
++    }
++  }
++  // escapes: slot thread -> correction for every token (filler slots have delta 0 and skip the x reads)
++  if (tid < ns) {
++    const float dl = esc_delta12(es, p.invscale);
++    const int k = es >> 16;
++    for (int tok = 0; tok < M; ++tok) {
++      float c = 0.f;
++      if (dl != 0.f) c = __uint_as_float(((u32)(XS == 1 ? xs[tok * XP + k] : ldx16(p.x + (size_t)tok * K + k))) << 16) * dl;
++      escc[((tid % E) * MT + tok) * (RT * 16) + tid / E] = c;
++    }
++  }
++#pragma unroll
++  for (int rt = 0; rt < RT; ++rt)
++#pragma unroll
++    for (int n = 0; n < NT8; ++n) {
++      float* rr = red + ((size_t)wid * MT + n * 8 + 2 * t) * (RT * 16) + rt * 16;   // [w][tok][row]
++      rr[g] = acc[rt][n][0]; rr[RT * 16 + g] = acc[rt][n][1];
++      rr[g + 8] = acc[rt][n][2]; rr[RT * 16 + g + 8] = acc[rt][n][3];
++    }
++  __syncthreads();
++  for (int o = tid; o < RT * 16 * M; o += NT) {
++    const int tok = o / (RT * 16), r = o - tok * (RT * 16);
++    float s = 0.f;
++#pragma unroll
++    for (int w = 0; w < NW; ++w) s += red[((size_t)w * MT + tok) * (RT * 16) + r];
++    for (int e = 0; e < E; ++e) s += escc[((size_t)e * MT + tok) * (RT * 16) + r];
++    p.out[(size_t)tok * N + (size_t)blockIdx.x * RT * 16 + r] = f2bf(s * p.scale);
++  }
++}
++struct PM { const u16* x; u16* out; long long N; int M; int pad; };
++
++"""
++
++_g1_FAKE12, _g1_FAKE11 = 112, 120
++_g1_LAYER_K = {"qkv_gate": 8192, "o": 1024, "pooler": 8192, "unpslice": 4096}
++# layer -> (kernel, min blocks per SM, bake weight pointer). Measured on the H200 sandbox (NOTES.md).
++_g1_CFG = {"qkv_gate": ("g311", 6, False), "pooler": ("g311", 6, False), "unpslice": ("g311", 12, False),
++       "o": ("tc", 4, True)}
++_g1_TC_NW = 8
++# small M (2..8) for the unpooler slice: (RT, NW, min blocks); 64 CTAs x 1024 threads, all x B fragments loaded up front
++_g1_SMALLM = {"unpslice": (1, 32, 1)}
++
++
++# ------------------------------------------------------------------------------------------- NVRTC module
++class _g1__Mod:
++    def __init__(self, src, name="gemv1.cu"):
++        from cuda.bindings import driver, nvrtc
++        self.d = driver
++        torch.cuda.init()
++        torch.zeros(1, device="cuda")
++        err, prog = nvrtc.nvrtcCreateProgram(src.encode(), name.encode(), 0, [], [])
++        major, minor = torch.cuda.get_device_capability()
++        opts = [f"--gpu-architecture=sm_{major}{minor}{'a' if major >= 9 else ''}".encode(), b"-std=c++17", b"--use_fast_math"]
++        (err,) = nvrtc.nvrtcCompileProgram(prog, len(opts), opts)
++        if err != nvrtc.nvrtcResult.NVRTC_SUCCESS:
++            _, n = nvrtc.nvrtcGetProgramLogSize(prog)
++            log = b" " * n
++            nvrtc.nvrtcGetProgramLog(prog, log)
++            raise RuntimeError("NVRTC failed:\n" + log.decode(errors="replace"))
++        _, n = nvrtc.nvrtcGetCUBINSize(prog)
++        cubin = b" " * n
++        nvrtc.nvrtcGetCUBIN(prog, cubin)
++        err, self.module = driver.cuModuleLoadData(cubin)
++        if int(err):
++            raise RuntimeError(f"cuModuleLoadData: {err}")
++        self.funcs = {}
++
++    def launch(self, name, grid, block, args, smem=0):
++        f = self.funcs.get(name)
++        if f is None:
++            err, f = self.d.cuModuleGetFunction(self.module, name.encode())
++            if int(err):
++                raise RuntimeError(f"cuModuleGetFunction({name}): {err}")
++            self.funcs[name] = f
++        raw = ctypes.create_string_buffer(len(args) + 128)
++        addr = (ctypes.addressof(raw) + 63) // 64 * 64
++        ctypes.memmove(addr, args, len(args))
++        argv = (ctypes.c_void_p * 1)(addr)
++        stream = self.d.CUstream(torch.cuda.current_stream().cuda_stream)
++        (err,) = self.d.cuLaunchKernel(f, grid, 1, 1, block, 1, 1, smem, stream, ctypes.addressof(argv), 0)
++        if int(err):
++            raise RuntimeError(f"launch {name}: {err}")
++
++
++# ------------------------------------------------------------------------------------------- formats
++def _g1__window(e, width):
++    hist = torch.bincount(e.flatten(), minlength=256).cpu()
++    cs = torch.cat([torch.zeros(1, dtype=torch.long), hist.cumsum(0)])
++    return max(range(1, 256 - width), key=lambda q: int(cs[q + width] - cs[q]))
++
++
++def _g1_compress11(w):
++    """F11 planes: lo (fake low byte), s, h (2-bit), esc, u (true bits), elo (window start)"""
++    u = w.contiguous().view(torch.int16).to(torch.int32) & 0xFFFF
++    s, e, m = u >> 15, (u >> 7) & 0xFF, u & 0x7F
++    elo = _g1__window(e, 8)
++    c = e - elo
++    esc = (c < 0) | (c > 7)
++    c = torch.where(esc, torch.zeros_like(c), c)
++    return {"lo": torch.where(esc, torch.zeros_like(u), ((c & 1) << 7) | m), "s": torch.where(esc, torch.zeros_like(s), s),
++            "h": c >> 1, "esc": esc, "u": u, "elo": elo}
++
++
++def _g1_compress12(w):
++    """F12 planes: lo (fake low byte), nib (s << 3 | h, 3-bit h), esc, u, elo"""
++    u = w.contiguous().view(torch.int16).to(torch.int32) & 0xFFFF
++    s, e, m = u >> 15, (u >> 7) & 0xFF, u & 0x7F
++    elo = _g1__window(e, 16)
++    c = e - elo
++    esc = (c < 0) | (c > 15)
++    c = torch.where(esc, torch.zeros_like(c), c)
++    return {"lo": torch.where(esc, torch.zeros_like(u), ((c & 1) << 7) | m),
++            "nib": torch.where(esc, torch.zeros_like(u), (s << 3) | (c >> 1)), "esc": esc, "u": u, "elo": elo}
++
++
++def _g1_pack_code32(s, h):
++    """F11 code words: s, h [..., 32] (weight 4g + b = byte lane b of hi word g) -> int32 [..., 3] (W0, W1, W2)
++      W0 byte b: bit7 s(0,b) | bits0-1 h(0,b) | bits3-4 h(1,b) ; byte (b+1)%4: bit2 s(1,b), bit5 s(6,b), bit6 s(7,b)
++      W1 byte b: bit7 s(2,b) | bits0-1 h(2,b) | bits3-4 h(3,b) | bits5-6 h(6,b) ; byte (b+1)%4: bit2 s(3,b)
++      W2 byte b: bit7 s(4,b) | bits0-1 h(4,b) | bits3-4 h(5,b) | bits5-6 h(7,b) ; byte (b+1)%4: bit2 s(5,b)"""
++    sh = s.to(torch.int64).view(*s.shape[:-1], 8, 4)
++    hh = h.to(torch.int64).view(*h.shape[:-1], 8, 4)
++    W = [torch.zeros(s.shape[:-1], dtype=torch.int64, device=s.device) for _ in range(3)]
++    for b in range(4):
++        nb = (b + 1) % 4
++        W[0] |= (sh[..., 0, b] << 7 | hh[..., 0, b] | hh[..., 1, b] << 3) << (8 * b)
++        W[0] |= (sh[..., 1, b] << 2 | sh[..., 6, b] << 5 | sh[..., 7, b] << 6) << (8 * nb)
++        W[1] |= (sh[..., 2, b] << 7 | hh[..., 2, b] | hh[..., 3, b] << 3 | hh[..., 6, b] << 5) << (8 * b)
++        W[1] |= (sh[..., 3, b] << 2) << (8 * nb)
++        W[2] |= (sh[..., 4, b] << 7 | hh[..., 4, b] | hh[..., 5, b] << 3 | hh[..., 7, b] << 5) << (8 * b)
++        W[2] |= (sh[..., 5, b] << 2) << (8 * nb)
++    out = torch.stack(W, -1)
++    return torch.where(out >= 2 ** 31, out - 2 ** 32, out).to(torch.int32)
++
++
++def _g1_pack_nib8(nib):
++    """F12 nibble word: nib [..., 8] (s << 3 | h) -> int32 [...]: byte b = h_b | s_b << 7 | h_{4+b} << 4 | s_{4+(b+3)%4} << 3"""
++    nib = nib.to(torch.int64)
++    s, h = nib >> 3, nib & 7
++    word = torch.zeros(nib.shape[:-1], dtype=torch.int64, device=nib.device)
++    for b in range(4):
++        word |= (h[..., b] | (s[..., b] << 7) | (h[..., 4 + b] << 4) | (s[..., 4 + (b + 3) % 4] << 3)) << (8 * b)
++    return torch.where(word >= 2 ** 31, word - 2 ** 32, word).to(torch.int32)
++
++
++def _g1__row_slots(f, E, fake):
++    """per-row escape slots [n, E] int32: (k << 16) | true bits; unused slots hold 2^(elo - 127) (delta 0)"""
++    esc, u = f["esc"], f["u"]
++    n = esc.shape[0]
++    cnt = esc.sum(1)
++    slots = torch.full((n, E), f["elo"] << 7, dtype=torch.int64, device=esc.device)
++    nn, kk = esc.nonzero(as_tuple=True)
++    if len(nn):
++        first = torch.zeros(n + 1, dtype=torch.int64, device=esc.device)
++        first[1:] = torch.cumsum(cnt, 0)
++        rank = torch.arange(len(nn), device=esc.device) - first[nn]
++        slots[nn, rank] = (kk.to(torch.int64) << 16) | u[nn, kk].to(torch.int64)
++    return torch.where(slots >= 2 ** 31, slots - 2 ** 32, slots).to(torch.int32)
++
++
++def _g1_pack_g311(w, f=None):
++    """F11 row blobs for g311 -> dict(w, E, RB, elo, ...)"""
++    n, k = w.shape
++    f = f or _g1_compress11(w)
++    G = k // 32
++    perm = lambda a: a.view(n, 4, G, 8).permute(0, 2, 1, 3).reshape(n, G, 32)   # thread j, chunk c -> 8c + i
++    words = _g1_pack_code32(perm(f["s"]), perm(f["h"]))                                # [n, G, 3]
++    planes = words.permute(0, 2, 1).contiguous().view(torch.uint8).view(n, 12 * G)
++    lo = perm(f["lo"]).view(n, G, 2, 16).permute(0, 2, 1, 3).reshape(n, k).to(torch.uint8)
++    E = max(4, (int(f["esc"].sum(1).max()) + 3) // 4 * 4)
++    sl = _g1__row_slots(f, E, _g1_FAKE11)
++    blob = torch.cat([lo, planes, sl.contiguous().view(torch.uint8).view(n, 4 * E)], 1)
++    pad = (-blob.shape[1]) % 16
++    if pad:
++        blob = torch.cat([blob, torch.zeros((n, pad), dtype=torch.uint8, device=w.device)], 1)
++    blob = blob.contiguous()
++    return {"w": blob.view(-1), "E": E, "RB": blob.shape[1], "n": n, "k": k, "elo": f["elo"], "fake": _g1_FAKE11,
++            "spt": (E + G - 1) // G, "n_esc": int(f["esc"].sum())}
++
++
++def _g1_pack_tc(w, f=None, align=128):
++    """F12 16-row tile blobs for tc -> dict"""
++    n, k = w.shape
++    assert n % 16 == 0 and k % 64 == 0
++    f = f or _g1_compress12(w)
++    E = max(1, int(f["esc"].sum(1).max()))
++    S, T = k // 16, n // 16
++    dev = w.device
++    st = torch.arange(S, device=dev)
++    ln = torch.arange(32, device=dev)
++    g, t = ln // 4, ln % 4
++    k0 = (32 * (st // 2))[:, None] + (8 * t)[None, :] + (4 * (st % 2))[:, None]
++    rr = torch.stack([g, g, g + 8, g + 8, g, g, g + 8, g + 8], 1)
++    kk = k0[:, :, None] + torch.tensor([0, 1, 0, 1, 2, 3, 2, 3], device=dev)[None, None, :]
++    rows = (torch.arange(T, device=dev)[:, None, None, None] * 16 + rr[None, None, :, :]).expand(T, S, 32, 8)
++    kidx = kk[None].expand(T, S, 32, 8)
++    lo_g = f["lo"][rows, kidx].to(torch.uint8)
++    cw = _g1_pack_nib8(f["nib"][rows, kidx])
++    lo_p = lo_g.view(T, S // 2, 2, 32, 8).permute(0, 1, 3, 2, 4).reshape(T, S // 2 * 512)
++    cd_q = cw.contiguous().view(torch.uint8).view(T, S // 4, 4, 32, 4).permute(0, 1, 3, 2, 4).reshape(T, S // 4 * 512)
++    sl = _g1__row_slots(f, E, _g1_FAKE12).view(T, 16 * E).contiguous().view(torch.uint8).view(T, 64 * E)
++    blob = torch.cat([lo_p, cd_q, sl], 1)
++    pad = (-blob.shape[1]) % align
++    if pad:
++        blob = torch.cat([blob, torch.zeros((T, pad), dtype=torch.uint8, device=dev)], 1)
++    blob = blob.contiguous()
++    return {"w": blob.view(-1), "E": E, "RB": blob.shape[1], "n": n, "k": k, "elo": f["elo"], "fake": _g1_FAKE12,
++            "n_esc": int(f["esc"].sum())}
++
++
++def _g1__f32bits(v):
++    return struct.unpack("<I", struct.pack("<f", v))[0]
++
++
++def _g1__kernel(lname, ent, kind, mb, bake):
++    K = ent["k"]
++    name = f"g1_{lname}_{kind}"
++    if kind == "g311":
++        nt, body = K // 32, f"g311_body<1,{K},{ent['spt']}>"
++    else:
++        nt, body = 32 * _g1_TC_NW, f"tc_body<{_g1_TC_NW},{K},{ent['E']}>"
++    lb = f"{nt}, {mb}" if mb else f"{nt}"
++    if bake:
++        sc = 2.0 ** (ent["elo"] - ent["fake"])
++        tpl = f"{ent['w'].data_ptr()}ull,{ent['E']}u,{ent['RB']}u,{_g1__f32bits(sc)}u,{_g1__f32bits(1.0 / sc)}u"
++        src = (f'extern "C" __global__ void __launch_bounds__({lb}) {name}(const __grid_constant__ PX q) '
++               f'{{ const P p = mkp<{tpl}>(q); {body}(p); }}\n')
++    else:
++        src = f'extern "C" __global__ void __launch_bounds__({lb}) {name}(const __grid_constant__ P p) {{ {body}(p); }}\n'
++    return name, nt, src
++
++
++def _g1_prepare_gemv1(weights, cfg=None):
++    cfg = dict(_g1_CFG if cfg is None else cfg)
++    srcw = {"qkv_gate": weights["qkv_gate"], "o": weights["o"], "pooler": weights["pooler"],
++            "unpslice": weights["unpooler"][:1024]}
++    st = {"layers": {}, "w": {k: v for k, v in weights.items()}}
++    src = _g1_SRC
++    for lname, (kind, mb, bake) in cfg.items():
++        w = srcw[lname].contiguous()
++        ent = _g1_pack_g311(w) if kind == "g311" else _g1_pack_tc(w)
++        if kind == "g311" and ent["spt"] > 4:      # pathological escape count: leave the layer to the caller
++            continue
++        if kind == "tc" and ent["E"] > 16:
++            continue
++        name, nt, ksrc = _g1__kernel(lname, ent, kind, mb, bake)
++        src += ksrc
++        sc = 2.0 ** (ent["elo"] - ent["fake"])
++        ent.update(kind=kind, name=name, nt=nt, bake=bake, scale=sc,
++                   grid=ent["n"] if kind == "g311" else ent["n"] // 16)
++        st["layers"][lname] = ent
++    st["small"] = {}
++    for lname, (rt, nw, mb) in _g1_SMALLM.items():
++        ent = st["layers"].get(lname)
++        if ent is not None and ent["kind"] == "tc":
++            e12 = ent
++        else:
++            e12 = _g1_pack_tc(srcw[lname].contiguous())
++            if e12["E"] > 16:
++                continue
++        name = f"g1m_{lname}"
++        sc = 2.0 ** (e12["elo"] - e12["fake"])
++        tpl = f"{e12['w'].data_ptr()}ull,{e12['E']}u,{e12['RB']}u,{_g1__f32bits(sc)}u,{_g1__f32bits(1.0 / sc)}u"
++        lb = f"{nw * 32}, {mb}" if mb else f"{nw * 32}"
++        src += (f'extern "C" __global__ void __launch_bounds__({lb}) {name}(const __grid_constant__ PM q) '
++                f'{{ const PX px = {{q.x, q.out}}; const P p = mkp<{tpl}>(px); tcm_body<{rt},{nw},{e12["k"]},1,{e12["E"]},5>(p, q.M, q.N); }}\n')
++        smem = nw * rt * 16 * 8 * 4 + rt * 16 * e12["E"] * 8 * 4
++        st["small"][lname] = {"ent": e12, "name": name, "grid": e12["n"] // (16 * rt), "nt": nw * 32, "smem": smem}
++    st["mod"] = _g1__Mod(src) if (st["layers"] or st["small"]) else None
++    return st
++
++
++def _g1_run_gemv1(x, config, state):
++    """-> [m, n] (bf16; router fp32). Kernels for m == 1 on qkv_gate / o / pooler / the unpooler slice; anything else
++    (other m, router, misaligned x, a layer whose escape count was pathological) falls back to torch."""
++    layer, m, n = config["layer"], config["m"], config["n"]
++    lname = "unpslice" if layer == "unpooler" else layer
++    sm = state["small"].get(lname) if 2 <= m <= 8 else None
++    if sm is not None and n == sm["ent"]["n"] and x.is_contiguous() and x.data_ptr() % 16 == 0:
++        out = torch.empty((m, n), dtype=torch.bfloat16, device=x.device)
++        state["mod"].launch(sm["name"], sm["grid"], sm["nt"], struct.pack("<QQqii", x.data_ptr(), out.data_ptr(), n, m, 0),
++                            smem=sm["smem"])
++        return out
++    ent = state["layers"].get(lname) if m == 1 else None
++    if ent is None or n != ent["n"] or not x.is_contiguous() or x.data_ptr() % 16:
++        w = state["w"][layer]
++        if layer == "router":
++            return torch.nn.functional.linear(x.float(), w)
++        return torch.mm(x, w[:n].t())
++    out = torch.empty((1, n), dtype=torch.bfloat16, device=x.device)
++    if ent["bake"]:
++        args = struct.pack("<QQ", x.data_ptr(), out.data_ptr())
++    else:
++        args = struct.pack("<QQQIIff", ent["w"].data_ptr(), x.data_ptr(), out.data_ptr(), ent["E"], ent["RB"],
++                           ent["scale"], 1.0 / ent["scale"])
++    state["mod"].launch(ent["name"], ent["grid"], ent["nt"], args)
++    return out
++
++
++# ------------------------------------------------------------------------------------------- round-trip test
++def _g1_decode11_ref(lo, words):
++    """exact torch emulation of the device F11 decode: lo [..., 32], words [..., 3] -> fake bf16 bits [..., 32]"""
++    W = [(words[..., i].to(torch.int64) & 0xFFFFFFFF) for i in range(3)]
++    rot = lambda v, r: ((v >> r) | (v << (32 - r))) & 0xFFFFFFFF
++    sel = lambda a, b: (a & 0x80808080) | (b & 0x7F7F7F7F)
++    X = [W[0], rot(W[0], 3), W[1], rot(W[1], 3), W[2], rot(W[2], 3), sel(rot(W[0], 6), rot(W[1], 5)), sel(rot(W[0], 7), rot(W[2], 5))]
++    out = []
++    for g in range(8):
++        hw = (X[g] & 0x83838383) | 0x3C3C3C3C
++        for b in range(4):
++            out.append((((hw >> (8 * b)) & 0xFF) << 8) | lo[..., 4 * g + b].to(torch.int64))
++    return torch.stack(out, -1)
++
++
++def _g1_decode12_ref(lo, word):
++    """exact torch emulation of the device F12 decode: lo [..., 8], word [...] -> fake bf16 bits [..., 8]"""
++    wd = word.to(torch.int64) & 0xFFFFFFFF
++    out = []
++    for i in range(8):
++        src = wd if i < 4 else (((wd >> 4) | (wd << 28)) & 0xFFFFFFFF)
++        hi = (((src >> (8 * (i % 4))) & 0xFF) & 0x87) | 0x38
++        out.append((hi << 8) | lo[..., i].to(torch.int64))
++    return torch.stack(out, -1)
++
++
++def _g1_roundtrip(w, fmt):
++    """compress -> pack -> exact device-decode emulation -> true bits (+ escapes from the slots); True if bit-exact"""
++    n, k = w.shape
++    u = w.contiguous().view(torch.int16).to(torch.int64) & 0xFFFF
++    if fmt == 11:
++        f = _g1_compress11(w)
++        words = _g1_pack_code32(f["s"].view(n, k // 32, 32), f["h"].view(n, k // 32, 32))
++        fake = _g1_decode11_ref(f["lo"].view(n, k // 32, 32), words).view(n, k)
++        shift = f["elo"] - _g1_FAKE11
++    else:
++        f = _g1_compress12(w)
++        word = _g1_pack_nib8(f["nib"].view(n, k // 8, 8))
++        fake = _g1_decode12_ref(f["lo"].view(n, k // 8, 8), word).view(n, k)
++        shift = f["elo"] - _g1_FAKE12
++    true = (fake & 0x807F) | ((((fake >> 7) & 0xFF) + shift) << 7)
++    E = max(1, int(f["esc"].sum(1).max()))
++    slots = _g1__row_slots(f, E, 0).to(torch.int64) & 0xFFFFFFFF                      # escapes come back from the slots
++    rows = torch.arange(n, device=w.device)[:, None].expand(n, E)
++    real = (slots & 0xFFFF) != (f["elo"] << 7) if True else None
++    kk = slots >> 16
++    true[rows[real], kk[real]] = slots[real] & 0xFFFF
++    return bool((true == u).all()), int(f["esc"].sum())
++
++# ======================================================================== dispatch
++def prepare(weights):
++    st = {'b7': _b7_prepare(weights)}
++    st['G'] = _g1_prepare_gemv1(weights)
++    torch.cuda.synchronize()
++    return st
++
++
++def kernel_fn(data, state):
++    x, cfg = data['x'], data['config']
++    layer, m = cfg['layer'], cfg['m']
++    if layer != 'router' and (m == 1 or (layer == 'unpooler' and m <= 8)):
++        return _g1_run_gemv1(x, cfg, state['G'])
++    return _b7_kernel_fn(data, state['b7'])

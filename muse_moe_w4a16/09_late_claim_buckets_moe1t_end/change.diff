@@ -1,0 +1,1786 @@
+--- 08_fast_start_early_slot_release/build.py
++++ 09_late_claim_buckets_moe1t_end/build.py
+@@ -1,4 +1,27 @@
+ # okc: problem=muse_moe_w4a16
++# v1504 (planner integration) = v1503 (v1502 + WP-TUNE W075 + WU0) + WP-IT's v2107 (MOE_IT_XS + MOE_IT_S6E + MOE_WPA_TMG_ALL on by
++#   default, escape MOE_NO_WPIT): (8,8,1) item transition for bs65-256.
++# v1503 (planner bake) = moe_v1502.py with defines baked in: MOE_NO_WPE2S,MOE_E2_SPLF,MOE_E2_KSXNT1=4,MOE_SPLW=(KW>1?0.75f:1.0f),MOE_GATHER_MIN0=(MW<8?9:5) -- v1502 + WP-TUNE W075 (bs8 split rule) + WU0 (bs128 no warm-up)
++# v1502 (planner bake) = moe_v1502u.py with defines baked in: MOE_L2_CLD=3,MOE_L2_CLDI -- v1501 + WP-L2 late claim (CLD3 + CLDI)
++# v1502u (planner integration, unbaked) = v1501 + WP-L2's MOE_L2_CLD=D / MOE_L2_CLDI switches (from dev/moe_v1401.py, off here;
++#   baked on as CLD=3 + CLDI in v1502: bs65-512 (8,8,1) kernels' late next-item claim as a bounded atom.inc).
++# v1501 (planner integration) = v1033 (bs65-128 on (8,8,1)) + v1111's (4,*,1) INC2 claim (escape MOE_NO_ED2) + v1310's
++#   moe1t (MOE1T_FXSS + MOE1T_CTRE + MOE1T_OLATE baked on; escapes MOE1T_NO_FXSS / _NO_CTRE / _NO_OLATE).
++# v1033 (planner) = v1002 with bs 65-128 on the (8, 8, 1) 64-token config (no duplicated weight streams for 33-64-token experts)
++# v1002 (WP-DS, BAKED) = v1001 with candidate A's codes on by default (escape MOE_NO_WPDS = v969's SASS in all kernels):
++#   MOE_DS41 = MOE_DS81 = 100000002 (1-group tiles of the MW >= 2 (8,4,1) / (8,8,1) kernels: the last chunk's jj 2-3 MMAs
++#   carried into the next stage's block), MOE_DS42 = MOE_DS82 = MOE_DS42M1 = 100000012 (2-group tiles of those kernels and
++#   of the MW 1 bs17-32 kernel: + odd-jj MMAs into a second accumulator set, folded in after the item). (4,*,1), moe1,
++#   moe1t kernels byte-identical to v969. bench2 jm100 vs v969 (4 runs): bs32 +0.24..0.28%, bs128 +0.12..0.16%,
++#   bs256 -0.1..+0.4% (controls -0.4..+0.1%); kda_ws/docs/findings/wpds.md.
++# v1001 (WP-DS) = v969 + MOE_DS*: source-level arrangements of the one-k-warp configs' mma.sync stage body (decode /
++#   HMUL2 / MMA order, from dev/wpds_occ.py) plus cross-stage pipelining (DEF: the last 64-k chunk's MMAs run at the
++#   start of the next stage's block, fragments carried in registers across the slot release + wait; zero fragments
++#   before an item's first stage, the last ones flushed after the item's loop), for the (8,*,1) kernels only. Every
++#   switch off by default (= v969 SASS in all kernels). MOE_DS41, MOE_DS42, MOE_DS81, MOE_DS82 =
++#   1<ORD><DORD><SCL><WLD><XLD><MO><SPL><DEF> (9 digits, leading 1) select the variant for the (8,NT,1) kernels with
++#   MW >= 2 (bs33-512), 1- / 2-token-group tiles; MOE_DS41M1 / MOE_DS42M1 the same for the MW 1 kernel (bs17-32).
++#   Knob meanings: dev/wpds_occ.py header. 100000000 = v969's arrangement (same SASS).
+ # v969 (WP-RT, BAKED for integration) = v984 (team base) + four startup switches of the one-k-warp kernels (bs17-512), on by
+ #   default (escape MOE_NO_WPRT = v984's code); consumer stage loops byte-identical to v984's (producer loop of the MW 4
+ #   kernel: the same modulo registers). Measured on the v719 base (dev/moe_v960-v968.py, kda_ws/docs/findings/wprt.md):
+@@ -360,7 +383,22 @@
+ CTR_WORDS = 16384    # workspace counters: [0] queue head, [1] down items done, [2] CTAs done, [3] gathered, [8..] per tile x k chunk
+ SMEM_MAX = 232448
+ 
+-CUDA_SRC = r"""
++CUDA_SRC = r"""#define MOE_NO_WPE2S
++#define MOE_E2_SPLF
++#define MOE_E2_KSXNT1 4
++#define MOE_SPLW (KW>1?0.75f:1.0f)
++#define MOE_GATHER_MIN0 (MW<8?9:5)
++#define MOE_L2_CLD 3
++#define MOE_L2_CLDI
++// v2107 (WP-IT): the (8,8,1) item transition (MOE_NO_WPIT: off)
++#ifndef MOE_NO_WPIT
++#define MOE_IT_XS
++#define MOE_IT_S6E
++#ifndef MOE_WPA_TMG_ALL
++#define MOE_WPA_TMG_ALL
++#endif
++#endif
++
+ // v969 (WP-RT): startup switches of the one-k-warp kernels (MOE_NO_WPRT: off)
+ #ifndef MOE_NO_WPRT
+ #define MOE_RT_FR
+@@ -567,6 +605,51 @@
+ typedef unsigned short u16;
+ typedef unsigned long long u64;
+ #define DEVI __device__ __forceinline__
++#ifdef MOE_IT_BS
++#define MOE_IT_BSV true
++#else
++#define MOE_IT_BSV false
++#endif
++#ifdef MOE_IT_BST
++#define MOE_IT_BSTV true
++#else
++#define MOE_IT_BSTV false
++#endif
++#ifdef MOE_IT_BF
++#define MOE_IT_BFV true
++#else
++#define MOE_IT_BFV false
++#endif
++#ifdef MOE_IT_XS
++#define MOE_IT_XSV true
++#else
++#define MOE_IT_XSV false
++#endif
++#ifdef MOE_IT_XSB
++#define MOE_IT_XSBV true
++#else
++#define MOE_IT_XSBV false
++#endif
++#ifdef MOE_IT_S6E
++#define MOE_IT_S6EV true
++#else
++#define MOE_IT_S6EV false
++#endif
++// (MOE_IT_S6E) the x64 of MOE_S6O applied by the epilogue warps (the (8,8,1) TMP kernels; used inside moe_body)
++#define ITE (ITK && !MOE_XB0V && MW <= 8 && MOE_WPA_BUFB > 0)
++#ifdef MOE_IT_GC
++#ifndef MOE_IT_GCN
++#define MOE_IT_GCN 12
++#endif
++#define ITG ITE  // (MOE_IT_GC: the same kernels)
++#endif
++#ifdef MOE_IT_DB
++#ifndef MOE_IT_S6E
++#error "MOE_IT_DB needs MOE_IT_S6E"
++#endif
++#define ITD ITE  // (MOE_IT_DB: the same kernels)
++DEVI u32 it_pk(float lo, float hi) { u32 r; asm("cvt.rn.bf16x2.f32 %0, %1, %2;" : "=r"(r) : "f"(hi), "f"(lo)); return r; }
++#endif
+ 
+ struct __align__(16) StageInfo { int item, phase, tile, rb, ks, st, last, n, p0, e, pad0, pad1; };
+ 
+@@ -584,6 +667,12 @@
+ }
+ DEVI void mbar_arrive(u32 bar) { asm volatile("mbarrier.arrive.shared::cta.b64 _, [%0];" :: "r"(bar) : "memory"); }
+ DEVI void mbar_arrive_n(u32 bar, u32 n) { asm volatile("mbarrier.arrive.shared::cta.b64 _, [%0], %1;" :: "r"(bar), "r"(n) : "memory"); }
++DEVI bool mbar_test(u32 bar, u32 parity) {  // (v1305) non-blocking
++  u32 ok;
++  asm volatile("{ .reg .pred p; mbarrier.test_wait.parity.shared::cta.b64 p, [%1], %2; selp.u32 %0, 1, 0, p; }"
++               : "=r"(ok) : "r"(bar), "r"(parity) : "memory");
++  return ok != 0;
++}
+ DEVI bool mbar_try(u32 bar, u32 parity) {
+   u32 ok;
+   asm volatile("{ .reg .pred p; mbarrier.try_wait.parity.shared::cta.b64 p, [%1], %2; selp.u32 %0, 1, 0, p; }"
+@@ -1924,6 +2013,320 @@
+   }
+ }
+ 
++// ---- WP-DS (v1001): variant arrangements of stage_compute's S6O body for the (8,*,1) kernels (MOE_DS*) ----
++template <int J> DEVI u32 ds_w(const uint4& q) {
++  if constexpr (J == 0) return q.x; else if constexpr (J == 1) return q.y; else if constexpr (J == 2) return q.z; else return q.w;
++}
++DEVI u32 ds_wd(const uint4& q, int j) { return j == 0 ? q.x : (j == 1 ? q.y : (j == 2 ? q.z : q.w)); }
++// the decode's ops (= dequant_o): o0 = q & M; o1 = (q * 16) & M; o2 = rotl(q, 10) & M;
++// o3 = ((q * 64) & 0x80C080C0) | (rotl(q, 14) & 0x01000100); a_i = o_i * scale (H0 for 0, 2; H1 for 1, 3)
++DEVI void ds_ints(u32 q, u32 (&o)[4], int dord) {
++  if (dord == 1 || dord == 3) {
++    o[3] = ((q * c_shl[1]) & 0x80C080C0u) | (rotl(q, 14) & 0x01000100u);
++    o[0] = q & M_BF; o[1] = (q * c_shl[0]) & M_BF; o[2] = rotl(q, 10) & M_BF;
++  } else if (dord == 4) {
++    const u32 t = q * c_shl[1], u = rotl(q, 14);
++    o[0] = q & M_BF; o[1] = (q * c_shl[0]) & M_BF; o[2] = rotl(q, 10) & M_BF;
++    o[3] = (t & 0x80C080C0u) | (u & 0x01000100u);
++  } else {
++    o[0] = q & M_BF; o[1] = (q * c_shl[0]) & M_BF; o[2] = rotl(q, 10) & M_BF;
++    o[3] = ((q * c_shl[1]) & 0x80C080C0u) | (rotl(q, 14) & 0x01000100u);
++  }
++}
++DEVI void ds_muls(const u32 (&o)[4], u32 R, u32* a, int dord) {
++  if (dord == 1 || dord == 3) { a[3] = bmul2s<1>(o[3], R); a[0] = bmul2s<0>(o[0], R); a[1] = bmul2s<1>(o[1], R); a[2] = bmul2s<0>(o[2], R); }
++  else if (dord == 5) { a[3] = bmul2s<1>(o[3], R); a[2] = bmul2s<0>(o[2], R); a[1] = bmul2s<1>(o[1], R); a[0] = bmul2s<0>(o[0], R); }
++  else { a[0] = bmul2s<0>(o[0], R); a[1] = bmul2s<1>(o[1], R); a[2] = bmul2s<0>(o[2], R); a[3] = bmul2s<1>(o[3], R); }
++}
++DEVI void ds_dec(u32 q, u32 R, u32* a, int dord) {
++  if (dord == 2) {
++    const u32 o0 = q & M_BF; a[0] = bmul2s<0>(o0, R);
++    const u32 o1 = (q * c_shl[0]) & M_BF; a[1] = bmul2s<1>(o1, R);
++    const u32 o2 = rotl(q, 10) & M_BF; a[2] = bmul2s<0>(o2, R);
++    const u32 o3 = ((q * c_shl[1]) & 0x80C080C0u) | (rotl(q, 14) & 0x01000100u); a[3] = bmul2s<1>(o3, R);
++  } else if (dord == 3) {
++    const u32 o3 = ((q * c_shl[1]) & 0x80C080C0u) | (rotl(q, 14) & 0x01000100u); a[3] = bmul2s<1>(o3, R);
++    const u32 o0 = q & M_BF; a[0] = bmul2s<0>(o0, R);
++    const u32 o1 = (q * c_shl[0]) & M_BF; a[1] = bmul2s<1>(o1, R);
++    const u32 o2 = rotl(q, 10) & M_BF; a[2] = bmul2s<0>(o2, R);
++  } else {
++    u32 o[4];
++    ds_ints(q, o, dord);
++    ds_muls(o, R, a, dord);
++  }
++}
++// scale pair of (row group rg, chunk kk) from the lane's 3 S6O words (= s6o_bf's R[rg * 4 + kk])
++DEVI u32 ds_r6(u32 w0, u32 w1, u32 w2, int rg, int kk) {
++  constexpr u32 M6 = 0x03F003F0u, NB = 0x00F000F0u;
++  const u32 C = c_s6oc[0];
++  if (kk < 3) { const u32 w = kk == 0 ? w0 : (kk == 1 ? w1 : w2); return (rg ? ((w >> 6) & M6) : (w & M6)) | C; }
++  if (rg == 0) { const u32 vg = ((w0 * c_s6o[0]) & NB) | ((w2 * c_s6o[1]) & ~NB); return (vg & M6) | C; }
++  const u32 vh = ((w1 * c_s6o[0]) & NB) | ((w2 * c_s6o[2]) & ~NB);
++  return (vh & M6) | C;
++}
++
++// DEF (cross-stage pipelining): the last chunk's A fragments and x fragments, whose MMAs run in the next stage's block
++template <int NTL> struct DsCarry { u32 A[2][4][4]; uint4 b[NTL][2]; };
++template <int NTL> DEVI void ds_czero(DsCarry<NTL>& c) {
++#pragma unroll
++  for (int r = 0; r < 2; ++r)
++#pragma unroll
++    for (int j = 0; j < 4; ++j)
++#pragma unroll
++      for (int e = 0; e < 4; ++e) c.A[r][j][e] = 0u;
++#pragma unroll
++  for (int n = 0; n < NTL; ++n) { c.b[n][0] = make_uint4(0u, 0u, 0u, 0u); c.b[n][1] = make_uint4(0u, 0u, 0u, 0u); }
++}
++// the carried MMAs (DEF 1: all 4 jj of the chunk; DEF 2: jj 2-3), MO order as in the stage
++template <int MO, int SPL, int DEF, int NT, int NTL>
++DEVI void ds_cmma(float (&acc)[2][NT][4], float (&acc2)[2][NT][4], const DsCarry<NTL>& c) {
++  constexpr int J0 = DEF == 2 ? 2 : 0;
++  auto m1 = [&](int r, int jj, int nt) {
++    const uint4 b0 = c.b[nt][0], b1 = c.b[nt][1];
++    const u32 B[8] = {b0.x, b0.y, b0.z, b0.w, b1.x, b1.y, b1.z, b1.w};
++    if (SPL && (jj & 1)) mma16816(acc2[r][nt], c.A[r][jj][0], c.A[r][jj][1], c.A[r][jj][2], c.A[r][jj][3], B[2 * jj], B[2 * jj + 1]);
++    else mma16816(acc[r][nt], c.A[r][jj][0], c.A[r][jj][1], c.A[r][jj][2], c.A[r][jj][3], B[2 * jj], B[2 * jj + 1]);
++  };
++  if (MO == 0 || MO == 1) {
++#pragma unroll
++    for (int nt = 0; nt < NTL; ++nt)
++#pragma unroll
++      for (int jj = J0; jj < 4; ++jj)
++#pragma unroll
++        for (int r = 0; r < 2; ++r) m1(r, jj, nt);
++  } else {
++#pragma unroll
++    for (int jj = J0; jj < 4; ++jj)
++#pragma unroll
++      for (int r = 0; r < 2; ++r)
++#pragma unroll
++        for (int nt = 0; nt < NTL; ++nt) m1(r, jj, nt);
++  }
++}
++template <int ORD, int DORD, int SCL, int WLD, int XLD, int MO, int SPL, int DEF, int NT, int NTL>
++DEVI void stage_ds(float (&acc)[2][NT][4], float (&acc2)[2][NT][4], const unsigned char* wbase, const unsigned char* sclb,
++                   const unsigned char* xbase, int XP, DsCarry<NTL>& cr) {
++  uint4 qw[2][4];
++  u32 s6w0 = 0, s6w1 = 0, s6w2 = 0;
++  if (SCL == 2) { s6w0 = *reinterpret_cast<const u32*>(sclb); s6w1 = *reinterpret_cast<const u32*>(sclb + 4); s6w2 = *reinterpret_cast<const u32*>(sclb + 8); }
++#pragma unroll
++  for (int kk = 0; kk < 4; ++kk)
++    if (WLD == 0 || kk < WLD) {
++      qw[0][kk] = *reinterpret_cast<const uint4*>(wbase + kk * 512);
++      qw[1][kk] = *reinterpret_cast<const uint4*>(wbase + 2048 + kk * 512);
++    }
++  if (SCL != 2) { s6w0 = *reinterpret_cast<const u32*>(sclb); s6w1 = *reinterpret_cast<const u32*>(sclb + 4); s6w2 = *reinterpret_cast<const u32*>(sclb + 8); }
++  u32 R6[8];
++  if (SCL != 1) s6o_bf(s6w0, s6w1, s6w2, R6);
++  uint4 bx[4][NTL][2];
++  constexpr int XA = XLD == 1 ? 4 : (XLD == 2 ? 2 : (XLD == 3 ? 0 : 1));  // chunks loaded before the loop
++#pragma unroll
++  for (int c = 0; c < XA; ++c)
++#pragma unroll
++    for (int nt = 0; nt < NTL; ++nt) {
++      bx[c][nt][0] = *reinterpret_cast<const uint4*>(xbase + nt * 8 * XP + c * 128);
++      bx[c][nt][1] = *reinterpret_cast<const uint4*>(xbase + nt * 8 * XP + c * 128 + 16);
++    }
++  if (DEF) ds_cmma<MO, SPL, DEF, NT, NTL>(acc, acc2, cr);  // (the previous stage's carried MMAs)
++  u32 A[4][2][4][4];  // [chunk][rg][jj][reg]
++  u32 Rc[4][2];
++  auto rsel = [&](int kk, int rg) -> u32 { return SCL == 1 ? Rc[kk][rg] : R6[rg * 4 + kk]; };
++  auto mma1 = [&](int kk, int rg, int jj, int nt) {
++    if (DEF && kk == 3 && jj >= (DEF == 2 ? 2 : 0)) return;  // (carried to the next stage)
++    const uint4 b0 = bx[kk][nt][0], b1 = bx[kk][nt][1];
++    const u32 B[8] = {b0.x, b0.y, b0.z, b0.w, b1.x, b1.y, b1.z, b1.w};
++    if (SPL && (jj & 1)) mma16816(acc2[rg][nt], A[kk][rg][jj][0], A[kk][rg][jj][1], A[kk][rg][jj][2], A[kk][rg][jj][3], B[2 * jj], B[2 * jj + 1]);
++    else mma16816(acc[rg][nt], A[kk][rg][jj][0], A[kk][rg][jj][1], A[kk][rg][jj][2], A[kk][rg][jj][3], B[2 * jj], B[2 * jj + 1]);
++  };
++  auto mmaw = [&](int kk, int rg, int jj) {  // one word's MMAs (all token groups)
++#pragma unroll
++    for (int nt = 0; nt < NTL; ++nt) mma1(kk, rg, jj, nt);
++  };
++  auto mmas = [&](int kk) {  // a chunk's MMAs in MO order
++    if (MO == 0) {
++#pragma unroll
++      for (int nt = 0; nt < NTL; ++nt)
++#pragma unroll
++        for (int jj = 0; jj < 4; ++jj)
++#pragma unroll
++          for (int r = 0; r < 2; ++r) mma1(kk, r, jj, nt);
++    } else if (MO == 1) {
++#pragma unroll
++      for (int nt = 0; nt < NTL; ++nt)
++#pragma unroll
++        for (int r = 0; r < 2; ++r)
++#pragma unroll
++          for (int jj = 0; jj < 4; ++jj) mma1(kk, r, jj, nt);
++    } else if (MO == 2) {
++#pragma unroll
++      for (int jj = 0; jj < 4; ++jj)
++#pragma unroll
++        for (int nt = 0; nt < NTL; ++nt)
++#pragma unroll
++          for (int r = 0; r < 2; ++r) mma1(kk, r, jj, nt);
++    } else {
++#pragma unroll
++      for (int jj = 0; jj < 4; ++jj)
++#pragma unroll
++        for (int r = 0; r < 2; ++r)
++#pragma unroll
++          for (int nt = 0; nt < NTL; ++nt) mma1(kk, r, jj, nt);
++    }
++  };
++  auto dec = [&](int kk, int rg, int jj) { ds_dec(ds_wd(qw[rg][kk], jj), rsel(kk, rg), A[kk][rg][jj], DORD); };
++  auto decall = [&](int kk) {  // a chunk's 8 decodes, v969 order (or jj-major for ORD 7)
++    if (ORD == 7) {
++#pragma unroll
++      for (int jj = 0; jj < 4; ++jj)
++#pragma unroll
++        for (int r = 0; r < 2; ++r) dec(kk, r, jj);
++    } else {
++#pragma unroll
++      for (int r = 0; r < 2; ++r)
++#pragma unroll
++        for (int jj = 0; jj < 4; ++jj) dec(kk, r, jj);
++    }
++  };
++  auto pre = [&](int kk) {  // per-chunk loads ahead and the chunk's scale pairs
++    if (WLD > 0 && kk + WLD < 4) {
++      qw[0][kk + WLD] = *reinterpret_cast<const uint4*>(wbase + (kk + WLD) * 512);
++      qw[1][kk + WLD] = *reinterpret_cast<const uint4*>(wbase + 2048 + (kk + WLD) * 512);
++    }
++    const int xn = XLD == 0 ? kk + 1 : (XLD == 2 ? kk + 2 : (XLD == 3 ? kk : 99));
++    if (xn < 4) {
++#pragma unroll
++      for (int nt = 0; nt < NTL; ++nt) {
++        bx[xn][nt][0] = *reinterpret_cast<const uint4*>(xbase + nt * 8 * XP + xn * 128);
++        bx[xn][nt][1] = *reinterpret_cast<const uint4*>(xbase + nt * 8 * XP + xn * 128 + 16);
++      }
++    }
++  };
++  auto scl = [&](int kk) { if (SCL == 1) { Rc[kk][0] = ds_r6(s6w0, s6w1, s6w2, 0, kk); Rc[kk][1] = ds_r6(s6w0, s6w1, s6w2, 1, kk); } };
++  constexpr int LAG = ORD == 5 ? 1 : (ORD == 6 ? 2 : (ORD == 9 ? 4 : 0));
++  if (ORD == 4 || ORD == 8) { scl(0); decall(0); }
++#pragma unroll
++  for (int kk = 0; kk < 4; ++kk) {
++    pre(kk);
++    if (ORD == 0 || ORD == 7) { scl(kk); decall(kk); mmas(kk); }
++    else if (ORD == 1) {
++      scl(kk);
++#pragma unroll
++      for (int jj = 0; jj < 4; ++jj) { dec(kk, 0, jj); dec(kk, 1, jj); mmaw(kk, 0, jj); mmaw(kk, 1, jj); }
++    } else if (ORD == 2) {
++      scl(kk);
++#pragma unroll
++      for (int r = 0; r < 2; ++r) {
++#pragma unroll
++        for (int jj = 0; jj < 4; ++jj) dec(kk, r, jj);
++#pragma unroll
++        for (int nt = 0; nt < NTL; ++nt)
++#pragma unroll
++          for (int jj = 0; jj < 4; ++jj) mma1(kk, r, jj, nt);
++      }
++    } else if (ORD == 3) {
++      scl(kk);
++      u32 o[2][4][4];
++#pragma unroll
++      for (int r = 0; r < 2; ++r)
++#pragma unroll
++        for (int jj = 0; jj < 4; ++jj) ds_ints(ds_wd(qw[r][kk], jj), o[r][jj], DORD);
++#pragma unroll
++      for (int r = 0; r < 2; ++r)
++#pragma unroll
++        for (int jj = 0; jj < 4; ++jj) ds_muls(o[r][jj], rsel(kk, r), A[kk][r][jj], DORD);
++      mmas(kk);
++    } else if (ORD == 4) {
++      if (kk < 3) { scl(kk + 1); decall(kk + 1); }
++      mmas(kk);
++    } else if (ORD == 8) {
++      if (kk < 3) scl(kk + 1);
++#pragma unroll
++      for (int i = 0; i < 8; ++i) {
++        if (kk < 3) dec(kk + 1, i & 1, i >> 1);
++        mmaw(kk, i & 1, i >> 1);
++      }
++    } else {  // word lag LAG, jj-major word order
++      scl(kk);
++#pragma unroll
++      for (int i = 0; i < 8 + LAG; ++i) {
++        if (i < 8) dec(kk, i & 1, i >> 1);
++        if (i >= LAG) mmaw(kk, (i - LAG) & 1, (i - LAG) >> 1);
++      }
++    }
++  }
++  if (DEF) {
++#pragma unroll
++    for (int r = 0; r < 2; ++r)
++#pragma unroll
++      for (int j = 0; j < 4; ++j)
++#pragma unroll
++        for (int e = 0; e < 4; ++e) cr.A[r][j][e] = A[3][r][j][e];
++#pragma unroll
++    for (int n = 0; n < NTL; ++n) { cr.b[n][0] = bx[3][n][0]; cr.b[n][1] = bx[3][n][1]; }
++  }
++}
++
++#ifndef MOE_NO_WPDS  // (v1002: candidate A's codes by default)
++#ifndef MOE_DS41
++#define MOE_DS41 100000002
++#endif
++#ifndef MOE_DS42
++#define MOE_DS42 100000012
++#endif
++#ifndef MOE_DS81
++#define MOE_DS81 100000002
++#endif
++#ifndef MOE_DS82
++#define MOE_DS82 100000012
++#endif
++#ifndef MOE_DS42M1
++#define MOE_DS42M1 100000012
++#endif
++#endif
++#ifndef MOE_DS41
++#define MOE_DS41 0
++#endif
++#ifndef MOE_DS42
++#define MOE_DS42 0
++#endif
++#ifndef MOE_DS81
++#define MOE_DS81 0
++#endif
++#ifndef MOE_DS82
++#define MOE_DS82 0
++#endif
++#ifndef MOE_DS41M1
++#define MOE_DS41M1 0
++#endif
++#ifndef MOE_DS42M1
++#define MOE_DS42M1 0
++#endif
++__host__ __device__ constexpr int ds_code(int rw, int kw, int nt, int k, int mw) {
++  return (rw != 8 || kw != 1) ? 0 : (mw == 1 ? (nt == 4 ? (k == 1 ? MOE_DS41M1 : (k == 2 ? MOE_DS42M1 : 0)) : 0)
++         : (nt == 4 ? (k == 1 ? MOE_DS41 : (k == 2 ? MOE_DS42 : 0)) : (nt == 8 ? (k == 1 ? MOE_DS81 : (k == 2 ? MOE_DS82 : 0)) : 0)));
++}
++__host__ __device__ constexpr int ds_def(int c) { return c >= 100000000 ? c % 10 : 0; }
++template <int C, int NT, int NTL>
++DEVI void stage_ds_c(float (&acc)[2][NT][4], float (&acc2)[2][NT][4], const unsigned char* wbase, const unsigned char* sclb,
++                     const unsigned char* xbase, int XP, DsCarry<NTL>& cr) {
++  static_assert(C >= 100000000 && C < 200000000, "MOE_DS*: 1<ORD><DORD><SCL><WLD><XLD><MO><SPL><DEF>");
++  stage_ds<(C / 10000000) % 10, (C / 1000000) % 10, (C / 100000) % 10, (C / 10000) % 10, (C / 1000) % 10, (C / 100) % 10,
++           (C / 10) % 10, C % 10, NT, NTL>(acc, acc2, wbase, sclb, xbase, XP, cr);
++}
++// after an item's stage loop: the carried MMAs (DEF), then (SPL) the second accumulator set into the first
++template <int C, int NT, int NTL>
++DEVI void ds_flush(float (&acc)[2][NT][4], float (&acc2)[2][NT][4], const DsCarry<NTL>& cr) {
++  if constexpr (C != 0 && ds_def(C) != 0) ds_cmma<(C / 100) % 10, (C / 10) % 10, C % 10, NT, NTL>(acc, acc2, cr);
++  if constexpr (C != 0 && (C / 10) % 10 != 0) {
++#pragma unroll
++    for (int a = 0; a < 2; ++a)
++#pragma unroll
++      for (int b = 0; b < NTL; ++b)
++#pragma unroll
++        for (int c = 0; c < 4; ++c) { acc[a][b][c] += acc2[a][b][c]; acc2[a][b][c] = 0.f; }
++  }
++}
++
+ // MOE_F16MS: stage_compute on FP16 operands (the _POSH words, FP16 activations) into FP16 accumulators
+ // (hacc as the wgmma tiles keep them: [row group][n8 group][rows g / g + 8 as half2])
+ template <int NT, int NTL, bool S6V = false, bool ZP = false>
+@@ -2562,11 +2965,13 @@
+ #define MOE_AEPI_KW2 0
+ #endif
+   constexpr bool AEPI = (KW == 1 || (KW == 2 && MOE_AEPI_KW2)) && NT >= MOE_AEPI_NT && !DEPI;
++  constexpr bool ITK = AEPI && KW == 1 && NT == 8;  // (WP-IT: the (8,8,1) 64-token kernels)
+ #ifdef MOE_WPW_FSW
+   constexpr bool FSWC = AEPI;  // (MOE_WPW_FSW: the asynchronous epilogue's short SwiGLU)
+ #endif
+ #else
+   constexpr bool AEPI = false;
++  constexpr bool ITK = false;
+ #endif
+ #ifndef MOE_GATHER_MIN
+ #define MOE_GATHER_MIN 4
+@@ -2663,6 +3068,10 @@
+ #endif
+ #endif
+   constexpr int STAGE = HASWG ? (WB + SB + XB + 1023) / 1024 * 1024 : (WB + SB + XB + 127) / 128 * 128;
++  // (MOE_IT_XS) items of <= 16 tokens stage past the slot's first 16 activation rows
++  constexpr bool ITX = ITK && MOE_IT_XSV && !MOE_XB0V && MW <= 8 && HASWG && WGMIN == 3;
++  constexpr int ITXOFF = WB + SB + 16 * XP;
++  static_assert(!ITX || (ITXOFF % 128 == 0 && ITXOFF + 16 * (RB + 4) * 4 <= STAGE), "MOE_IT_XS: the staging past row 16 must fit");
+   constexpr int RED = (KW - 1) * RW * 1024 * NT;
+   constexpr int NRB1 = 8192 / RB, NRB2 = 4096 / RB;
+   constexpr int ST1 = 16 / KW;
+@@ -2803,6 +3212,19 @@
+ #ifdef MOE_WPN_LEAN3
+ #undef LEAN3C
+ #define LEAN3C (LEANC && WSC && (NBC || (MOE_WPN_L3MV && NT == 4 && MW == 1))) // (MOE_WPN_LEAN3: needs NBAR and the combined blocks)
++#ifndef MOE_L2_CLMW
++#define MOE_L2_CLMW 4
++#endif
++#ifndef MOE_L2_CLMIN
++#define MOE_L2_CLMIN 8
++#endif
++#ifdef MOE_L2_CLD
++#undef MOE_L2_CLDV
++#define MOE_L2_CLDV (KW == 1 && NT >= 4 && MW >= MOE_L2_CLMW && LEAN3C && !MOE_PNEXT && MOE_PD == 0)  // (WP-L2: late claim)
++#else
++#undef MOE_L2_CLDV
++#define MOE_L2_CLDV false
++#endif
+ #else
+ #undef LEAN3C
+ #define LEAN3C (false)
+@@ -3984,16 +4406,49 @@
+             if (et == 0 && qe < 64) P.ctr[MOE_WPA_ETB + (blockIdx.x * 64 + qe) * 8] = f.phase | (((f.n + 7) >> 3) << 8) | (f.n << 16);
+             MOE_WET(1);
+ #endif
++#if defined(MOE_IT_BH) || defined(MOE_IT_BE)
++#ifndef MOE_IT_BHM
++#define MOE_IT_BHM 3
++#endif
++            const bool itbh = ITK && ((MOE_IT_BHM >> (f.phase - 1)) & 1);  // (MOE_IT_BHM: which items)
++            if (itbh) {  // (WP-IT timing bounds: the held slot released at the wake)
++              __syncwarp();
++              if constexpr (NBC) nb_arrive(MOE_WPN_NBID + sl, 96);
++              else if (lane == 0) mbar_arrive_n(smem_addr(&bars[NS + sl]), 4);
++            }
++#endif
++#ifdef MOE_IT_BE
++            if constexpr (ITK) {} else
++#endif
++#ifdef MOE_IT_DB
++            if (ITD && f.phase == 2 && (f.tile >= tsplit ? MOE_KSXE : KS2) == 1) {
++              // (MOE_IT_DB) BF16 y rows staged by the consumers: one bulk copy per token, release after the reads
++              const unsigned char* sbf = stages + sl * STAGE + (ITX && f.n <= 16 ? ITXOFF : 0);
++              for (int tok = et; tok < f.n; tok += 64)
++                asm volatile("cp.async.bulk.global.shared::cta.bulk_group [%0], [%1], 512;"
++                             :: "l"(P.yh + (size_t)(f.p0 + tok) * 4096 + f.rb * RB), "r"(smem_addr(sbf + tok * 528)) : "memory");
++              asm volatile("cp.async.bulk.commit_group;" ::: "memory");
++              asm volatile("cp.async.bulk.wait_group.read 0;" ::: "memory");
++              __syncwarp();
++              if constexpr (NBC) nb_arrive(MOE_WPN_NBID + sl, 96);  // (this warp's copies have read the slot)
++              else if (lane == 0) mbar_arrive_n(smem_addr(&bars[NS + sl]), 4);
++              asm volatile("cp.async.bulk.wait_group 0;" ::: "memory");  // (the writes complete before the item's signal)
++            } else
++#endif
+ #ifdef MOE_WPA_TMP
+             if constexpr (MOE_WPA_BUFB > 0 && !MOE_XB0V) {
+               // (v719) the first nb tokens by the bulk copy past the ring, the rest straight from the slot meanwhile
+               unsigned char* const wbuf = stages + NS * STAGE + (ZPV ? 1024 : 0);
+               constexpr int SP = RB + 4;
+-              const float* const stg = reinterpret_cast<const float*>(stages + sl * STAGE);
++              const float* const stg = reinterpret_cast<const float*>(stages + sl * STAGE + (ITX && f.n <= 16 ? ITXOFF : 0));
+               // gate/up epilogue (FSW math, as epi_stores) of tokens [tlo, thi) from FP32 rows at src
+               auto wpa_g1 = [&](const StageInfo& f, const float* src, int tlo, int thi) {
+                 const int nn = f.n, ntl = (nn + 7) >> 3;
++#ifdef MOE_IT_S6E
++                const float gsc = gsm[f.e] * (ITE ? 64.f : 1.f);  // (MOE_IT_S6E: MOE_S6O's x64 here)
++#else
+                 const float gsc = gsm[f.e];
++#endif
+                 const float gke = -1.4426950408889634f * gsc;  // (exp(-g gsc) = 2^(g gke))
+                 const float gs2 = gsc * gsc;
+                 auto ld2 = [&](int tok, int row) -> u32 {  // rows row, row + 1 (gate) and + 8 (up)
+@@ -4043,7 +4498,11 @@
+               };
+               // down epilogue (the non-SSQ store loop of epi_stores) of tokens [tlo, thi)
+               auto wpa_g2 = [&](const StageInfo& f, const float* src, int tlo, int thi) {
++#ifdef MOE_IT_S6E
++                const float gsc = gsm[32 + f.e] * (ITE ? 64.f : 1.f);  // (MOE_IT_S6E: MOE_S6O's x64 here)
++#else
+                 const float gsc = gsm[32 + f.e];
++#endif
+                 const bool full_k = (f.tile >= tsplit ? MOE_KSXE : KS2) == 1;
+                 float* yb = P.ypart + (size_t)f.ks * P.pmax * 4096 + (size_t)f.p0 * 4096 + f.rb * RB;
+                 const int te = min(thi, f.n);
+@@ -4073,10 +4532,24 @@
+               const u32 bytes = (u32)(nb * (SP * 4));
+               const u32 cb = smem_addr(wbuf + MOE_WPA_BUFB - 16);
+               group_sync(MOE_WPA_EB, 64);  // (both epilogue warps are done reading the previous copy)
++#ifdef MOE_IT_GC
++              const bool itgc = ITG && nn <= MOE_IT_GCN;
++              if (itgc) {
++                // (MOE_IT_GC) tokens [0, nb) to the room by generic loads / stores: no async-proxy read of the staging
++                const float4* s4 = reinterpret_cast<const float4*>(stg);
++                float4* d4 = reinterpret_cast<float4*>(wbuf);
++                for (int i = et; i < nb * (SP / 4); i += 64) d4[i] = s4[i];
++                // (the room's generic writes ordered before a later item's bulk copy into the room: async-proxy WAW)
++                asm volatile("fence.proxy.async.shared::cta;" ::: "memory");
++                group_sync(MOE_WPA_EB, 64);  // (every read of the slot has returned; the room's rows are written)
++              }
++#else
++              constexpr bool itgc = false;
++#endif
+ #ifdef MOE_WPA_TMG
+               [[maybe_unused]] float* const gscr = reinterpret_cast<float*>(const_cast<u32*>(P.w2h)) + (size_t)blockIdx.x * (MOE_WPA_GSCR / 4);
+ #endif
+-              if (et == 0) {
++              if (et == 0 && !itgc) {
+                 mbar_arrive_tx(cb, bytes);
+                 asm volatile("cp.async.bulk.shared::cluster.shared::cta.mbarrier::complete_tx::bytes [%0], [%1], %2, [%3];"
+                              :: "r"(smem_addr(wbuf)), "r"(smem_addr(stg)), "r"(bytes), "r"(cb) : "memory");
+@@ -4101,10 +4574,15 @@
+                 else wpa_g2(f, stg, nb, 1 << 20);
+               }
+               }
++              if (!itgc) {
+               mbar_wait(cb, tmc_ph);
+               tmc_ph ^= 1u;
++              }
+               MOE_WET(2);
+               __syncwarp();
++#ifdef MOE_IT_BH
++              if (itbh) {} else
++#endif
+               if constexpr (NBC) nb_arrive(MOE_WPN_NBID + sl, 96);  // (MOE_WPN_NBAR: the 2 epilogue warps + the producer)
+               else if (lane == 0) mbar_arrive_n(smem_addr(&bars[NS + sl]), 4);  // (two warps: the slot's 8 arrivals)
+               MOE_WET(3);
+@@ -4177,6 +4655,9 @@
+             epi_stores(f, reinterpret_cast<const float*>(stages + (MOE_XB0V ? 0 : sl) * STAGE), et, 64);
+             MOE_WET(2);
+             __syncwarp();
++#ifdef MOE_IT_BH
++            if (itbh) {} else
++#endif
+             if constexpr (NBC) nb_arrive(MOE_WPN_NBID + sl, 96);  // (MOE_WPN_NBAR: the 2 epilogue warps + the producer)
+             else if (lane == 0) mbar_arrive_n(smem_addr(&bars[NS + sl]), 4);  // (two warps: the slot's 8 arrivals)
+             MOE_WET(3);
+@@ -4510,8 +4991,34 @@
+       // The next item, claimed ahead so its latency hides behind this item. Inline PTX: a plain
+       // atomicAdd here is warp-aggregated by the compiler, whose shuffle of the result made the
+       // producer wait for the round trip before issuing this item's stages.
++#ifdef MOE_L2_CLD
++#ifdef MOE_L2_CLDI  // (atom.inc: not warp-aggregated by ptxas, so the producer does not wait for the result at the claim)
++#define MOE_L2_CLAIM() asm volatile("{ .reg .pred p; setp.eq.u32 p, %1, 0; @p atom.global.inc.u32 %0, [%2], 0x7fffffff; }" \
++                   : "=r"(next) : "r"(lane), "l"(head) : "memory")
++#else
++#define MOE_L2_CLAIM() asm volatile("{ .reg .pred p; setp.eq.u32 p, %1, 0; @p atom.global.add.u32 %0, [%2], 1; }" \
++                   : "=r"(next) : "r"(lane), "l"(head) : "memory")
++#endif
++      if constexpr (!MOE_L2_CLDV) {
++#ifndef MOE_NO_ED2
++      if constexpr (KW == 2) {  // (v1111: (4,*,1) kernels; a bounded inc is not warp-aggregated by ptxas)
++        asm volatile("{ .reg .pred p; setp.eq.u32 p, %1, 0; @p atom.global.inc.u32 %0, [%2], 0x7fffffff; }"
++                     : "=r"(next) : "r"(lane), "l"(head) : "memory");
++      } else
++#endif
+       asm volatile("{ .reg .pred p; setp.eq.u32 p, %1, 0; @p atom.global.add.u32 %0, [%2], 1; }"
+                    : "=r"(next) : "r"(lane), "l"(head) : "memory");
++      }
++#else
++#ifndef MOE_NO_ED2
++      if constexpr (KW == 2) {  // (v1111: (4,*,1) kernels; a bounded inc is not warp-aggregated by ptxas)
++        asm volatile("{ .reg .pred p; setp.eq.u32 p, %1, 0; @p atom.global.inc.u32 %0, [%2], 0x7fffffff; }"
++                     : "=r"(next) : "r"(lane), "l"(head) : "memory");
++      } else
++#endif
++      asm volatile("{ .reg .pred p; setp.eq.u32 p, %1, 0; @p atom.global.add.u32 %0, [%2], 1; }"
++                   : "=r"(next) : "r"(lane), "l"(head) : "memory");
++#endif
+ #ifdef MOE_TRACE
+       if (lane == 0) MOE_TR(1, 18, item);
+ #endif
+@@ -4545,6 +5052,11 @@
+       const int nst = phase == 1 ? ST1 : (HSPLP && hh ? 4 : (kss == MOE_KSXP ? 16 / (KW * MOE_KSXP) : 16 / (KW * KS2)));
+ #else
+       const int nst = phase == 1 ? ST1 : (HSPLP && hh ? 4 : 16 / (KW * kss));
++#endif
++#ifdef MOE_L2_CLD
++      // (WP-L2) late claim: stage ccl of this item claims the next one (<= 0: here, as before); one register, 1 << 20 once claimed
++      int ccl = MOE_L2_CLDV && nst >= MOE_L2_CLMIN ? nst - 1 - (MOE_L2_CLD) : 0;
++      if constexpr (MOE_L2_CLDV) { if (ccl <= 0) { MOE_L2_CLAIM(); ccl = 1 << 20; } }
+ #endif
+ #ifdef MOE_TRACE
+       if (it == 0) pst[4] = (u32)clock64();
+@@ -4646,6 +5158,9 @@
+       for (int st = st_first; st < nst; ++st, ++it) {
+ #else
+       for (int st = 0; st < nst; ++st, ++it) {
++#endif
++#ifdef MOE_L2_CLD
++        if constexpr (MOE_L2_CLDV) { if (st >= ccl) { MOE_L2_CLAIM(); ccl = 1 << 20; } }
+ #endif
+         u32 nb_was = 0;  // (MOE_WPN_NBAR) the slot's previous stage ended its item
+ #ifdef MOE_WPN_LEAN
+@@ -4751,7 +5266,12 @@
+             u32 ph3 = ph;  // (MOE_WPN_L3M: the slot's empty-barrier parity)
+             for (;;) {
+ #ifdef MOE_WPN_LEAN4
++#ifdef MOE_L2_CLD
++              const int l4e = MOE_L2_CLDV && ccl < nst - 1 ? ccl : nst - 1;  // (WP-L2: the sub-loop stops at the claim stage)
++              if ((MOE_WPN_L4V || NT >= 8) && stl >= NS && stl < l4e) {
++#else
+               if ((MOE_WPN_L4V || NT >= 8) && stl >= NS && stl < nst - 1) {  // (steady: stage it - NS is this item's, released by the 8 consumer warps)
++#endif
+                 for (;;) {
+                   asm volatile("bar.sync %0, 288;" :: "r"(MOE_WPN_NBID + sl) : "memory");
+                   if (elect_one()) {
+@@ -4776,11 +5296,18 @@
+                   ++it; ++stl;
+                   if (++sl == NS) sl = 0;
+                   fl = bars0 + sl * 8;
++#ifdef MOE_L2_CLD
++                  if (stl == l4e) break;
++#else
+                   if (stl == nst - 1) break;
++#endif
+                 }
+                 nb_was = 0;   // (stage it - NS is this item's)
+                 nb_le = it;   // (the stage below ends the item)
+               }
++#endif
++#ifdef MOE_L2_CLD
++              if constexpr (MOE_L2_CLDV) { if (stl >= ccl) { MOE_L2_CLAIM(); ccl = 1 << 20; } }
+ #endif
+ #ifdef MOE_WPN_L3T
+               if (it >= NS) {
+@@ -5159,6 +5686,9 @@
+       }
+ #ifdef MOE_TIMING
+       const u32 tn0 = ctimer();
++#endif
++#ifdef MOE_L2_CLD
++      if constexpr (MOE_L2_CLDV) { if (ccl < (1 << 20)) MOE_L2_CLAIM(); }
+ #endif
+       item = MOE_PNEXT ? pn_item : (int)gridDim.x + __shfl_sync(0xffffffffu, next, 0);
+ #ifdef MOE_TIMING
+@@ -5532,6 +6062,7 @@
+         MOE_T(c_comp += ctimer() - tc0 - twn; c_stages += 1; if (lane == 0) wcomp += ctimer() - tc0 - twn; if (st == 0) c_first += ctimer() - tc0 - twn;) \
+       }                                                                                                  \
+     }
++#define MOE_DSKV(K) ((K) < 100 && ds_code(RW, KW, NT, (K), MW) != 0 && S6 && MOE_S6OV && !ZPV && !MOE_XB0V && !F16MSV)
+ #define MOE_RUN_ITEM(K)                                                                                  \
+     if constexpr (NT == 1 || ((K) == 1 && MOE_BOT1V)) { MOE_RUN_ITEM_BOT(K) }                            \
+     else if constexpr ((K) >= 100 && MOE_WGSNV && HASWG && MW >= MOE_WGS_MW && NT <= MOE_WGSN_NT && !F16V && !MOE_NOC && !MOE_XB0V) { MOE_RUN_ITEM_WGS(K) } \
+@@ -5543,6 +6074,8 @@
+       } else { MOE_RUN_ITEM_TOP(K) }                                                                     \
+     } else { MOE_RUN_ITEM_TOP(K) }
+ #define MOE_RUN_ITEM_BOT(K)                                                                              \
++    DsCarry<((K) >= 1 && (K) <= 4) ? (K) : 1> ds_cr;                                                     \
++    static_assert(!(MOE_DSKV(K) && ds_def(ds_code(RW, KW, NT, (K), MW)) != 0), "MOE_DS DEF: not with MOE_BOT1"); \
+     for (int st = 0;;) {                                                                                 \
+       MOE_T(const u32 tc0 = ctimer();)                                                                   \
+       MOE_WTR0(st)                                                                                       \
+@@ -5555,6 +6088,7 @@
+         else if constexpr (HASWG) stage_compute_wg<NT, (K) - 100, S6, WGSPL>(acc, wbase, sclb, smem_addr((MOE_XB0V ? stages : sbase) + WB + SB), T); \
+       } else {                                                                                           \
+         if constexpr (F16MSV) stage_compute_h<NT, (K), S6, ZPV && !MOE_XB0V>(hacc, wbase, sclb, (MOE_XB0V ? stages - WB - SB - g * XP - kw * 512 - tig * 32 + WB + SB : sbase) + MOE_XOFF, XP, zpl ? zbase : sbase + MOE_XOFF + ((K) - 1) * 8 * XP); \
++        else if constexpr (MOE_DSKV(K)) stage_ds_c<ds_code(RW, KW, NT, (K), MW), NT, (K)>(acc, acc2, wbase, sclb, sbase + MOE_XOFF, XP, ds_cr); \
+         else stage_compute<NT, (K), S6, ZPV && !MOE_XB0V>(acc, acc2, wbase, sclb, (MOE_XB0V ? stages - WB - SB - g * XP - kw * 512 - tig * 32 + WB + SB : sbase) + MOE_XOFF, XP, zpl ? zbase : sbase + MOE_XOFF + ((K) - 1) * 8 * XP); \
+       }                                                                                                  \
+       __syncwarp();                                                                                      \
+@@ -5569,6 +6103,8 @@
+       MOE_T(c_wait += ctimer() - tw0;)                                                                   \
+     }
+ #define MOE_RUN_ITEM_TOP(K)                                                                              \
++    DsCarry<((K) >= 1 && (K) <= 4) ? (K) : 1> ds_cr;                                                     \
++    if constexpr (MOE_DSKV(K) && ds_def(ds_code(RW, KW, NT, (K), MW)) != 0) ds_czero(ds_cr);             \
+     for (int st = 0; st < nst; ++st) {                                                                   \
+       if (st > 0) {  /* the previous stage's release and this stage's wait */                           \
+         MOE_T(const u32 tr0 = ctimer();)                                                                 \
+@@ -5590,12 +6126,14 @@
+         else if constexpr (HASWG) stage_compute_wg<NT, (K) - 100, S6, WGSPL>(acc, wbase, sclb, smem_addr((MOE_XB0V ? stages : sbase) + WB + SB), T); \
+       } else {                                                                                           \
+         if constexpr (F16MSV) stage_compute_h<NT, (K), S6, ZPV && !MOE_XB0V>(hacc, wbase, sclb, (MOE_XB0V ? stages - WB - SB - g * XP - kw * 512 - tig * 32 + WB + SB : sbase) + MOE_XOFF, XP, zpl ? zbase : sbase + MOE_XOFF + ((K) - 1) * 8 * XP); \
++        else if constexpr (MOE_DSKV(K)) stage_ds_c<ds_code(RW, KW, NT, (K), MW), NT, (K)>(acc, acc2, wbase, sclb, sbase + MOE_XOFF, XP, ds_cr); \
+         else stage_compute<NT, (K), S6, ZPV && !MOE_XB0V>(acc, acc2, wbase, sclb, (MOE_XB0V ? stages - WB - SB - g * XP - kw * 512 - tig * 32 + WB + SB : sbase) + MOE_XOFF, XP, zpl ? zbase : sbase + MOE_XOFF + ((K) - 1) * 8 * XP); \
+       }                                                                                                  \
+       __syncwarp();                                                                                      \
+       MOE_WTR1(st)                                                                                       \
+       MOE_T(c_comp += ctimer() - tc0; c_stages += 1; if (lane == 0) wcomp += ctimer() - tc0; if (st == 0) c_first += ctimer() - tc0;) \
+-    }
++    }  \
++    if constexpr (MOE_DSKV(K)) ds_flush<ds_code(RW, KW, NT, (K), MW), NT, ((K) >= 1 && (K) <= 4) ? (K) : 1>(acc, acc2, ds_cr);
+     if (HASWG && ntl >= WGMIN) {
+       if constexpr (HASWG) {
+         switch (ntl) {
+@@ -5637,6 +6175,7 @@
+ #undef MOE_RUN_ITEM_BOT
+ #undef MOE_RUN_ITEM_TOP
+ #undef MOE_RUN_ITEM_WGS
++#undef MOE_DSKV
+     it += nst;
+     if constexpr (F16V) {
+       if (F16MSV || ntl >= WGMIN) {  // the f16 accumulators into the fp32 layout the epilogues read
+@@ -5655,7 +6194,11 @@
+           }
+       }
+     }
++#ifdef MOE_IT_S6E
++    if constexpr (S6 && MOE_S6OV && !ITE) {
++#else
+     if constexpr (S6 && MOE_S6OV) {
++#endif
+       // (MOE_S6O: the BF16 tiles' products are E2M1 * s * 2^-14: 64x the 8-bit path's 2^-8)
+       if (!(F16MSV || (F16V && ntl >= WGMIN))) {
+ #pragma unroll
+@@ -5852,8 +6395,23 @@
+     {
+       constexpr int SP = RB + 4;  // floats per staged token row; the +4 keeps fragment stores conflict-free
+       static_assert(MOE_XB0V || KW * T * SP * 4 <= STAGE, "epilogue staging must fit in one stage slot");
+-      float* stg = reinterpret_cast<float*>(stages + (MOE_XB0V ? 0 : s) * STAGE);
+-      consumer_sync();  // every warp is done reading the slot
++      const bool itxs = ITX && ntl <= 2;  // (MOE_IT_XS: staged past the stage's activation rows)
++      float* stg = reinterpret_cast<float*>(stages + (MOE_XB0V ? 0 : s) * STAGE + (itxs ? ITXOFF : 0));
++      if constexpr (!(ITK && MOE_IT_BSV)) { if (MOE_IT_XSBV || !itxs) consumer_sync(); }  // every warp is done reading the slot
++#ifdef MOE_IT_DB
++      if (ITD && f.phase == 2 && (f.tile >= tsplit ? MOE_KSXE : KS2) == 1) {
++        // (MOE_IT_DB) the full-k down item's BF16 y rows, [tok][528 B]: stmatrix.trans of the 4 8x8 blocks of (a, c / 2)
++        const float sc = gsm[32 + f.e] * 64.f;
++        const u32 sb0 = smem_addr(stg) + (lane & 7) * 528 + (16 * (2 * rw + (lane >> 4)) + 8 * ((lane >> 3) & 1)) * 2;
++#pragma unroll
++        for (int b = 0; b < NT; ++b)
++          if (b < ntl)
++            asm volatile("stmatrix.sync.aligned.m8n8.x4.trans.shared.b16 [%0], {%1, %2, %3, %4};"
++                         :: "r"(sb0 + b * 8 * 528), "r"(it_pk(acc[0][b][0] * sc, acc[0][b][1] * sc)), "r"(it_pk(acc[0][b][2] * sc, acc[0][b][3] * sc)),
++                            "r"(it_pk(acc[1][b][0] * sc, acc[1][b][1] * sc)), "r"(it_pk(acc[1][b][2] * sc, acc[1][b][3] * sc)) : "memory");
++      } else
++#endif
++      if (!(ITK && MOE_IT_BSTV) || P.M < 0)  // (MOE_IT_BST: runtime-false guard, timing only)
+ #pragma unroll
+       for (int a = 0; a < 2; ++a)
+ #pragma unroll
+@@ -5863,14 +6421,25 @@
+ #endif
+ #pragma unroll
+           for (int c = 0; c < 4; ++c)
++#ifdef MOE_IT_BSH
++            if (!ITK || a == 0 || P.M < 0)  // (MOE_IT_BSH: timing only, half the staging stores: row group 0 of each warp)
++#endif
+             stg[(kw * T + b * 8 + 2 * tig + (c & 1)) * SP + 16 * (2 * rw + a) + g + 8 * (c >> 1)] = acc[a][b][c];
+       if constexpr (AEPI) {
+ #ifdef MOE_WPA_TMP
+         // (v719) the staging writes, read by the epilogue's bulk copy (async proxy)
+-        if constexpr (MOE_WPA_BUFB > 0 && !MOE_XB0V) asm volatile("fence.proxy.async.shared::cta;" ::: "memory");
++#ifdef MOE_IT_GC
++        if constexpr (ITG && MOE_IT_GCN >= 64) {} else  // (MOE_IT_GC: no async-proxy reader of the staging)
++        if (!(ITG && f.n <= MOE_IT_GCN))
++#endif
++        if constexpr (MOE_WPA_BUFB > 0 && !MOE_XB0V && !(ITK && MOE_IT_BFV)) asm volatile("fence.proxy.async.shared::cta;" ::: "memory");
+ #endif
+         __syncwarp();
++#ifdef MOE_IT_AQW
++        if (warp == (ITK ? (MOE_IT_AQW) : 0) && lane == 0) aq_slot[q_epi % NS] = s;  // (MOE_IT_AQW: not the critical warp 0)
++#else
+         if (warp == 0 && lane == 0) aq_slot[q_epi % NS] = s;
++#endif
+ #ifdef MOE_WPA_ET
+         if (warp == 0 && lane == 0 && q_epi < 64) P.ctr[MOE_WPA_ETB + (blockIdx.x * 64 + q_epi) * 8 + 5] = (int)wpa_clk();
+ #endif
+@@ -7659,6 +8228,16 @@
+ //     expert's 4096 epoch-tagged intermediates into shared memory, the consumers load their B fragments from it.
+ //   combine: per expert, each CTA adds its rows' sum of squares into ss[call parity]; one grid-wide count
+ //     (monotonic: call c waits for 128 (c + 1), its epoch is c + 1); every CTA writes its own 32 output rows.
++// (WP-B1c baked moe1t switches; escapes MOE1T_NO_<name>)
++#ifndef MOE1T_NO_FXSS
++#define MOE1T_FXSS
++#endif
++#ifndef MOE1T_NO_CTRE
++#define MOE1T_CTRE
++#endif
++#ifndef MOE1T_NO_OLATE
++#define MOE1T_OLATE
++#endif
+ struct Params1T {
+   const u16* x; const int* ids; const float* topk_w;
+   const float* gs13; const float* gs2; const float* nw1;
+@@ -7679,7 +8258,19 @@
+ #ifndef MOE1T_NO_FDLY
+ #define MOE1T_FDLY 500
+ #endif
+-#ifdef MOE1T_F2
++#if defined(MOE1T_TOBS) && !defined(MOE1T_TRACE)
++#error "MOE1T_TOBS: trace builds only"
++#endif
++#if defined(MOE1T_SIGW) && (defined(MOE1T_TOBS) || defined(MOE1T_TAIL2) || defined(MOE1T_PIPE2))
++#error "MOE1T_SIGW: not with TOBS (both are warp 12), TAIL2, PIPE2"
++#endif
++#if defined(MOE1T_SIGB) && (defined(MOE1T_COLS) || defined(MOE1T_XN) || !defined(MOE1T_FLEAN))
++#error "MOE1T_SIGB: not with COLS / XN, needs FLEAN"
++#endif
++#if defined(MOE1T_F2) && (defined(MOE1T_TOBS) || defined(MOE1T_SIGW))
++#define MOE1T_THREADS 416
++#define MOE1T_FW 2
++#elif defined(MOE1T_F2)
+ #define MOE1T_THREADS 384
+ #define MOE1T_FW 2
+ #else
+@@ -7707,12 +8298,44 @@
+ #else
+ #define T2V false
+ #endif
++#ifdef MOE1T_WBL
++#define MOE1T_WBLV MOE1T_WBL
++#if !defined(MOE_WPN_1TNB) || defined(MOE1T_TAIL2)
++#error "MOE1T_WBL: needs the MOE_WPN_1TNB producer, not with MOE1T_TAIL2"
++#endif
++#else
++#define MOE1T_WBLV 0
++#endif
++#if defined(MOE1T_PIPE2) && defined(MOE1T_S6)
++#error "MOE1T_PIPE2: 8-bit scales only"
++#endif
++#if defined(MOE1T_CTRE) && !defined(MOE1T_FXSS)
++#error "MOE1T_CTRE: needs MOE1T_FXSS (v1002's counter is the arrival barrier)"
++#endif
++#if defined(MOE1T_MPOLL) && (!defined(MOE1T_FXSS) || defined(MOE1T_EPRE))
++#error "MOE1T_MPOLL: with MOE1T_FXSS, not with MOE1T_EPRE"
++#endif
++#if defined(MOE1T_EPRE) && !defined(MOE1T_FXSS)
++#error "MOE1T_EPRE: needs MOE1T_FXSS"
++#endif
++#if defined(MOE1T_COLS) && defined(MOE1T_XN)
++#error "MOE1T_COLS: not with MOE1T_XN"
++#endif
++#if defined(MOE1T_BL4) && defined(MOE1T_XN)
++#error "MOE1T_BL4: not with MOE1T_XN"
++#endif
+ #ifdef MOE1T_TRACE
++#define TRE(k) do { P.trc[28672 + blockIdx.x * 32 + (k)] = (int)gtimer(); } while (0)
+ #define TRT(k) do { P.trc[blockIdx.x * 32 + (k)] = (int)gtimer(); } while (0)
+ #define TRTV(k, v) do { P.trc[blockIdx.x * 32 + (k)] = (v); } while (0)
++#ifdef MOE1T_TRLITE
++#define TRS2(k)
++#else
+ #define TRS2(k) do { if (lane == 0 && (warp == 0 || warp == 5) && it < 32) P.trc[4096 + (blockIdx.x * 2 + (warp == 5)) * 64 + 2 * it + (k)] = (int)gtimer(); } while (0)
++#endif
+ #else
+ #define TRT(k)
++#define TRE(k)
+ #define TRTV(k, v)
+ #define TRS2(k)
+ #endif
+@@ -7740,6 +8363,31 @@
+   unsigned long long v; asm volatile("ld.relaxed.gpu.global.u64 %0, [%1];" : "=l"(v) : "l"(p) : "memory"); return v;
+ }
+ DEVI int ld_relaxed_s32(const int* p) { int v; asm volatile("ld.relaxed.gpu.global.s32 %0, [%1];" : "=r"(v) : "l"(p) : "memory"); return v; }
++#ifdef MOE1T_FXSS
++#if defined(MOE1T_TAGSS) || !defined(MOE1T_FLEAN)
++#error "MOE1T_FXSS: needs MOE1T_FLEAN, not with MOE1T_TAGSS"
++#endif
++DEVI void red_add_u64(unsigned long long* p, unsigned long long v) {
++  asm volatile("red.relaxed.gpu.global.add.u64 [%0], %1;" :: "l"(p), "l"(v) : "memory");
++}
++DEVI void red_add_s32(int* p, int v) { asm volatile("red.relaxed.gpu.global.add.s32 [%0], %1;" :: "l"(p), "r"(v) : "memory"); }
++#endif
++#if defined(MOE1T_SIGB) || defined(MOE1T_SIGW)
++DEVI void st_rel_cta(const volatile int* p, int v) {
++  asm volatile("st.release.cta.shared.u32 [%0], %1;" :: "r"(smem_addr((const void*)p)), "r"(v) : "memory");
++}
++DEVI int ld_acq_cta(const volatile int* p) {
++  int v; asm volatile("ld.acquire.cta.shared.u32 %0, [%1];" : "=r"(v) : "r"(smem_addr((const void*)p)) : "memory"); return v;
++}
++#endif
++#ifdef MOE1T_FXSS
++DEVI u32 bf2maxabs(u32 m, u32 a, u32 b) {  // per bf16 half: max(m, |a|, |b|) (m >= 0)
++  u32 d;
++  asm("{ .reg .b32 t, u; and.b32 t, %2, 0x7FFF7FFF; and.b32 u, %3, 0x7FFF7FFF; max.bf16x2 t, t, u; max.bf16x2 %0, %1, t; }"
++      : "=r"(d) : "r"(m), "r"(a), "r"(b));
++  return d;
++}
++#endif
+ 
+ // One consumer warp's share of a stage: 16 rows x 512 k = 32 words per lane (8 LDS.128, each one 16-k scale block
+ // of rows g and g + 8), one LDS.128 of scales, 32 mma.sync against the resident B fragments xb (two accumulators).
+@@ -7783,6 +8431,72 @@
+     mma16816(c0, a0, a1, a2, a3, xb[8 * i + 4], xb[8 * i + 5]);
+     dequant_o(qw[i].w, R, a0, a1, a2, a3);
+     mma16816(c1, a0, a1, a2, a3, xb[8 * i + 6], xb[8 * i + 7]);
++  }
++}
++
++// (v1305 MOE1T_PIPE) stage_two with a hook after block PB: the previous stage's epilogue runs inside this stage's body
++template <bool S6, int PB, class Epi>
++DEVI void stage_two_p(float (&c0)[4], float (&c1)[4], const unsigned char* wp, const unsigned char* sp, const u32 (&xb)[64], Epi&& epi) {
++  uint4 qw[8];
++#pragma unroll
++  for (int i = 0; i < 8; ++i) qw[i] = *reinterpret_cast<const uint4*>(wp + i * 512);
++  uint4 sv;
++  u32 R6[8];
++  if constexpr (S6) {
++    const u32* s3 = reinterpret_cast<const u32*>(sp);
++    s6o_bf(s3[0], s3[1], s3[2], R6);
++  } else {
++    sv = *reinterpret_cast<const uint4*>(sp);
++  }
++#pragma unroll
++  for (int i = 0; i < 8; ++i) {
++    u32 R;
++    if constexpr (S6) {
++      R = R6[i];
++    } else {
++      const u32 sw = (i >> 1) == 0 ? sv.x : (i >> 1) == 1 ? sv.y : (i >> 1) == 2 ? sv.z : sv.w;
++      R = (i & 1) ? spair<2>(sw) : spair<0>(sw);
++    }
++    u32 a0, a1, a2, a3;
++    dequant_o(qw[i].x, R, a0, a1, a2, a3);
++    mma16816(c0, a0, a1, a2, a3, xb[8 * i], xb[8 * i + 1]);
++    dequant_o(qw[i].y, R, a0, a1, a2, a3);
++    mma16816(c1, a0, a1, a2, a3, xb[8 * i + 2], xb[8 * i + 3]);
++    dequant_o(qw[i].z, R, a0, a1, a2, a3);
++    mma16816(c0, a0, a1, a2, a3, xb[8 * i + 4], xb[8 * i + 5]);
++    dequant_o(qw[i].w, R, a0, a1, a2, a3);
++    mma16816(c1, a0, a1, a2, a3, xb[8 * i + 6], xb[8 * i + 7]);
++    if (i == PB) epi();
++  }
++}
++
++// (v1308 MOE1T_PIPE2) stage_two_p with blocks 0, 1 and the scale word carried in; hooks after blocks PB (the previous
++// stage's epilogue) and PB2 (the next stage's wait + first loads)
++DEVI uint4 lds128v(u32 a) {
++  uint4 v; asm volatile("ld.shared.v4.u32 {%0, %1, %2, %3}, [%4];" : "=r"(v.x), "=r"(v.y), "=r"(v.z), "=r"(v.w) : "r"(a)); return v;
++}
++template <int PB, int PB2, class Epi, class Nxt>
++DEVI void stage_two_q(float (&c0)[4], float (&c1)[4], const unsigned char* wp, const uint4 q0, const uint4 q1, const uint4 sv,
++                      const u32 (&xb)[64], Epi&& epi, Nxt&& nxt) {
++  uint4 qw[8];
++  qw[0] = q0; qw[1] = q1;
++#pragma unroll
++  for (int i = 2; i < 8; ++i) qw[i] = *reinterpret_cast<const uint4*>(wp + i * 512);
++#pragma unroll
++  for (int i = 0; i < 8; ++i) {
++    const u32 sw = (i >> 1) == 0 ? sv.x : (i >> 1) == 1 ? sv.y : (i >> 1) == 2 ? sv.z : sv.w;
++    const u32 R = (i & 1) ? spair<2>(sw) : spair<0>(sw);
++    u32 a0, a1, a2, a3;
++    dequant_o(qw[i].x, R, a0, a1, a2, a3);
++    mma16816(c0, a0, a1, a2, a3, xb[8 * i], xb[8 * i + 1]);
++    dequant_o(qw[i].y, R, a0, a1, a2, a3);
++    mma16816(c1, a0, a1, a2, a3, xb[8 * i + 2], xb[8 * i + 3]);
++    dequant_o(qw[i].z, R, a0, a1, a2, a3);
++    mma16816(c0, a0, a1, a2, a3, xb[8 * i + 4], xb[8 * i + 5]);
++    dequant_o(qw[i].w, R, a0, a1, a2, a3);
++    mma16816(c1, a0, a1, a2, a3, xb[8 * i + 6], xb[8 * i + 7]);
++    if (i == PB) epi();
++    if (i == PB2) nxt();
+   }
+ }
+ 
+@@ -7796,6 +8510,9 @@
+   extern __shared__ __align__(128) unsigned char smem[];
+   u64* bars = reinterpret_cast<u64*>(smem);  // [0, NS) full, [8, 8 + NS) empty, 16 x, 17-20 pfull, 21-24 pempty, 25-26 ifull, 27-28 iempty
+   volatile int* scal = reinterpret_cast<volatile int*>(smem + 256);  // [0] epoch, [2] experts whose items this CTA stored
++#ifdef MOE1T_FXSS
++  volatile u32* hmxs = reinterpret_cast<volatile u32*>(smem + 320);  // [8 experts][2 fetcher warps] max |h| (bf16 bits)
++#endif
+   float* part = reinterpret_cast<float*>(smem + 512);   // [4 slots (REL1: NS ring slots)][8 warps][16 rows] stage partials
+   float* yv = reinterpret_cast<float*>(smem + 3072);    // [8 experts][32 rows] normalized-input rows of this CTA
+   constexpr bool REL1 = REL1V;
+@@ -7807,6 +8524,9 @@
+   const int4 v0 = reinterpret_cast<const int4*>(P.ids)[0], v1 = reinterpret_cast<const int4*>(P.ids)[1];
+   if (tid == 0) {
+     TRT(0);
++#ifdef MOE1T_TRACE
++    { u32 smid; asm volatile("mov.u32 %0, %%smid;" : "=r"(smid)); TRTV(31, (int)smid); }  // (v1301)
++#endif
+     for (int s = 0; s < NS; ++s) { mbar_init(BAR(s), 1); mbar_init(BAR(8 + s), REL1 ? 1 : 8); }
+     mbar_init(BAR(16), 1);
+     if (REL1) {
+@@ -7817,6 +8537,15 @@
+     for (int s = 0; s < 2; ++s) { mbar_init(BAR(25 + s), MOE1T_FW); mbar_init(BAR(27 + s), 8); }
+     mbar_init(BAR(29), 1);
+     scal[2] = 0;
++#ifdef MOE1T_SIGW
++    for (int s = 0; s < NS; ++s) scal[32 + s] = 0;  // (MOE1T_SIGW: per slot, 1 + the last stage index that has landed)
++#endif
++#ifdef MOE1T_SIGB
++    for (int s = 36; s < 56; ++s) scal[s] = 0;  // (MOE1T_SIGB: [36 + 2 fw + b] 'full' by fetcher warp, [40 + 2 w + b] 'loaded' by consumer warp)
++#endif
++#ifdef MOE1T_FLATE
++    scal[3] = 0;  // (MOE1T_FLATE: phase-A items this CTA has stored)
++#endif
+     asm volatile("fence.mbarrier_init.release.cluster;" ::: "memory");
+   }
+   __syncthreads();
+@@ -7846,10 +8575,25 @@
+       for (int ph = 0; ph < 2; ++ph)
+         for (int q = 0; q < ne; ++q) {
+           const int e = (int)((elist >> (5 * q)) & 31);
++#if MOE1T_WBLV == 1
++          const unsigned char* src = ph == 0 ? P.wa + ((size_t)e * 512 + 4 * blk) * STAGE : P.wb + ((size_t)e * 512 + 4 * blk) * STAGE;
++          constexpr size_t BST = STAGE;  // (MOE1T_WBL: the stride between a CTA's phase-B blocks)
++#elif MOE1T_WBLV == 2
++          const unsigned char* src = ph == 0 ? P.wa + ((size_t)e * 512 + 4 * blk) * STAGE : P.wb + ((size_t)e * 256 + blk) * STAGE;
++          const size_t BST = ph == 0 ? (size_t)STAGE : (size_t)128 * STAGE;
++#else
+           const unsigned char* src = ph == 0 ? P.wa + ((size_t)e * 512 + 4 * blk) * STAGE : P.wb + ((size_t)e * 256 + 2 * blk) * STAGE;
++          constexpr size_t BST = STAGE;
++#endif
+           for (int k = 0; k < (ph == 0 ? 4 : 2); ++k, ++it) {
+             const int s = it % NS;
+             if (it >= NS) asm volatile("bar.sync %0, 64;" :: "r"(4 + NS + s) : "memory");
++#ifdef MOE1T_S0DLY
++            if (it == 1) {  // (MOE1T_S0DLY: stage 0 ahead of the rest of the initial burst)
++              const u32 t0 = gtimer();
++              while ((int)(gtimer() - t0) < MOE1T_S0DLY) __nanosleep(32);
++            }
++#endif
+             if (elect_one()) {
+               if (T2 && it == 6 * ne - 1) {
+                 mbar_arrive_tx(BAR(29), SB + 16384);
+@@ -7858,8 +8602,11 @@
+                 bulk_g2s(smem_addr(stages + s * STAGE + SB + 16384), src + (size_t)k * STAGE + SB + 16384, 16384, BAR(s), pol);
+               } else {
+                 mbar_arrive_tx(BAR(s), STAGE);
+-                bulk_g2s(smem_addr(stages + s * STAGE), src + (size_t)k * STAGE, STAGE, BAR(s), pol);
++                bulk_g2s(smem_addr(stages + s * STAGE), src + (size_t)k * BST, STAGE, BAR(s), pol);
+               }
++#ifdef MOE1T_TRACE
++              if (it < 32) P.trc[20480 + blockIdx.x * 32 + it] = (int)gtimer();  // (v1301: copy issued)
++#endif
+             }
+             __syncwarp();
+           }
+@@ -7876,7 +8623,16 @@
+       for (int ph = 0; ph < 2; ++ph)
+         for (int q = 0; q < ne; ++q) {
+           const int e = (int)((elist >> (5 * q)) & 31);
++#if MOE1T_WBLV == 1
++          const unsigned char* src = ph == 0 ? P.wa + ((size_t)e * 512 + 4 * blk) * STAGE : P.wb + ((size_t)e * 512 + 4 * blk) * STAGE;
++          constexpr size_t BST = STAGE;  // (MOE1T_WBL: the stride between a CTA's phase-B blocks)
++#elif MOE1T_WBLV == 2
++          const unsigned char* src = ph == 0 ? P.wa + ((size_t)e * 512 + 4 * blk) * STAGE : P.wb + ((size_t)e * 256 + blk) * STAGE;
++          const size_t BST = ph == 0 ? (size_t)STAGE : (size_t)128 * STAGE;
++#else
+           const unsigned char* src = ph == 0 ? P.wa + ((size_t)e * 512 + 4 * blk) * STAGE : P.wb + ((size_t)e * 256 + 2 * blk) * STAGE;
++          constexpr size_t BST = STAGE;
++#endif
+           for (int k = 0; k < (ph == 0 ? 4 : 2); ++k, ++it) {
+             const int s = it % NS;
+             mbar_sleep(BAR(8 + s), ((it / NS) & 1) ^ 1);
+@@ -7907,6 +8663,41 @@
+ #endif
+     u32 xb[64];
+     const int na = 4 * ne, nt = 6 * ne;
++#ifdef MOE1T_COLS
++    int nl = 0;  // (MOE1T_COLS: the next expert whose fragments are not loaded yet)
++#endif
++#if defined(MOE1T_PIPE2) && !defined(MOE1T_PIPE)
++#error "MOE1T_PIPE2: needs MOE1T_PIPE"
++#endif
++#ifdef MOE1T_PIPE
++#if !defined(MOE_WPN_1TNB) || !defined(MOE1T_REL1) || defined(MOE1T_TAIL2)
++#error "MOE1T_PIPE: with the 1TNB / REL1 slot hand-offs, not with TAIL2"
++#endif
++    // (MOE1T_PIPE: the previous stage's partials, written inside the next stage's body)
++    bool pnd = false;
++    float pa0 = 0.f, pa1 = 0.f, pb0 = 0.f, pb1 = 0.f;
++    u32 paddr = 0;
++    int pbar = 0;
++    u32 ptig = 0;  // (the lanes holding the stage's B column: tig == column / 2)
++#ifdef MOE1T_PIPE2
++    // (MOE1T_PIPE2: the next stage's blocks 0, 1 and scale word, loaded in this stage's tail; nq: they are loaded)
++    uint4 nq0 = make_uint4(0, 0, 0, 0), nq1 = nq0, nsv = nq0;
++    bool nq = false;
++#endif
++    auto pepi = [&]() {
++      if (pnd) {
++        const float va = pa0 + pa1, vb = pb0 + pb1;
++#ifdef MOE1T_COLS
++        asm volatile("{ .reg .pred p; setp.eq.u32 p, %0, %4; @p st.shared.f32 [%1], %2; @p st.shared.f32 [%1+32], %3; }"
++                     :: "r"(tig), "r"(paddr), "f"(va), "f"(vb), "r"(ptig));
++#else
++        asm volatile("{ .reg .pred p; setp.eq.u32 p, %0, 0; @p st.shared.f32 [%1], %2; @p st.shared.f32 [%1+32], %3; }"
++                     :: "r"(tig), "r"(paddr), "f"(va), "f"(vb));
++#endif
++        asm volatile("bar.arrive %0, 288;" :: "r"(pbar));
++      }
++    };
++#endif
+ #ifdef MOE1T_WARM
+     // (MOE1T_WARM: a first iteration it = -1, right at entry, runs the stage on whatever slot 0 holds without waits
+     // or signals, so the stage loop's code is fetched while the memory system is still idle; result discarded)
+@@ -7929,6 +8720,9 @@
+           const uint4 v = *reinterpret_cast<const uint4*>(xp + 128 * (m >> 1) + 16 * (m & 1));
+ #else
+         const unsigned char* xp = xres + (512 * warp + 128 * tig) * 2;
++#ifdef MOE1T_BL4
++        if (lane < 4)  // (MOE1T_BL4: B column 0 = lanes 0-3; the other columns are never read back)
++#endif
+ #pragma unroll
+         for (int m = 0; m < 16; ++m) {
+           const uint4 v = *reinterpret_cast<const uint4*>(xp + 16 * m);
+@@ -7936,8 +8730,43 @@
+           xb[4 * m] = v.x; xb[4 * m + 1] = v.y; xb[4 * m + 2] = v.z; xb[4 * m + 3] = v.w;
+         }
+       }
++#ifdef MOE1T_COLS
++      // (MOE1T_COLS: the next expert's fragments into its own column as soon as its intermediate is in ibuf; blocking
++      // only when its first stage is next and it is not loaded yet)
++      if (it >= 0) {
++        const bool need = nl < ne && it >= na + 2 * nl;  // expert nl's first stage is this one
++        if (nl < ne && (nl < 7 || it >= na)) {
++          bool rdy;
++          if (need) { mbar_wait(BAR(25 + (nl & 1)), (nl >> 1) & 1); rdy = true; }
++          else rdy = __all_sync(0xFFFFFFFFu, mbar_test(BAR(25 + (nl & 1)), (nl >> 1) & 1));
++          if (rdy) {
++            const int cn = nl < 7 ? nl + 1 : 0;
++            if (g == cn) {
++              const unsigned char* ip = ibuf + (nl & 1) * 8192 + (warp * 4 + tig) * 256;
++#pragma unroll
++              for (int m = 0; m < 16; ++m) {
++                const uint4 v = *reinterpret_cast<const uint4*>(ip + 16 * (m ^ tig));
++                xb[4 * m] = v.x; xb[4 * m + 1] = v.y; xb[4 * m + 2] = v.z; xb[4 * m + 3] = v.w;
++              }
++            }
++            __syncwarp();
++            if (lane == 0) mbar_arrive(BAR(27 + (nl & 1)));
++#ifdef MOE1T_TRACE
++            if (warp == 0 && lane == 0 && nl < 4) TRT(4 + nl);
++#endif
++            ++nl;
++          }
++        }
++      }
++      if (false) {
++#else
+       else if (it >= na && ((it - na) & 1) == 0) {  // a phase-B expert starts: its intermediate as the B fragments
++#endif
+         const int qb = (it - na) >> 1;
++#ifdef MOE1T_SIGB
++        while (ld_acq_cta(scal + 36 + (qb & 1)) != qb + 1 || (MOE1T_FW == 2 && ld_acq_cta(scal + 38 + (qb & 1)) != qb + 1)) {}
++        if (false)
++#endif
+         mbar_wait(BAR(25 + (qb & 1)), (qb >> 1) & 1);
+ #ifdef MOE1T_XN
+         const unsigned char* ip = ibuf + (qb & 1) * 8192 + 1024 * warp + 32 * tig;  // (XN: natural order, as the token row)
+@@ -7946,6 +8775,9 @@
+           const uint4 v = *reinterpret_cast<const uint4*>(ip + 128 * (m >> 1) + 16 * (m & 1));
+ #else
+         const unsigned char* ip = ibuf + (qb & 1) * 8192 + (warp * 4 + tig) * 256;
++#ifdef MOE1T_BL4
++        if (lane < 4)  // (MOE1T_BL4)
++#endif
+ #pragma unroll
+         for (int m = 0; m < 16; ++m) {
+           const uint4 v = *reinterpret_cast<const uint4*>(ip + 16 * (m ^ tig));
+@@ -7953,6 +8785,10 @@
+           xb[4 * m] = v.x; xb[4 * m + 1] = v.y; xb[4 * m + 2] = v.z; xb[4 * m + 3] = v.w;
+         }
+         __syncwarp();
++#ifdef MOE1T_SIGB
++        if (lane == 0) st_rel_cta(scal + 40 + 2 * warp + (qb & 1), qb + 1);
++        if (false)
++#endif
+         if (lane == 0) mbar_arrive(BAR(27 + (qb & 1)));
+ #ifdef MOE1T_TRACE
+         if (warp == 0 && lane == 0 && qb < 4) TRT(4 + qb);
+@@ -7960,11 +8796,51 @@
+       }
+       const int s = dry ? 0 : it % NS;
+       const bool lastst = T2 && it == nt - 1;
++#ifdef MOE1T_PIPE2
++      if (nq) asm volatile("" ::: "memory");  // (this thread waited on the stage's barrier in the previous stage's tail)
++      else
++#endif
++#ifdef MOE1T_SIGW
++      if (!dry) {
++        const u32 fa = smem_addr((const void*)(scal + 32 + s));
++        u32 v;
++        do { asm volatile("ld.acquire.cta.shared.u32 %0, [%1];" : "=r"(v) : "r"(fa) : "memory"); } while (v != (u32)(it + 1));
++      }
++      if (false)
++#endif
+       if (!dry) mbar_wait(lastst ? BAR(29) : BAR(s), lastst ? 0 : (it / NS) & 1);
+       TRS2(0);
+       float c0[4] = {0.f, 0.f, 0.f, 0.f}, c1[4] = {0.f, 0.f, 0.f, 0.f};
+ #ifndef MOE1T_NOCOMP
+       const unsigned char* sb = stages + s * STAGE;
++#if defined(MOE1T_PIPE2)
++      {
++        static_assert(!S6 || true, "");
++        const u32 wsa = smem_addr(sb + warp * 4096 + lane * 16), ssa = smem_addr(sb + WB + warp * 32 * SLN + lane * SLN);
++        if (!nq) { nq0 = lds128v(wsa); nq1 = lds128v(wsa + 512); nsv = lds128v(ssa); }  // (stage 0, the dry pass)
++        const int itn = it + 1;
++        auto pnxt = [&]() {
++          nq = false;
++          if (!dry && itn < nt) {
++            const int sn = itn % NS;
++            asm volatile("{ .reg .pred p; LAB_W%=: mbarrier.try_wait.parity.shared::cta.b64 p, [%0], %1; @!p bra LAB_W%=; }"
++                         :: "r"(BAR(sn)), "r"((u32)((itn / NS) & 1)));
++            const u32 nb = smem_addr(stages + sn * STAGE);
++            nq0 = lds128v(nb + warp * 4096 + lane * 16); nq1 = lds128v(nb + warp * 4096 + lane * 16 + 512);
++            nsv = lds128v(nb + WB + warp * 32 * SLN + lane * SLN);
++            nq = true;
++          }
++        };
++        stage_two_q<MOE1T_PIPE, MOE1T_PIPE2>(c0, c1, sb + warp * 4096 + lane * 16, nq0, nq1, nsv, xb, pepi, pnxt);
++        (void)ssa;
++      }
++      pnd = false;
++      if (false)
++#elif defined(MOE1T_PIPE)
++      stage_two_p<S6, MOE1T_PIPE>(c0, c1, sb + warp * 4096 + lane * 16, sb + WB + warp * 32 * SLN + lane * SLN, xb, pepi);
++      pnd = false;
++      if (false)
++#endif
+       if constexpr (T2)
+         stage_two<S6, true>(c0, c1, sb + SB + warp * 2048 + lane * 16, sb + warp * 32 * SLN + lane * SLN, xb, dry ? BAR(29) : BAR(s), dry ? 1 : (it / NS) & 1);
+       else
+@@ -7979,11 +8855,40 @@
+       TRS2(1);
+       const int sl = REL1 ? s : it & 3;
+       if (!REL1) mbar_wait(BAR(21 + sl), ((it >> 2) & 1) ^ 1);
++#ifdef MOE1T_PIPE
++      // (MOE1T_PIPE: this stage's partials go out inside the next stage's body; the CTA's last stage's right after the loop)
++#ifdef MOE1T_COLS
++      {
++        const int qx = (it - na) >> 1;
++        const int cn = it < na ? 0 : (qx < 7 ? qx + 1 : 0);
++        const bool od = cn & 1;
++        pa0 = od ? c0[1] : c0[0]; pa1 = od ? c1[1] : c1[0]; pb0 = od ? c0[3] : c0[2]; pb1 = od ? c1[3] : c1[2];
++        ptig = (u32)(cn >> 1);
++      }
++#else
++      pa0 = c0[0]; pa1 = c1[0]; pb0 = c0[2]; pb1 = c1[2];
++#endif
++      pnd = true;
++      paddr = smem_addr(part + (sl * 8 + warp) * 16 + g); pbar = 4 + sl;
++      continue;
++#endif
++#ifdef MOE1T_COLS
++      {
++        const int qx = (it - na) >> 1;
++        const int cn = it < na ? 0 : (qx < 7 ? qx + 1 : 0);  // (MOE1T_COLS: this stage's B column)
++        if (tig == (cn >> 1)) {
++          float* pp = part + (sl * 8 + warp) * 16;
++          pp[g] = (cn & 1) ? c0[1] + c1[1] : c0[0] + c1[0];
++          pp[g + 8] = (cn & 1) ? c0[3] + c1[3] : c0[2] + c1[2];
++        }
++      }
++#else
+       if (tig == 0) {
+         float* pp = part + (sl * 8 + warp) * 16;
+         pp[g] = c0[0] + c1[0];
+         pp[g + 8] = c0[2] + c1[2];
+       }
++#endif
+       __syncwarp();
+ #ifdef MOE_WPN_1TNB
+       if constexpr (REL1) asm volatile("bar.arrive %0, 288;" :: "r"(4 + sl) : "memory");
+@@ -7991,8 +8896,13 @@
+ #endif
+       if (lane == 0) mbar_arrive(BAR(17 + sl));
+     }
++#ifdef MOE1T_PIPE
++    __syncwarp();
++    pepi();  // (the last stage's partials)
++#endif
+ #ifdef MOE1T_TRACE
+     if (warp == 0 && lane == 0) TRT(22);
++    if (lane == 0) TRE(warp);
+ #endif
+     return;
+   }
+@@ -8007,6 +8917,15 @@
+     int rounds = 0;
+     for (int q = 0; q < ne; ++q) {
+       while (scal[2] <= q) __nanosleep(64);  // this CTA's own items of the expert are out
++#ifdef MOE1T_FLATE
++      if (q < ne - 1) while (scal[3] < 4 * (q + 1) + MOE1T_FLATE) __nanosleep(64);  // (that many items into the next expert)
++#endif
++#ifdef MOE1T_F0DLY
++      if (q == 0 && ne > 1) {  // (MOE1T_F0DLY: the first expert's first poll later, past the CTAs' A(0) store spread)
++        const u32 t0 = gtimer();
++        while ((int)(gtimer() - t0) < MOE1T_F0DLY) __nanosleep(64);
++      }
++#endif
+ #ifdef MOE1T_FDLY
+       if (q == ne - 1) {  // (MOE1T_FDLY: the last expert's first poll that many ns later, so one round sees every CTA)
+         const u32 t0 = gtimer();
+@@ -8015,6 +8934,18 @@
+ #endif
+ #ifdef MOE1T_TRACE
+       if (tw && lane == 0 && q < 4) TRT(8 + q);
++#endif
++#ifdef MOE1T_SIGB
++      if (q >= 2) {  // (MOE1T_SIGB: every consumer warp has loaded expert q - 2 from this buffer)
++        bool ok = false;
++        while (!ok) {
++          ok = true;
++#pragma unroll
++          for (int w = 0; w < 8; ++w) ok = ok && ld_acq_cta(scal + 40 + 2 * w + (q & 1)) >= q - 1;
++          if (!ok) __nanosleep(64);
++        }
++      }
++      if (false)
+ #endif
+       HWAIT(BAR(27 + (q & 1)), ((q >> 1) & 1) ^ 1);  // the buffer's previous expert is loaded by every consumer
+       const unsigned long long* src = P.ib + (size_t)q * 2048;
+@@ -8034,6 +8965,9 @@
+         for (int k = 0; k < 4; ++k) sbk[k] = dst + 256 * mb + 16 * ((lane >> 1) ^ k) + 8 * (lane & 1);
+ #define FLEAN_DST(m) (sbk[(m) & 3] + 256 * (m))
+ #endif
++#ifdef MOE1T_FXSS
++        u32 hmx = 0;  // (MOE1T_FXSS: max |h| of this lane's words, per bf16 half)
++#endif
+         while (__any_sync(0xFFFFFFFFu, pend != 0)) {
+           uint4 v[NWL];
+ #pragma unroll
+@@ -8044,11 +8978,20 @@
+             if (((pend >> m) & 1u) && v[m].y == ep && v[m].w == ep) {
+               pend &= ~(1u << m);
+               *reinterpret_cast<uint2*>(FLEAN_DST(m)) = make_uint2(v[m].x, v[m].z);
++#ifdef MOE1T_FXSS
++              hmx = bf2maxabs(hmx, v[m].x, v[m].z);
++#endif
+             }
+           }
+           ++rounds;
+         }
+ #undef FLEAN_DST
++#ifdef MOE1T_FXSS
++        {  // the warp's max |h| (exact: a max has no rounding, so every CTA gets the same value)
++          const u32 wm = __reduce_max_sync(0xFFFFFFFFu, max(hmx & 0xFFFFu, hmx >> 16));
++          if (lane == 0) hmxs[2 * q + (warp - 10)] = wm;
++        }
++#endif
+       }
+       if (false)
+ #endif
+@@ -8081,6 +9024,10 @@
+         ++rounds;
+       }
+       __syncwarp();
++#ifdef MOE1T_SIGB
++      if (lane == 0) st_rel_cta(scal + 36 + 2 * (warp - 10) + (q & 1), q + 1);
++      if (false)
++#endif
+       if (lane == 0) mbar_arrive(BAR(25 + (q & 1)));
+ #ifdef MOE1T_TRACE
+       if (tw && lane == 0 && q < 4) TRT(12 + q);
+@@ -8092,6 +9039,34 @@
+ #endif
+     return;
+   }
++#ifdef MOE1T_SIGW
++  if (warp == 12) {  // (MOE1T_SIGW: the consumers' data-ready signal)
++    if (lane == 0) {
++      const int ntt = 6 * ne;
++      for (int it = 0; it < ntt; ++it) {
++        const int s = it % NS;
++        mbar_sleep_h<1000000>(BAR(s), (it / NS) & 1);
++        asm volatile("st.release.cta.shared.u32 [%0], %1;" :: "r"(smem_addr((const void*)(scal + 32 + s))), "r"(it + 1) : "memory");
++      }
++    }
++    return;
++  }
++#endif
++#ifdef MOE1T_TOBS
++  if (warp == 12) {  // (MOE1T_TOBS: when each stage's bytes have landed; never arrives on anything)
++    if (lane == 0) {
++      const int ntt = 6 * ne;
++      for (int it = 0; it < ntt && it < 32; ++it) {
++        const int s = it % NS;
++        const u32 t0 = gtimer();
++        bool ok = false;
++        while (!ok && (int)(gtimer() - t0) < 100000) ok = mbar_try_s(BAR(s), (it / NS) & 1);
++        P.trc[24576 + blockIdx.x * 32 + it] = ok ? (int)gtimer() : 0;
++      }
++    }
++    return;
++  }
++#endif
+   if (warp == 9) {
+     // ------------------------------ epilogues and the combine ------------------------------
+ #ifdef MOE1T_TOUCH
+@@ -8107,12 +9082,18 @@
+       for (int q = 0; q < ne; ++q) st_relaxed_u64(reinterpret_cast<unsigned long long*>(P.ss) + q * 128 + blk, 0ull);
+ #endif
+ #endif
++#ifdef MOE1T_OWARM
++    P.out[32 * blk + lane] = 0;  // (MOE1T_OWARM: the final store below overwrites it, same thread)
++#endif
+     int c = 0;
+ #ifdef MOE1T_TAGSS
+     // (MOE1T_TAGSS: ctr[0] is the call index, written by CTA 0 once it has seen every CTA's sums of this call)
+     if (lane == 0) c = ld_relaxed_s32(P.ctr);
+ #else
+     if (lane == 0) c = ld_relaxed_s32(P.ctr) / (int)gridDim.x;
++#if defined(MOE1T_CTRE) && defined(MOE1T_FXSS)
++    if (lane == 0) red_add_s32(P.ctr, 1);  // (MOE1T_CTRE: after this thread's read of the same word)
++#endif
+ #endif
+     c = __shfl_sync(0xFFFFFFFFu, c, 0);
+     const u32 ep = (u32)(c + 1);
+@@ -8121,7 +9102,13 @@
+     asm volatile("bar.sync 2, %0;" :: "n"(32 + 32 * MOE1T_FW) : "memory");
+     TRT(2);
+     const int par = c & 1;
+-#ifndef MOE1T_TAGSS
++#ifdef MOE1T_FXSS
++    // (MOE1T_FXSS: [2 parities][8 experts] words {count:8 | fixed-point sum of squares:56} at float offset 512 of ss,
++    // G_e = sum_r (1 + w_r)^2 |W2_e[r]|^2 at float offset 1024 + e)
++    unsigned long long* fxw = reinterpret_cast<unsigned long long*>(P.ss + 512);
++    if (blk == 0 && lane < 8) fxw[(par ^ 1) * 8 + lane] = 0ull;
++    float gG = 0.f, fsc = 0.f;
++#elif !defined(MOE1T_TAGSS)
+     if (blk == 0 && lane < 8) P.ss[(par ^ 1) * 8 + lane] = 0.f;
+ #endif  // the next call's sums (this one's were zeroed by the last)
+     float gA = 0.f, gB = 0.f, twq = 0.f;
+@@ -8129,6 +9116,9 @@
+       const int e = (int)((elist >> (5 * lane)) & 31);
+       gA = P.gs13[e] * DQF; gB = P.gs2[e] * DQF;
+       twq = P.topk_w[(slist >> (3 * lane)) & 7];
++#ifdef MOE1T_FXSS
++      gG = P.ss[1024 + e];
++#endif
+     }
+     const float nwv = P.nw1[32 * blk + lane];
+     int it = 0;
+@@ -8158,6 +9148,9 @@
+         const u32 hn = __shfl_down_sync(0xFFFFFFFFu, hb, 1);
+         if (lane < 8 && !(lane & 1))
+           st_relaxed_u64(P.ib + ((size_t)(q * 512 + 4 * blk + k) * 4 + (lane >> 1)), ((unsigned long long)ep << 32) | (hb | (hn << 16)));
++#ifdef MOE1T_FLATE
++        if (lane == 0) scal[3] = 4 * q + k + 1;
++#endif
+       }
+       __syncwarp();
+       if (lane == 0) scal[2] = q + 1;
+@@ -8168,6 +9161,12 @@
+     for (int q = 0; q < ne; ++q) {
+       const float g2 = __shfl_sync(0xFFFFFFFFu, gB, q);
+       float ssp = 0.f;
++#ifdef MOE1T_FXSS
++      // (v1301: the fixed-point scale of expert q from its max |h| (the fetchers stored it before the B(q) fragments
++      // were released to the consumers, who arrive on the partial barriers this loop waits on) -- read after the first
++      // stage's barrier below, computed here as a lambda-free block to keep it off the end chain)
++      float fxs = 0.f;
++#endif
+       for (int t = 0; t < 2; ++t, ++it) {
+         const int sl = REL1 ? it % NS : it & 3;
+ #ifdef MOE_WPN_1TNB
+@@ -8175,6 +9174,14 @@
+         else
+ #endif
+         HWAIT(BAR(17 + sl), REL1 ? (it / NS) & 1 : (it >> 2) & 1);
++        const bool fin = q == ne - 1 && t == 1;
++        if (fin && lane == 0) TRE(8);
++#ifdef MOE1T_OLATE
++        if (fin) P.out[32 * blk + lane] = 0;  // (MOE1T_OLATE: the final store below, same thread, overwrites it)
++#endif
++#if defined(MOE1T_WARMF) && defined(MOE1T_FXSS)
++        if (fin && lane == 0) { const unsigned long long wv = ld_relaxed_u64(fxw + par * 8 + q); asm volatile("" :: "l"(wv)); }
++#endif
+         float v = 0.f;
+         if (lane < 16) {
+ #pragma unroll
+@@ -8186,20 +9193,45 @@
+         else
+ #endif
+         if (lane == 0) mbar_arrive(REL1 ? BAR(8 + sl) : BAR(21 + sl));  // (REL1: the ring slot itself)
++        if (fin && lane == 0) TRE(9);
+         const float nw = __shfl_sync(0xFFFFFFFFu, nwv, 16 * t + (lane & 15));
+         v = v * g2 * nw;
+         if (lane < 16) { yv[q * 32 + 16 * t + lane] = v; ssp += v * v; }
++        if (fin && lane == 0) TRE(10);
++#ifdef MOE1T_FXSS
++        if (t == 0) {  // (after B(q)'s first stage barrier: the fetchers' max |h| of expert q is visible)
++          const u32 hb = MOE1T_FW == 2 ? max((u32)hmxs[2 * q], (u32)hmxs[2 * q + 1]) : (u32)hmxs[2 * q];
++          const float hm = __uint_as_float(hb << 16);
++          const float U = 8192.f * __shfl_sync(0xFFFFFFFFu, gG, q) * hm * hm;
++          const int ex = (int)((__float_as_uint(U) >> 23) & 0xFFu) - 126;  // U < 2^ex
++          const int S = min(max(53 - ex, -120), 120);
++          fxs = __uint_as_float((u32)(S + 127) << 23);
++          if (lane == q) fsc = __uint_as_float((u32)(127 - S) << 23);
++        }
++#endif
+       }
+ #ifdef MOE1T_TRACE
+       if (lane == 0 && q == ne - 1) TRT(21);
+ #endif
+ #pragma unroll
+       for (int o = 16; o > 0; o >>= 1) ssp += __shfl_xor_sync(0xFFFFFFFFu, ssp, o);
++      if (q == ne - 1 && lane == 0) TRE(11);
+ #ifdef MOE1T_TAGSS
+       // (MOE1T_TAGSS: the CTA's sum of squares of expert q as one 8-byte (sum, epoch) word in slot [q][CTA])
+       if (lane == 0) st_relaxed_u64(reinterpret_cast<unsigned long long*>(P.ss) + q * 128 + blk, ((unsigned long long)ep << 32) | __float_as_uint(ssp));
++#elif defined(MOE1T_FXSS)
++      {
++        // U = 2 * 4096 * G * max|h|^2 >= 2 * the expert's whole sum of squares (Cauchy-Schwarz per row), the same in
++        // every CTA; S: U * 2^S < 2^53, so the sum of all 128 terms (<= U / 2 up to rounding) stays < 2^53, below the
++        // count field at bit 56 (each term is also clamped there, which the bound never reaches)
++        unsigned long long fx = __float2ull_rn(ssp * fxs);  // (v1301: fxs = 2^S_q, computed after B(q)'s first stage)
++        fx = min(fx, (1ull << 53) - 1ull);
++        if (lane == 0) red_add_u64(fxw + par * 8 + q, (1ull << 56) + fx);
++        if (q == ne - 1 && lane == 0) TRE(12);
++      }
+ #else
+       if (lane == 0) red_add_f32(P.ss + par * 8 + q, ssp);
++      if (q == ne - 1 && lane == 0) TRE(12);
+ #endif
+     }
+     float s8[8] = {0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f, 0.f};
+@@ -8229,13 +9261,86 @@
+       TRT(24);
+       if (blk == 0) asm volatile("st.relaxed.gpu.global.s32 [%0], %1;" :: "l"(P.ctr), "r"(c + 1) : "memory");  // the next call's index
+     }
++#elif defined(MOE1T_FXSS)
++    // (MOE1T_FXSS: no fence, no counter wait, no reload: lane q polls expert q's word until all 128 terms are in it;
++    // the arrival counter only advances the call index (relaxed))
++    if (lane == 0) {
++      TRT(23);
++#ifndef MOE1T_CTRE
++      red_add_s32(P.ctr, 1);
++#endif
++    }
++    float sme = 0.f;
++#ifdef MOE1T_EPRE
++    // (MOE1T_EPRE: experts 0 .. ne - 2 first (lane q polls word q), folded into o; then lane 0 polls the last word)
++    float oe = 0.f;
++    if (lane < ne - 1) {
++      const unsigned long long* wq = fxw + par * 8 + lane;
++      unsigned long long w;
++      do { w = ld_relaxed_u64(wq); } while ((u32)(w >> 56) < gridDim.x);
++      sme = twq * rsqrtf((float)(w & 0x00FFFFFFFFFFFFFFull) * fsc * (1.f / 4096.f) + 1e-8f);
++    }
++    __syncwarp();
++#pragma unroll
++    for (int q = 0; q < 7; ++q) {
++      const float tq = __shfl_sync(0xFFFFFFFFu, sme, q);
++      if (q < ne - 1) oe += tq * yv[q * 32 + lane];
++    }
++    const float yl = yv[(ne - 1) * 32 + lane];
++    const float twl = __shfl_sync(0xFFFFFFFFu, twq, ne - 1), fsl = __shfl_sync(0xFFFFFFFFu, fsc, ne - 1);
++    float tl = 0.f;
++    if (lane == 0) {
++      const unsigned long long* wq = fxw + par * 8 + ne - 1;
++      unsigned long long w;
++      do { w = ld_relaxed_u64(wq); } while ((u32)(w >> 56) < gridDim.x);
++      tl = twl * rsqrtf((float)(w & 0x00FFFFFFFFFFFFFFull) * fsl * (1.f / 4096.f) + 1e-8f);
++    }
++    __syncwarp();
++    if (lane == 0) { TRT(24); TRE(13); }
++    oe += __shfl_sync(0xFFFFFFFFu, tl, 0) * yl;
++    P.out[32 * blk + lane] = f2bf(oe);
++    if (lane == 0) TRE(14);
++    if (lane == 0) TRT(25);
++    if (true) return;
++#else
++#ifdef MOE1T_MPOLL
++    if (lane < ne - 1) {
++      const unsigned long long* wq = fxw + par * 8 + lane;
++      unsigned long long w;
++      do { w = ld_relaxed_u64(wq); } while ((u32)(w >> 56) < gridDim.x);
++      sme = (float)(w & 0x00FFFFFFFFFFFFFFull) * fsc;
++    } else if (lane == ne - 1) {  // (MOE1T_MPOLL: two staggered polls of the last word in flight)
++      const unsigned long long* wq = fxw + par * 8 + lane;
++      unsigned long long wa = ld_relaxed_u64(wq), wb;
++      { const u32 t0 = gtimer(); while ((int)(gtimer() - t0) < MOE1T_MPOLL) {} }
++      wb = ld_relaxed_u64(wq);
++      unsigned long long w;
++      while (true) {
++        if ((u32)(wa >> 56) >= gridDim.x) { w = wa; break; }
++        wa = ld_relaxed_u64(wq);
++        if ((u32)(wb >> 56) >= gridDim.x) { w = wb; break; }
++        wb = ld_relaxed_u64(wq);
++      }
++      sme = (float)(w & 0x00FFFFFFFFFFFFFFull) * fsc;
++    }
++#else
++    if (lane < ne) {
++      const unsigned long long* wq = fxw + par * 8 + lane;
++      unsigned long long w;
++      do { w = ld_relaxed_u64(wq); } while ((u32)(w >> 56) < gridDim.x);
++      sme = (float)(w & 0x00FFFFFFFFFFFFFFull) * fsc;
++    }
++#endif
++    __syncwarp();
++    if (lane == 0) { TRT(24); TRE(13); }
++#endif
+ #else
+     if (lane == 0) {
+       TRT(23);
+       red_release_add(P.ctr, 1);
+       const int want = (c + 1) * (int)gridDim.x;
+       while (ld_acquire(P.ctr) < want) {}
+-      TRT(24);
++      TRT(24); TRE(13);
+     }
+     if (lane == 0) {
+ #pragma unroll
+@@ -8246,20 +9351,31 @@
+     float o = 0.f;
+ #pragma unroll
+     for (int q = 0; q < 8; ++q) {
++#ifdef MOE1T_FXSS
++      const float sq = __shfl_sync(0xFFFFFFFFu, sme, q);
++#else
+       const float sq = __shfl_sync(0xFFFFFFFFu, s8[q], 0);
++#endif
+       const float tw = __shfl_sync(0xFFFFFFFFu, twq, q);
+       if (q < ne) o += tw * rsqrtf(sq * (1.f / 4096.f) + 1e-8f) * yv[q * 32 + lane];
+     }
++    if (lane == 0) TRE(15);
+     P.out[32 * blk + lane] = f2bf(o);
++    if (lane == 0) TRE(14);
+     if (lane == 0) TRT(25);
+   }
+ #undef BAR
+ }
+-extern "C" __global__ void __launch_bounds__(MOE1T_THREADS, 1) moe1t_3(Params1T p) { moe1t_body<3, false>(p); }
+-extern "C" __global__ void __launch_bounds__(MOE1T_THREADS, 1) moe1t_4(Params1T p) { moe1t_body<4, false>(p); }
+-extern "C" __global__ void __launch_bounds__(MOE1T_THREADS, 1) moe1t_5(Params1T p) { moe1t_body<5, false>(p); }
+-extern "C" __global__ void __launch_bounds__(MOE1T_THREADS, 1) moe1t6_4(Params1T p) { moe1t_body<4, true>(p); }
+-extern "C" __global__ void __launch_bounds__(MOE1T_THREADS, 1) moe1t6_5(Params1T p) { moe1t_body<5, true>(p); }
++#ifdef MOE1T_MAXREG  // (v1300: pin moe1t's register budget, so a switch elsewhere in the kernel leaves the stage loop's allocation alone)
++#define MOE1T_LB __maxnreg__(MOE1T_MAXREG)
++#else
++#define MOE1T_LB __launch_bounds__(MOE1T_THREADS, 1)
++#endif
++extern "C" __global__ void MOE1T_LB moe1t_3(Params1T p) { moe1t_body<3, false>(p); }
++extern "C" __global__ void MOE1T_LB moe1t_4(Params1T p) { moe1t_body<4, false>(p); }
++extern "C" __global__ void MOE1T_LB moe1t_5(Params1T p) { moe1t_body<5, false>(p); }
++extern "C" __global__ void MOE1T_LB moe1t6_4(Params1T p) { moe1t_body<4, true>(p); }
++extern "C" __global__ void MOE1T_LB moe1t6_5(Params1T p) { moe1t_body<5, true>(p); }
+ 
+ #ifdef MOE_WPA_TMP
+ #define MOE_CLU_8 __cluster_dims__(1, 1, 1)  // (v719: 1-CTA clusters, for the bulk smem -> smem copy)
+@@ -8353,8 +9469,8 @@
+     (8, (4, 1, 1)),
+     (16, (4, 2, 1)),   # (v198: 16-token tiles: an expert with 9-16 tokens streams its weights once)
+     (32, (8, 4, 1)),   # (v192: judge-matched routings, whose bs32 experts often exceed 16 tokens: +0.7-0.9% over (8, 2, 1))
+-    (128, (8, 4, 1)),
+-    (MAX_M, (8, 8, 1)),
++    (64, (8, 4, 1)),
++    (MAX_M, (8, 8, 1)),   # (v1033: bs 65-128 on the 64-token tiles: an expert with 33-64 tokens streams and decodes its weights once)
+ ]
+ 
+ 
+@@ -8489,8 +9605,46 @@
+     return "#define MOE1T_S6" in CUDA_SRC
+ 
+ 
++
++def _baked(name):
++    """(WP-B1c bake) a baked moe1t switch is on unless its MOE1T_NO_ escape is defined"""
++    return ("#define MOE1T_NO_" + name[len("MOE1T_"):]) not in CUDA_SRC
++
+ def _smem1t(s6=False):
+-    return 28672 + NS1T * (35840 if s6 else 36864)
++    return 28672 + _ns1t() * (35840 if s6 else 36864)
++
++
++def _ns1t():
++    return 5 if "#define MOE1T_NS5" in CUDA_SRC else NS1T  # (v1308 MOE1T_NS5)
++
++
++def _wbl(wb):
++    """(v1303 MOE1T_WBL) the phase-B blocks [count][256 = 2 b + t][stage] moved (bytes unchanged): 1 -> [count][512] with
++    CTA b's blocks at 4 b + t (the other two zero, never read), 2 -> [count][t * 128 + b]."""
++    import re
++    m = re.search(r"#define MOE1T_WBL (\d)", CUDA_SRC)
++    if not m:
++        return wb
++    n, st = wb.shape[0], wb.shape[2]
++    v = wb.view(n, 128, 2, st)
++    if m.group(1) == "1":
++        out = torch.zeros((n, 128, 4, st), dtype=wb.dtype, device=wb.device)
++        out[:, :, :2] = v
++        return out.view(n, 512, st)
++    return v.permute(0, 2, 1, 3).contiguous().view(n, 256, st)
++
++
++def _ss1t(weights, start, count, dev):
++    """(v1300) moe1t's sum-of-squares buffer; with MOE1T_FXSS floats 1024 + e hold G_e = sum_r (1 + w_r)^2 |W2_e[r]|^2
++    (the dequantized weights, float64 sum), so that sum_r y_r^2 (1 + w_r)^2 <= G_e |h|^2 bounds the fixed-point scale."""
++    ss = torch.zeros(2048, dtype=torch.float32, device=dev)
++    if _baked("MOE1T_FXSS"):
++        from nvfp4 import dequantize
++        nw2 = (1.0 + weights["post_norm_w"].double()) ** 2
++        for e in range(count):
++            W = dequantize(weights["w2"][start + e], weights["w2_sf"][start + e], weights["w2_gs"][start + e]).double()
++            ss[1024 + e] = float(((W * W).sum(1) * nw2).sum())
++    return ss
+ 
+ 
+ def _pack_two6(blocks):
+@@ -8893,12 +10047,13 @@
+     s6t = False
+     if _two():
+         wa1t, wb1t = _repack_two(weights, start, count, dev)
+-        mod.func(f"moe1t_{NS1T}", _smem1t())
++        mod.func(f"moe1t_{_ns1t()}", _smem1t())
+         if _s6t() and fast:
+             wa6, wb6 = _pack_two6(wa1t), _pack_two6(wb1t)
+             if wa6 is not None and wb6 is not None:
+                 wa1t, wb1t, s6t = wa6, wb6, True
+-                mod.func(f"moe1t6_{NS1T}", _smem1t(True))
++                mod.func(f"moe1t6_{_ns1t()}", _smem1t(True))
++        wb1t = _wbl(wb1t)
+     else:
+         wa1t = wb1t = torch.zeros(1, dtype=torch.uint8, device=dev)
+     torch.cuda.synchronize()
+@@ -8926,8 +10081,8 @@
+         **_s6x_blocks(w13p, w2p, s13c6, s2c6, count, dev),
+         "ctr1": torch.zeros(32, dtype=torch.int32, device=dev),
+         "wa1t": wa1t, "wb1t": wb1t, "s6t": s6t, "ctr1t": torch.zeros(32, dtype=torch.int32, device=dev),
+-        "ss1t": torch.zeros(2048, dtype=torch.float32, device=dev), "ib1t": torch.zeros(8 * 512 * 4, dtype=torch.int64, device=dev),
+-        "trc": torch.zeros(4096 + 2 * 160 * 64, dtype=torch.int32, device=dev),  # (v497: + MOE1_TRS per-stage stamps)
++        "ss1t": _ss1t(weights, start, count, dev), "ib1t": torch.zeros(8 * 512 * 4, dtype=torch.int64, device=dev),
++        "trc": torch.zeros(4096 + 2 * 160 * 64 + 8192, dtype=torch.int32, device=dev),  # (v497: + MOE1_TRS per-stage stamps; v1303: + TOBS; v1304: + end stamps)
+         "raw": weights,
+         "fast": fast, "s6": S6,  # (the scale layout this state's kernels were compiled for)
+         "wb13": wb13, "wb2": wb2,
+@@ -8975,7 +10130,7 @@
+                             state["ctr1t"].data_ptr(), state["ss1t"].data_ptr(), state["ib1t"].data_ptr(),
+                             state["start"], state["trc"].data_ptr())
+             s6t = state.get("s6t", False)
+-            _module().launch(f"moe1t{'6' if s6t else ''}_{NS1T}", GRID1T, 352 if "#define MOE1T_NO_F2" in CUDA_SRC else 384, _smem1t(s6t), p1)  # (v814: F2 baked in)
++            _module().launch(f"moe1t{'6' if s6t else ''}_{_ns1t()}", GRID1T, 352 if "#define MOE1T_NO_F2" in CUDA_SRC else (416 if ("#define MOE1T_TOBS" in CUDA_SRC or "#define MOE1T_SIGW" in CUDA_SRC) else 384), _smem1t(s6t), p1)  # (v814: F2 baked in)
+             return out
+         p1 = _Params1C(x.data_ptr(), ids.data_ptr(), tw.data_ptr(), state["gs13"].data_ptr(), state["gs2"].data_ptr(),
+                        state["nw1"].data_ptr(), state["w2f"].data_ptr(), state["s2f6" if S6 and S6_1 else "s2f"].data_ptr(), out.data_ptr(),

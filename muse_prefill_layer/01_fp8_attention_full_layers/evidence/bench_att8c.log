@@ -1,0 +1,26 @@
+✓ Initialized. View run at 
+<modal-run-url>
+✓ Created objects.
+├── 🔨 Created mount 
+│   <scratch>
+│   5-ce57afd4da60/scratchpad/snap.V0IK02/dev/modal_run.py
+├── 🔨 Created mount 
+│   <scratch>
+│   5-ce57afd4da60/scratchpad/snap.V0IK02
+└── 🔨 Created function run.
+router seed 728034927264498030 (2 s)
+prepared dense (cand_dense.py) in 72.0 s
+prepared att8c (cand_att8c.py) in 1.4 s
+0 turn 1     b1 ctx80000 sliding q753  sglang    1097.5  dense     649.6 x1.688  att8c     648.7 x1.686 (vs dense x1.0013)
+1 turn 1     b1 ctx80000 full    q753  sglang    1528.2  dense    1035.4 x1.475  att8c    1023.2 x1.495 (vs dense x1.0135)
+2 turn 4     b4 ctx80000 sliding q753  sglang    3430.9  dense    2005.2 x1.718  att8c    2003.2 x1.719 (vs dense x1.0006)
+3 turn 4     b4 ctx80000 full    q753  sglang    4991.3  dense    3549.7 x1.406  att8c    3509.9 x1.421 (vs dense x1.0112)
+4 first turn b1 ctx0 full    q16384  sglang   18826.2  dense   10798.0 x1.735  att8c   10803.0 x1.733 (vs dense x1.0016)
+5 first turn b1 ctx32768 sliding q16384  sglang   17858.3  dense   10347.5 x1.706  att8c   10079.8 x1.756 (vs dense x1.0225)
+6 first turn b1 ctx32768 full    q16384  sglang   22882.2  dense   14665.4 x1.562  att8c   13933.2 x1.645 (vs dense x1.0502)
+7 first turn b1 ctx65536 full    q16384  sglang   26290.1  dense   18506.6 x1.444  att8c   16831.6 x1.575 (vs dense x1.0936)
+dense: turn 1 x1.612  turn 4 x1.599  first turn x1.657  geomean x1.6225
+att8c: turn 1 x1.619  turn 4 x1.606  first turn x1.719  geomean x1.6470
+Stopping app - local entrypoint completed.
+✓ App completed. View run at 
+<modal-run-url>

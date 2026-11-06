@@ -1,0 +1,200 @@
+
+=== case 0: turn 1 b1 ctx80000 sliding q753 (T 753, routes 1359, distinct 14): span 628.5 us, kernels busy 621.7, gaps 6.8
+      start kernel                                   us    GFLOP       MB    TF/s   TB/s  roof us   eff  over us  stream
+        0.0 qkv nvjet_sm90_tst                     38.4     28.4     53.6     740   1.39     28.7   75%      9.7  s7
+       10.8 kv_pack                                14.4      0.0      1.4       0   0.10      0.3    2%     14.1  s143 (side)
+       39.2 qkv_post                                7.0      0.0      4.4       0   0.63      0.9   13%      6.1  s7
+       48.4 attention attn_fwd                     34.4      6.3      4.6     183   0.13      5.9   17%     28.5  s143
+       83.5 o_proj nvjet_sm90_tst                  20.2     12.6     30.7     625   1.52     12.8   63%      7.5  s143
+      104.1 boundary1 bnd3_b1                      13.2      0.0     49.3       0   3.75     10.3   78%      2.9  s143
+      117.7 pool+router nvjet_sm90_tss             76.5     56.8    101.7     743   1.33     57.5   75%     19.1  s143
+      194.5 prenorm+route pnr                      11.7      0.0     20.0       0   1.71      4.2   36%      7.6  s143
+      206.7 routing route_8_16_1_2                 11.6      0.0      0.0       0   0.00      0.0    0%     11.6  s143
+      218.8 experts moe_8_16_1_2_3                313.1    136.8    418.6     437   1.34    138.3   44%    174.8  s143
+      532.4 finish _native_finish                   7.9      0.0     28.4       0   3.58      5.9   75%      2.0  s143
+      540.8 unpooler nvjet_sm90_tst                65.7     50.5     85.6     769   1.30     51.1   78%     14.6  s143
+      606.8 boundary2 bnd3_b2                      21.7      0.0     86.4       0   3.97     18.0   83%      3.7  s143
+   per-kernel rooflines (critical path) sum 333.6 us; whole-layer floor 294.3 us (math 294.3 us, bytes 668 MB = 139.3 us)
+   measured span / floor = 2.14x;  span - sum(rooflines) = 294.9 us, of which gaps 6.8
+   cost over roofline by kernel: experts 174.8, attention 28.5, pool+router 19.1, unpooler 14.6, routing 11.6, qkv 9.7, prenorm+route 7.6, o_proj 7.5, qkv_post 6.1, boundary2 3.7, boundary1 2.9, finish 2.0
+
+=== case 1: turn 1 b1 ctx80000 full q753 (T 753, routes 1314, distinct 14): span 931.0 us, kernels busy 924.5, gaps 6.5
+      start kernel                                   us    GFLOP       MB    TF/s   TB/s  roof us   eff  over us  stream
+        0.0 qkv nvjet_sm90_tst                     38.4     28.4     53.6     741   1.40     28.7   75%      9.6  s7
+       13.6 kv_pack                                47.5      0.0     41.3       0   0.87      8.6   18%     38.8  s145 (side)
+       48.8 qkv_post                               13.2      0.0      4.4       0   0.34      0.9    7%     12.2  s7
+       64.4 attention attn_fwd                    348.7    247.9     24.5     711   0.07    231.6   66%    117.1  s145
+      413.9 o_proj nvjet_sm90_tst                  20.4     12.6     30.7     620   1.50     12.8   63%      7.6  s145
+      434.7 boundary1 bnd3_b1                      13.2      0.0     49.3       0   3.72     10.3   78%      3.0  s145
+      448.3 pool+router nvjet_sm90_tss             76.8     56.8    101.7     740   1.32     57.5   75%     19.4  s145
+      525.4 prenorm+route pnr                      11.4      0.0     20.0       0   1.75      4.2   37%      7.2  s145
+      537.4 routing route_8_16_1_2                 11.6      0.0      0.0       0   0.00      0.0    0%     11.5  s145
+      549.4 experts moe_8_16_1_2_3                285.3    132.3    417.9     464   1.46    133.7   47%    151.6  s145
+      835.2 finish _native_finish                   7.6      0.0     27.7       0   3.62      5.8   75%      1.9  s145
+      843.3 unpooler nvjet_sm90_tst                65.7     50.5     85.6     769   1.30     51.1   78%     14.6  s145
+      909.2 boundary2 bnd3_b2                      21.8      0.0     86.4       0   3.97     18.0   83%      3.8  s145
+   per-kernel rooflines (critical path) sum 554.6 us; whole-layer floor 515.4 us (math 515.4 us, bytes 688 MB = 143.4 us)
+   measured span / floor = 1.81x;  span - sum(rooflines) = 376.4 us, of which gaps 6.5
+   cost over roofline by kernel: experts 151.6, attention 117.1, pool+router 19.4, unpooler 14.6, qkv_post 12.2, routing 11.5, qkv 9.6, o_proj 7.6, prenorm+route 7.2, boundary2 3.8, boundary1 3.0, finish 1.9
+
+=== case 2: turn 4 b4 ctx80000 sliding q753 (T 3012, routes 5543, distinct 14): span 1931.9 us, kernels busy 1910.3, gaps 21.6
+      start kernel                                   us    GFLOP       MB    TF/s   TB/s  roof us   eff  over us  stream
+        0.0 qkv nvjet_sm90_tst                    143.1    113.7    101.0     794   0.71    115.0   80%     28.2  s7
+       70.2 kv_pack                                84.3      0.0      5.7       0   0.07      1.2    1%     83.1  s147 (side)
+      143.7 qkv_post                               14.1      0.0     17.7       0   1.25      3.7   26%     10.4  s7
+      159.5 attention attn_fwd                     62.4     25.3     18.3     405   0.29     23.6   38%     38.8  s147
+      227.0 o_proj nvjet_sm90_tst                  68.9     50.5     72.3     733   1.05     51.1   74%     17.8  s147
+      296.4 boundary1 bnd3_b1                      54.0      0.0    197.4       0   3.65     41.1   76%     12.9  s147
+      356.7 pool+router nvjet_sm90_tss            284.0    227.4    180.4     801   0.64    229.9   81%     54.1  s147
+      641.0 prenorm+route pnr                      28.4      0.0     80.2       0   2.82     16.7   59%     11.7  s147
+      669.7 routing count_8_16_1_2                  5.2      0.0      0.2       0   0.04      0.0    1%      5.2  s147
+      675.4 routing finalize_8_16_                  2.0      0.0      0.2       0   0.09      0.0    2%      2.0  s147
+      677.9 routing pairs_8_16_1_2                  1.7      0.0      0.2       0   0.11      0.0    2%      1.7  s147
+      679.9 gather                                 35.3      0.0     90.8       0   2.57     18.9   54%     16.4  s147
+      715.5 experts moe_8_16_1_2_1                839.2    558.0    487.2     665   0.58    564.2   67%    275.0  s147
+     1555.3 finish _native_finish                  28.5      0.0    115.5       0   4.06     24.1   84%      4.4  s147
+     1588.6 unpooler nvjet_sm90_tst               251.2    202.1    141.1     805   0.56    204.4   81%     46.9  s147
+     1840.4 boundary2 bnd3_b2                      91.5      0.0    345.4       0   3.78     72.0   79%     19.5  s147
+   per-kernel rooflines (critical path) sum 1364.7 us; whole-layer floor 1188.2 us (math 1188.2 us, bytes 893 MB = 186.1 us)
+   measured span / floor = 1.63x;  span - sum(rooflines) = 567.2 us, of which gaps 21.6
+   cost over roofline by kernel: experts 275.0, pool+router 54.1, unpooler 46.9, attention 38.8, qkv 28.2, boundary2 19.5, o_proj 17.8, gather 16.4, boundary1 12.9, prenorm+route 11.7, qkv_post 10.4, routing 8.9, finish 4.4
+
+=== case 3: turn 4 b4 ctx80000 full q753 (T 3012, routes 5330, distinct 14): span 3222.3 us, kernels busy 3199.9, gaps 22.4
+      start kernel                                   us    GFLOP       MB    TF/s   TB/s  roof us   eff  over us  stream
+        0.0 qkv nvjet_sm90_tst                    144.6    113.7    101.0     786   0.70    115.0   80%     29.6  s7
+       70.9 kv_pack                               151.2      0.0    165.4       0   1.09     34.5   23%    116.8  s149 (side)
+      204.9 qkv_post                               20.6      0.0     17.7       0   0.86      3.7   18%     16.9  s7
+      226.8 attention attn_fwd                   1300.3    991.6     98.1     763   0.08    926.3   71%    374.0  s149
+     1532.4 o_proj nvjet_sm90_tst                  69.8     50.5     72.3     724   1.04     51.1   73%     18.7  s149
+     1602.8 boundary1 bnd3_b1                      54.0      0.0    197.4       0   3.66     41.1   76%     12.9  s149
+     1663.7 pool+router nvjet_sm90_tss            283.8    227.4    180.4     801   0.64    229.9   81%     53.8  s149
+     1947.7 prenorm+route pnr                      28.1      0.0     80.2       0   2.85     16.7   59%     11.4  s149
+     1976.2 routing count_8_16_1_2                  5.3      0.0      0.2       0   0.04      0.0    1%      5.3  s149
+     1982.0 routing finalize_8_16_                  2.1      0.0      0.2       0   0.09      0.0    2%      2.1  s149
+     1984.6 routing pairs_8_16_1_2                  1.8      0.0      0.2       0   0.11      0.0    2%      1.7  s149
+     1986.7 gather                                 33.4      0.0     87.3       0   2.61     18.2   54%     15.2  s149
+     2020.4 experts moe_8_16_1_2_1                824.8    536.5    483.7     651   0.59    542.5   66%    282.3  s149
+     2845.7 finish _native_finish                  27.7      0.0    112.0       0   4.04     23.3   84%      4.4  s149
+     2878.3 unpooler nvjet_sm90_tst               252.2    202.1    141.1     802   0.56    204.4   81%     47.8  s149
+     3131.1 boundary2 bnd3_b2                      91.2      0.0    345.4       0   3.79     72.0   79%     19.3  s149
+   per-kernel rooflines (critical path) sum 2244.3 us; whole-layer floor 2069.2 us (math 2069.2 us, bytes 973 MB = 202.7 us)
+   measured span / floor = 1.56x;  span - sum(rooflines) = 978.0 us, of which gaps 22.4
+   cost over roofline by kernel: attention 374.0, experts 282.3, pool+router 53.8, unpooler 47.8, qkv 29.6, boundary2 19.3, o_proj 18.7, qkv_post 16.9, gather 15.2, boundary1 12.9, prenorm+route 11.4, routing 9.1, finish 4.4
+
+=== case 4: first turn b1 ctx0 full q16384 (T 16384, routes 30420, distinct 15): span 10165.3 us, kernels busy 10140.7, gaps 24.6
+      start kernel                                   us    GFLOP       MB    TF/s   TB/s  roof us   eff  over us  stream
+        0.0 qkv nvjet_sm90_tst                    753.4    618.5    381.7     821   0.51    625.4   83%    128.1  s7
+      670.8 kv_pack                                 7.0      0.0      8.4       0   1.20      1.7   25%      5.3  s151 (side)
+      754.0 qkv_post                               49.8      0.0     96.5       0   1.94     20.1   40%     29.7  s7
+      805.6 attention attn_fwd                    824.0    549.8     88.1     667   0.11    513.6   62%    310.5  s151
+     1634.2 o_proj nvjet_sm90_tst                 334.6    274.9    318.8     821   0.95    277.9   83%     56.7  s151
+     1969.4 boundary1 bnd3_b1                     281.3      0.0   1073.7       0   3.82    223.7   80%     57.6  s151
+     2258.0 pooler nvjet_sm90_tst                1364.7   1099.5    469.8     806   0.34   1111.7   81%    252.9  s151
+     3622.9 router_hi nvjet_sm90_tss               92.6     68.7    289.4     742   3.13     69.5   75%     23.1  s151
+     3715.8 router_lo nvjet_sm90_tss               96.6     68.7    289.4     711   2.99     69.5   72%     27.2  s151
+     3813.0 routing void sglang::m                 19.4      0.0      1.0       0   0.05      0.2    1%     19.2  s151
+     3832.8 void at::native::element                1.9      0.0      0.0       0   0.00      0.0    0%      1.9  s151
+     3835.1 void at::native::vectori                1.4      0.0      0.0       0   0.00      0.0    0%      1.4  s151
+     3836.9 prenorm void at::nativ                 78.9      0.0    268.4       0   3.40     55.9   71%     23.0  s151
+     3916.1 routing count_8_16_1_2                 22.3      0.0      1.0       0   0.05      0.2    1%     22.1  s151
+     3938.8 routing finalize_8_16_                  3.1      0.0      1.0       0   0.34      0.2    7%      2.9  s151
+     3942.4 routing pairs_8_16_1_2                  2.2      0.0      1.0       0   0.47      0.2   10%      2.0  s151
+     3945.0 gather                                220.1      0.0    498.4       0   2.26    103.8   47%    116.2  s151
+     4165.3 experts moe_8_16_1_2_5               4041.2   3062.2    923.1     758   0.23   3096.2   77%    945.0  s151
+     8207.1 finish _native_finish                 134.7      0.0    632.6       0   4.70    131.8   98%      2.9  s151
+     8346.5 unpooler nvjet_sm90_tst              1335.5   1099.5    469.8     823   0.35   1111.7   83%    223.7  s151
+     9682.5 boundary2 bnd3_b2                     482.8      0.0   1879.0       0   3.89    391.5   81%     91.3  s151
+   per-kernel rooflines (critical path) sum 7803.2 us; whole-layer floor 6875.5 us (math 6875.5 us, bytes 2241 MB = 466.8 us)
+   measured span / floor = 1.48x;  span - sum(rooflines) = 2362.1 us, of which gaps 24.6
+   cost over roofline by kernel: experts 945.0, attention 310.5, pooler 252.9, unpooler 223.7, qkv 128.1, gather 116.2, boundary2 91.3, boundary1 57.6, o_proj 56.7, routing 46.2, qkv_post 29.7, router_lo 27.2, router_hi 23.1, prenorm 23.0, finish 2.9, void at::native::element 1.9, void at::native::vectori 1.4
+
+=== case 5: first turn b1 ctx32768 sliding q16384 (T 16384, routes 30499, distinct 15): span 9536.1 us, kernels busy 9508.4, gaps 27.7
+      start kernel                                   us    GFLOP       MB    TF/s   TB/s  roof us   eff  over us  stream
+        0.0 qkv nvjet_sm90_tst                    756.3    618.5    381.7     818   0.50    625.4   83%    130.9  s7
+      674.1 kv_pack                                20.1      0.0      9.4       0   0.47      2.0   10%     18.2  s153 (side)
+      756.8 qkv_post                               49.5      0.0     96.5       0   1.95     20.1   41%     29.4  s7
+      808.2 attention attn_fwd                    307.1    137.4     88.6     448   0.29    128.4   42%    178.7  s153
+     1120.7 o_proj nvjet_sm90_tst                 335.4    274.9    318.8     820   0.95    277.9   83%     57.4  s153
+     1456.8 boundary1 bnd3_b1                     283.5      0.0   1073.7       0   3.79    223.7   79%     59.8  s153
+     1749.4 pooler nvjet_sm90_tst                1365.9   1099.5    469.8     805   0.34   1111.7   81%    254.2  s153
+     3115.6 router_hi nvjet_sm90_tss               93.2     68.7    289.4     737   3.10     69.5   75%     23.8  s153
+     3209.1 router_lo nvjet_sm90_tss               97.5     68.7    289.4     705   2.97     69.5   71%     28.0  s153
+     3307.1 routing void sglang::m                 19.7      0.0      1.0       0   0.05      0.2    1%     19.5  s153
+     3327.2 void at::native::element                1.9      0.0      0.0       0   0.00      0.0    0%      1.9  s153
+     3329.5 void at::native::vectori                1.4      0.0      0.0       0   0.00      0.0    0%      1.4  s153
+     3331.3 prenorm void at::nativ                 77.4      0.0    268.4       0   3.47     55.9   72%     21.5  s153
+     3409.1 routing count_8_16_1_2                 22.1      0.0      1.0       0   0.05      0.2    1%     21.9  s153
+     3431.6 routing finalize_8_16_                  3.1      0.0      1.0       0   0.33      0.2    7%      2.9  s153
+     3435.2 routing pairs_8_16_1_2                  2.2      0.0      1.0       0   0.47      0.2   10%      2.0  s153
+     3437.8 gather                                215.9      0.0    499.7       0   2.31    104.1   48%    111.8  s153
+     3653.9 experts moe_8_16_1_2_5               3917.7   3070.1    924.4     784   0.24   3104.3   79%    813.4  s153
+     7572.1 finish _native_finish                 133.4      0.0    633.9       0   4.75    132.1   99%      1.4  s153
+     7710.4 unpooler nvjet_sm90_tst              1337.1   1099.5    469.8     822   0.35   1111.7   83%    225.4  s153
+     9048.2 boundary2 bnd3_b2                     487.9      0.0   1879.0       0   3.85    391.5   80%     96.5  s153
+   per-kernel rooflines (critical path) sum 7426.6 us; whole-layer floor 6498.4 us (math 6498.4 us, bytes 2241 MB = 466.9 us)
+   measured span / floor = 1.47x;  span - sum(rooflines) = 2109.5 us, of which gaps 27.7
+   cost over roofline by kernel: experts 813.4, pooler 254.2, unpooler 225.4, attention 178.7, qkv 130.9, gather 111.8, boundary2 96.5, boundary1 59.8, o_proj 57.4, routing 46.3, qkv_post 29.4, router_lo 28.0, router_hi 23.8, prenorm 21.5, void at::native::element 1.9, void at::native::vectori 1.4, finish 1.4
+
+=== case 6: first turn b1 ctx32768 full q16384 (T 16384, routes 30002, distinct 15): span 14012.1 us, kernels busy 13985.8, gaps 26.3
+      start kernel                                   us    GFLOP       MB    TF/s   TB/s  roof us   eff  over us  stream
+        0.0 qkv nvjet_sm90_tst                    789.1    618.5    381.7     784   0.48    625.4   79%    163.8  s7
+      701.8 kv_pack                                33.9      0.0     25.2       0   0.74      5.2   15%     28.6  s155 (side)
+      789.8 qkv_post                               49.1      0.0     96.5       0   1.96     20.1   41%     29.0  s7
+      841.0 attention attn_fwd                   4076.6   2748.8     96.5     674   0.02   2567.7   63%   1508.9  s155
+     4922.8 o_proj nvjet_sm90_tst                 351.9    274.9    318.8     781   0.91    277.9   79%     74.0  s155
+     5275.5 boundary1 bnd3_b1                     287.3      0.0   1073.7       0   3.74    223.7   78%     63.6  s155
+     5570.1 pooler nvjet_sm90_tst                1393.5   1099.5    469.8     789   0.34   1111.7   80%    281.7  s155
+     6963.7 router_hi nvjet_sm90_tss               99.5     68.7    289.4     691   2.91     69.5   70%     30.0  s155
+     7063.5 router_lo nvjet_sm90_tss               99.5     68.7    289.4     691   2.91     69.5   70%     30.0  s155
+     7163.6 routing void sglang::m                 20.0      0.0      1.0       0   0.05      0.2    1%     19.8  s155
+     7184.1 void at::native::element                2.0      0.0      0.0       0   0.00      0.0    0%      2.0  s155
+     7186.6 void at::native::vectori                1.5      0.0      0.0       0   0.00      0.0    0%      1.5  s155
+     7188.5 prenorm void at::nativ                 80.4      0.0    268.4       0   3.34     55.9   70%     24.5  s155
+     7269.2 routing count_8_16_1_2                 23.7      0.0      1.0       0   0.04      0.2    1%     23.5  s155
+     7293.4 routing finalize_8_16_                  3.6      0.0      1.0       0   0.30      0.2    6%      3.3  s155
+     7297.3 routing pairs_8_16_1_2                  2.3      0.0      1.0       0   0.46      0.2    9%      2.1  s155
+     7300.1 gather                                242.1      0.0    491.6       0   2.03    102.4   42%    139.7  s155
+     7542.5 experts moe_8_16_1_2_5               4469.5   3020.1    916.2     676   0.20   3053.7   68%   1415.8  s155
+    12012.5 finish _native_finish                 146.3      0.0    625.8       0   4.28    130.4   89%     15.9  s155
+    12163.6 unpooler nvjet_sm90_tst              1353.9   1099.5    469.8     812   0.35   1111.7   82%    242.1  s155
+    13518.2 boundary2 bnd3_b2                     493.9      0.0   1879.0       0   3.80    391.5   79%    102.5  s155
+   per-kernel rooflines (critical path) sum 9812.0 us; whole-layer floor 8887.1 us (math 8887.1 us, bytes 2249 MB = 468.6 us)
+   measured span / floor = 1.58x;  span - sum(rooflines) = 4200.1 us, of which gaps 26.3
+   cost over roofline by kernel: attention 1508.9, experts 1415.8, pooler 281.7, unpooler 242.1, qkv 163.8, gather 139.7, boundary2 102.5, o_proj 74.0, boundary1 63.6, routing 48.8, router_hi 30.0, router_lo 30.0, qkv_post 29.0, prenorm 24.5, finish 15.9, void at::native::element 2.0, void at::native::vectori 1.5
+
+=== case 7: first turn b1 ctx65536 full q16384 (T 16384, routes 28878, distinct 15): span 17146.6 us, kernels busy 17118.4, gaps 28.2
+      start kernel                                   us    GFLOP       MB    TF/s   TB/s  roof us   eff  over us  stream
+        0.0 qkv nvjet_sm90_tst                    794.8    618.5    381.7     778   0.48    625.4   79%    169.4  s7
+      707.5 kv_pack                                61.7      0.0     41.9       0   0.68      8.7   14%     53.0  s157 (side)
+      795.4 qkv_post                               49.6      0.0     96.5       0   1.94     20.1   40%     29.5  s7
+      846.8 attention attn_fwd                   7185.1   4947.8    104.9     689   0.01   4621.9   64%   2563.2  s157
+     8037.6 o_proj nvjet_sm90_tst                 352.2    274.9    318.8     781   0.91    277.9   79%     74.2  s157
+     8390.4 boundary1 bnd3_b1                     292.0      0.0   1073.7       0   3.68    223.7   77%     68.3  s157
+     8691.6 pooler nvjet_sm90_tst                1393.2   1099.5    469.8     789   0.34   1111.7   80%    281.5  s157
+    10085.1 router_hi nvjet_sm90_tss               99.2     68.7    289.4     693   2.92     69.5   70%     29.7  s157
+    10184.7 router_lo nvjet_sm90_tss               99.7     68.7    289.4     689   2.90     69.5   70%     30.3  s157
+    10285.0 routing void sglang::m                 20.1      0.0      1.0       0   0.05      0.2    1%     19.9  s157
+    10305.5 void at::native::element                2.0      0.0      0.0       0   0.00      0.0    0%      2.0  s157
+    10308.0 void at::native::vectori                1.5      0.0      0.0       0   0.00      0.0    0%      1.5  s157
+    10310.0 prenorm void at::nativ                 80.7      0.0    268.4       0   3.33     55.9   69%     24.7  s157
+    10390.9 routing count_8_16_1_2                 23.9      0.0      1.0       0   0.04      0.2    1%     23.7  s157
+    10415.2 routing finalize_8_16_                  3.5      0.0      1.0       0   0.30      0.2    6%      3.3  s157
+    10419.1 routing pairs_8_16_1_2                  2.4      0.0      1.0       0   0.44      0.2    9%      2.2  s157
+    10422.0 gather                                244.9      0.0    473.1       0   1.93     98.6   40%    146.3  s157
+    10667.1 experts moe_8_16_1_2_5               4486.9   2907.0    897.8     648   0.20   2939.3   66%   1547.6  s157
+    15154.5 finish _native_finish                 145.4      0.0    607.4       0   4.18    126.5   87%     18.9  s157
+    15304.8 unpooler nvjet_sm90_tst              1344.9   1099.5    469.8     818   0.35   1111.7   83%    233.1  s157
+    16650.2 boundary2 bnd3_b2                     496.3      0.0   1879.0       0   3.79    391.5   79%    104.9  s157
+   per-kernel rooflines (critical path) sum 11744.0 us; whole-layer floor 10826.9 us (math 10826.9 us, bytes 2258 MB = 470.3 us)
+   measured span / floor = 1.58x;  span - sum(rooflines) = 5402.5 us, of which gaps 28.2
+   cost over roofline by kernel: attention 2563.2, experts 1547.6, pooler 281.5, unpooler 233.1, qkv 169.4, gather 146.3, boundary2 104.9, o_proj 74.2, boundary1 68.3, routing 49.0, router_lo 30.3, router_hi 29.7, qkv_post 29.5, prenorm 24.7, finish 18.9, void at::native::element 2.0, void at::native::vectori 1.5
+
+summary: case, span us, chain-of-rooflines us, layer floor us, span/floor, gaps us
+  0 turn 1     sliding span    628.5  chain-roof    333.6 (1.88x)  floor    294.3 (2.14x)  gaps    6.8
+  1 turn 1     full    span    931.0  chain-roof    554.6 (1.68x)  floor    515.4 (1.81x)  gaps    6.5
+  2 turn 4     sliding span   1931.9  chain-roof   1364.7 (1.42x)  floor   1188.2 (1.63x)  gaps   21.6
+  3 turn 4     full    span   3222.3  chain-roof   2244.3 (1.44x)  floor   2069.2 (1.56x)  gaps   22.4
+  4 first turn full    span  10165.3  chain-roof   7803.2 (1.30x)  floor   6875.5 (1.48x)  gaps   24.6
+  5 first turn sliding span   9536.1  chain-roof   7426.6 (1.28x)  floor   6498.4 (1.47x)  gaps   27.7
+  6 first turn full    span  14012.1  chain-roof   9812.0 (1.43x)  floor   8887.1 (1.58x)  gaps   26.3
+  7 first turn full    span  17146.6  chain-roof  11744.0 (1.46x)  floor  10826.9 (1.58x)  gaps   28.2

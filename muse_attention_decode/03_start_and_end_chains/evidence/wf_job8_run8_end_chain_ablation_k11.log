@@ -1,0 +1,74 @@
+[gate] slot 0 at 02:52:12 (1 running)
+✓ Initialized. View run at 
+<modal-run-url>
+✓ Created objects.
+├── 🔨 Created mount 
+│   autoresearch-kernels/attn/tools/modal_run.py
+├── 🔨 Created mount autoresearch-kernels/attn
+└── 🔨 Created function run.
+[gpu-before]
+NVIDIA H200, 0 %, 4 MiB, 345 MHz, 1980 MHz, 83.38 W
+0
+=== bench verify full
+[k11a] import 17.5s
+[k11b] import 17.3s
+[ne] import 14.8s
+[nc] import 16.0s
+[ncne] import 15.5s
+fixed graph cost 4.93 us
+verify 16 full    w16 sglang   202.66 | k11a   120.66 x1.680 | k11b   120.78 x1.678 | ne   107.25 x1.889 | nc    95.41 x2.124 | ncne    82.59 x2.454   sol   63.39
+verify 32 full    w16 sglang   387.46 | k11a   219.99 x1.761 | k11b   219.89 x1.762 | ne   202.13 x1.917 | nc   177.35 x2.185 | ncne   161.53 x2.399   sol  126.78
+
+per-load (weighted sums, us):
+  verify 16 sglang    3242.5 | k11a    1930.5 x1.680 | k11b    1932.5 x1.678 | ne    1716.1 x1.889 | nc    1526.5 x2.124 | ncne    1321.4 x2.454
+  verify 32 sglang    6199.3 | k11a    3519.9 x1.761 | k11b    3518.2 x1.762 | ne    3234.0 x1.917 | nc    2837.6 x2.185 | ncne    2584.5 x2.399
+GEOMEAN k11a: x1.7199 (board time 2606.8 us)   judge-projected (+1.0 us/call) x1.6342 (board 2783.4 us)
+GEOMEAN k11b: x1.7194 (board time 2607.5 us)   judge-projected (+1.0 us/call) x1.6337 (board 2784.2 us)
+GEOMEAN ne: x1.9032 (board time 2355.8 us)   judge-projected (+1.0 us/call) x1.8071 (board 2517.2 us)
+GEOMEAN nc: x2.1542 (board time 2081.2 us)   judge-projected (+1.0 us/call) x2.0437 (board 2225.8 us)
+GEOMEAN ncne: x2.4260 (board time 1848.1 us)   judge-projected (+1.0 us/call) x2.2992 (board 1978.4 us)
+=== traces
+
+[flush] 32,8,full defs=: (us from first CTA start; median over 10 reps)
+   0 start     min    0.00  med    0.10  max    0.19   (CTAs 132)
+   1 issued    min    3.74  med    6.44  max  205.39   (CTAs 132)
+   2 q/new     min    4.13  med    6.92  max  205.71   (CTAs 132)
+   3 tile0     min    4.67  med    7.70  max  206.40   (CTAs 132)
+   4 tiles     min  203.26  med  211.48  max  217.82   (CTAs 132)
+  11 mstore    min  203.33  med  211.57  max  217.92   (CTAs 132)
+  12 merged    min  203.47  med  211.70  max  218.05   (CTAs 132)
+   5 segend    min  204.42  med  212.63  max  219.02   (CTAs 132)
+   6 publish   min  206.59  med  214.85  max  221.44   (CTAs 132)
+   7 comb0     min  213.65  med  217.78  max  225.42   (CTAs 132)
+   8 combined  min  217.41  med  220.76  max  228.22   (CTAs 132)
+  last stamp med 228.22 max 230.66
+  tiles-done p0/p10/p50/p90/max/mean:  203.26  209.30  211.49  214.32  217.82  211.65
+  nseg 0: n  1320 tiles mean  211.66 max  221.18
+  critical CTA (med): start=0.11 issued=21.79 q/new=22.19 tile0=22.98 tiles=216.88 mstore=216.96 merged=217.10 segend=218.08 publish=221.25 comb0=225.42 combined=228.22
+  per-SM mean deviation of tiles-done (us): min -0.04 (sm 0) max -0.04 (sm 0) stdev 0.00
+
+[flush] 16,8,full defs=: (us from first CTA start; median over 10 reps)
+   0 start     min    0.00  med    0.10  max    0.18   (CTAs 132)
+   1 issued    min    3.71  med    4.76  max  101.62   (CTAs 132)
+   2 q/new     min    4.08  med    5.30  max  102.00   (CTAs 132)
+   3 tile0     min    4.56  med    6.21  max  102.50   (CTAs 132)
+   4 tiles     min  102.32  med  109.24  max  114.99   (CTAs 132)
+  11 mstore    min  102.42  med  109.33  max  115.10   (CTAs 132)
+  12 merged    min  102.54  med  109.46  max  115.26   (CTAs 132)
+   5 segend    min  103.52  med  110.43  max  116.27   (CTAs 132)
+   6 publish   min  105.33  med  112.57  max  118.32   (CTAs 132)
+   7 comb0     min  112.21  med  114.97  max  121.55   (CTAs 132)
+   8 combined  min  115.58  med  117.91  max  124.16   (CTAs 132)
+  last stamp med 124.16 max 126.98
+  tiles-done p0/p10/p50/p90/max/mean:  102.32  107.84  109.26  111.41  114.99  109.30
+  nseg 0: n  1320 tiles mean  109.56 max  117.92
+  critical CTA (med): start=0.10 issued=65.10 q/new=65.54 tile0=66.51 tiles=108.59 mstore=108.67 merged=108.83 segend=109.73 publish=112.78 comb0=121.55 combined=124.16
+  per-SM mean deviation of tiles-done (us): min 0.12 (sm 0) max 0.12 (sm 0) stdev 0.00
+[gpu-after]
+NVIDIA H200, 0 %, 4 MiB, 1980 MHz, 1980 MHz, 203.86 W
+0
+
+[exit 0]
+Stopping app - local entrypoint completed.
+✓ App completed. View run at 
+<modal-run-url>

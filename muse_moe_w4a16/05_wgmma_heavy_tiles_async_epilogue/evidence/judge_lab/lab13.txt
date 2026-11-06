@@ -1,0 +1,6 @@
+[
+    {"check": [8, 16, 24, 32], "variants": [("k2", ["MOE_KSXK2=2"], {}), ("k2s2", ["MOE_KSXK2=2", "MOE_SPLW=2.0f"], {}), ("x2", ["MOE_KSX2=2"], {})], "seeds": 2},
+    {"bs": [8, 16], "variants": [("v149", [], {}), ("k2", ["MOE_KSXK2=2"], {}), ("k2s05", ["MOE_KSXK2=2", "MOE_SPLW=0.5f"], {}), ("k2s2", ["MOE_KSXK2=2", "MOE_SPLW=2.0f"], {}), ("k4", ["MOE_KSXK2=4"], {}), ("v149b", [], {})], "seeds": 16, "reps": 3},
+    {"bs": [32], "variants": [("v149", [], {}), ("x2", ["MOE_KSX2=2"], {}), ("x8", ["MOE_KSX2=8"], {}), ("x1", ["MOE_KSX2=1"], {}), ("v149b", [], {})], "seeds": 16, "reps": 3},
+    {"bs": [128], "variants": [("v149", [], {}), ("wm2", ["MOE_WGMIN4=2"], {}), ("s05", ["MOE_SPLW=0.5f"], {}), ("s2", ["MOE_SPLW=2.0f"], {}), ("v149b", [], {})], "seeds": 16, "reps": 3},
+]

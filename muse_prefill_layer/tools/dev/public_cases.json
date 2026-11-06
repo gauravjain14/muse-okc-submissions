@@ -1,0 +1,168 @@
+{
+ "tests": [
+  {
+   "id": "tests/00",
+   "params": {
+    "batch": 1,
+    "ctx": 0,
+    "layer": "sliding",
+    "q_len": 300,
+    "page": 1
+   }
+  },
+  {
+   "id": "tests/01",
+   "params": {
+    "batch": 1,
+    "ctx": 3000,
+    "layer": "full",
+    "q_len": 753,
+    "page": 1
+   }
+  },
+  {
+   "id": "tests/02",
+   "params": {
+    "batch": 2,
+    "ctx": 2500,
+    "layer": "sliding",
+    "q_len": 753,
+    "page": 1
+   }
+  },
+  {
+   "id": "tests/03",
+   "params": {
+    "batch": 3,
+    "ctx": 5000,
+    "layer": "full",
+    "q_len": 200,
+    "dist": "outliers"
+   }
+  },
+  {
+   "id": "tests/04",
+   "params": {
+    "batch": 1,
+    "ctx": 4096,
+    "layer": "sliding",
+    "q_len": 4096,
+    "page": 1
+   }
+  }
+ ],
+ "scored": [
+  {
+   "id": "scored/00",
+   "load": "turn 1",
+   "params": {
+    "batch": 1,
+    "ctx": 80000,
+    "layer": "sliding",
+    "q_len": 753,
+    "page": 1,
+    "dist": "soft"
+   },
+   "weight": 46,
+   "floor_us": 257.0
+  },
+  {
+   "id": "scored/01",
+   "load": "turn 1",
+   "params": {
+    "batch": 1,
+    "ctx": 80000,
+    "layer": "full",
+    "q_len": 753,
+    "page": 1,
+    "dist": "soft"
+   },
+   "weight": 16,
+   "floor_us": 496.7
+  },
+  {
+   "id": "scored/02",
+   "load": "turn 4",
+   "params": {
+    "batch": 4,
+    "ctx": 80000,
+    "layer": "sliding",
+    "q_len": 753,
+    "page": 1,
+    "dist": "soft"
+   },
+   "weight": 46,
+   "floor_us": 1036.3
+  },
+  {
+   "id": "scored/03",
+   "load": "turn 4",
+   "params": {
+    "batch": 4,
+    "ctx": 80000,
+    "layer": "full",
+    "q_len": 753,
+    "page": 1,
+    "dist": "soft"
+   },
+   "weight": 16,
+   "floor_us": 1992.4
+  },
+  {
+   "id": "scored/04",
+   "load": "first turn",
+   "params": {
+    "batch": 1,
+    "ctx": 0,
+    "layer": "full",
+    "q_len": 16384,
+    "page": 1,
+    "dist": "soft"
+   },
+   "weight": 16,
+   "floor_us": 5518.4
+  },
+  {
+   "id": "scored/05",
+   "load": "first turn",
+   "params": {
+    "batch": 1,
+    "ctx": 32768,
+    "layer": "sliding",
+    "q_len": 16384,
+    "page": 1,
+    "dist": "soft"
+   },
+   "weight": 138,
+   "floor_us": 5663.4
+  },
+  {
+   "id": "scored/06",
+   "load": "first turn",
+   "params": {
+    "batch": 1,
+    "ctx": 32768,
+    "layer": "full",
+    "q_len": 16384,
+    "page": 1,
+    "dist": "soft"
+   },
+   "weight": 16,
+   "floor_us": 7710.0
+  },
+  {
+   "id": "scored/07",
+   "load": "first turn",
+   "params": {
+    "batch": 1,
+    "ctx": 65536,
+    "layer": "full",
+    "q_len": 16384,
+    "page": 1,
+    "dist": "soft"
+   },
+   "weight": 16,
+   "floor_us": 9847.7
+  }
+ ]
+}

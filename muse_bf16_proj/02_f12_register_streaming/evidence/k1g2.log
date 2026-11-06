@@ -1,0 +1,58 @@
+[gate] slot 1 at 11:50:44 (1 running)
+✓ Initialized. View run at 
+<modal-run-url>
+✓ Created objects.
+├── 🔨 Created mount 
+│   muse-opt-codex/muse_bf16_proj/claude/modal_run.p
+│   y
+├── 🔨 Created mount muse-opt-codex/muse_bf16_proj
+└── 🔨 Created function run.
+[gpu-before]
+NVIDIA H200, 0 %, 4 MiB, 345 MHz, 1980 MHz, 82.04 W
+0
+all ok
+qkv_gate  m=1   CTAs 132 | start  0.06/ 0.13 first  1.92/ 2.78 loopend  8.61/ 9.98 sync  8.90/10.34 parts  9.63/11.04 clw  9.76/11.10 sums 10.94/12.13 end 11.14/12.32 | w0 wait   2.2k comp   8.2k cyc
+o         m=1   CTAs 132 | start  0.10/ 0.16 first  2.05/ 2.43 loopend  4.22/ 4.86 sync  4.64/ 5.44 parts  4.93/ 5.73 clw -1793127102808064.00/-1793127102808064.00 sums  5.47/ 6.30 end  5.50/ 6.34 | w0 wait   2.9k comp   3.2k cyc
+pooler    m=1   CTAs 132 | start  0.10/ 0.16 first  2.21/ 2.50 loopend 13.47/14.43 sync 13.86/14.75 parts 14.08/14.98 clw -1793127102808064.00/-1793127102808064.00 sums 15.10/16.19 end 15.14/16.22 | w0 wait   6.6k comp  13.2k cyc
+unpooler  m=1   CTAs 128 | start  0.10/ 0.16 first  1.34/ 1.60 loopend  3.52/ 3.74 sync  3.71/ 4.03 parts  3.87/ 4.19 clw -1793127102808064.00/-1793127102808064.00 sums  4.35/ 4.90 end  4.38/ 4.93 | w0 wait   1.1k comp   2.7k cyc
+o         m=32  CTAs 132 | start  0.10/ 0.16 first  2.21/ 2.40 loopend  4.48/ 5.18 sync  4.74/ 5.44 parts  5.15/ 5.86 clw -1793127102808064.00/-1793127102808064.00 sums  6.05/ 6.72 end  6.08/ 6.75 | w0 wait   2.7k comp   3.7k cyc
+pooler    m=32  CTAs 132 | start  0.10/ 0.16 first  2.46/ 2.56 loopend 15.23/16.10 sync 15.46/16.22 parts 15.74/16.51 clw -1793127102808064.00/-1793127102808064.00 sums 16.93/17.86 end 16.96/17.89 | w0 wait   7.4k comp  16.6k cyc
+qkv_gate  m=32  CTAs 132 | start  0.10/ 0.19 first  1.73/ 2.18 loopend  9.57/10.05 sync  9.70/10.21 parts 10.46/11.01 clw 10.56/11.07 sums 11.84/12.70 end 12.03/12.90 | w0 wait   2.1k comp  10.1k cyc
+unpooler  m=32  CTAs 132 | start  0.10/ 0.16 first  2.27/ 2.40 loopend 13.60/14.56 sync 13.76/14.66 parts 14.18/15.10 clw -1793127102808064.00/-1793127102808064.00 sums 15.36/16.22 end 15.39/16.26 | w0 wait   6.0k comp  14.1k cyc
+[c12] prepare 0.4s
+[bf] prepare 0.2s
+[e12] prepare 3.7s
+fixed graph cost 5.18 us
+decode 1  m=1    qkv_gate  sglang   13.50 | c12   13.02 x1.037 | bf   12.10 x1.116 | e12   12.39 x1.090   sol   7.87
+decode 1  m=1    o         sglang    5.82 | c12    6.93 x0.841 | bf    6.25 x0.933 | e12    6.81 x0.855   sol   3.50
+decode 1  m=1    pooler    sglang   19.70 | c12   17.14 x1.149 | bf   17.34 x1.136 | e12   17.34 x1.136   sol  13.99
+decode 1  m=1    unpooler  sglang    6.22 | c12    5.75 x1.082 | bf    4.49 x1.386 | e12    5.25 x1.186   sol   1.75
+decode 16 m=16   qkv_gate  sglang   13.66 | c12   13.02 x1.049 | bf   12.53 x1.090 | e12   12.92 x1.057   sol   7.93
+decode 16 m=16   o         sglang    5.70 | c12    6.76 x0.843 | bf    6.37 x0.895 | e12    6.98 x0.816   sol   3.56
+decode 16 m=16   pooler    sglang   19.76 | c12   16.93 x1.167 | bf   16.99 x1.163 | e12   17.51 x1.128   sol  14.06
+decode 16 m=16   unpooler  sglang   17.54 | c12   16.53 x1.061 | bf   17.17 x1.021 | e12   16.40 x1.069   sol  14.06
+decode 32 m=32   qkv_gate  sglang   13.86 | c12   13.56 x1.022 | bf   12.61 x1.099 | e12   14.14 x0.980   sol   8.00
+decode 32 m=32   o         sglang    6.00 | c12    7.41 x0.810 | bf    6.79 x0.884 | e12    7.73 x0.776   sol   3.62
+decode 32 m=32   pooler    sglang   20.19 | c12   18.33 x1.101 | bf   17.75 x1.138 | e12   20.20 x0.999   sol  14.14
+decode 32 m=32   unpooler  sglang   17.82 | c12   17.32 x1.029 | bf   17.90 x0.996 | e12   18.01 x0.990   sol  14.14
+verify 1  m=8    qkv_gate  sglang   13.54 | c12   13.31 x1.017 | bf   12.27 x1.103 | e12   12.68 x1.067   sol   7.90
+verify 1  m=8    o         sglang    5.86 | c12    7.07 x0.828 | bf    6.21 x0.943 | e12    6.80 x0.862   sol   3.53
+verify 1  m=8    pooler    sglang   19.65 | c12   17.37 x1.131 | bf   17.36 x1.132 | e12   17.50 x1.122   sol  14.02
+verify 1  m=8    unpooler  sglang    6.40 | c12    5.57 x1.149 | bf    4.35 x1.473 | e12    5.55 x1.154   sol   1.76
+
+per-load speedups:
+  decode 1  sglang   45.25 | c12   42.84 x1.056 | bf   40.18 x1.126 | e12   41.80 x1.083
+  decode 16 sglang   56.66 | c12   53.24 x1.064 | bf   53.05 x1.068 | e12   53.82 x1.053
+  decode 32 sglang   57.87 | c12   56.62 x1.022 | bf   55.06 x1.051 | e12   60.09 x0.963
+  verify 1  sglang   45.44 | c12   43.32 x1.049 | bf   40.19 x1.131 | e12   42.53 x1.068
+GEOMEAN c12: x1.0477 over 4 loads   judge-projected (+1.0 us/shape) x1.0440
+GEOMEAN bf: x1.0934 over 4 loads   judge-projected (+1.0 us/shape) x1.0857
+GEOMEAN e12: x1.0406 over 4 loads   judge-projected (+1.0 us/shape) x1.0372
+[gpu-after]
+NVIDIA H200, 6 %, 4 MiB, 1980 MHz, 1980 MHz, 130.50 W
+0
+
+[exit 0]
+Stopping app - local entrypoint completed.
+✓ App completed. View run at 
+<modal-run-url>

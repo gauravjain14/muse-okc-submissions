@@ -1,0 +1,6 @@
+[
+    {"check": [1, 4, 8, 16, 24, 32, 33], "variants": [("s6", ["MOE_S6"], {"S6": True})], "seeds": 2},
+    {"check": [33, 64, 128], "variants": [("s6wg", ["MOE_S6", "MOE_S6_WG"], {"S6": True, "S6_WG": True})], "seeds": 2},
+    {"bs": [1, 8, 16, 32], "variants": [("v153", [], {}), ("s6", ["MOE_S6"], {"S6": True}), ("s6b", ["MOE_S6"], {"S6": True}), ("v153b", [], {})], "seeds": 16, "reps": 3},
+    {"bs": [128, 256], "variants": [("v153", [], {}), ("s6wg", ["MOE_S6", "MOE_S6_WG"], {"S6": True, "S6_WG": True}), ("s6wgb", ["MOE_S6", "MOE_S6_WG"], {"S6": True, "S6_WG": True}), ("v153b", [], {})], "seeds": 16, "reps": 3},
+]

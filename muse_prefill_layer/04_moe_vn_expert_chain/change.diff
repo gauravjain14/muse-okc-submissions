@@ -1,0 +1,1679 @@
+--- 03_expq_fp8_exponential/build.py
++++ 04_moe_vn_expert_chain/build.py
+@@ -1115,6 +1115,7 @@
+ typedef unsigned short u16;
+ typedef unsigned long long u64;
+ #define DEVI __device__ __forceinline__
++//@@PG_SRC@@
+ 
+ struct __align__(16) StageInfo { int item, phase, tile, rb, ks, st, last, n, p0, e, pad0, pad1; };
+ 
+@@ -1175,6 +1176,11 @@
+   asm volatile("cp.async.bulk.tensor.4d.shared::cluster.global.tile.mbarrier::complete_tx::bytes.L2::cache_hint"
+                " [%0], [%1, {%2, %3, %4, %5}], [%6], %7;"
+                :: "r"(dst), "l"(tmap), "r"(c0), "r"(c1), "r"(c2), "r"(c3), "r"(bar), "l"(pol) : "memory");
++}
++DEVI void tma_3d(u32 dst, u64 tmap, int c0, int c1, int c2, u32 bar, u64 pol) {
++  asm volatile("cp.async.bulk.tensor.3d.shared::cluster.global.tile.mbarrier::complete_tx::bytes.L2::cache_hint"
++               " [%0], [%1, {%2, %3, %4}], [%5], %6;"
++               :: "r"(dst), "l"(tmap), "r"(c0), "r"(c1), "r"(c2), "r"(bar), "l"(pol) : "memory");
+ }
+ DEVI void prefetch_l2(const void* src, u32 bytes) {
+   asm volatile("cp.async.bulk.prefetch.L2.global [%0], %1;" :: "l"(src), "r"(bytes) : "memory");
+@@ -1570,6 +1576,9 @@
+ template <int NT, int NTL, bool DRAIN>
+ DEVI void stage_compute_wg2(float (&acc)[2][NT][4], const unsigned char* wbase, const unsigned char* sclb,
+                             u32 xaddr, int T, u32 rel_bar, u32 (&A)[2][4][4]) {
++  // a lane-0 broadcast: the compiler then knows the stage address is warp-uniform and keeps the
++  // wgmma descriptors in uniform registers (no R2UR per wgmma)
++  xaddr = __shfl_sync(0xffffffffu, xaddr, 0);
+   const uint2 sv0 = *reinterpret_cast<const uint2*>(sclb);
+   const uint2 sv1 = *reinterpret_cast<const uint2*>(sclb + 256);
+ #ifdef MOE_WG2_PF
+@@ -1620,6 +1629,7 @@
+ template <int NT, int NTL, int GOFF, bool DRAIN>
+ DEVI void stage_compute_wg3(float (&acc)[2][NT][4], const unsigned char* wbase, const unsigned char* sclb,
+                             u32 xaddr, int T, u32 rel_bar, u32 (&A)[3][4][4]) {
++  xaddr = __shfl_sync(0xffffffffu, xaddr, 0);  // warp-uniform: descriptors in uniform registers
+   const uint2 sv0 = *reinterpret_cast<const uint2*>(sclb);
+   const uint2 sv1 = *reinterpret_cast<const uint2*>(sclb + 256);
+   uint4 qn = *reinterpret_cast<const uint4*>(wbase);
+@@ -1839,6 +1849,9 @@
+   // bucketed routes (the router kernel or moe_bucket): cur[e] routes of local expert e, bkt[e * M + i]
+   // their tokens in arrival order, spos[t * 8 + k] slot k's index among its expert's routes (-1: not local)
+   int* cur; u16* bkt; int* spos;
++  // pre-gathered gate/up activations (pg): xs holds tile slots, tslot[e * kmax + k] tile k's slot
++  int* tslot; int* nslot; int kmax; int pg;
++  const unsigned char* xmap;  // pg: tensor maps of the slots' rows, boxes of 32 / 64 / 128 rows x 64 k
+ };
+ DEVI void pdl_wait() {
+ #ifdef MOE_PDL
+@@ -2656,7 +2669,8 @@
+ #ifdef MOE_TIMING
+     if (tid == 0) reinterpret_cast<u32*>(P.ctr)[14420 + blockIdx.x * 4 + 3] = gtimer();
+ #endif
+-    if constexpr (GATHER && MW < 128) {
++    bool rdy_done = false;  // (the two-pass gather releases rdy after its first pass)
++    if constexpr (GATHER && MW < 128) if (!P.pg) {  // (pg: the router gathered the rows)
+ #ifndef MOE_IGR
+ #define MOE_IGR 4
+ #endif
+@@ -2664,10 +2678,12 @@
+       // This CTA's share of the pairs: their activation rows, gathered into the gate/up GEMM's
+       // stage-major layout [tile][stage][T rows][XP bytes]; then count this CTA done.
+       const int np_all = scal[3];
+-      const int pb = (int)((long long)np_all * blockIdx.x / gridDim.x);
+-      const int pe = (int)((long long)np_all * (blockIdx.x + 1) / gridDim.x);
+-      // Rows in groups of 4: every load of the group is issued before any store, so the rows'
+-      // HBM latencies overlap (the compiler cannot reorder loads of x past stores to xs).
++      // Two passes: first the first wave's tiles (items 0 .. gridDim - 1), released on ctr[3], then
++      // the rest, released on ctr[6]; each pass split over every CTA. The first stages wait only for
++      // the first pass.
++      const int tA = min(scal[0], ((int)gridDim.x + NRB1 - 1) / NRB1);
++      const int pA = tA < scal[0] ? tile_of<T>(rt, tA, M).y : np_all;
++      auto gather_rows = [&](int pb, int pe) {
+       for (int pg = pb; pg < pe; pg += IGR) {
+         uint4 val[IGR][2];
+         int tl[IGR], ri[IGR];
+@@ -2728,11 +2744,19 @@
+           }
+         }
+       }
+-      consumer_sync();
+-      // cumulative release: the CTA's gathered rows (ordered by the barrier) before the count
+-      if (tid == 0) red_release_add(P.ctr + 3, 1);
+-    }
+-    if (tid == 0) mbar_arrive(smem_addr(rdy));
++      };
++      for (int pass = 0; pass < 2; ++pass) {
++        const int lo = pass ? pA : 0, hi = pass ? np_all : pA;
++        gather_rows(lo + (int)((long long)(hi - lo) * blockIdx.x / gridDim.x),
++                    lo + (int)((long long)(hi - lo) * (blockIdx.x + 1) / gridDim.x));
++        consumer_sync();
++        // cumulative release: the CTA's gathered rows (ordered by the barrier) before the count
++        if (tid == 0) red_release_add(P.ctr + (pass ? 6 : 3), 1);
++        if (pass == 0 && tid == 0) mbar_arrive(smem_addr(rdy));
++      }
++      rdy_done = true;
++    }
++    if (!rdy_done && tid == 0) mbar_arrive(smem_addr(rdy));
+   }
+ #ifdef MOE_NO_ROUTE
+ route_done:
+@@ -2782,7 +2806,24 @@
+     u32 p_empty = 0, p_dep = 0, p_claim = 0, p_poll = 0;
+     const u32 p_t0 = ctimer();
+ #endif
+-    bool gathered = (GATHER && MW >= 128), routed = false;
++    bool gathered = GATHER && (MW >= 128 || P.pg), routed = false;
++    bool gathered2 = gathered;  // (two-pass in-kernel gather) the second pass's rows too
++    // tiles from tA_ on came in the in-kernel gather's second pass
++    const int tA_ = MW < 128 ? min(ntiles, ((int)gridDim.x + NRB1 - 1) / NRB1) : (1 << 30);
++    // phase-1 activations of a tile: its block of xs (the gather's tile order, or the router's slot)
++    auto xs_tile = [&](int tile, int4 tl) -> size_t {
++      return P.pg ? (size_t)__ldcg(P.tslot + tl.x * P.kmax + (tl.w - tl.x * M) / T) : (size_t)tile;
++    };
++    // pg: rows per tensor-map box for a tile of n routes
++    auto pg_rows = [&](int n) -> int { return n <= 32 ? 32 : n <= 64 ? 64 : 128; };
++    // pg: a stage's 4 chunks of 64 k from slot sl's rows into the slot's 4 [T rows][128 B] blocks
++    auto pg_load = [&](u32 dst, int sl, int n, int chunk0, u32 bar) {
++      if (lane < 4) {
++        const int rr = pg_rows(n);
++        const u64 map = reinterpret_cast<u64>(P.xmap) + (rr == 32 ? 0 : rr == 64 ? 128 : 256);
++        tma_3d(dst + lane * T * 128, map, 0, sl * 128, chunk0 + lane, bar, pol_x);
++      }
++    };
+     // The first wave is static (CTA b takes item b); the queue hands out items from gridDim on.
+     item = blockIdx.x;
+     int early = 0;
+@@ -2814,7 +2855,7 @@
+             fi[0] = make_int4(item, 1, tile, rb);
+             fi[1] = make_int4(0, st, st == ST1 - 1, tl.z);
+             fi[2] = make_int4(tl.y, tl.x, 0, 0);
+-            mbar_arrive_tx(full, WB + SB + (wgt ? 4 * ((tl.z + 7) & ~7) * 128 : tl.z * XP));
++            mbar_arrive_tx(full, WB + SB + (P.pg ? 4 * pg_rows(tl.z) * 128 : wgt ? 4 * ((tl.z + 7) & ~7) * 128 : tl.z * XP));
+           }
+           __syncwarp();
+           if (lane < KW * 2) {
+@@ -3005,18 +3046,22 @@
+       for (int st = 0; st < nst; ++st, ++it) {
+         if (it < early) {  // weights issued before the routing tables (or the gather) were ready
+           if constexpr (GATHER) {
+-            if (!gathered) {
++            if (!gathered || (!gathered2 && tile >= tA_)) {
++              const int* gc = P.ctr + (MW < 128 && tile >= tA_ ? 6 : 3);
+               if (lane == 0) {
+-                while (ld_acquire(P.ctr + 3) < (int)gridDim.x) {}
++                while (ld_acquire(gc) < (int)gridDim.x) {}
+                 asm volatile("fence.proxy.async.global;" ::: "memory");
+               }
+               __syncwarp();
+               gathered = true;
++              if (MW >= 128 || tile >= tA_) gathered2 = true;
+             }
+             const int se = it % NS;
+             const u32 fulle = bars0 + se * 8, sbe = stage0 + se * STAGE;
+-            const unsigned char* xre = reinterpret_cast<const unsigned char*>(P.xs) + (size_t)tile * (16 / KW) * T * XP;
+-            if (HASWG && (LMX || (n + 7) / 8 >= WGMIN)) {
++            const unsigned char* xre = reinterpret_cast<const unsigned char*>(P.xs) + xs_tile(tile, tl) * (16 / KW) * T * XP;
++            if (HASWG && P.pg) {
++              pg_load(sbe + WB + SB, (int)xs_tile(tile, tl), n, st * KW * 4, fulle);
++            } else if (HASWG && (LMX || (n + 7) / 8 >= WGMIN)) {
+               if (lane < 4)
+                 bulk_g2s(sbe + WB + SB + lane * T * 128, xre + ((size_t)(st * KW * 4 + lane) * T) * 128, ((n + 7) & ~7) * 128, fulle, pol_x);
+             } else if (lane == 0) {
+@@ -3073,7 +3118,7 @@
+           mbar_arrive_tx(full, WB + SB);
+ #else
+           const bool wgt = HASWG && (LMX || (n + 7) / 8 >= WGMIN);
+-          mbar_arrive_tx(full, WB + SB + (wgt ? 4 * ((n + 7) & ~7) * 128 : (phase == 2 || GATHER ? n * XP : n * KST * 2)));
++          mbar_arrive_tx(full, WB + SB + (P.pg && phase == 1 ? 4 * pg_rows(n) * 128 : wgt ? 4 * ((n + 7) & ~7) * 128 : (phase == 2 || GATHER ? n * XP : n * KST * 2)));
+ #endif
+ #endif
+         }
+@@ -3125,17 +3170,21 @@
+         }
+ #ifndef MOE_NO_X
+         if (phase == 2 || GATHER) {
+-          if (phase == 1 && !gathered) {
++          if (phase == 1 && (!gathered || (!gathered2 && tile >= tA_))) {
++            const int* gc = P.ctr + (MW < 128 && tile >= tA_ ? 6 : 3);
+             if (lane == 0) {
+-              while (ld_acquire(P.ctr + 3) < (int)gridDim.x) {}
++              while (ld_acquire(gc) < (int)gridDim.x) {}
+               asm volatile("fence.proxy.async.global;" ::: "memory");
+             }
+             __syncwarp();
+             gathered = true;
++            if (MW >= 128 || tile >= tA_) gathered2 = true;
+           }
+-          const unsigned char* xreg = reinterpret_cast<const unsigned char*>(phase == 2 ? P.inter : P.xs) +
+-                                      (size_t)tile * (16 / KW) * T * XP;
+-          if (HASWG && (LMX || (n + 7) / 8 >= WGMIN)) {
++          const unsigned char* xreg = phase == 2 ? reinterpret_cast<const unsigned char*>(P.inter) + (size_t)tile * (16 / KW) * T * XP
++                                                 : reinterpret_cast<const unsigned char*>(P.xs) + xs_tile(tile, tl) * (16 / KW) * T * XP;
++          if (HASWG && P.pg && phase == 1) {
++            pg_load(smem_addr(sbase + WB + SB), (int)xs_tile(tile, tl), n, kc0 * 4, full);
++          } else if (HASWG && (LMX || (n + 7) / 8 >= WGMIN)) {
+             if (lane < 4)  // chunk lane of this stage's 4 x 64 k
+               bulk_g2s(smem_addr(sbase + WB + SB + lane * T * 128), xreg + ((size_t)(kc0 * 4 + lane) * T) * 128,
+                        ((n + 7) & ~7) * 128, full, pol_x);
+@@ -3217,10 +3266,15 @@
+ #define MOE_XPU4_MW 1024
+ #endif
+ #ifndef MOE_XPU
+-#define MOE_XPU 2
+-#endif
+-  // stages per pipelined block: 4 for the largest batches' build (fewer drains), else MOE_XPU
+-  constexpr int XPUV = MW >= MOE_XPU4_MW ? 4 : MOE_XPU;
++#define MOE_XPU 1
++#endif
++#ifndef MOE_XPU2_MW
++#define MOE_XPU2_MW 512
++#endif
++  // stages per pipelined block (the in-flight wgmma group crosses the block's inner stage
++  // boundaries): 2 for the largest batches' build, else MOE_XPU (one stage: half the loop code,
++  // +0.7-1.6% at M 753 / 3012, neutral at 16K)
++  constexpr int XPUV = MW >= MOE_XPU4_MW ? 4 : MW >= MOE_XPU2_MW ? 2 : MOE_XPU;
+   const int kw = warp % KW, rw = warp / KW;
+   int q_item = 0;
+   auto post_signal = [&](int phase, int tile, int rb) {
+@@ -3438,6 +3492,16 @@
+     }
+     if (HASWG && ntl >= WGMIN) {
+       if constexpr (HASWG) {
++#ifdef MOE_NTLPAD
++        // fewer loop variants (instruction cache): token groups rounded up to 6, 8, 12 or 16 (the
++        // extra columns read stale rows of the slot and are never stored)
++        switch (ntl) {
++          case 3: case 4: case 5: case 6: if constexpr (NT >= 6) { MOE_RUN_ITEM(106) } break;
++          case 7: case 8: if constexpr (NT >= 8) { MOE_RUN_ITEM(108) } break;
++          case 9: case 10: case 11: case 12: if constexpr (NT >= 12) { MOE_RUN_ITEM(112) } break;
++          default: if constexpr (NT >= 16) { MOE_RUN_ITEM(116) } break;
++        }
++#else
+         switch (ntl) {
+           case 3: MOE_RUN_ITEM(103) break;
+           case 4: MOE_RUN_ITEM(104) break;
+@@ -3454,6 +3518,7 @@
+           case 15: if constexpr (NT >= 15) { MOE_RUN_ITEM(115) } break;
+           default: if constexpr (NT >= 16) { MOE_RUN_ITEM(116) } break;
+         }
++#endif
+       }
+     } else {
+       switch (ntl) {
+@@ -4047,8 +4112,15 @@
+   if (scal[9]) {
+     for (int i = tid; i < ntiles * 16; i += 256) cnt1[i] = 0;
+     for (int i = tid; i < ntiles; i += 256) cnt2[i] = 0;
+-    if (tid < 6) P.ctr[tid] = 0;  // queue head, down items done, CTAs done, gathered, combine claims
++    if (tid < 7) P.ctr[tid] = 0;  // queue head, down items done, CTAs done, gathered, combine claims, gathered 2
+     if (tid < 32) P.cur[tid] = 0;  // bucket counts (every CTA read them at its start)
++    if (P.pg) {  // the router's tile slots
++      for (int i = tid; i < ntiles; i += 256) {
++        const int4 tl = tile_of<T>(rt, i, M);
++        P.tslot[tl.x * P.kmax + (tl.w - tl.x * M) / T] = -1;
++      }
++      if (tid == 0) *P.nslot = 0;
++    }
+   }
+ }
+ 
+@@ -4382,6 +4454,34 @@
+   }
+ }
+ 
++// Bucketing with the activation gather (T = 128 builds, callers whose router does not do it): one
++// CTA per token; its row into shared memory, its local routes counted, then the row into each slot.
++extern "C" __global__ void __launch_bounds__(256) moe_bucket_pg(Params P) {
++  __shared__ __align__(16) u16 srow[4096];
++  __shared__ int sh_slot[8], sh_ri[8];
++  pdl_wait();
++  pdl_launch();
++  const int t = blockIdx.x, tid = threadIdx.x;
++  const uint4* xr = reinterpret_cast<const uint4*>(P.x + (size_t)t * 4096);
++  reinterpret_cast<uint4*>(srow)[tid] = xr[tid];
++  reinterpret_cast<uint4*>(srow)[tid + 256] = xr[tid + 256];
++  if (tid < 8) {
++    const int e = P.ids[t * 8 + tid] - P.local_start;
++    int pos = -1, sl = -1;
++    if ((unsigned)e < 32u) {
++      pos = atomicAdd(P.cur + e, 1);
++      P.bkt[e * P.M + pos] = (u16)t;
++      sl = pg_slot(P.tslot, P.nslot, e, pos, P.kmax);
++    }
++    P.spos[t * 8 + tid] = pos;
++    sh_slot[tid] = sl; sh_ri[tid] = pos & 127;
++  }
++  __syncthreads();
++#pragma unroll 1
++  for (int j = 0; j < 8; ++j)
++    if (sh_slot[j] >= 0) pg_store_row(srow, reinterpret_cast<unsigned char*>(P.xs) + (size_t)sh_slot[j] * PG_SLOT_BYTES, sh_ri[j], tid);
++}
++
+ // programmatic dependent launch: wait for the previous grid's results, then let the next grid
+ // launch (its own wait still orders it after this grid's completion); no-ops without PDL
+ DEVI void pdl_entry() {
+@@ -4536,12 +4636,15 @@
+         ("ssq", ctypes.c_void_p), ("tmap", ctypes.c_void_p), ("yh", ctypes.c_void_p),
+         ("routes", ctypes.c_void_p), ("route_sms", ctypes.c_int), ("prenorm", ctypes.c_void_p),
+         ("cur", ctypes.c_void_p), ("bkt", ctypes.c_void_p), ("spos", ctypes.c_void_p),
++        ("tslot", ctypes.c_void_p), ("nslot", ctypes.c_void_p), ("kmax", ctypes.c_int), ("pg", ctypes.c_int),
++        ("xmap", ctypes.c_void_p),
+     ]
+ 
+ 
+ NATIVE_FINISH_CUDA = False
+ GATHER_MIN_NT = 4  # MOE_GATHER_MIN: configs whose gate/up activations are gathered
+ PDL = True  # programmatic dependent launches between the expert-path kernels
++PG = True  # the router (or moe_bucket_pg) writes the gate/up activations into tile slots
+ COMBINE_IN = False  # True: build with MOE_COMBINE_IN (the in-kernel combine) and skip the finish
+ KSX8 = 1  # must match MOE_KSX8 in the CUDA source (1: no tail split, +1% at M 3012)
+ 
+@@ -4645,12 +4748,84 @@
+ _FAST = False
+ 
+ 
++PG_SRC = r"""
++// ---- pre-gathered activations (shared by the router module and the expert module) ----
++// The router (or moe_bucket_pg) writes each local route's row straight into tile slot
++// tslot[e * kmax + pos / 128] (allocated by the route with pos % 128 == 0; the others wait for it,
++// already past their own count), row pos % 128 of a row-major [128 rows][4096] block whose 64-k
++// chunks hold k in the weights' order: one contiguous 8 KB store per route. The expert kernel's
++// tensor maps (128B swizzle) load a stage's chunks from it in the wgmma layout.
++#define PG_SLOT_BYTES 1048576  // one tile's block: 128 rows x 8 KB
++__device__ __forceinline__ int pg_slot(int* tslot, int* nslot, int e, int pos, int kmax) {
++  int* ts = tslot + e * kmax + (pos >> 7);
++  int sl;
++  if ((pos & 127) == 0) {
++    sl = atomicAdd(nslot, 1);
++    asm volatile("st.release.gpu.global.b32 [%0], %1;" :: "l"(ts), "r"(sl) : "memory");
++  } else {
++    do { asm volatile("ld.acquire.gpu.global.b32 %0, [%1];" : "=r"(sl) : "l"(ts) : "memory"); } while (sl < 0);
++  }
++  return sl;
++}
++// srow: the token's BF16 row in shared memory (natural k order); NTH threads, 512 / NTH groups each
++template <int NTH = 256>
++__device__ __forceinline__ void pg_store_row(const unsigned short* srow, unsigned char* dtile, int ri, int tid) {
++  unsigned char* drow = dtile + (size_t)ri * 8192;
++#pragma unroll
++  for (int h = 0; h < 512 / NTH; ++h) {
++    const int ch = tid + NTH * h, c64 = ch >> 3, pc = ch & 7, lc = pc;
++    unsigned int v[4];
++#pragma unroll
++    for (int e2 = 0; e2 < 4; ++e2) {
++      const int qp = lc * 8 + e2 * 2, jj = qp >> 4, pp = qp & 15;
++      const int k = c64 * 64 + 16 * ((pp & 7) >> 1) + 4 * jj + ((pp >> 3) << 1);
++      v[e2] = *reinterpret_cast<const unsigned int*>(srow + k);
++    }
++    *reinterpret_cast<uint4*>(drow + c64 * 128 + pc * 16) = make_uint4(v[0], v[1], v[2], v[3]);
++  }
++}
++"""
++PG_KMAX = (MAX_M + 127) // 128  # tiles per expert at most
++
++
++def _pg_cfg(M):
++    """Large prefill (the T = 128 wgmma build past the fused-router range) takes pre-gathered
++    activations: there the gather kernel's traffic costs more than the router's slot writes. (At
++    753 / 3012 the in-kernel or external gather overlaps the first weight streams and wins.)"""
++    rw, nt, ks2, ns, mw = _kernel_cfg(M)
++    return PG and PG_MIN_M < M <= MAX_M and rw == 8 and nt == 16
++
++
++PG_SLOTS = NLOCAL + (MAX_M * TOPK + 127) // 128  # tile slots at most
++PG_MIN_M = 2048  # pre-gathered rows past this many tokens (4 x 753 and large prefill)
++
++
++def _pg_maps(xs):
++    """Tensor maps over the slots' rows ([slot * 128 + row][4096] BF16, 64-k chunks): boxes of 64 k x
++    32 / 64 / 128 rows, 128B-swizzled into the wgmma activation layout."""
++    from cuda.bindings import driver as d
++    import struct
++    maps = []
++    for rows in (32, 64, 128):
++        err, tm = d.cuTensorMapEncodeTiled(
++            d.CUtensorMapDataType.CU_TENSOR_MAP_DATA_TYPE_BFLOAT16, d.cuuint32_t(3), xs.data_ptr(),
++            [d.cuuint64_t(v) for v in (64, PG_SLOTS * 128, 64)], [d.cuuint64_t(v) for v in (8192, 128)],
++            [d.cuuint32_t(v) for v in (64, rows, 1)], [d.cuuint32_t(1)] * 3,
++            d.CUtensorMapInterleave.CU_TENSOR_MAP_INTERLEAVE_NONE, d.CUtensorMapSwizzle.CU_TENSOR_MAP_SWIZZLE_128B,
++            d.CUtensorMapL2promotion.CU_TENSOR_MAP_L2_PROMOTION_L2_256B,
++            d.CUtensorMapFloatOOBfill.CU_TENSOR_MAP_FLOAT_OOB_FILL_NONE)
++        if int(err) != 0:
++            raise RuntimeError(f"cuTensorMapEncodeTiled (pg) failed: {err}")
++        maps.append(b"".join(struct.pack("<Q", int(v)) for v in tm.opaque))
++    return torch.frombuffer(bytearray(b"".join(maps)), dtype=torch.uint8).to(xs.device)
++
++
+ def _module(fast_scales=False):
+     global _MOD
+     if _MOD is None:
+         src = ("#define MOE_FAST_SCALES\n" if fast_scales else "") + f"#define MOE_KSX8 {KSX8}\n" + ("#define MOE_PDL\n" if PDL else "") + ("#define MOE_COMBINE_IN\n" if COMBINE_IN else "") + CUDA_SRC
+         src += "".join(f"INST({rw}, {nt}, {ks2}, {ns}, {mw})\n" for rw, nt, ks2, ns, mw in _all_cfgs())
+-        _MOD = _Cuda(src)
++        _MOD = _Cuda(src.replace("//@@PG_SRC@@", PG_SRC))
+     return _MOD
+ 
+ 
+@@ -4719,9 +4894,11 @@
+         if cfg[4] >= 128:
+             mod.func(_name(cfg).replace("moe_", "gather_", 1))
+     mod.func("moe_bucket")
++    mod.func("moe_bucket_pg")
+     mod.func("moe_finish")
+     mod.func(f"moe1_{NS1}", 18432 + NS1 * 36864)
+     torch.cuda.synchronize()
++    xs_pg = torch.empty((PG_SLOTS * 128, 4096), dtype=torch.bfloat16, device=dev) if PG else None
+     return {
+         "start": start, "count": count, "sms": torch.cuda.get_device_properties(dev).multi_processor_count,
+         "w13": w13p, "s13": s13p, "gs13": weights["w13_gs"][start:start + count].float().contiguous(),
+@@ -4732,6 +4909,11 @@
+         "cur": torch.zeros(32, dtype=torch.int32, device=dev),
+         "bkt": torch.empty(32 * MAX_M, dtype=torch.int16, device=dev),
+         "spos": torch.empty(MAX_M * TOPK, dtype=torch.int32, device=dev),
++        # pre-gathered activations' tile slots (-1: none; reset by each expert kernel) and their count
++        "tslot": torch.full((32 * PG_KMAX,), -1, dtype=torch.int32, device=dev),
++        "nslot": torch.zeros(4, dtype=torch.int32, device=dev),
++        # the slots' rows (persistent: the tensor maps hold their address)
++        "xs_pg": xs_pg, "xmap": _pg_maps(xs_pg) if xs_pg is not None else None,
+         "tmaps": tmaps, "tmap_off": tmap_off,
+         "w2f": w2f, "s2f": s2f, "yacc": torch.zeros(8 * 8 * 4096, dtype=torch.float32, device=dev),
+         "ctr1": torch.zeros(4, dtype=torch.int32, device=dev),
+@@ -4801,6 +4983,30 @@
+     tl.store(OUT+token*4096+dims,acc)
+ 
+ 
++@triton.jit
++def _native_finish_v(IDS, TW, NW, ROUTES, YH, OUT, SPOS, LOCAL_START: tl.constexpr, PDLW: tl.constexpr):
++    """The finish for whole-k down outputs: a token's 8 slots at once (every local route's row
++    loads in parallel), the post-expert norm of each, weighted and summed."""
++    if PDLW:
++        _gdc_wait()
++    token = tl.program_id(0)
++    sl = tl.arange(0, 8)
++    e = tl.load(IDS + token * 8 + sl) - LOCAL_START
++    loc = (e >= 0) & (e < 32)
++    off = tl.load((ROUTES + 192).to(tl.pointer_type(tl.int32)) + tl.where(loc, e, 0), mask=loc, other=0)
++    pair = (off + tl.load(SPOS + token * 8 + sl, mask=loc, other=0)).to(tl.int64)
++    w = tl.load(TW + token * 8 + sl, mask=loc, other=0.0)
++    dims = tl.arange(0, 4096)
++    y = tl.load(YH + pair[:, None] * 4096 + dims[None, :], mask=loc[:, None], other=0.0).to(tl.float32)
++    v = y * tl.load(NW + dims)[None, :]
++    inv = tl.rsqrt(tl.sum(v * v, 1) * (1.0 / 4096) + 1.0e-8) * w
++    tl.store(OUT + token * 4096 + dims, tl.sum(v * inv[:, None], 0))
++
++
++FINISH_V = False  # (opt-in) the all-slots finish when no down item is split in k: 3-7% slower expert call
++FINISH_V_WARPS = 16
++
++
+ def _native_expert_kernel(data, state):
+     cfg = data["config"]
+     x = data["hidden_states"].contiguous()
+@@ -4816,13 +5022,13 @@
+             data = dict(data, hidden_states=x)
+     if M > MAX_M or cfg["local_start"] != state["start"] or cfg["local_count"] != state["count"]:
+         if data.get("bucketed"):
+-            state["cur"].zero_()
++            state["cur"].zero_(); state["tslot"].fill_(-1); state["nslot"].zero_()
+         return _torch_path(data, state)
+     ids = data["topk_ids"].to(torch.int32).contiguous()
+     tw = data["topk_weights"].to(torch.float32).contiguous()
+     if M == 1 and ONE_TOKEN:
+         if data.get("bucketed"):
+-            state["cur"].zero_()
++            state["cur"].zero_(); state["tslot"].fill_(-1); state["nslot"].zero_()
+         out = torch.empty((1, H), dtype=torch.bfloat16, device=x.device)
+         p1 = _Params1C(x.data_ptr(), ids.data_ptr(), tw.data_ptr(), state["gs13"].data_ptr(), state["gs2"].data_ptr(),
+                        state["nw1"].data_ptr(), state["w2f"].data_ptr(), state["s2f"].data_ptr(), out.data_ptr(),
+@@ -4838,7 +5044,12 @@
+     xp = 256 * (8 // rw) * 2 + 16
+     tiles_max = NLOCAL + (pmax + T - 1) // T
+     inter = torch.empty(tiles_max * (16 // (8 // rw)) * T * xp // 2, dtype=torch.bfloat16, device=dev)
+-    xs = torch.empty_like(inter) if nt >= 4 else inter
++    pg = _pg_cfg(M) and not prenorm and (not data.get("bucketed") or data.get("pg_xs") is not None)
++    if pg:
++        assert (16 // (8 // rw)) * T * xp == 1081344
++        xs = state["xs_pg"]
++    else:
++        xs = torch.empty_like(inter) if nt >= 4 else inter
+     ypart = torch.empty((max(ks2, _ksx(rw, nt, ks2)), pmax, H), dtype=torch.float32, device=dev)
+     out = torch.empty((M, H), dtype=torch.bfloat16, device=dev)
+     ssq = torch.empty(pmax * 64, dtype=torch.float32, device=dev)
+@@ -4850,10 +5061,15 @@
+                  inter.data_ptr(), ypart.data_ptr(), out.data_ptr(), state["ctr"].data_ptr(), pmax, xs.data_ptr(),
+                  ssq.data_ptr(), state["tmaps"].data_ptr() + state["tmap_off"][rw], yh.data_ptr(),
+                  routes.data_ptr(), state["sms"], prenorm.data_ptr() if prenorm is not None else None,
+-                 state["cur"].data_ptr(), state["bkt"].data_ptr(), state["spos"].data_ptr())
++                 state["cur"].data_ptr(), state["bkt"].data_ptr(), state["spos"].data_ptr(),
++                 state["tslot"].data_ptr(), state["nslot"].data_ptr(), PG_KMAX, int(pg),
++                 state["xmap"].data_ptr() if state.get("xmap") is not None else 0)
+     if not data.get("bucketed"):  # (the layer's router kernel buckets as it routes)
+-        _module().launch("moe_bucket", (M + 255) // 256, 256, 0, p, pdl=True)
+-    if nt >= 4 and mw >= 128:
++        if pg:
++            _module().launch("moe_bucket_pg", M, 256, 0, p, pdl=True)
++        else:
++            _module().launch("moe_bucket", (M + 255) // 256, 256, 0, p, pdl=True)
++    if nt >= 4 and mw >= 128 and not pg:
+         _module().launch(_name(kc).replace("moe_", "gather_", 1), state["sms"] * 4, 256, 0, p, pdl=True)
+     _module().launch(_name(kc), state["sms"], 384, _smem_bytes(rw, nt, ns, mw), p, pdl=True)
+     if COMBINE_IN:  # the expert kernel combined the tokens itself
+@@ -4865,6 +5081,10 @@
+         _module().launch("moe_finish", M, 128, 0, fp, pdl=True)
+     else:
+         pdlf = PDL and _gdc_wait is not None
++        if FINISH_V and ks2 == 1 and _ksx(rw, nt, ks2) == 1:
++            _native_finish_v[(M,)](ids, tw, state["nw1"], routes, yh, out, state["spos"], state["start"], pdlf,
++                                    num_warps=FINISH_V_WARPS, **({"launch_pdl": True} if pdlf else {}))
++            return out
+         _native_finish[(M,)](ids, tw, state["nw1"], routes, yh, ypart, out, state["spos"],
+                               mw, pmax, ks2, _ksx(rw, nt, ks2), state["start"], pdlf, num_warps=8,
+                               **({"launch_pdl": True} if pdlf else {}))
+@@ -4884,14 +5104,14 @@
+     return state
+ 
+ 
+-def _experts(x, topk_weights, topk_ids, state, prenorm=False, bucketed=False):
++def _experts(x, topk_weights, topk_ids, state, prenorm=False, bucketed=False, pg_xs=None):
+     """prenorm: x is the raw pooler output; the pre-expert norm runs inside the expert path.
+     bucketed: the router kernel already bucketed the local routes (one chunk)."""
+     outputs = []
+     for first in range(0, x.shape[0], MAX_M):
+         end = min(first + MAX_M, x.shape[0])
+         data = {'hidden_states': x[first:end], 'topk_ids': topk_ids[first:end],
+-                'topk_weights': topk_weights[first:end], 'prenorm': prenorm, 'bucketed': bucketed,
++                'topk_weights': topk_weights[first:end], 'prenorm': prenorm, 'bucketed': bucketed, 'pg_xs': pg_xs,
+                 'config': {'local_start': 0, 'local_count': 32}}
+         outputs.append(_native_expert_kernel(data, state['native_experts']))
+     return outputs[0] if len(outputs) == 1 else torch.cat(outputs, dim=0)
+@@ -5425,6 +5645,107 @@
+ extern "C" __global__ void __launch_bounds__(512, 2) bnd3_b2(Bnd3P p) { body<1>(p); }
+ extern "C" __global__ void __launch_bounds__(512, 2) bnd3_s1(Bnd3P p) { body<2>(p); }
+ extern "C" __global__ void __launch_bounds__(512, 2) bnd3_s2(Bnd3P p) { body<3>(p); }
++
++// ---- bnd4: persistent rows, bulk-copied two rows ahead -------------------------------------
++struct Bnd4P { Bnd3P b; int rows; };
++DEVI unsigned smem_u32b(const void* q) { return (unsigned)__cvta_generic_to_shared(q); }
++DEVI void mbar_wait_b(unsigned bar, unsigned ph) {
++  asm volatile("{ .reg .pred p; W: mbarrier.try_wait.parity.shared::cta.b64 p, [%0], %1; @!p bra W; }" :: "r"(bar), "r"(ph) : "memory");
++}
++template <int MODE>
++DEVI void body4(const Bnd4P& P) {
++  const Bnd3P& p = P.b;
++  extern __shared__ __align__(128) unsigned char sm[];
++  constexpr unsigned SB = 32768 + 16384 + (MODE == 1 ? 16384 : 0);
++  __shared__ __align__(8) unsigned long long bar[2];
++  __shared__ float2 red[2][16];
++  const int t = threadIdx.x, G = gridDim.x, rows = P.rows;
++  const unsigned sb = smem_u32b(sm), bb = smem_u32b(bar);
++  if (t == 0) {
++    asm volatile("mbarrier.init.shared::cta.b64 [%0], 1;" :: "r"(bb) : "memory");
++    asm volatile("mbarrier.init.shared::cta.b64 [%0], 1;" :: "r"(bb + 8) : "memory");
++    asm volatile("fence.mbarrier_init.release.cluster;" ::: "memory");
++  }
++  __syncthreads();
++  asm volatile("griddepcontrol.wait;" ::: "memory");
++  asm volatile("griddepcontrol.launch_dependents;" ::: "memory");
++  auto issue = [&](int r, int st) {
++    const unsigned dst = sb + st * SB, b = bb + 8 * st;
++    asm volatile("fence.proxy.async.shared::cta;" ::: "memory");
++    asm volatile("mbarrier.arrive.expect_tx.shared::cta.b64 _, [%0], %1;" :: "r"(b), "r"(SB) : "memory");
++    asm volatile("cp.async.bulk.shared::cluster.global.mbarrier::complete_tx::bytes [%0], [%1], %2, [%3];"
++                 :: "r"(dst), "l"(p.s + (size_t)r * 8192), "r"(32768u), "r"(b) : "memory");
++    asm volatile("cp.async.bulk.shared::cluster.global.mbarrier::complete_tx::bytes [%0], [%1], %2, [%3];"
++                 :: "r"(dst + 32768), "l"(p.a + (size_t)r * 4096), "r"(16384u), "r"(b) : "memory");
++    if (MODE == 1)
++      asm volatile("cp.async.bulk.shared::cluster.global.mbarrier::complete_tx::bytes [%0], [%1], %2, [%3];"
++                   :: "r"(dst + 49152), "l"(p.f + (size_t)r * 4096), "r"(16384u), "r"(b) : "memory");
++  };
++  const int r0 = blockIdx.x;
++  if (t == 0) {
++    if (r0 < rows) issue(r0, 0);
++    if (r0 + G < rows) issue(r0 + G, 1);
++  }
++  int it = 0;
++  for (int r = r0; r < rows; r += G, ++it) {
++    const int st = it & 1;
++    mbar_wait_b(bb + 8 * st, (it >> 1) & 1);
++    const float* ss = reinterpret_cast<const float*>(sm + st * SB);
++    const u32* sa = reinterpret_cast<const u32*>(sm + st * SB + 32768);
++    const u32* sf = reinterpret_cast<const u32*>(sm + st * SB + 49152);
++    float s_[16], a[16], f[16];
++#pragma unroll
++    for (int k = 0; k < 4; ++k) {
++      const float4 x = *reinterpret_cast<const float4*>(ss + 2048 * k + 4 * t);
++      s_[4 * k] = x.x; s_[4 * k + 1] = x.y; s_[4 * k + 2] = x.z; s_[4 * k + 3] = x.w;
++      const uint2 y = *reinterpret_cast<const uint2*>(sa + 1024 * k + 2 * t);
++      a[4 * k] = bf_lo(y.x); a[4 * k + 1] = bf_hi(y.x); a[4 * k + 2] = bf_lo(y.y); a[4 * k + 3] = bf_hi(y.y);
++      if (MODE == 1) {
++        const uint2 z = *reinterpret_cast<const uint2*>(sf + 1024 * k + 2 * t);
++        f[4 * k] = bf_lo(z.x); f[4 * k + 1] = bf_hi(z.x); f[4 * k + 2] = bf_lo(z.y); f[4 * k + 3] = bf_hi(z.y);
++      }
++    }
++    float y[16];
++    float q = 0.f, qf = 0.f;
++#pragma unroll
++    for (int i = 0; i < 16; ++i) q += a[i] * a[i];
++    if (MODE == 1) {
++      float w[16];
++      ldb16(p.w0, t, w, true);
++#pragma unroll
++      for (int i = 0; i < 16; ++i) { f[i] = rbf(f[i] * (1.f + w[i])); qf += f[i] * f[i]; }
++    }
++    const float2 tot = csum2(q, qf, red[0]);   // its barrier: every thread is done with the stage
++    if (t == 0 && r + 2 * G < rows) issue(r + 2 * G, st);
++    const float ra = rsqrtf(tot.x * (1.f / 8192.f) + 1e-8f), rf = rsqrtf(tot.y * (1.f / 8192.f) + 1e-8f);
++    {
++      float v0[16], v1[16];
++      ldf16(p.v0, t, v0, true);
++      ldf16(p.v1, t, v1, true);
++      if (MODE == 0) {
++#pragma unroll
++        for (int i = 0; i < 16; ++i) y[i] = v0[i] * s_[i] + v1[i] * rbf(a[i] * ra);
++      } else {
++        float v2[16];
++        ldf16(p.v2, t, v2, true);
++#pragma unroll
++        for (int i = 0; i < 16; ++i) y[i] = v0[i] * s_[i] + v1[i] * rbf(a[i] * ra) + v2[i] * rbf(f[i] * rf);
++      }
++    }
++    if (MODE == 1) stf16(p.sout + (size_t)r * 8192, t, y);
++    float q2 = 0.f;
++#pragma unroll
++    for (int i = 0; i < 16; ++i) q2 += y[i] * y[i];
++    const float r2 = rsqrtf(csum2(q2, 0.f, red[1]).x * (1.f / 8192.f) + 1e-5f);
++    float w[16];
++    ldb16(MODE == 0 ? p.w0 : p.w1, t, w, true);
++#pragma unroll
++    for (int i = 0; i < 16; ++i) y[i] = y[i] * r2 * (1.f + w[i]);
++    stb16(p.hout + (size_t)r * 4096, t, y);
++  }
++}
++extern "C" __global__ void __launch_bounds__(512, 1) bnd4_b1(Bnd4P p) { body4<0>(p); }
++extern "C" __global__ void __launch_bounds__(512, 1) bnd4_b2(Bnd4P p) { body4<1>(p); }
+ """
+ 
+ ROUTE_SRC = r"""
+@@ -5441,15 +5762,22 @@
+   int rows;
+   int* cur; unsigned short* bkt; int* spos;  // non-null: bucket the local routes (expert kernel input)
+   const unsigned short* xb;             // pnr2: pooled BF16 rows [T, 4096] (y: the hi | lo logits, ld = 512)
++  int* tslot; int* nslot; unsigned char* xs; int kmax;  // xs non-null: write the rows into tile slots
+ };
+ 
+ // top-8 of one row's 256 logits (lane holds lg[8 lane .. 8 lane + 7]); lanes 0..7 store
+-DEVI void topk8(const RouteP& p, size_t row, const float (&lg)[8], int lane) {
++// FAST: each round's winner by one warp max-reduction of an order-preserving key (ties: the lowest
++// lane, i.e. the lowest index, as the shuffle tree's rule) instead of five shuffle-compare steps
++template <bool PG = false, bool FAST = false>  // PG: the large-prefill router's tile slots (pnr2)
++DEVI void topk8(const RouteP& p, size_t row, const float (&lg)[8], int lane, int* sh_slot = nullptr) {
+   float sc[8], st[8];
++  const float4 b0 = __ldg(reinterpret_cast<const float4*>(p.bias + 8 * lane)), b1 = __ldg(reinterpret_cast<const float4*>(p.bias + 8 * lane + 4));
++  const int lstart = __ldg(p.local_start);
++  const float bb[8] = {b0.x, b0.y, b0.z, b0.w, b1.x, b1.y, b1.z, b1.w};
+ #pragma unroll
+   for (int i = 0; i < 8; ++i) {
+     sc[i] = 1.f / (1.f + expf(-lg[i] * p.mult));
+-    st[i] = sc[i] + p.bias[8 * lane + i];
++    st[i] = sc[i] + bb[i];
+   }
+   u32 taken = 0;
+   int my_id = 0;
+@@ -5462,12 +5790,20 @@
+ #pragma unroll
+     for (int i = 0; i < 8; ++i)
+       if (!((taken >> i) & 1) && st[i] > bv) { bv = st[i]; bi = 8 * lane + i; }
++    if constexpr (FAST) {
++      const u32 ub = __float_as_uint(bv);
++      const u32 key = (ub & 0x80000000u) ? ~ub : (ub | 0x80000000u);  // float order as unsigned order
++      const u32 m = __reduce_max_sync(0xffffffffu, key);
++      const int wl = __ffs(__ballot_sync(0xffffffffu, key == m)) - 1;
++      bi = __shfl_sync(0xffffffffu, bi, wl);
++    } else {
+ #pragma unroll
+     for (int o = 16; o; o >>= 1) {
+       const float ov = __shfl_xor_sync(0xffffffff, bv, o);
+       const int oi = __shfl_xor_sync(0xffffffff, bi, o);
+       if (ov > bv || (ov == bv && oi < bi)) { bv = ov; bi = oi; }
+     }
++    }
+     float w = 0.f;
+     if ((bi >> 3) == lane) {
+       const int k = bi & 7;
+@@ -5483,15 +5819,18 @@
+     const float inv = 1.f / (sum + 1e-15f);
+     p.tw[row * 8 + lane] = my_w * inv;
+     p.ti[row * 8 + lane] = my_id;
+-    p.li[row * 8 + lane] = (my_id - p.local_start[0]) & 255;
++    p.li[row * 8 + lane] = (my_id - lstart) & 255;
+     if (p.cur) {
+-      const int e = my_id - p.local_start[0];
++      const int e = my_id - lstart;
+       int pos = -1;
++      int sl = -1;
+       if ((unsigned)e < 32u) {
+         pos = atomicAdd(p.cur + e, 1);
+         p.bkt[(size_t)e * p.rows + pos] = (unsigned short)row;
++        if (PG && p.xs) sl = pg_slot(p.tslot, p.nslot, e, pos, p.kmax);
+       }
+       p.spos[row * 8 + lane] = pos;
++      if (PG && sh_slot) { sh_slot[lane] = sl; sh_slot[8 + lane] = pos & 127; }
+     }
+   }
+ }
+@@ -5540,8 +5879,591 @@
+ 
+ // Large prefill: per token, the pooled BF16 row's pre-expert norm into p.p and top-8 routing of the
+ // router GEMM's FP32 hi | lo logits (as F.rms_norm on the BF16 pooled output, then the routing).
++extern "C" __global__ void __launch_bounds__(256) pnrf(RouteP p) {
++  __shared__ float red[8];
++  // the expert path's first kernel (PDL) may start its prologue; it waits for this grid before reading
++  asm volatile("griddepcontrol.launch_dependents;" ::: "memory");
++  const size_t row = blockIdx.x;
++  const int t = threadIdx.x, lane = t & 31, wp = t >> 5;
++  const float* y = p.y + row * p.ld;
++  float v[16];
++  float q = 0.f;
++#pragma unroll
++  for (int k = 0; k < 4; ++k) {
++    const float4 x = *reinterpret_cast<const float4*>(y + 1024 * k + 4 * t);
++    v[4 * k] = x.x; v[4 * k + 1] = x.y; v[4 * k + 2] = x.z; v[4 * k + 3] = x.w;
++    q += x.x * x.x + x.y * x.y + x.z * x.z + x.w * x.w;
++  }
++  float lg[8];
++  if (wp == 0) {
++    const float4 h0 = *reinterpret_cast<const float4*>(y + 4096 + 8 * lane), h1 = *reinterpret_cast<const float4*>(y + 4096 + 8 * lane + 4);
++    const float4 l0 = *reinterpret_cast<const float4*>(y + 4352 + 8 * lane), l1 = *reinterpret_cast<const float4*>(y + 4352 + 8 * lane + 4);
++    lg[0] = h0.x + l0.x; lg[1] = h0.y + l0.y; lg[2] = h0.z + l0.z; lg[3] = h0.w + l0.w;
++    lg[4] = h1.x + l1.x; lg[5] = h1.y + l1.y; lg[6] = h1.z + l1.z; lg[7] = h1.w + l1.w;
++  }
++#pragma unroll
++  for (int o = 16; o; o >>= 1) q += __shfl_xor_sync(0xffffffff, q, o);
++  if (lane == 0) red[wp] = q;
++  __syncthreads();
++  q = 0.f;
++#pragma unroll
++  for (int i = 0; i < 8; ++i) q += red[i];
++  const float r = rsqrtf(q * (1.f / 4096.f) + p.eps);
++  u32* out = reinterpret_cast<u32*>(p.p + row * 4096);
++#pragma unroll
++  for (int k = 0; k < 4; ++k) {
++    const float4 w = *reinterpret_cast<const float4*>(p.w + 1024 * k + 4 * t);
++    *reinterpret_cast<uint2*>(out + 512 * k + 2 * t) =
++        make_uint2(pack_bf(v[4 * k] * r * w.x, v[4 * k + 1] * r * w.y), pack_bf(v[4 * k + 2] * r * w.z, v[4 * k + 3] * r * w.w));
++  }
++  if (wp == 0) topk8<false, true>(p, row, lg, lane);
++}
++
++// Large prefill: per token, the pooled BF16 row's pre-expert norm into p.p and top-8 routing of the
++// router GEMM's FP32 hi | lo logits (as F.rms_norm on the BF16 pooled output, then the routing).
++// pnr with the routing on a ninth warp, concurrent with the eight warps' norm (no barrier between)
++extern "C" __global__ void __launch_bounds__(288) pnr9(RouteP p) {
++  __shared__ float red[8];
++  asm volatile("griddepcontrol.launch_dependents;" ::: "memory");
++  const size_t row = blockIdx.x;
++  const int t = threadIdx.x, lane = t & 31, wp = t >> 5;
++  const float* y = p.y + row * p.ld;
++  if (wp == 8) {
++    float lg[8];
++    const float4 h0 = *reinterpret_cast<const float4*>(y + 4096 + 8 * lane), h1 = *reinterpret_cast<const float4*>(y + 4096 + 8 * lane + 4);
++    const float4 l0 = *reinterpret_cast<const float4*>(y + 4352 + 8 * lane), l1 = *reinterpret_cast<const float4*>(y + 4352 + 8 * lane + 4);
++    lg[0] = h0.x + l0.x; lg[1] = h0.y + l0.y; lg[2] = h0.z + l0.z; lg[3] = h0.w + l0.w;
++    lg[4] = h1.x + l1.x; lg[5] = h1.y + l1.y; lg[6] = h1.z + l1.z; lg[7] = h1.w + l1.w;
++    topk8<false, true>(p, row, lg, lane);
++    return;
++  }
++  float v[16];
++  float q = 0.f;
++#pragma unroll
++  for (int k = 0; k < 4; ++k) {
++    const float4 x = *reinterpret_cast<const float4*>(y + 1024 * k + 4 * t);
++    v[4 * k] = x.x; v[4 * k + 1] = x.y; v[4 * k + 2] = x.z; v[4 * k + 3] = x.w;
++    q += x.x * x.x + x.y * x.y + x.z * x.z + x.w * x.w;
++  }
++#pragma unroll
++  for (int o = 16; o; o >>= 1) q += __shfl_xor_sync(0xffffffff, q, o);
++  if (lane == 0) red[wp] = q;
++  asm volatile("bar.sync 1, 256;" ::: "memory");
++  q = 0.f;
++#pragma unroll
++  for (int i = 0; i < 8; ++i) q += red[i];
++  const float r = rsqrtf(q * (1.f / 4096.f) + p.eps);
++  u32* out = reinterpret_cast<u32*>(p.p + row * 4096);
++#pragma unroll
++  for (int k = 0; k < 4; ++k) {
++    const float4 w = *reinterpret_cast<const float4*>(p.w + 1024 * k + 4 * t);
++    *reinterpret_cast<uint2*>(out + 512 * k + 2 * t) =
++        make_uint2(pack_bf(v[4 * k] * r * w.x, v[4 * k + 1] * r * w.y), pack_bf(v[4 * k + 2] * r * w.z, v[4 * k + 3] * r * w.w));
++  }
++}
++
++extern "C" __global__ void __launch_bounds__(288) pnr9t(RouteP p) {
++  __shared__ float red[8];
++  asm volatile("griddepcontrol.launch_dependents;" ::: "memory");
++  const size_t row = blockIdx.x;
++  const int t = threadIdx.x, lane = t & 31, wp = t >> 5;
++  const float* y = p.y + row * p.ld;
++  u32 tg; asm volatile("mov.u32 %0, %%globaltimer_lo;" : "=r"(tg));
++  if (t == 0) p.tslot[row * 8 + 0] = (int)tg;
++  if (wp == 8) {
++    float lg[8];
++    const float4 h0 = *reinterpret_cast<const float4*>(y + 4096 + 8 * lane), h1 = *reinterpret_cast<const float4*>(y + 4096 + 8 * lane + 4);
++    const float4 l0 = *reinterpret_cast<const float4*>(y + 4352 + 8 * lane), l1 = *reinterpret_cast<const float4*>(y + 4352 + 8 * lane + 4);
++    lg[0] = h0.x + l0.x; lg[1] = h0.y + l0.y; lg[2] = h0.z + l0.z; lg[3] = h0.w + l0.w;
++    lg[4] = h1.x + l1.x; lg[5] = h1.y + l1.y; lg[6] = h1.z + l1.z; lg[7] = h1.w + l1.w;
++    if (lane == 0) { asm volatile("mov.u32 %0, %%globaltimer_lo;" : "=r"(tg)); p.tslot[row * 8 + 4] = (int)tg; }
++    topk8<false, true>(p, row, lg, lane);
++    if (lane == 0) { asm volatile("mov.u32 %0, %%globaltimer_lo;" : "=r"(tg)); p.tslot[row * 8 + 5] = (int)tg; }
++    return;
++  }
++  float v[16];
++  float q = 0.f;
++#pragma unroll
++  for (int k = 0; k < 4; ++k) {
++    const float4 x = *reinterpret_cast<const float4*>(y + 1024 * k + 4 * t);
++    v[4 * k] = x.x; v[4 * k + 1] = x.y; v[4 * k + 2] = x.z; v[4 * k + 3] = x.w;
++    q += x.x * x.x + x.y * x.y + x.z * x.z + x.w * x.w;
++  }
++#pragma unroll
++  for (int o = 16; o; o >>= 1) q += __shfl_xor_sync(0xffffffff, q, o);
++  if (t == 0) { asm volatile("mov.u32 %0, %%globaltimer_lo;" : "=r"(tg)); p.tslot[row * 8 + 1] = (int)tg; }
++  if (lane == 0) red[wp] = q;
++  asm volatile("bar.sync 1, 256;" ::: "memory");
++  if (t == 0) { asm volatile("mov.u32 %0, %%globaltimer_lo;" : "=r"(tg)); p.tslot[row * 8 + 2] = (int)tg; }
++  q = 0.f;
++#pragma unroll
++  for (int i = 0; i < 8; ++i) q += red[i];
++  const float r = rsqrtf(q * (1.f / 4096.f) + p.eps);
++  u32* out = reinterpret_cast<u32*>(p.p + row * 4096);
++#pragma unroll
++  for (int k = 0; k < 4; ++k) {
++    const float4 w = *reinterpret_cast<const float4*>(p.w + 1024 * k + 4 * t);
++    *reinterpret_cast<uint2*>(out + 512 * k + 2 * t) =
++        make_uint2(pack_bf(v[4 * k] * r * w.x, v[4 * k + 1] * r * w.y), pack_bf(v[4 * k + 2] * r * w.z, v[4 * k + 3] * r * w.w));
++  }
++  if (t == 0) { asm volatile("mov.u32 %0, %%globaltimer_lo;" : "=r"(tg)); p.tslot[row * 8 + 3] = (int)tg; }
++}
++
++// pnr9 with the slots (p.xs): the fused-router range's routing warp also takes each local route's
++// tile slot, the norm warps leave the row in shared memory, then one contiguous 8 KB store per route
++extern "C" __global__ void __launch_bounds__(288) pnr9g(RouteP p) {
++  __shared__ float red[8];
++  __shared__ __align__(16) unsigned short srow[4096];
++  __shared__ int sh_slot[16];
++  asm volatile("griddepcontrol.launch_dependents;" ::: "memory");
++  const size_t row = blockIdx.x;
++  const int t = threadIdx.x, lane = t & 31, wp = t >> 5;
++  const float* y = p.y + row * p.ld;
++  if (wp == 8) {
++    float lg[8];
++    const float4 h0 = *reinterpret_cast<const float4*>(y + 4096 + 8 * lane), h1 = *reinterpret_cast<const float4*>(y + 4096 + 8 * lane + 4);
++    const float4 l0 = *reinterpret_cast<const float4*>(y + 4352 + 8 * lane), l1 = *reinterpret_cast<const float4*>(y + 4352 + 8 * lane + 4);
++    lg[0] = h0.x + l0.x; lg[1] = h0.y + l0.y; lg[2] = h0.z + l0.z; lg[3] = h0.w + l0.w;
++    lg[4] = h1.x + l1.x; lg[5] = h1.y + l1.y; lg[6] = h1.z + l1.z; lg[7] = h1.w + l1.w;
++    topk8<true, true>(p, row, lg, lane, sh_slot);
++  } else {
++    float v[16];
++    float q = 0.f;
++#pragma unroll
++    for (int k = 0; k < 4; ++k) {
++      const float4 x = *reinterpret_cast<const float4*>(y + 1024 * k + 4 * t);
++      v[4 * k] = x.x; v[4 * k + 1] = x.y; v[4 * k + 2] = x.z; v[4 * k + 3] = x.w;
++      q += x.x * x.x + x.y * x.y + x.z * x.z + x.w * x.w;
++    }
++#pragma unroll
++    for (int o = 16; o; o >>= 1) q += __shfl_xor_sync(0xffffffff, q, o);
++    if (lane == 0) red[wp] = q;
++    asm volatile("bar.sync 1, 256;" ::: "memory");
++    q = 0.f;
++#pragma unroll
++    for (int i = 0; i < 8; ++i) q += red[i];
++    const float r = rsqrtf(q * (1.f / 4096.f) + p.eps);
++    u32* out = reinterpret_cast<u32*>(srow);
++#pragma unroll
++    for (int k = 0; k < 4; ++k) {
++      const float4 w = *reinterpret_cast<const float4*>(p.w + 1024 * k + 4 * t);
++      out[512 * k + 2 * t] = pack_bf(v[4 * k] * r * w.x, v[4 * k + 1] * r * w.y);
++      out[512 * k + 2 * t + 1] = pack_bf(v[4 * k + 2] * r * w.z, v[4 * k + 3] * r * w.w);
++    }
++  }
++  __syncthreads();
++  if (t < 256) {
++#pragma unroll 1
++    for (int j = 0; j < 8; ++j)
++      if (sh_slot[j] >= 0) pg_store_row(srow, p.xs + (size_t)sh_slot[j] * PG_SLOT_BYTES, sh_slot[8 + j], t);
++  }
++}
++
++// pnr9 in 160 threads: four warps normalize (32 values per thread), the fifth routes; seven CTAs
++// fit per SM (one wave at 753 tokens)
++extern "C" __global__ void __launch_bounds__(160) pnr5(RouteP p) {
++  __shared__ float red[4];
++  asm volatile("griddepcontrol.launch_dependents;" ::: "memory");
++  const size_t row = blockIdx.x;
++  const int t = threadIdx.x, lane = t & 31, wp = t >> 5;
++  const float* y = p.y + row * p.ld;
++  if (wp == 4) {
++    float lg[8];
++    const float4 h0 = *reinterpret_cast<const float4*>(y + 4096 + 8 * lane), h1 = *reinterpret_cast<const float4*>(y + 4096 + 8 * lane + 4);
++    const float4 l0 = *reinterpret_cast<const float4*>(y + 4352 + 8 * lane), l1 = *reinterpret_cast<const float4*>(y + 4352 + 8 * lane + 4);
++    lg[0] = h0.x + l0.x; lg[1] = h0.y + l0.y; lg[2] = h0.z + l0.z; lg[3] = h0.w + l0.w;
++    lg[4] = h1.x + l1.x; lg[5] = h1.y + l1.y; lg[6] = h1.z + l1.z; lg[7] = h1.w + l1.w;
++    topk8<false, true>(p, row, lg, lane);
++    return;
++  }
++  float4 v[8];
++  float q = 0.f;
++#pragma unroll
++  for (int k = 0; k < 8; ++k) {
++    v[k] = *reinterpret_cast<const float4*>(y + 512 * k + 4 * t);
++    q += v[k].x * v[k].x + v[k].y * v[k].y + v[k].z * v[k].z + v[k].w * v[k].w;
++  }
++#pragma unroll
++  for (int o = 16; o; o >>= 1) q += __shfl_xor_sync(0xffffffff, q, o);
++  if (lane == 0) red[wp] = q;
++  asm volatile("bar.sync 1, 128;" ::: "memory");
++  q = red[0] + red[1] + red[2] + red[3];
++  const float r = rsqrtf(q * (1.f / 4096.f) + p.eps);
++  u32* out = reinterpret_cast<u32*>(p.p + row * 4096);
++#pragma unroll
++  for (int k = 0; k < 8; ++k) {
++    const float4 w = *reinterpret_cast<const float4*>(p.w + 512 * k + 4 * t);
++    *reinterpret_cast<uint2*>(out + 256 * k + 2 * t) =
++        make_uint2(pack_bf(v[k].x * r * w.x, v[k].y * r * w.y), pack_bf(v[k].z * r * w.z, v[k].w * r * w.w));
++  }
++}
++
++// pnr5 with the tile slots (pnr9g in 160 threads)
++extern "C" __global__ void __launch_bounds__(160) pnr5g(RouteP p) {
++  __shared__ float red[4];
++  __shared__ __align__(16) unsigned short srow[4096];
++  __shared__ int sh_slot[16];
++  asm volatile("griddepcontrol.launch_dependents;" ::: "memory");
++  const size_t row = blockIdx.x;
++  const int t = threadIdx.x, lane = t & 31, wp = t >> 5;
++  const float* y = p.y + row * p.ld;
++  if (wp == 4) {
++    float lg[8];
++    const float4 h0 = *reinterpret_cast<const float4*>(y + 4096 + 8 * lane), h1 = *reinterpret_cast<const float4*>(y + 4096 + 8 * lane + 4);
++    const float4 l0 = *reinterpret_cast<const float4*>(y + 4352 + 8 * lane), l1 = *reinterpret_cast<const float4*>(y + 4352 + 8 * lane + 4);
++    lg[0] = h0.x + l0.x; lg[1] = h0.y + l0.y; lg[2] = h0.z + l0.z; lg[3] = h0.w + l0.w;
++    lg[4] = h1.x + l1.x; lg[5] = h1.y + l1.y; lg[6] = h1.z + l1.z; lg[7] = h1.w + l1.w;
++    topk8<true, true>(p, row, lg, lane, sh_slot);
++  } else {
++    float4 v[8];
++    float q = 0.f;
++#pragma unroll
++    for (int k = 0; k < 8; ++k) {
++      v[k] = *reinterpret_cast<const float4*>(y + 512 * k + 4 * t);
++      q += v[k].x * v[k].x + v[k].y * v[k].y + v[k].z * v[k].z + v[k].w * v[k].w;
++    }
++#pragma unroll
++    for (int o = 16; o; o >>= 1) q += __shfl_xor_sync(0xffffffff, q, o);
++    if (lane == 0) red[wp] = q;
++    asm volatile("bar.sync 1, 128;" ::: "memory");
++    q = red[0] + red[1] + red[2] + red[3];
++    const float r = rsqrtf(q * (1.f / 4096.f) + p.eps);
++    u32* out = reinterpret_cast<u32*>(srow);
++#pragma unroll
++    for (int k = 0; k < 8; ++k) {
++      const float4 w = *reinterpret_cast<const float4*>(p.w + 512 * k + 4 * t);
++      out[256 * k + 2 * t] = pack_bf(v[k].x * r * w.x, v[k].y * r * w.y);
++      out[256 * k + 2 * t + 1] = pack_bf(v[k].z * r * w.z, v[k].w * r * w.w);
++    }
++  }
++  __syncthreads();
++  if (t < 128) {
++#pragma unroll 1
++    for (int j = 0; j < 8; ++j)
++      if (sh_slot[j] >= 0) pg_store_row<128>(srow, p.xs + (size_t)sh_slot[j] * PG_SLOT_BYTES, sh_slot[8 + j], t);
++  }
++}
++
++// pnr2x in 160 threads: the large prefill's pooled BF16 rows (four warps normalize), the fifth routes
++extern "C" __global__ void __launch_bounds__(160) pnr2y(RouteP p) {
++  __shared__ float red[4];
++  __shared__ __align__(16) unsigned short srow[4096];
++  __shared__ int sh_slot[16];
++  asm volatile("griddepcontrol.launch_dependents;" ::: "memory");
++  const size_t row = blockIdx.x;
++  const int t = threadIdx.x, lane = t & 31, wp = t >> 5;
++  if (wp == 4) {
++    float lg[8];
++    const float* y = p.y + row * p.ld;
++    const float4 h0 = *reinterpret_cast<const float4*>(y + 8 * lane), h1 = *reinterpret_cast<const float4*>(y + 8 * lane + 4);
++    const float4 l0 = *reinterpret_cast<const float4*>(y + 256 + 8 * lane), l1 = *reinterpret_cast<const float4*>(y + 256 + 8 * lane + 4);
++    lg[0] = h0.x + l0.x; lg[1] = h0.y + l0.y; lg[2] = h0.z + l0.z; lg[3] = h0.w + l0.w;
++    lg[4] = h1.x + l1.x; lg[5] = h1.y + l1.y; lg[6] = h1.z + l1.z; lg[7] = h1.w + l1.w;
++    topk8<true, true>(p, row, lg, lane, p.xs ? sh_slot : nullptr);
++  } else {
++    const unsigned short* xr = p.xb + row * 4096;
++    float v[32];
++    float q = 0.f;
++#pragma unroll
++    for (int k = 0; k < 8; ++k) {
++      const uint2 u = *reinterpret_cast<const uint2*>(xr + 512 * k + 4 * t);
++      v[4 * k] = __uint_as_float(u.x << 16); v[4 * k + 1] = __uint_as_float(u.x & 0xFFFF0000u);
++      v[4 * k + 2] = __uint_as_float(u.y << 16); v[4 * k + 3] = __uint_as_float(u.y & 0xFFFF0000u);
++#pragma unroll
++      for (int i = 0; i < 4; ++i) q += v[4 * k + i] * v[4 * k + i];
++    }
++#pragma unroll
++    for (int o = 16; o; o >>= 1) q += __shfl_xor_sync(0xffffffff, q, o);
++    if (lane == 0) red[wp] = q;
++    asm volatile("bar.sync 1, 128;" ::: "memory");
++    q = red[0] + red[1] + red[2] + red[3];
++    const float r = rsqrtf(q * (1.f / 4096.f) + p.eps);
++    u32* out = reinterpret_cast<u32*>(p.xs ? srow : p.p + row * 4096);
++#pragma unroll
++    for (int k = 0; k < 8; ++k) {
++      const float4 w = *reinterpret_cast<const float4*>(p.w + 512 * k + 4 * t);
++      *reinterpret_cast<uint2*>(out + 256 * k + 2 * t) =
++          make_uint2(pack_bf(v[4 * k] * r * w.x, v[4 * k + 1] * r * w.y), pack_bf(v[4 * k + 2] * r * w.z, v[4 * k + 3] * r * w.w));
++    }
++  }
++  if (p.xs) {
++    __syncthreads();
++    if (t < 128) {
++#pragma unroll 1
++      for (int j = 0; j < 8; ++j)
++        if (sh_slot[j] >= 0) pg_store_row<128>(srow, p.xs + (size_t)sh_slot[j] * PG_SLOT_BYTES, sh_slot[8 + j], t);
++    }
++  }
++}
++
++extern "C" __global__ void __launch_bounds__(256, 8) pnr8(RouteP p) {
++  __shared__ float red[8];
++  // the expert path's first kernel (PDL) may start its prologue; it waits for this grid before reading
++  asm volatile("griddepcontrol.launch_dependents;" ::: "memory");
++  const size_t row = blockIdx.x;
++  const int t = threadIdx.x, lane = t & 31, wp = t >> 5;
++  const float* y = p.y + row * p.ld;
++  float v[16];
++  float q = 0.f;
++#pragma unroll
++  for (int k = 0; k < 4; ++k) {
++    const float4 x = *reinterpret_cast<const float4*>(y + 1024 * k + 4 * t);
++    v[4 * k] = x.x; v[4 * k + 1] = x.y; v[4 * k + 2] = x.z; v[4 * k + 3] = x.w;
++    q += x.x * x.x + x.y * x.y + x.z * x.z + x.w * x.w;
++  }
++  float lg[8];
++  if (wp == 0) {
++    const float4 h0 = *reinterpret_cast<const float4*>(y + 4096 + 8 * lane), h1 = *reinterpret_cast<const float4*>(y + 4096 + 8 * lane + 4);
++    const float4 l0 = *reinterpret_cast<const float4*>(y + 4352 + 8 * lane), l1 = *reinterpret_cast<const float4*>(y + 4352 + 8 * lane + 4);
++    lg[0] = h0.x + l0.x; lg[1] = h0.y + l0.y; lg[2] = h0.z + l0.z; lg[3] = h0.w + l0.w;
++    lg[4] = h1.x + l1.x; lg[5] = h1.y + l1.y; lg[6] = h1.z + l1.z; lg[7] = h1.w + l1.w;
++  }
++#pragma unroll
++  for (int o = 16; o; o >>= 1) q += __shfl_xor_sync(0xffffffff, q, o);
++  if (lane == 0) red[wp] = q;
++  __syncthreads();
++  q = 0.f;
++#pragma unroll
++  for (int i = 0; i < 8; ++i) q += red[i];
++  const float r = rsqrtf(q * (1.f / 4096.f) + p.eps);
++  u32* out = reinterpret_cast<u32*>(p.p + row * 4096);
++#pragma unroll
++  for (int k = 0; k < 4; ++k) {
++    const float4 w = *reinterpret_cast<const float4*>(p.w + 1024 * k + 4 * t);
++    *reinterpret_cast<uint2*>(out + 512 * k + 2 * t) =
++        make_uint2(pack_bf(v[4 * k] * r * w.x, v[4 * k + 1] * r * w.y), pack_bf(v[4 * k + 2] * r * w.z, v[4 * k + 3] * r * w.w));
++  }
++  if (wp == 0) topk8(p, row, lg, lane);
++}
++
++// Large prefill: per token, the pooled BF16 row's pre-expert norm into p.p and top-8 routing of the
++// router GEMM's FP32 hi | lo logits (as F.rms_norm on the BF16 pooled output, then the routing).
++extern "C" __global__ void __launch_bounds__(288, 7) pnr97(RouteP p) {
++  __shared__ float red[8];
++  asm volatile("griddepcontrol.launch_dependents;" ::: "memory");
++  const size_t row = blockIdx.x;
++  const int t = threadIdx.x, lane = t & 31, wp = t >> 5;
++  const float* y = p.y + row * p.ld;
++  if (wp == 8) {
++    float lg[8];
++    const float4 h0 = *reinterpret_cast<const float4*>(y + 4096 + 8 * lane), h1 = *reinterpret_cast<const float4*>(y + 4096 + 8 * lane + 4);
++    const float4 l0 = *reinterpret_cast<const float4*>(y + 4352 + 8 * lane), l1 = *reinterpret_cast<const float4*>(y + 4352 + 8 * lane + 4);
++    lg[0] = h0.x + l0.x; lg[1] = h0.y + l0.y; lg[2] = h0.z + l0.z; lg[3] = h0.w + l0.w;
++    lg[4] = h1.x + l1.x; lg[5] = h1.y + l1.y; lg[6] = h1.z + l1.z; lg[7] = h1.w + l1.w;
++    topk8<false, true>(p, row, lg, lane);
++    return;
++  }
++  float v[16];
++  float q = 0.f;
++#pragma unroll
++  for (int k = 0; k < 4; ++k) {
++    const float4 x = *reinterpret_cast<const float4*>(y + 1024 * k + 4 * t);
++    v[4 * k] = x.x; v[4 * k + 1] = x.y; v[4 * k + 2] = x.z; v[4 * k + 3] = x.w;
++    q += x.x * x.x + x.y * x.y + x.z * x.z + x.w * x.w;
++  }
++#pragma unroll
++  for (int o = 16; o; o >>= 1) q += __shfl_xor_sync(0xffffffff, q, o);
++  if (lane == 0) red[wp] = q;
++  asm volatile("bar.sync 1, 256;" ::: "memory");
++  q = 0.f;
++#pragma unroll
++  for (int i = 0; i < 8; ++i) q += red[i];
++  const float r = rsqrtf(q * (1.f / 4096.f) + p.eps);
++  u32* out = reinterpret_cast<u32*>(p.p + row * 4096);
++#pragma unroll
++  for (int k = 0; k < 4; ++k) {
++    const float4 w = *reinterpret_cast<const float4*>(p.w + 1024 * k + 4 * t);
++    *reinterpret_cast<uint2*>(out + 512 * k + 2 * t) =
++        make_uint2(pack_bf(v[4 * k] * r * w.x, v[4 * k + 1] * r * w.y), pack_bf(v[4 * k + 2] * r * w.z, v[4 * k + 3] * r * w.w));
++  }
++}
++
++extern "C" __global__ void __launch_bounds__(288, 6) pnr96(RouteP p) {
++  __shared__ float red[8];
++  asm volatile("griddepcontrol.launch_dependents;" ::: "memory");
++  const size_t row = blockIdx.x;
++  const int t = threadIdx.x, lane = t & 31, wp = t >> 5;
++  const float* y = p.y + row * p.ld;
++  if (wp == 8) {
++    float lg[8];
++    const float4 h0 = *reinterpret_cast<const float4*>(y + 4096 + 8 * lane), h1 = *reinterpret_cast<const float4*>(y + 4096 + 8 * lane + 4);
++    const float4 l0 = *reinterpret_cast<const float4*>(y + 4352 + 8 * lane), l1 = *reinterpret_cast<const float4*>(y + 4352 + 8 * lane + 4);
++    lg[0] = h0.x + l0.x; lg[1] = h0.y + l0.y; lg[2] = h0.z + l0.z; lg[3] = h0.w + l0.w;
++    lg[4] = h1.x + l1.x; lg[5] = h1.y + l1.y; lg[6] = h1.z + l1.z; lg[7] = h1.w + l1.w;
++    topk8<false, true>(p, row, lg, lane);
++    return;
++  }
++  float v[16];
++  float q = 0.f;
++#pragma unroll
++  for (int k = 0; k < 4; ++k) {
++    const float4 x = *reinterpret_cast<const float4*>(y + 1024 * k + 4 * t);
++    v[4 * k] = x.x; v[4 * k + 1] = x.y; v[4 * k + 2] = x.z; v[4 * k + 3] = x.w;
++    q += x.x * x.x + x.y * x.y + x.z * x.z + x.w * x.w;
++  }
++#pragma unroll
++  for (int o = 16; o; o >>= 1) q += __shfl_xor_sync(0xffffffff, q, o);
++  if (lane == 0) red[wp] = q;
++  asm volatile("bar.sync 1, 256;" ::: "memory");
++  q = 0.f;
++#pragma unroll
++  for (int i = 0; i < 8; ++i) q += red[i];
++  const float r = rsqrtf(q * (1.f / 4096.f) + p.eps);
++  u32* out = reinterpret_cast<u32*>(p.p + row * 4096);
++#pragma unroll
++  for (int k = 0; k < 4; ++k) {
++    const float4 w = *reinterpret_cast<const float4*>(p.w + 1024 * k + 4 * t);
++    *reinterpret_cast<uint2*>(out + 512 * k + 2 * t) =
++        make_uint2(pack_bf(v[4 * k] * r * w.x, v[4 * k + 1] * r * w.y), pack_bf(v[4 * k + 2] * r * w.z, v[4 * k + 3] * r * w.w));
++  }
++}
++
++extern "C" __global__ void __launch_bounds__(288, 5) pnr95(RouteP p) {
++  __shared__ float red[8];
++  asm volatile("griddepcontrol.launch_dependents;" ::: "memory");
++  const size_t row = blockIdx.x;
++  const int t = threadIdx.x, lane = t & 31, wp = t >> 5;
++  const float* y = p.y + row * p.ld;
++  if (wp == 8) {
++    float lg[8];
++    const float4 h0 = *reinterpret_cast<const float4*>(y + 4096 + 8 * lane), h1 = *reinterpret_cast<const float4*>(y + 4096 + 8 * lane + 4);
++    const float4 l0 = *reinterpret_cast<const float4*>(y + 4352 + 8 * lane), l1 = *reinterpret_cast<const float4*>(y + 4352 + 8 * lane + 4);
++    lg[0] = h0.x + l0.x; lg[1] = h0.y + l0.y; lg[2] = h0.z + l0.z; lg[3] = h0.w + l0.w;
++    lg[4] = h1.x + l1.x; lg[5] = h1.y + l1.y; lg[6] = h1.z + l1.z; lg[7] = h1.w + l1.w;
++    topk8<false, true>(p, row, lg, lane);
++    return;
++  }
++  float v[16];
++  float q = 0.f;
++#pragma unroll
++  for (int k = 0; k < 4; ++k) {
++    const float4 x = *reinterpret_cast<const float4*>(y + 1024 * k + 4 * t);
++    v[4 * k] = x.x; v[4 * k + 1] = x.y; v[4 * k + 2] = x.z; v[4 * k + 3] = x.w;
++    q += x.x * x.x + x.y * x.y + x.z * x.z + x.w * x.w;
++  }
++#pragma unroll
++  for (int o = 16; o; o >>= 1) q += __shfl_xor_sync(0xffffffff, q, o);
++  if (lane == 0) red[wp] = q;
++  asm volatile("bar.sync 1, 256;" ::: "memory");
++  q = 0.f;
++#pragma unroll
++  for (int i = 0; i < 8; ++i) q += red[i];
++  const float r = rsqrtf(q * (1.f / 4096.f) + p.eps);
++  u32* out = reinterpret_cast<u32*>(p.p + row * 4096);
++#pragma unroll
++  for (int k = 0; k < 4; ++k) {
++    const float4 w = *reinterpret_cast<const float4*>(p.w + 1024 * k + 4 * t);
++    *reinterpret_cast<uint2*>(out + 512 * k + 2 * t) =
++        make_uint2(pack_bf(v[4 * k] * r * w.x, v[4 * k + 1] * r * w.y), pack_bf(v[4 * k + 2] * r * w.z, v[4 * k + 3] * r * w.w));
++  }
++}
++
++// pnr with warp 0 on the routing (its loads first) while warps 1-7 normalize the row (32 chunks of
++// 128 values): no CTA-wide barrier, and at most 40 registers so six CTAs fit per SM (one wave at 753)
++extern "C" __global__ void __launch_bounds__(256, 6) pnrx(RouteP p) {
++  __shared__ float red[8];
++  asm volatile("griddepcontrol.launch_dependents;" ::: "memory");
++  const size_t row = blockIdx.x;
++  const int t = threadIdx.x, lane = t & 31, wp = t >> 5;
++  const float* y = p.y + row * p.ld;
++  if (wp == 0) {
++    float lg[8];
++    const float4 h0 = *reinterpret_cast<const float4*>(y + 4096 + 8 * lane), h1 = *reinterpret_cast<const float4*>(y + 4096 + 8 * lane + 4);
++    const float4 l0 = *reinterpret_cast<const float4*>(y + 4352 + 8 * lane), l1 = *reinterpret_cast<const float4*>(y + 4352 + 8 * lane + 4);
++    lg[0] = h0.x + l0.x; lg[1] = h0.y + l0.y; lg[2] = h0.z + l0.z; lg[3] = h0.w + l0.w;
++    lg[4] = h1.x + l1.x; lg[5] = h1.y + l1.y; lg[6] = h1.z + l1.z; lg[7] = h1.w + l1.w;
++    topk8<false, true>(p, row, lg, lane);
++    return;
++  }
++  const int nc = wp <= 4 ? 5 : 4;  // chunks wp - 1 + 7 j
++  float4 v[5];
++  float q = 0.f;
++#pragma unroll
++  for (int j = 0; j < 5; ++j) {
++    if (j < nc) {
++      v[j] = *reinterpret_cast<const float4*>(y + 128 * (wp - 1 + 7 * j) + 4 * lane);
++      q += v[j].x * v[j].x + v[j].y * v[j].y + v[j].z * v[j].z + v[j].w * v[j].w;
++    }
++  }
++#pragma unroll
++  for (int o = 16; o; o >>= 1) q += __shfl_xor_sync(0xffffffff, q, o);
++  if (lane == 0) red[wp] = q;
++  asm volatile("bar.sync 1, 224;" ::: "memory");
++  q = 0.f;
++#pragma unroll
++  for (int i = 1; i < 8; ++i) q += red[i];
++  const float r = rsqrtf(q * (1.f / 4096.f) + p.eps);
++  u32* out = reinterpret_cast<u32*>(p.p + row * 4096);
++#pragma unroll
++  for (int j = 0; j < 5; ++j) {
++    if (j < nc) {
++      const int c = 128 * (wp - 1 + 7 * j) + 4 * lane;
++      const float4 w = *reinterpret_cast<const float4*>(p.w + c);
++      *reinterpret_cast<uint2*>(out + c / 2) =
++          make_uint2(pack_bf(v[j].x * r * w.x, v[j].y * r * w.y), pack_bf(v[j].z * r * w.z, v[j].w * r * w.w));
++    }
++  }
++}
++
++// pnr2 with the routing (and the slots) on a ninth warp beside the eight warps' norm; the slot
++// rows go out after one barrier
++extern "C" __global__ void __launch_bounds__(288) pnr2x(RouteP p) {
++  __shared__ float red[8];
++  __shared__ __align__(16) unsigned short srow[4096];  // (p.xs: the normalized row for the slots)
++  __shared__ int sh_slot[16];
++  asm volatile("griddepcontrol.launch_dependents;" ::: "memory");
++  const size_t row = blockIdx.x;
++  const int t = threadIdx.x, lane = t & 31, wp = t >> 5;
++  if (wp == 8) {
++    float lg[8];
++    const float* y = p.y + row * p.ld;
++    const float4 h0 = *reinterpret_cast<const float4*>(y + 8 * lane), h1 = *reinterpret_cast<const float4*>(y + 8 * lane + 4);
++    const float4 l0 = *reinterpret_cast<const float4*>(y + 256 + 8 * lane), l1 = *reinterpret_cast<const float4*>(y + 256 + 8 * lane + 4);
++    lg[0] = h0.x + l0.x; lg[1] = h0.y + l0.y; lg[2] = h0.z + l0.z; lg[3] = h0.w + l0.w;
++    lg[4] = h1.x + l1.x; lg[5] = h1.y + l1.y; lg[6] = h1.z + l1.z; lg[7] = h1.w + l1.w;
++    topk8<true, true>(p, row, lg, lane, p.xs ? sh_slot : nullptr);
++  } else {
++    const unsigned short* xr = p.xb + row * 4096;
++    float v[16];
++    float q = 0.f;
++#pragma unroll
++    for (int k = 0; k < 4; ++k) {
++      const uint2 u = *reinterpret_cast<const uint2*>(xr + 1024 * k + 4 * t);
++      v[4 * k] = __uint_as_float(u.x << 16); v[4 * k + 1] = __uint_as_float(u.x & 0xFFFF0000u);
++      v[4 * k + 2] = __uint_as_float(u.y << 16); v[4 * k + 3] = __uint_as_float(u.y & 0xFFFF0000u);
++#pragma unroll
++      for (int i = 0; i < 4; ++i) q += v[4 * k + i] * v[4 * k + i];
++    }
++#pragma unroll
++    for (int o = 16; o; o >>= 1) q += __shfl_xor_sync(0xffffffff, q, o);
++    if (lane == 0) red[wp] = q;
++    asm volatile("bar.sync 1, 256;" ::: "memory");
++    q = 0.f;
++#pragma unroll
++    for (int i = 0; i < 8; ++i) q += red[i];
++    const float r = rsqrtf(q * (1.f / 4096.f) + p.eps);
++    u32* out = reinterpret_cast<u32*>(p.xs ? srow : p.p + row * 4096);
++#pragma unroll
++    for (int k = 0; k < 4; ++k) {
++      const float4 w = *reinterpret_cast<const float4*>(p.w + 1024 * k + 4 * t);
++      *reinterpret_cast<uint2*>(out + 512 * k + 2 * t) =
++          make_uint2(pack_bf(v[4 * k] * r * w.x, v[4 * k + 1] * r * w.y), pack_bf(v[4 * k + 2] * r * w.z, v[4 * k + 3] * r * w.w));
++    }
++  }
++  if (p.xs) {
++    __syncthreads();
++    if (t < 256) {
++#pragma unroll 1
++      for (int j = 0; j < 8; ++j)
++        if (sh_slot[j] >= 0) pg_store_row(srow, p.xs + (size_t)sh_slot[j] * PG_SLOT_BYTES, sh_slot[8 + j], t);
++    }
++  }
++}
++
+ extern "C" __global__ void __launch_bounds__(256) pnr2(RouteP p) {
+   __shared__ float red[8];
++  __shared__ __align__(16) unsigned short srow[4096];  // (p.xs: the normalized row for the slots)
++  __shared__ int sh_slot[16];
+   asm volatile("griddepcontrol.launch_dependents;" ::: "memory");
+   const size_t row = blockIdx.x;
+   const int t = threadIdx.x, lane = t & 31, wp = t >> 5;
+@@ -5572,14 +6494,55 @@
+ #pragma unroll
+   for (int i = 0; i < 8; ++i) q += red[i];
+   const float r = rsqrtf(q * (1.f / 4096.f) + p.eps);
+-  u32* out = reinterpret_cast<u32*>(p.p + row * 4096);
++  u32* out = reinterpret_cast<u32*>(p.xs ? srow : p.p + row * 4096);
+ #pragma unroll
+   for (int k = 0; k < 4; ++k) {
+     const float4 w = *reinterpret_cast<const float4*>(p.w + 1024 * k + 4 * t);
+     *reinterpret_cast<uint2*>(out + 512 * k + 2 * t) =
+         make_uint2(pack_bf(v[4 * k] * r * w.x, v[4 * k + 1] * r * w.y), pack_bf(v[4 * k + 2] * r * w.z, v[4 * k + 3] * r * w.w));
+   }
+-  if (wp == 0) topk8(p, row, lg, lane);
++  if (wp == 0) topk8<true>(p, row, lg, lane, p.xs ? sh_slot : nullptr);
++  if (p.xs) {
++    __syncthreads();
++#pragma unroll 1
++    for (int j = 0; j < 8; ++j)
++      if (sh_slot[j] >= 0) pg_store_row(srow, p.xs + (size_t)sh_slot[j] * PG_SLOT_BYTES, sh_slot[8 + j], t);
++  }
++}
++
++// One warp per token (4 per CTA): the fused GEMM row (32 float4 per lane, all loads in flight), its
++// pre-expert norm by warp shuffles (no CTA barrier), then the routing on the same warp. Replaces
++// pnr's 256-thread CTA per token, whose barrier and serial routing tail set the kernel's length.
++extern "C" __global__ void __launch_bounds__(128) pnrw(RouteP p) {
++  asm volatile("griddepcontrol.launch_dependents;" ::: "memory");
++  const int lane = threadIdx.x & 31;
++  const size_t row = (size_t)blockIdx.x * 4 + (threadIdx.x >> 5);
++  if (row >= (size_t)p.rows) return;
++  const float* y = p.y + row * p.ld;
++  float lg[8];
++  {
++    const float4 h0 = *reinterpret_cast<const float4*>(y + 4096 + 8 * lane), h1 = *reinterpret_cast<const float4*>(y + 4096 + 8 * lane + 4);
++    const float4 l0 = *reinterpret_cast<const float4*>(y + 4352 + 8 * lane), l1 = *reinterpret_cast<const float4*>(y + 4352 + 8 * lane + 4);
++    lg[0] = h0.x + l0.x; lg[1] = h0.y + l0.y; lg[2] = h0.z + l0.z; lg[3] = h0.w + l0.w;
++    lg[4] = h1.x + l1.x; lg[5] = h1.y + l1.y; lg[6] = h1.z + l1.z; lg[7] = h1.w + l1.w;
++  }
++  float4 v[32];
++#pragma unroll
++  for (int i = 0; i < 32; ++i) v[i] = *reinterpret_cast<const float4*>(y + 128 * i + 4 * lane);
++  float q = 0.f;
++#pragma unroll
++  for (int i = 0; i < 32; ++i) q += v[i].x * v[i].x + v[i].y * v[i].y + v[i].z * v[i].z + v[i].w * v[i].w;
++#pragma unroll
++  for (int o = 16; o; o >>= 1) q += __shfl_xor_sync(0xffffffff, q, o);
++  const float r = rsqrtf(q * (1.f / 4096.f) + p.eps);
++  u32* out = reinterpret_cast<u32*>(p.p + row * 4096);
++#pragma unroll
++  for (int i = 0; i < 32; ++i) {
++    const float4 w = *reinterpret_cast<const float4*>(p.w + 128 * i + 4 * lane);
++    *reinterpret_cast<uint2*>(out + 64 * i + 2 * lane) =
++        make_uint2(pack_bf(v[i].x * r * w.x, v[i].y * r * w.y), pack_bf(v[i].z * r * w.z, v[i].w * r * w.w));
++  }
++  topk8<false, true>(p, row, lg, lane);
+ }
+ 
+ extern "C" __global__ void __launch_bounds__(256) route(RouteP p) {
+@@ -5602,10 +6565,12 @@
+     _fields_ = [("y", ctypes.c_void_p), ("ld", ctypes.c_int), ("w", ctypes.c_void_p), ("p", ctypes.c_void_p),
+                 ("bias", ctypes.c_void_p), ("tw", ctypes.c_void_p), ("ti", ctypes.c_void_p), ("li", ctypes.c_void_p),
+                 ("local_start", ctypes.c_void_p), ("mult", ctypes.c_float), ("eps", ctypes.c_float), ("rows", ctypes.c_int),
+-                ("cur", ctypes.c_void_p), ("bkt", ctypes.c_void_p), ("spos", ctypes.c_void_p), ("xb", ctypes.c_void_p)]
++                ("cur", ctypes.c_void_p), ("bkt", ctypes.c_void_p), ("spos", ctypes.c_void_p), ("xb", ctypes.c_void_p),
++                ("tslot", ctypes.c_void_p), ("nslot", ctypes.c_void_p), ("xs", ctypes.c_void_p), ("kmax", ctypes.c_int)]
+ 
+ 
+ ROUTER_MULT = 0.1767766952966369
++PNR9 = True  # pnr9: the fused-router range's routing on a ninth warp, beside the norm (-3 us at 753 / 3012)
+ _dense1_prepare = prepare
+ 
+ 
+@@ -5622,9 +6587,25 @@
+     state["bnd"] = dict(al1=al1, be1=be1, A=(al2 * al1).contiguous(), Bv=(al2 * be1).contiguous(), C=be2,
+                         wpre=weights["pre_ffn_norm"].contiguous(), wpost=weights["post_ffn_norm"].contiguous(),
+                         wnext=weights["next_pre_attn_norm"].contiguous())
+-    state["bnd_mod"] = _Cuda(BND3_SRC + ROUTE_SRC)
++    state["bnd_mod"] = _Cuda(BND3_SRC + PG_SRC + ROUTE_SRC)
+     state["router_bias32"] = weights["router_bias"].float().contiguous()
+     return state
++
++
++class _Bnd4P(ctypes.Structure):
++    _fields_ = [("b", _Bnd3P), ("rows", ctypes.c_int)]
++
++
++BND4_MIN_ROWS = 2048   # persistent bulk-copy boundaries (dev/patch_bnd.py) from this many rows
++
++
++def _bnd_launch(state, name, prm, rows):
++    if rows >= BND4_MIN_ROWS:
++        sms = torch.cuda.get_device_properties(0).multi_processor_count
++        smem = 2 * (49152 + (16384 if name.endswith("b2") else 0))
++        state["bnd_mod"].launch(name.replace("bnd3_", "bnd4_"), min(rows, sms), 512, smem, _Bnd4P(prm, rows), pdl=True)
++    else:
++        state["bnd_mod"].launch(name, rows, 512, 0, prm, pdl=True)
+ 
+ 
+ def _bnd1(state, s, a):
+@@ -5632,7 +6613,7 @@
+     h = torch.empty(a.shape, dtype=torch.bfloat16, device=a.device)
+     prm = _Bnd3P(s.data_ptr(), a.data_ptr(), 0, 0, h.data_ptr(), bv["al1"].data_ptr(), bv["be1"].data_ptr(), 0,
+                  bv["wpre"].data_ptr(), bv["wpre"].data_ptr(), 0, 0)
+-    state["bnd_mod"].launch("bnd3_b1", a.shape[0], 512, 0, prm, pdl=True)
++    _bnd_launch(state, "bnd3_b1", prm, a.shape[0])
+     return h
+ 
+ 
+@@ -5642,7 +6623,7 @@
+     s2 = torch.empty(s.shape, dtype=torch.float32, device=a.device)
+     prm = _Bnd3P(s.data_ptr(), a.data_ptr(), f.data_ptr(), s2.data_ptr(), out.data_ptr(), bv["A"].data_ptr(),
+                  bv["Bv"].data_ptr(), bv["C"].data_ptr(), bv["wpost"].data_ptr(), bv["wnext"].data_ptr(), 0, 0)
+-    state["bnd_mod"].launch("bnd3_b2", a.shape[0], 512, 0, prm, pdl=True)
++    _bnd_launch(state, "bnd3_b2", prm, a.shape[0])
+     return out, s2
+ 
+ 
+@@ -5798,7 +6779,10 @@
+ DEVI u32 h2sub(u32 a, u32 b) { u32 r; asm("sub.f16x2 %0, %1, %2;" : "=r"(r) : "r"(a), "r"(b)); return r; }
+ DEVI u32 h2ex2(u32 a) { u32 r; asm("ex2.approx.f16x2 %0, %1;" : "=r"(r) : "r"(a)); return r; }
+ DEVI u32 h2mul(u32 a, u32 b) { u32 r; asm("mul.f16x2 %0, %1, %2;" : "=r"(r) : "r"(a), "r"(b)); return r; }
++DEVI float bf_lo_f(u32 x) { return __uint_as_float(x << 16); }
++DEVI float bf_hi_f(u32 x) { return __uint_as_float(x & 0xFFFF0000u); }
+ DEVI u32 prmt_b(u32 a, u32 b, u32 sel) { u32 r; asm("prmt.b32 %0, %1, %2, %3;" : "=r"(r) : "r"(a), "r"(b), "r"(sel)); return r; }
++DEVI u32 h2fma_relu(u32 a, u32 b, u32 c) { u32 r; asm("fma.rn.relu.f16x2 %0, %1, %2, %3;" : "=r"(r) : "r"(a), "r"(b), "r"(c)); return r; }
+ DEVI u32 h2add(u32 a, u32 b) { u32 r; asm("add.f16x2 %0, %1, %2;" : "=r"(r) : "r"(a), "r"(b)); return r; }
+ DEVI u32 h2fma(u32 a, u32 b, u32 c) { u32 r; asm("fma.rn.f16x2 %0, %1, %2, %3;" : "=r"(r) : "r"(a), "r"(b), "r"(c)); return r; }
+ // 2^x for f16x2 x <= 8 on the FMA pipe: n = round(x) through the 1551 magic (its low 6 bits hold
+@@ -6252,7 +7236,14 @@
+   }
+ }
+ 
++#ifdef ATT_TRACE
++DEVI unsigned long long gtimer_ns() { unsigned long long t; asm volatile("mov.u64 %0, %globaltimer;" : "=l"(t)); return t; }
++#define ATR(k) do { if (threadIdx.x == 128) reinterpret_cast<unsigned long long*>(p.hacc + 2048 * 16 * 64 - 8192)[blockIdx.x * 8 + (k)] = gtimer_ns(); } while (0)
++#else
++#define ATR(k) do {} while (0)
++#endif
+ extern "C" __global__ void __launch_bounds__(128 * (1 + ATT_CW), 1) attn_fwd(Params p) {
++  ATR(0);
+   extern __shared__ __align__(1024) u8 smem[];
+   // layout: stages [NS][K 8 KB | V^T 8 KB + 1 KB of ones rows] at 1024-aligned offsets, then barriers
+   const u32 sbase = smem_addr(smem);
+@@ -6280,6 +7271,7 @@
+   asm volatile("fence.proxy.async.shared::cta;" ::: "memory");
+   __syncthreads();
+   asm volatile("griddepcontrol.wait;" ::: "memory");   // PDL: qkv_post2's q8 / packed keys complete
++  ATR(1);
+   const int G = gridDim.x, cta = blockIdx.x;
+ 
+   if (wg == 0) {
+@@ -6341,6 +7333,7 @@
+           qa[ks][3] = vb ? *reinterpret_cast<const u32*>(rb + 32 * ks + 16 + 4 * tq) : 0u;
+         }
+       }
++      ATR(2);
+       float o[9][4];
+ #pragma unroll
+       for (int j = 0; j < 9; ++j) o[j][0] = o[j][1] = o[j][2] = o[j][3] = 0.f;
+@@ -6488,6 +7481,16 @@
+         {
+           // y = 8 S + (1080 - 8 m) lands in [1024, 2048) (ulp 1) for kept scores: its low byte is the
+           // E4M3 code of 2^(S - m) with a linear mantissa; below 1024 (S - m < -7, masked) -> code 0
++#if ATT_EXPQ == 2
++          // clamp on the FMA pipe: relu(8 (S - m) + 56) + 1024 (the ALU pipe is the busier one)
++          const float ca = 56.f - 8.f * fminf(fmaxf(ma, -1000.f), 1000.f), cb = 56.f - 8.f * fminf(fmaxf(mb, -1000.f), 1000.f);
++          const u32 cha = f2_to_h2(ca, ca), chb = f2_to_h2(cb, cb);
++#pragma unroll
++          for (int n8 = 0; n8 < 16; ++n8) {
++            hs[n8][0] = h2add(h2fma_relu(hs[n8][0], 0x48004800u, cha), 0x64006400u);
++            hs[n8][1] = h2add(h2fma_relu(hs[n8][1], 0x48004800u, chb), 0x64006400u);
++          }
++#else
+           const float ca = 1080.f - 8.f * fminf(fmaxf(ma, -1000.f), 1000.f), cb = 1080.f - 8.f * fminf(fmaxf(mb, -1000.f), 1000.f);
+           const u32 cha = f2_to_h2(ca, ca), chb = f2_to_h2(cb, cb);
+ #pragma unroll
+@@ -6495,6 +7498,7 @@
+             hs[n8][0] = h2max(h2fma(hs[n8][0], 0x48004800u, cha), 0x64006400u);
+             hs[n8][1] = h2max(h2fma(hs[n8][1], 0x48004800u, chb), 0x64006400u);
+           }
++#endif
+         }
+         if (false) {
+ #endif
+@@ -6697,45 +7701,53 @@
+       auto turn_end = [&]() { if (ATT_PP) named_arrive(8 + (c + 1) % ATT_CW, 256); };
+       {
+ #if ATT_F16S == 2
+-        // double-buffered f16 scores: QK(j + 1) is in flight during softmax(j); exactly n QK turns
+-        // per segment as in the single-buffer loops. PV(n - 1) is left to the common tail below.
++        // double-buffered f16 scores: QK(j + 1) runs during softmax(j). Every step issues one QK
++        // (static wgmma groups, no C7516): steps past the last tile run a dummy on tile n - 1's
++        // stage, fully masked (P = 0). All the segment's PVs happen here; the common tail is skipped.
+         u32 h0[16][2], h1[16][2];
++        const int N2 = n + (n & 1);
++        auto issue_qk_t = [&](u32 (&hs)[16][2], int t) { issue_qk_h(hs, t < n ? t : n - 1); };
++        auto soft_t = [&](u32 (&hs)[16][2], int t) {
++          if (t >= n) {
++#pragma unroll
++            for (int i = 0; i < 16; ++i) { hs[i][0] = 0xFC00FC00u; hs[i][1] = 0xFC00FC00u; }
++          }
++          softmax_h(hs, t < n ? t : n - 1);
++        };
++        // step j: nxt holds S(j + 1) (complete), cur is free, pf holds P(j). PV(j) and QK(j + 2) run
++        // under softmax(j + 1); one wait at the end leaves nothing in flight across the back edge (C7514)
+         auto step = [&](u32 (&cur)[16][2], u32 (&nxt)[16][2], int j) {
+           wg_fence();
+-          issue_pv(j);
+-          wg_wait<1>();
+-          pin_h(nxt);
+-          const bool more = j + 2 < n;
+-          if (more) {
+-            turn_begin();
+-            issue_qk_h(cur, j + 2);
+-            turn_end();
+-          }
+-          softmax_h(nxt, j + 1);
+-          if (more) wg_wait<1>(); else wg_wait<0>();
++          issue_pv(j < n ? j : n - 1);
++          turn_begin();
++          issue_qk_t(cur, j + 2);
++          turn_end();
++          soft_t(nxt, j + 1);
++          wg_wait<0>();
+           pin(o);
+           pin_p();
+-          mbar_arrive_if(bars + 16 * ((u32)(it0 + j) % ATT_NS) + 8, lt == 0);
++          pin_h(cur);
++          if (j < n - 1) mbar_arrive_if(bars + 16 * ((u32)(it0 + j) % ATT_NS) + 8, lt == 0);
+           rescale_o();
+           to_p_h(nxt);
+         };
+         turn_begin();
+-        issue_qk_h(h0, 0);
++        issue_qk_t(h0, 0);
+         turn_end();
+-        if (n > 1) {
+-          turn_begin();
+-          issue_qk_h(h1, 1);
+-          turn_end();
+-        }
+-        if (n > 1) wg_wait<1>(); else wg_wait<0>();
++        turn_begin();
++        issue_qk_t(h1, 1);
++        turn_end();
++        wg_wait<0>();
+         pin_h(h0);
+-        softmax_h(h0, 0);
++        pin_h(h1);
++        soft_t(h0, 0);
+         rescale_o();
+         to_p_h(h0);
+-        for (int j = 0; j < n - 1; j += 2) {
++        for (int j = 0; j < N2; j += 2) {
+           step(h0, h1, j);
+-          if (j + 1 < n - 1) step(h1, h0, j + 1);
++          step(h1, h0, j + 1);
+         }
++        mbar_arrive_if(bars + 16 * ((u32)(it0 + n - 1) % ATT_NS) + 8, lt == 0);
+         if (false) {
+ #elif ATT_F16S
+         u32 hs[16][2];
+@@ -6837,6 +7849,7 @@
+ #if ATT_F16S
+         }
+ #endif
++#if ATT_F16S != 2
+         if (ATT_PP != 2) turn_begin();
+         wg_fence();
+         issue_pv(n - 1);
+@@ -6845,7 +7858,9 @@
+         pin(o);
+         pin_p();
+         mbar_arrive_if(bars + 16 * ((u32)(it0 + n - 1) % ATT_NS) + 8, lt == 0);
++#endif
+       }
++      ATR(3);
+       // row sums: the ones rows (columns 64..71 of O)
+       la = o[8][0]; lb = o[8][2];
+       const size_t ta = (size_t)(b * p.L + ia), tb = (size_t)(b * p.L + ib);
+@@ -6950,6 +7965,7 @@
+           }
+         }
+       }
++      ATR(4);
+       if (fin) {
+         const float vsc = p.v_scale[0];
+         const float ra = vsc / la, rb = vsc / lb;
+@@ -6967,21 +7983,29 @@
+         const __nv_bfloat16* grb = p.qkv + tb * 2304 + 1280 + hg * 64;
+         __nv_bfloat16* oua = p.out + ta * 1024 + hg * 64;
+         __nv_bfloat16* oub = p.out + tb * 1024 + hg * 64;
++        // all 16 gate loads go out before any store (the compiler cannot reorder loads past the
++        // output stores it cannot prove apart: a serial chain of L2 round trips otherwise)
++        u32 gva[8], gvb[8];
++#pragma unroll
++        for (int j = 0; j < 8; ++j) {
++          const int d = j * 8 + 2 * tq;
++          gva[j] = va ? __ldg(reinterpret_cast<const unsigned int*>(gra + d)) : 0u;
++          gvb[j] = vb ? __ldg(reinterpret_cast<const unsigned int*>(grb + d)) : 0u;
++        }
+ #pragma unroll
+         for (int j = 0; j < 8; ++j) {
+           const int d = j * 8 + 2 * tq;
+           if (va) {
+-            const __nv_bfloat162 gt = *reinterpret_cast<const __nv_bfloat162*>(gra + d);
+-            const float g0 = 1.f / (1.f + __expf(-__low2float(gt))), g1 = 1.f / (1.f + __expf(-__high2float(gt)));
++            const float g0 = 1.f / (1.f + __expf(-bf_lo_f(gva[j]))), g1 = 1.f / (1.f + __expf(-bf_hi_f(gva[j])));
+             *reinterpret_cast<__nv_bfloat162*>(oua + d) = __floats2bfloat162_rn(o[j][0] * na * g0, o[j][1] * na * g1);
+           }
+           if (vb) {
+-            const __nv_bfloat162 gt = *reinterpret_cast<const __nv_bfloat162*>(grb + d);
+-            const float g0 = 1.f / (1.f + __expf(-__low2float(gt))), g1 = 1.f / (1.f + __expf(-__high2float(gt)));
++            const float g0 = 1.f / (1.f + __expf(-bf_lo_f(gvb[j]))), g1 = 1.f / (1.f + __expf(-bf_hi_f(gvb[j])));
+             *reinterpret_cast<__nv_bfloat162*>(oub + d) = __floats2bfloat162_rn(o[j][2] * nb * g0, o[j][3] * nb * g1);
+           }
+         }
+       }
++      ATR(5);
+     });
+ }
+ """
+@@ -7224,7 +8248,7 @@
+ # ---------------------------------------------------------------------------------------------
+ # Prefill attention (own kernels): replaces FA3 + the output norm/gate. QK-norm/RoPE/FP8 cache store,
+ # KV packing and a wgmma attention kernel with the output norm and gate fused.
+-ATT_DEFINES = ['ATT_CW 3', 'ATT_POLY 0', 'ATT_PP 2', 'ATT_F16S 1', 'ATT_EXPQ 1']
++ATT_DEFINES = ['ATT_CW 3', 'ATT_POLY 0', 'ATT_PP 0', 'ATT_F16S 1', 'ATT_EXPQ 1']
+ ATT_SLIDING_MIN = 0   # sliding layers this long take the new kernels too
+ _att_base_prepare = prepare
+ 
+@@ -7268,6 +8292,7 @@
+             s0, attn_output, branch_dtype=torch.bfloat16, router_dtype=None if split_router else torch.float32)
+     dev = ffn_input.device
+     bucketed = False
++    pg_xs = state["native_experts"]["xs_pg"] if _pg_cfg(tokens) else None  # the routers gather the expert rows
+     if split_router and tokens <= FUSED_ROUTER_MAX:
+         # one GEMM: pooler and router (hi, lo) columns, FP32 out; then one pass: pre-expert norm + routing
+         plan, index = _fused_plan(state, tokens)
+@@ -7280,8 +8305,14 @@
+         prm = _RouteP(y.data_ptr(), D_EXPERT + 512, state["pre_expert_w32"].data_ptr(), expert_input.data_ptr(),
+                       state["router_bias32"].data_ptr(), topk_weights.data_ptr(), topk_ids.data_ptr(),
+                       local_ids.data_ptr(), data["local_start"].data_ptr(), ROUTER_MULT, RMS_EPS, tokens,
+-                      nx["cur"].data_ptr(), nx["bkt"].data_ptr(), nx["spos"].data_ptr())
+-        state["bnd_mod"].launch("pnr", tokens, 256, 0, prm, pdl=True)
++                      nx["cur"].data_ptr(), nx["bkt"].data_ptr(), nx["spos"].data_ptr(), 0,
++                      nx["tslot"].data_ptr(), nx["nslot"].data_ptr(), pg_xs.data_ptr() if pg_xs is not None else 0, PG_KMAX)
++        if PNR9 and pg_xs is not None:  # the routing on its own warp; the rows into tile slots
++            state["bnd_mod"].launch("pnr5g", tokens, 160, 0, prm)
++        elif PNR9:  # the routing on its own warp, beside the norm (four warps)
++            state["bnd_mod"].launch("pnr5", tokens, 160, 0, prm)
++        else:
++            state["bnd_mod"].launch("pnr", tokens, 256, 0, prm, pdl=True)
+         bucketed = True
+     elif split_router and tokens in state["router512_plans"] and tokens <= MAX_M:
+         # one router GEMM (hi | lo), then one pass: pre-expert norm of the pooled rows + routing + buckets
+@@ -7296,8 +8327,12 @@
+         prm = _RouteP(lg.data_ptr(), 512, state["pre_expert_w32"].data_ptr(), expert_input.data_ptr(),
+                       state["router_bias32"].data_ptr(), topk_weights.data_ptr(), topk_ids.data_ptr(),
+                       local_ids.data_ptr(), data["local_start"].data_ptr(), ROUTER_MULT, RMS_EPS, tokens,
+-                      nx["cur"].data_ptr(), nx["bkt"].data_ptr(), nx["spos"].data_ptr(), pooled.data_ptr())
+-        state["bnd_mod"].launch("pnr2", tokens, 256, 0, prm)
++                      nx["cur"].data_ptr(), nx["bkt"].data_ptr(), nx["spos"].data_ptr(), pooled.data_ptr(),
++                      nx["tslot"].data_ptr(), nx["nslot"].data_ptr(), pg_xs.data_ptr() if pg_xs is not None else 0, PG_KMAX)
++        if PNR9:
++            state["bnd_mod"].launch("pnr2y", tokens, 160, 0, prm)
++        else:
++            state["bnd_mod"].launch("pnr2", tokens, 256, 0, prm)
+         bucketed = True
+     else:
+         expert_input = _gemm(ffn_input, dense["pooler"])
+@@ -7313,7 +8348,8 @@
+         local_ids = (topk_ids - data["local_start"]) % N_EXPERTS
+         expert_input = state["pre_expert_norm"](expert_input)
+     # all-reduce: identity
+-    expert_output = _experts(expert_input, topk_weights, local_ids, state, bucketed=bucketed)
++    expert_output = _experts(expert_input, topk_weights, local_ids, state, bucketed=bucketed,
++                             pg_xs=pg_xs if bucketed else None)
+     if tokens <= SLICED_UNPOOL_MAX_TOKENS:
+         unpooled = _gemm(expert_output, dense["unpooler"][:UNPOOL_SLICE])
+         ffn_output = F.pad(unpooled, (0, HIDDEN - UNPOOL_SLICE))  # all-gather: identity

@@ -1,0 +1,15 @@
+test {'bs': 4}: PASS relative L2 error 2.524e-03 (worst row 2.577e-03)
+test {'bs': 33}: PASS relative L2 error 2.550e-03 (worst row 2.777e-03)
+test {'bs': 257}: PASS relative L2 error 2.545e-03 (worst row 2.758e-03)
+test {'bs': 128, 'dist': 'skewed'}: PASS relative L2 error 2.546e-03 (worst row 2.723e-03)
+test {'bs': 1}: PASS relative L2 error 2.472e-03 (worst row 2.472e-03)
+=== bs 32: 4092 events
+  first item ready: min 7.7 med 7.7 max 7.8 us
+=== bs 256: 5820 events
+  first item ready: min 8.7 med 9.0 max 9.4 us
+v78                           : 32:119.3(1.720x) 128:183.0(2.532x) 256:222.2(2.753x) 2.289x
+v80 xfetch                    : 32:122.7(1.688x) 128:184.0(2.543x) 256:221.7(2.789x) 2.288x
+v78                           : 32:119.9(1.735x) 128:184.1(2.533x) 256:222.8(2.771x) 2.301x
+v80 xfetch                    : 32:122.2(1.686x) 128:183.7(2.540x) 256:221.2(2.772x) 2.281x
+v78                           : 32:119.4(1.723x) 128:183.4(2.532x) 256:222.7(2.774x) 2.296x
+v80 xfetch                    : 32:122.1(1.692x) 128:183.7(2.528x) 256:220.6(2.774x) 2.281x

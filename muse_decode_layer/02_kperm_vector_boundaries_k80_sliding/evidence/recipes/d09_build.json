@@ -1,0 +1,7 @@
+{
+  "base": "muse-opt-codex/muse_decode_layer/variants/d08_sliding_attention.py",
+  "output": "muse-opt-codex/muse_decode_layer/variants/d09_stack.py",
+  "sha256": "a5edfd83e0ffe6c91a11cc18271166fc27e8fabfe7d6454df556881845a10829",
+  "bytes": 986177,
+  "change": "Measured shape dispatch: original one-token router; PDL dense only at T=1; native shared FP32 router at 2..8; k80 sliding; vector boundaries; parallel route; KPERM3 MoE."
+}

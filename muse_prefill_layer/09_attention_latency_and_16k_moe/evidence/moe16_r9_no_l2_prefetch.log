@@ -1,0 +1,23 @@
+== p1r: LDL 0 STL 0 R2UR 195 lines 22264 C75[C7513 ]
+   1a4d0- 1ac10 HGMMA.64x256x16                    ins  117 mma   4 arrive  4 depbar  4 local 0
+== p1n: LDL 4 STL 2 R2UR 191 lines 22248 C75[]
+   1a670- 1ad40 HGMMA.64x256x16                    ins  110 mma   4 arrive  4 depbar  4 local 0
+== p1s: LDL 4 STL 2 R2UR 206 lines 22424 C75[]
+   1a670- 1ad40 HGMMA.64x256x16                    ins  110 mma   4 arrive  4 depbar  4 local 0
+PREPARE base 2.1s
+PREPARE p1 1.4s
+PREPARE p1r 50.1s
+PREPARE p1n 50.5s
+PREPARE p1s 50.2s
+RESULT draw=11 case=5 T=16384 base=4302.0us(1.0000x) p1=4296.8us(1.0012x) p1r=4941.9us(0.8705x) p1n=4255.4us(1.0110x) p1s=4296.2us(1.0014x) errs={"p1": [0.0, 0.0, true], "p1r": [0.0, 0.0, true], "p1n": [0.0, 0.0, true], "p1s": [0.0, 0.0, true]}
+RESULT draw=11 case=6 T=16384 base=4295.6us(1.0000x) p1=4286.5us(1.0021x) p1r=4930.5us(0.8712x) p1n=4248.8us(1.0110x) p1s=4289.1us(1.0015x) errs={"p1": [0.0, 0.0, true], "p1r": [0.0, 0.0, true], "p1n": [0.0, 0.0, true], "p1s": [0.0, 0.0, true]}
+PREPARE base 1.0s
+PREPARE p1 1.0s
+PREPARE p1r 1.0s
+PREPARE p1n 1.0s
+PREPARE p1s 1.0s
+RESULT draw=22 case=5 T=16384 base=4239.5us(1.0000x) p1=4229.4us(1.0024x) p1r=4870.0us(0.8705x) p1n=4191.0us(1.0116x) p1s=4226.9us(1.0030x) errs={"p1": [0.0, 0.0, true], "p1r": [0.0, 0.0, true], "p1n": [0.0, 0.0, true], "p1s": [0.0, 0.0, true]}
+RESULT draw=22 case=6 T=16384 base=4747.0us(1.0000x) p1=4732.4us(1.0031x) p1r=5451.0us(0.8708x) p1n=4684.8us(1.0133x) p1s=4736.2us(1.0023x) errs={"p1": [0.0, 0.0, true], "p1r": [0.0, 0.0, true], "p1n": [0.0, 0.0, true], "p1s": [0.0, 0.0, true]}
+DONE
+EXIT 0
+REMOTE_EXIT 0

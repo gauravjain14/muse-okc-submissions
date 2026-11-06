@@ -1,0 +1,21 @@
+test {'bs': 4}: PASS relative L2 error 2.524e-03 (worst row 2.577e-03)
+test {'bs': 33}: PASS relative L2 error 2.550e-03 (worst row 2.777e-03)
+test {'bs': 257}: PASS relative L2 error 2.545e-03 (worst row 2.758e-03)
+test {'bs': 128, 'dist': 'skewed'}: PASS relative L2 error 2.546e-03 (worst row 2.723e-03)
+test {'bs': 1}: PASS relative L2 error 2.472e-03 (worst row 2.472e-03)
+test {'bs': 4}: PASS relative L2 error 2.524e-03 (worst row 2.577e-03)
+test {'bs': 33}: PASS relative L2 error 2.550e-03 (worst row 2.777e-03)
+test {'bs': 257}: PASS relative L2 error 2.545e-03 (worst row 2.758e-03)
+test {'bs': 128, 'dist': 'skewed'}: PASS relative L2 error 2.546e-03 (worst row 2.723e-03)
+test {'bs': 1}: PASS relative L2 error 2.472e-03 (worst row 2.472e-03)
+  last epilogue: min 29.3 med 31.9 max 32.9; combine start med 32.2 max 33.2; end max 37.0 us
+  done2-seen   median  35.07  max  35.17 us
+  comb-end     median  35.23  max  36.96 us
+v58                           : 1:30.4(2.452x) 16:90.4(2.043x) 8:69.6(2.121x) 2.198x
+v59                           : 1:30.1(2.498x) 16:86.7(2.097x) 8:68.0(2.163x) 2.246x
+v64                           : 1:33.4(2.242x) 16:95.6(1.904x) 8:74.0(1.990x) 2.041x
+v64 bs16 ks2                  : 1:33.1(2.259x) 16:100.5(1.831x) 8:75.7(1.952x) 2.006x
+v58                           : 1:30.0(2.489x) 16:89.7(2.037x) 8:69.8(2.124x) 2.208x
+v59                           : 1:29.7(2.534x) 16:86.3(2.100x) 8:67.4(2.156x) 2.255x
+v64                           : 1:33.6(2.231x) 16:95.1(1.905x) 8:74.7(2.000x) 2.041x
+v64 bs16 ks2                  : 1:33.2(2.247x) 16:101.9(1.826x) 8:76.4(1.941x) 1.997x

@@ -1,0 +1,22 @@
+test {'bs': 4}: PASS relative L2 error 2.524e-03 (worst row 2.577e-03)
+test {'bs': 33}: PASS relative L2 error 2.550e-03 (worst row 2.777e-03)
+test {'bs': 257}: PASS relative L2 error 2.545e-03 (worst row 2.758e-03)
+test {'bs': 128, 'dist': 'skewed'}: PASS relative L2 error 2.546e-03 (worst row 2.723e-03)
+test {'bs': 1}: PASS relative L2 error 2.473e-03 (worst row 2.473e-03)
+test {'bs': 4}: PASS relative L2 error 2.524e-03 (worst row 2.577e-03)
+test {'bs': 33}: PASS relative L2 error 2.550e-03 (worst row 2.777e-03)
+test {'bs': 257}: PASS relative L2 error 2.545e-03 (worst row 2.758e-03)
+test {'bs': 128, 'dist': 'skewed'}: PASS relative L2 error 2.546e-03 (worst row 2.723e-03)
+test {'bs': 1}: PASS relative L2 error 2.472e-03 (worst row 2.472e-03)
+v89                           : 1:22.8(3.304x) 16:93.4(2.015x) 32:120.4(1.707x) 8:71.5(2.075x) 128:184.2(2.527x) 256:225.6(2.691x) 2.331x
+v89 gearly2                   : 32:122.2(1.667x) 128:187.6(2.456x) 256:227.4(2.670x) 2.219x
+v89 early                     : 16:91.7(2.035x) 8:69.7(2.096x) 2.065x
+v89 ftmap                     : 1:23.5(3.210x) 3.210x
+v89                           : 1:23.5(3.218x) 16:93.4(2.004x) 32:119.2(1.700x) 8:70.9(2.077x) 128:185.3(2.505x) 256:226.8(2.690x) 2.314x
+v89 gearly2                   : 32:123.0(1.667x) 128:186.6(2.458x) 256:227.6(2.679x) 2.222x
+v89 early                     : 16:92.7(2.027x) 8:74.2(2.041x) 2.034x
+v89 ftmap                     : 1:22.9(3.281x) 3.281x
+v89                           : 1:22.3(3.375x) 16:93.9(1.989x) 32:119.7(1.702x) 8:70.8(2.067x) 128:183.9(2.511x) 256:227.3(2.685x) 2.328x
+v89 gearly2                   : 32:123.6(1.662x) 128:188.8(2.461x) 256:228.0(2.673x) 2.219x
+v89 early                     : 16:92.9(2.006x) 8:70.1(2.100x) 2.052x
+v89 ftmap                     : 1:23.6(3.215x) 3.215x

@@ -1,0 +1,15 @@
+lab: NVIDIA H200, 132 SMs
+lab bs   8: bulk 73.1 us (x1.000)  tmap 76.6 us (x0.937)
+lab bs  16: bulk 92.3 us (x1.000)  tmap 98.5 us (x0.952)
+lab: experiment took 3 s
+lab bs   1: fused5 27.5 us (x1.000)  fused4 27.1 us (x1.008)  old 32.6 us (x0.848)
+lab: experiment took 2 s
+lab trace1 seed 9000 (2 experts): start 0.0/0.1 x 0.4/0.5 u0g1 7.9/9.4 u0in 8.0/9.6 u0 10.8/12.4 u1g1 14.9/16.5 u1in 15.1/16.7 u1 17.6/19.2 u2 20.3/20.3 atom 18.8/20.2 | last: atom 20.22 flag 20.32 loads 21.12 red 21.60 end 21.92
+lab trace1 seed 9001 (2 experts): start 0.0/0.1 x 0.5/0.5 u0g1 7.6/8.7 u0in 7.7/8.8 u0 10.6/12.3 u1g1 14.7/16.0 u1in 14.8/16.2 u1 17.2/18.6 u2 19.8/19.8 atom 18.3/19.7 | last: atom 19.71 flag 19.78 loads 20.61 red 21.09 end 21.41
+lab trace1 seed 9002 (2 experts): start 0.0/0.1 x 0.4/0.5 u0g1 7.8/9.3 u0in 8.0/9.4 u0 10.7/12.0 u1g1 14.7/15.8 u1in 14.8/15.9 u1 17.3/18.4 u2 19.6/19.6 atom 18.4/19.5 | last: atom 19.46 flag 19.55 loads 20.38 red 20.86 end 21.18
+lab trace1 seed 9003 (2 experts): start 0.1/0.1 x 0.5/0.5 u0g1 7.6/8.9 u0in 7.7/9.0 u0 10.5/12.1 u1g1 14.4/15.8 u1in 14.6/16.0 u1 17.1/18.4 u2 19.6/19.6 atom 18.1/19.5 | last: atom 19.49 flag 19.55 loads 20.42 red 20.90 end 21.22
+lab: experiment took 1 s
+lab bs  32: bulk 120.8 us (x1.000)  tmap 121.9 us (x0.982)
+lab bs 128: bulk 190.9 us (x1.000)  tmap 191.6 us (x0.995)
+lab bs 256: bulk 235.2 us (x1.000)  tmap 236.9 us (x0.997)
+lab: experiment took 12 s

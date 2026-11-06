@@ -1,0 +1,17 @@
+│   muse-opt/muse_moe_w4a16/dev/modal_run.py
+├── ✓ Uploaded muse-opt/muse_moe_w4a16
+  ptxas: ptxas         .     112 bytes stack frame, 12 bytes spill stores, 100 bytes spill loads
+  ptxas: ptxas         .     112 bytes stack frame, 12 bytes spill stores, 100 bytes spill loads
+test {'bs': 4}: PASS relative L2 error 3.273e-03 (worst row 3.311e-03)
+test {'bs': 33}: PASS relative L2 error 3.026e-03 (worst row 3.560e-03)
+test {'bs': 257}: PASS relative L2 error 3.195e-03 (worst row 3.491e-03)
+test {'bs': 128, 'dist': 'skewed'}: PASS relative L2 error 2.647e-03 (worst row 3.400e-03)
+test {'bs': 1}: PASS relative L2 error 2.472e-03 (worst row 2.472e-03)
+v92                           : 1:23.3(3.289x) 16:91.8(2.038x) 32:117.7(1.738x) 8:70.1(2.115x) 128:181.5(2.574x) 256:219.8(2.800x) 2.371x
+v95 bgc                       : 1:25.9(2.997x) 16:98.1(1.902x) 32:146.0(1.424x) 8:76.5(1.919x) 128:214.6(2.215x) 256:254.7(2.434x) 2.092x
+v92                           : 1:23.7(3.187x) 16:91.9(2.059x) 32:119.2(1.747x) 8:70.0(2.114x) 128:181.4(2.579x) 256:219.5(2.798x) 2.365x
+v95 bgc                       : 1:23.4(3.252x) 16:98.8(1.899x) 32:145.4(1.407x) 8:77.2(1.915x) 128:214.2(2.205x) 256:255.2(2.444x) 2.116x
+v92                           : 1:23.2(3.290x) 16:91.9(2.044x) 32:118.7(1.749x) 8:70.6(2.102x) 128:180.7(2.586x) 256:220.9(2.806x) 2.375x
+v95 bgc                       : 1:22.6(3.349x) 16:98.3(1.909x) 32:145.7(1.429x) 8:76.7(1.921x) 128:215.7(2.212x) 256:253.6(2.430x) 2.134x
+=== bs 32: 16884 events
+    print(f"  last epilogue: min {min(end):.1f} med {st.median(end):.1f} max {max(end):.1f}; combine start med {st.median(cstart):.1f} max {max(cstart):.1f}; end max {max(cend):.1f} us")

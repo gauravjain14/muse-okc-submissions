@@ -1,0 +1,69 @@
+[gate] slot 1 at 03:50:04 (2 running)
+✓ Initialized. View run at 
+<modal-run-url>
+✓ Created objects.
+├── 🔨 Created mount 
+│   autoresearch-kernels/attn/tools/modal_run.py
+├── 🔨 Created mount autoresearch-kernels/attn
+└── 🔨 Created function run.
+[gpu-before]
+NVIDIA H200, 0 %, 126 MiB, 345 MHz, 1980 MHz, 78.22 W
+0
+=== regs
+attn_1_0_1_1: regs 128 stack 24 spill st/ld 0/0
+=== check (all)
+rc=0
+=== bench decode 1 (40 reps, two controls)
+[k13a] import 18.9s
+[k13b] import 0.6s
+[ba] import 0.5s
+[bb] import 0.6s
+fixed graph cost 5.66 us
+decode 1  sliding w46 sglang    19.14 | k13a     5.55 x3.449 | k13b     5.50 x3.478 | ba     5.76 x3.323 | bb     5.49 x3.483   sol    0.11
+decode 1  full    w16 sglang    30.13 | k13a    14.00 x2.152 | k13b    13.82 x2.181 | ba    18.37 x1.640 | bb    18.43 x1.634   sol    4.27
+
+per-load (weighted sums, us):
+  decode 1  sglang    1362.3 | k13a     479.2 x2.843 | k13b     474.2 x2.873 | ba     558.9 x2.437 | bb     547.7 x2.487
+GEOMEAN k13a: x2.8431 (board time 479.2 us)   judge-projected (+1.0 us/call) x2.6319 (board 541.2 us)
+GEOMEAN k13b: x2.8729 (board time 474.2 us)   judge-projected (+1.0 us/call) x2.6564 (board 536.2 us)
+GEOMEAN ba: x2.4374 (board time 558.9 us)   judge-projected (+1.0 us/call) x2.2939 (board 620.9 us)
+GEOMEAN bb: x2.4873 (board time 547.7 us)   judge-projected (+1.0 us/call) x2.3361 (board 609.7 us)
+=== traces
+   4 tiles     min    7.17  med    8.26  max    9.02   (CTAs 132)
+   6 publish   min    9.20  med   10.09  max   10.86   (CTAs 132)
+   8 combined  min   14.02  med   14.06  max   14.10   (CTAs 16)
+  last stamp med 14.10 max 14.91
+  nseg 1: n   792 tiles mean    8.21 max   10.18
+  critical CTA (med): start=0.16 issued=4.24 q/new=4.83 tile0=5.06 s19=13.23 tiles=8.72 mstore1=12.58 mstore=9.18 merged=9.57 segend=9.58 publish=10.51 comb0=11.41 comb1=14.08 combined=14.10
+
+[flush] 1,1,full defs=: (us from first CTA start; median over 10 reps)
+   0 start     min    0.00  med    0.05  max    0.08   (CTAs 132)
+   9 prefix    min    7.01  med    7.16  max    7.26   (CTAs 132)
+  16 pt-iss    min    0.34  med    0.38  max    0.42   (CTAs 132)
+  17 row-back  min    1.18  med    1.34  max    1.63   (CTAs 132)
+   1 issued    min    3.46  med    4.10  max    4.58   (CTAs 132)
+   2 q/new     min    7.14  med    7.26  max    7.38   (CTAs 132)
+   3 tile0     min    8.00  med    8.03  max    8.10   (CTAs 125)
+  19 s19       min   17.17  med   17.22  max   17.26   (CTAs 16)
+   4 tiles     min    8.10  med   12.77  max   12.93   (CTAs 132)
+  18 mstore1   min   16.51  med   16.58  max   16.67   (CTAs 16)
+  11 mstore    min    8.64  med   13.25  max   13.42   (CTAs 132)
+  12 merged    min    9.78  med   13.68  max   13.89   (CTAs 132)
+   5 segend    min    9.84  med   13.73  max   13.92   (CTAs 132)
+   6 publish   min   11.23  med   14.72  max   14.86   (CTAs 132)
+   7 comb0     min   14.94  med   15.14  max   15.20   (CTAs 16)
+   8 combined  min   17.90  med   17.94  max   17.97   (CTAs 16)
+  last stamp med 17.97 max 19.49
+  tiles-done p0/p10/p50/p90/max/mean:    8.10   12.67   12.77   12.86   12.93   12.54
+  nseg 0: n  1320 tiles mean   12.73 max   14.46
+  critical CTA (med): start=0.05 prefix=7.10 pt-iss=0.38 row-back=1.34 issued=4.21 q/new=7.20 tile0=8.06 s19=17.20 tiles=12.86 mstore1=16.54 mstore=13.33 merged=13.82 segend=13.86 publish=14.83 comb0=15.17 combined=17.97
+  per-SM mean deviation of tiles-done (us): min -1.48 (sm 99) max 0.08 (sm 94) stdev 0.43
+[gpu-after]
+NVIDIA H200, 0 %, 126 MiB, 1980 MHz, 1980 MHz, 133.05 W
+0
+grep: /tmp/chk14.log: No such file or directory
+
+[exit 0]
+Stopping app - local entrypoint completed.
+✓ App completed. View run at 
+<modal-run-url>

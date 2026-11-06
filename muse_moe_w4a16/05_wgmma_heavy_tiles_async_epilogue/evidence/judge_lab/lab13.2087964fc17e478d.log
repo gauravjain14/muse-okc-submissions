@@ -1,0 +1,13 @@
+lab: NVIDIA H200, 132 SMs
+lab env: torch 2.14.1+cu130 (cuda 13.0), cuda-python 13.4.3, nvrtc 13.0, driver api 13000
+lab check k2: bs8:7.66e-04 bs8:2.21e-03 bs16:1.26e-03 bs16:2.32e-03 bs24:2.57e-03 bs24:2.42e-03 bs32:2.61e-03 bs32:2.50e-03
+lab check k2s2: bs8:3.36e-04 bs8:1.88e-04 bs16:7.47e-04 bs16:1.85e-03 bs24:3.80e-04 bs24:1.52e-03 bs32:4.22e-04 bs32:1.86e-03
+lab check x2: bs8:2.75e-03 bs8:2.72e-03 bs16:2.73e-03 bs16:2.71e-03 bs24:2.57e-03 bs24:2.42e-03 bs32:2.61e-03 bs32:2.50e-03
+lab: experiment took 7 s
+lab bs   8: v149 72.4 us (x1.000)  k2 78.1 us (x0.925)  k2s05 78.7 us (x0.912)  k2s2 78.3 us (x0.925)  k4 77.1 us (x0.929)  v149b 72.0 us (x1.000)
+lab bs  16: v149 91.0 us (x1.000)  k2 99.3 us (x0.922)  k2s05 99.6 us (x0.918)  k2s2 98.4 us (x0.931)  k4 101.4 us (x0.916)  v149b 91.2 us (x1.001)
+lab: experiment took 8 s
+lab bs  32: v149 117.7 us (x1.000)  x2 118.8 us (x0.991)  x8 126.5 us (x0.931)  x1 118.0 us (x0.980)  v149b 117.8 us (x0.998)
+lab: experiment took 6 s
+lab bs 128: v149 181.2 us (x1.000)  wm2 183.6 us (x0.988)  s05 183.3 us (x0.999)  s2 184.1 us (x0.985)  v149b 181.2 us (x1.000)
+lab: experiment took 9 s

@@ -1,0 +1,5 @@
+[
+    {"check": [65, 100, 128], "variants": [("wg4", ["MOE_WG4"], {"WG4": True}), ("wg4m4", ["MOE_WG4", "MOE_WGMIN4=4"], {"WG4": True})], "seeds": 2},
+    {"bs": [128], "variants": [("v147", [], {}), ("wg4", ["MOE_WG4"], {"WG4": True}), ("wg4m4", ["MOE_WG4", "MOE_WGMIN4=4"], {"WG4": True}),
+                               ("noa", ["MOE_AEPI_NT=8"], {}), ("wg4b", ["MOE_WG4"], {"WG4": True}), ("v147b", [], {})], "seeds": 16, "reps": 3},
+]

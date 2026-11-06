@@ -1,0 +1,69 @@
+[modal_gate] slot 0 acquired at 10:00:38 (0 okc containers running)
+✓ Initialized. View run at 
+<modal-run-url>
+✓ Created objects.
+├── 🔨 Created mount 
+│   muse-opt/muse_moe_w4a16/dev/modal_run.py
+├── 🔨 Created mount muse-opt/muse_moe_w4a16
+└── 🔨 Created function run.
+GPU_BEFORE NVIDIA H200, 345 MHz, 3201 MHz, 76.06 W, 24, 0 %, 4 MiB
+STEP hang1 smoke
+    for bs in [int(b) for b in sys.argv[2].split(",")]:
+                               ~~~~~~~~^^^
+IndexError: list index out of range
+STEP bench2 60 reps
+(MOE_S5R: 5-bit scales on)
+(MOE_S5R: 5-bit scales on)
+(MOE_S5R: 5-bit scales on)
+(MOE_S5R: 5-bit scales on)
+(MOE_S5R: 5-bit scales on)
+(MOE_S5R: 5-bit scales on)
+decode 1   bs   1 experts  2.88 (|2..3|) max_tok med 1.0
+   f0                  24.2 us  vs f0: x1.0000
+   full                24.0 us  vs f0: x0.9981
+   nc                  24.1 us  vs f0: x0.9982
+   nl                  23.9 us  vs f0: x1.0027
+   fullb               24.0 us  vs f0: x0.9976
+   f1                  24.1 us  vs f0: x0.9942
+decode 16  bs  16 experts 12.28 (|11..13|) max_tok med 9.0
+   f0                  83.3 us  vs f0: x1.0000
+   full                83.9 us  vs f0: x1.0017
+   nc                  78.4 us  vs f0: x1.0569
+   nl                  74.8 us  vs f0: x1.1149
+   fullb               83.3 us  vs f0: x1.0012
+   f1                  83.2 us  vs f0: x1.0024
+decode 32  bs  32 experts 16.45 (|15..18|) max_tok med 19.0
+   f0                 110.1 us  vs f0: x1.0000
+   full               110.1 us  vs f0: x1.0003
+   nc                 102.5 us  vs f0: x1.0610
+   nl                  98.5 us  vs f0: x1.1175
+   fullb              110.9 us  vs f0: x0.9997
+   f1                 110.3 us  vs f0: x1.0008
+verify 1   bs   8 experts  8.90 (|8..10|) max_tok med 3.0
+   f0                  62.0 us  vs f0: x1.0000
+   full                62.7 us  vs f0: x0.9991
+   nc                  59.6 us  vs f0: x1.0478
+   nl                  56.9 us  vs f0: x1.0975
+   fullb               62.2 us  vs f0: x1.0003
+   f1                  62.3 us  vs f0: x0.9978
+verify 16  bs 128 experts 23.12 (|22..24|) max_tok med 44.0
+   f0                 160.6 us  vs f0: x1.0000
+   full               161.0 us  vs f0: x1.0011
+   nc                 152.1 us  vs f0: x1.0596
+   nl                 140.0 us  vs f0: x1.1514
+   fullb              160.3 us  vs f0: x1.0006
+   f1                 160.3 us  vs f0: x1.0008
+verify 32  bs 256 experts 24.98 (|24..26|) max_tok med 99.0
+   f0                 196.0 us  vs f0: x1.0000
+   full               197.2 us  vs f0: x0.9985
+   nc                 174.8 us  vs f0: x1.1303
+   nl                 173.5 us  vs f0: x1.1314
+   fullb              196.2 us  vs f0: x1.0006
+   f1                 195.5 us  vs f0: x1.0031
+GPU_AFTER NVIDIA H200, 1980 MHz, 3201 MHz, 219.88 W, 27, 1 %, 4 MiB
+STEP done
+
+fetched into muse-opt/muse_moe_w4a16/dev/remote_out: 21962 bytes
+Stopping app - local entrypoint completed.
+✓ App completed. View run at 
+<modal-run-url>

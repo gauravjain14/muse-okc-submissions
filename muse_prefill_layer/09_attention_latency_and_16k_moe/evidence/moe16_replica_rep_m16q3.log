@@ -1,0 +1,20 @@
+FIXED_US 4.336 (one 5.216 two 6.096)
+DRAW fields_seed=11 router_seed=7595436449497252824
+RESULT case=4 first turn full    b1 ctx0 q16384 sglang=17279.6 base=8962.0us x1.9256 new=8942.7us x1.9535
+RESULT case=5 first turn sliding b1 ctx32768 q16384 sglang=17313.2 base=8948.7us x1.9424 new=8682.7us x1.9889
+RESULT case=6 first turn full    b1 ctx32768 q16384 sglang=21574.0 base=10815.2us x1.9942 new=10677.7us x2.0205
+RESULT case=7 first turn full    b1 ctx65536 q16384 sglang=24916.8 base=12067.3us x2.0233 new=12271.8us x2.1312
+DRAW_SCORE fields_seed=11 base: x1.9551 (198.147 ms) {"first turn": 1.9551}
+DRAW_SCORE fields_seed=11 new: x2.0054 (193.176 ms) {"first turn": 2.0054}
+DRAW fields_seed=22 router_seed=3225630594405768948
+RESULT case=4 first turn full    b1 ctx0 q16384 sglang=19336.3 base=9644.0us x1.9884 new=9766.8us x2.0186
+RESULT case=5 first turn sliding b1 ctx32768 q16384 sglang=17456.7 base=8885.6us x1.9378 new=8891.3us x2.0078
+RESULT case=6 first turn full    b1 ctx32768 q16384 sglang=22268.5 base=10844.1us x1.9976 new=11060.8us x2.0577
+RESULT case=7 first turn full    b1 ctx65536 q16384 sglang=26371.8 base=12441.6us x2.0910 new=12685.4us x2.1114
+DRAW_SCORE fields_seed=22 base: x1.9656 (197.096 ms) {"first turn": 1.9656}
+DRAW_SCORE fields_seed=22 new: x2.0257 (191.244 ms) {"first turn": 2.0257}
+PANEL base: x1.9603 (197.621 ms) draws 1.9551 1.9656 (INCOMPLETE: not all 8 shapes)
+PANEL new: x2.0155 (192.208 ms) draws 2.0054 2.0257 (INCOMPLETE: not all 8 shapes)
+RELATIVE new/base: 1.0257 1.0306 mean 1.0282
+REPLICA_RC=0
+REMOTE_EXIT 0

@@ -1,0 +1,155 @@
+okc run e4e4ea4469c94941 on muse_prefill_layer
+submission  muse-opt/muse_prefill_layer/checks/att8c.py
+status      ok
+passed      true
+speedup     1.6369093295706099
+speedup_ci  [1.6123556896270508 1.661462969514169]
+score_us    236667.90395875066
+tests       5/5 passed
+
+scored shapes (µs; speed of light is the reference's bound)
+case                                                         sglang      yours  speedup        sol  
+batch=1 ctx=80000 dist=soft layer=sliding load=turn 1 page=1 q_len=753    1138.72     652.70   1.745x     256.95  
+batch=1 ctx=80000 dist=soft layer=full load=turn 1 page=1 q_len=753    1476.90    1014.33   1.456x     496.69  
+batch=4 ctx=80000 dist=soft layer=sliding load=turn 4 page=1 q_len=753    3411.63    1993.49   1.711x    1036.28  
+batch=4 ctx=80000 dist=soft layer=full load=turn 4 page=1 q_len=753    4841.63    3447.81   1.404x    1992.42  
+batch=1 ctx=0 dist=soft layer=full load=first turn page=1 q_len=16384   17248.78   10290.89   1.676x    5518.43  
+batch=1 ctx=32768 dist=soft layer=sliding load=first turn page=1 q_len=16384   17483.34   10158.52   1.721x    5663.35  
+batch=1 ctx=32768 dist=soft layer=full load=first turn page=1 q_len=16384   20554.16   13268.16   1.549x    7710.00  
+batch=1 ctx=65536 dist=soft layer=full load=first turn page=1 q_len=16384   24465.57   16234.37   1.507x    9847.68  
+
+profile 0: batch=1 ctx=80000 dist=soft layer=sliding load=turn 1 page=1 q_len=753
+kernel                                                           GPU time  share  calls
+moe_8_16_1_2_32                                                  332.5 µs  50.4%      1
+nvjet_sm90_tst_128x192_64x5_2x1_v_bz_coopB_TNN                    86.7 µs  13.1%      2
+nvjet_sm90_tss_256x112_64x4_2x1_v_bz_coopA_TNT                    79.2 µs  12.0%      1
+nvjet_sm90_tst_112x128_64x7_1x2_h_bz_TNN                          39.6 µs   6.0%      1
+void cutlass::device_kernel<flash::enable_sm90_or_later<f...      25.2 µs   3.8%      1
+void sglang::muse_spark_norm_residual_kernel<8192l, 512, ...      21.6 µs   3.3%      1
+void sglang::muse_spark_norm_residual_kernel<8192l, 512, ...      20.3 µs   3.1%      1
+route_8_16_1_2_32                                                 11.0 µs   1.7%      1
+_native_finish                                                    10.4 µs   1.6%      1
+_fused_qkv_cache_grouped                                           9.2 µs   1.4%      1
+void cutlass::device_kernel<flash::FlashAttnFwdCombine<cu...       7.2 µs   1.1%      1
+_pooled_norm_route                                                 5.4 µs   0.8%      1
+... 5 more
+total                                                            659.8 µs
+
+profile 1: batch=1 ctx=80000 dist=soft layer=full load=turn 1 page=1 q_len=753
+kernel                                                           GPU time  share  calls
+attn_fwd                                                         376.6 µs  37.2%      1
+moe_8_16_1_2_32                                                  326.4 µs  32.2%      1
+nvjet_sm90_tst_128x192_64x5_2x1_v_bz_coopB_TNN                    85.7 µs   8.5%      2
+nvjet_sm90_tss_256x112_64x4_2x1_v_bz_coopA_TNT                    76.5 µs   7.6%      1
+nvjet_sm90_tst_112x128_64x7_1x2_h_bz_TNN                          39.1 µs   3.9%      1
+kv_pack                                                           28.2 µs   2.8%      2
+void sglang::muse_spark_norm_residual_kernel<8192l, 512, ...      22.0 µs   2.2%      1
+void sglang::muse_spark_norm_residual_kernel<8192l, 512, ...      20.6 µs   2.0%      1
+route_8_16_1_2_32                                                 11.1 µs   1.1%      1
+_native_finish                                                     9.7 µs   1.0%      1
+_pooled_norm_route                                                 5.1 µs   0.5%      1
+qkv_post                                                           3.8 µs   0.4%      1
+... 3 more
+total                                                           1012.2 µs
+
+profile 2: batch=4 ctx=80000 dist=soft layer=sliding load=turn 4 page=1 q_len=753
+kernel                                                           GPU time  share  calls
+moe_8_16_1_2_128                                                 900.5 µs  44.8%      1
+nvjet_sm90_tst_256x152_64x4_1x2_h_bz_coopA_TNT                   322.4 µs  16.1%      2
+nvjet_sm90_tss_256x144_64x4_1x2_h_bz_coopA_TNT                   282.2 µs  14.1%      1
+nvjet_sm90_tst_256x104_64x4_1x1_h_bz_coopA_TNT                   152.7 µs   7.6%      1
+void sglang::muse_spark_norm_residual_kernel<8192l, 512, ...      78.0 µs   3.9%      1
+void sglang::muse_spark_norm_residual_kernel<8192l, 512, ...      76.7 µs   3.8%      1
+void cutlass::device_kernel<flash::enable_sm90_or_later<f...      61.2 µs   3.0%      1
+_native_finish                                                    36.6 µs   1.8%      1
+gather_8_16_1_2_128                                               27.2 µs   1.4%      1
+_fused_qkv_cache_grouped                                          23.3 µs   1.2%      1
+_pooled_norm_route                                                21.4 µs   1.1%      1
+void sglang::muse_spark::routing_kernel<sglang::muse_spar...       5.1 µs   0.3%      1
+... 8 more
+total                                                           2008.2 µs
+
+profile 3: batch=4 ctx=80000 dist=soft layer=full load=turn 4 page=1 q_len=753
+kernel                                                           GPU time  share  calls
+attn_fwd                                                        1482.6 µs  43.2%      1
+moe_8_16_1_2_128                                                 849.8 µs  24.7%      1
+nvjet_sm90_tst_256x152_64x4_1x2_h_bz_coopA_TNT                   320.5 µs   9.3%      2
+nvjet_sm90_tss_256x144_64x4_1x2_h_bz_coopA_TNT                   281.6 µs   8.2%      1
+nvjet_sm90_tst_256x104_64x4_1x1_h_bz_coopA_TNT                   148.6 µs   4.3%      1
+kv_pack                                                           83.1 µs   2.4%      2
+void sglang::muse_spark_norm_residual_kernel<8192l, 512, ...      79.1 µs   2.3%      1
+void sglang::muse_spark_norm_residual_kernel<8192l, 512, ...      75.9 µs   2.2%      1
+_native_finish                                                    36.6 µs   1.1%      1
+gather_8_16_1_2_128                                               25.9 µs   0.8%      1
+_pooled_norm_route                                                20.9 µs   0.6%      1
+qkv_post                                                          11.2 µs   0.3%      1
+... 7 more
+total                                                           3435.1 µs
+
+profile 4: batch=1 ctx=0 dist=soft layer=full load=first turn page=1 q_len=16384
+kernel                                                           GPU time  share  calls
+moe_8_16_1_2_512                                                4141.8 µs  40.2%      1
+nvjet_sm90_tst_176x128_64x5_1x2_h_bz_TNN                        1651.1 µs  16.0%      2
+nvjet_sm90_tst_128x256_64x4_2x1_v_bz_coopA_TNN                  1352.0 µs  13.1%      1
+attn_fwd                                                         895.6 µs   8.7%      1
+nvjet_sm90_tst_256x128_64x4_1x2_h_bz_coopA_TNT                   752.7 µs   7.3%      1
+void sglang::muse_spark_norm_residual_kernel<8192l, 512, ...     404.4 µs   3.9%      1
+void sglang::muse_spark_norm_residual_kernel<8192l, 512, ...     394.0 µs   3.8%      1
+_native_finish                                                   169.4 µs   1.6%      1
+gather_8_16_1_2_512                                              155.7 µs   1.5%      1
+nvjet_sm90_tss_128x256_64x4_2x1_v_badd_coopA_TNN                  95.6 µs   0.9%      1
+nvjet_sm90_tss_128x256_64x4_2x1_v_bz_coopA_TNN                    93.1 µs   0.9%      1
+void at::native::(anonymous namespace)::vectorized_layer_...      78.0 µs   0.8%      1
+... 9 more
+total                                                          10298.1 µs
+
+profile 5: batch=1 ctx=32768 dist=soft layer=sliding load=first turn page=1 q_len=16384
+kernel                                                           GPU time  share  calls
+moe_8_16_1_2_512                                                4520.6 µs  44.4%      1
+nvjet_sm90_tst_176x128_64x5_1x2_h_bz_TNN                        1644.0 µs  16.2%      2
+nvjet_sm90_tst_128x256_64x4_2x1_v_bz_coopA_TNN                  1350.5 µs  13.3%      1
+nvjet_sm90_tst_256x128_64x4_1x2_h_bz_coopA_TNT                   750.1 µs   7.4%      1
+void sglang::muse_spark_norm_residual_kernel<8192l, 512, ...     403.3 µs   4.0%      1
+void sglang::muse_spark_norm_residual_kernel<8192l, 512, ...     395.3 µs   3.9%      1
+void cutlass::device_kernel<flash::enable_sm90_or_later<f...     307.1 µs   3.0%      1
+_native_finish                                                   176.5 µs   1.7%      1
+gather_8_16_1_2_512                                              168.2 µs   1.7%      1
+_fused_qkv_cache_grouped                                         117.4 µs   1.2%      1
+nvjet_sm90_tss_128x256_64x4_2x1_v_badd_coopA_TNN                  95.6 µs   0.9%      1
+nvjet_sm90_tss_128x256_64x4_2x1_v_bz_coopA_TNN                    93.1 µs   0.9%      1
+... 10 more
+total                                                          10176.2 µs
+
+profile 6: batch=1 ctx=32768 dist=soft layer=full load=first turn page=1 q_len=16384
+kernel                                                           GPU time  share  calls
+moe_8_16_1_2_512                                                3897.5 µs  30.0%      1
+attn_fwd                                                        3847.7 µs  29.6%      1
+nvjet_sm90_tst_176x128_64x5_1x2_h_bz_TNN                        1643.6 µs  12.7%      2
+nvjet_sm90_tst_128x256_64x4_2x1_v_bz_coopA_TNN                  1347.1 µs  10.4%      1
+nvjet_sm90_tst_256x128_64x4_1x2_h_bz_coopA_TNT                   748.6 µs   5.8%      1
+void sglang::muse_spark_norm_residual_kernel<8192l, 512, ...     402.8 µs   3.1%      1
+void sglang::muse_spark_norm_residual_kernel<8192l, 512, ...     394.8 µs   3.0%      1
+_native_finish                                                   163.4 µs   1.3%      1
+gather_8_16_1_2_512                                              146.3 µs   1.1%      1
+nvjet_sm90_tss_128x256_64x4_2x1_v_badd_coopA_TNN                  95.2 µs   0.7%      1
+nvjet_sm90_tss_128x256_64x4_2x1_v_bz_coopA_TNN                    91.4 µs   0.7%      1
+void at::native::(anonymous namespace)::vectorized_layer_...      77.9 µs   0.6%      1
+... 9 more
+total                                                          12980.9 µs
+
+profile 7: batch=1 ctx=65536 dist=soft layer=full load=first turn page=1 q_len=16384
+kernel                                                           GPU time  share  calls
+attn_fwd                                                        6714.1 µs  42.7%      1
+moe_8_16_1_2_512                                                3775.5 µs  24.0%      1
+nvjet_sm90_tst_176x128_64x5_1x2_h_bz_TNN                        1643.2 µs  10.4%      2
+nvjet_sm90_tst_128x256_64x4_2x1_v_bz_coopA_TNN                  1350.9 µs   8.6%      1
+nvjet_sm90_tst_256x128_64x4_1x2_h_bz_coopA_TNT                   749.2 µs   4.8%      1
+void sglang::muse_spark_norm_residual_kernel<8192l, 512, ...     402.1 µs   2.6%      1
+void sglang::muse_spark_norm_residual_kernel<8192l, 512, ...     395.6 µs   2.5%      1
+_native_finish                                                   163.2 µs   1.0%      1
+gather_8_16_1_2_512                                              142.1 µs   0.9%      1
+nvjet_sm90_tss_128x256_64x4_2x1_v_badd_coopA_TNN                  95.6 µs   0.6%      1
+nvjet_sm90_tss_128x256_64x4_2x1_v_bz_coopA_TNN                    91.9 µs   0.6%      1
+void at::native::(anonymous namespace)::vectorized_layer_...      78.4 µs   0.5%      1
+... 9 more
+total                                                          15733.4 µs

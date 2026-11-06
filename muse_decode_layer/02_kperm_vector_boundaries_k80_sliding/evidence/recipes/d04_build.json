@@ -1,0 +1,7 @@
+{
+  "base": "muse-opt-codex/muse_decode_layer/variants/d03_kperm.py",
+  "output": "muse-opt-codex/muse_decode_layer/variants/d04_router_shared.py",
+  "sha256": "cc5f51861bee3527d90ac4f56082a8ab6a9dad9ab6c27b100eeb7c8df5982f1e",
+  "bytes": 867771,
+  "change": "Each router CTA reuses FP32 weights over up to eight FP32 input rows; vectorized loads and FP32 FMA."
+}

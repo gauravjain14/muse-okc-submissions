@@ -1,0 +1,7 @@
+lab: NVIDIA H200, 132 SMs
+lab env: torch 2.14.1+cu130 (cuda 13.0), cuda-python 13.4.3, nvrtc 13.0, driver api 13000
+lab bs 256: v125 228.9 us (x1.000)  ksx4 230.8 us (x0.986)  k1x8 229.1 us (x0.998)
+lab bs 128: v125 187.4 us (x1.000)  ksx4 187.5 us (x0.999)  k1x8 192.3 us (x0.975)
+lab: experiment took 13 s
+lab bs  32: v125 119.4 us (x1.000)  k1x8 127.1 us (x0.937)
+lab: experiment took 3 s

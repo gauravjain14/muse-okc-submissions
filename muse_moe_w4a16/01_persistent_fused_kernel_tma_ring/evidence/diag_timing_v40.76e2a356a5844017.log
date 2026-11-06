@@ -1,0 +1,24 @@
+DIAG gpu NVIDIA H200 sms 132
+DIAG full                   bs   1 experts  3.0 | routed   2.7 first-data med   5.0 max   5.6 | work-end   26.6/  28.8/  29.8 combine-end   33.8 | per CTA compute   15.8 cons-wait   3.8 epi   2.9 prod-empty   1.8 dep   0.0
+DIAG full                   bs   8 experts  9.0 | routed   2.6 first-data med   4.9 max   5.5 | work-end   62.6/  63.9/  67.5 combine-end   70.3 | per CTA compute   42.6 cons-wait   5.7 epi   4.3 prod-empty   8.3 dep   0.0
+DIAG full                   bs  16 experts 12.0 | routed   2.6 first-data med   4.8 max   5.4 | work-end   82.5/  85.2/  88.1 combine-end   91.3 | per CTA compute   57.9 cons-wait   7.3 epi   5.8 prod-empty   9.4 dep   0.0
+DIAG full                   bs  32 experts 17.0 | routed   4.4 first-data med   6.2 max   6.3 | work-end  122.3/ 124.9/ 127.4 combine-end  130.9 | per CTA compute   87.4 cons-wait   9.1 epi   5.3 prod-empty  20.6 dep   0.0
+DIAG full                   bs 128 experts 22.0 | routed   6.0 first-data med   6.8 max   6.9 | work-end  170.8/ 172.6/ 175.5 combine-end  180.9 | per CTA compute  130.4 cons-wait   8.8 epi   7.3 prod-empty  39.2 dep   0.0
+DIAG full                   bs 256 experts 24.0 | routed   9.0 first-data med   9.9 max  10.0 | work-end  211.1/ 214.7/ 216.7 combine-end  227.0 | per CTA compute  156.0 cons-wait  11.1 epi  12.2 prod-empty  50.8 dep   0.0
+DIAG MOE_NO_MMA+MOE_NO_DEQ  bs   1 experts  3.0 | routed   2.6 first-data med   4.8 max   5.4 | work-end   21.9/  23.2/  24.8 combine-end   28.9 | per CTA compute    6.7 cons-wait   8.5 epi   2.3 prod-empty   0.8 dep   0.0
+DIAG MOE_NO_MMA+MOE_NO_DEQ  bs   8 experts  9.0 | routed   2.5 first-data med   4.8 max   5.4 | work-end   56.1/  58.6/  59.8 combine-end   63.2 | per CTA compute   18.5 cons-wait  27.9 epi   3.2 prod-empty  10.9 dep   0.0
+DIAG MOE_NO_MMA+MOE_NO_DEQ  bs  16 experts 12.0 | routed   2.6 first-data med   4.9 max   5.3 | work-end   76.0/  78.0/  80.1 combine-end   82.9 | per CTA compute   23.5 cons-wait  39.9 epi   4.3 prod-empty  15.8 dep   0.0
+DIAG MOE_NO_MMA+MOE_NO_DEQ  bs  32 experts 17.0 | routed   5.2 first-data med   6.0 max   6.1 | work-end  107.5/ 109.4/ 111.9 combine-end  116.4 | per CTA compute   35.1 cons-wait  50.7 epi   4.4 prod-empty  35.5 dep   0.0
+DIAG MOE_NO_MMA+MOE_NO_DEQ  bs 128 experts 22.0 | routed   6.0 first-data med   6.8 max   6.9 | work-end  143.3/ 145.1/ 146.8 combine-end  152.3 | per CTA compute   52.7 cons-wait  65.4 epi   6.1 prod-empty  50.1 dep   0.0
+DIAG MOE_NO_MMA+MOE_NO_DEQ  bs 256 experts 24.0 | routed   8.6 first-data med   9.6 max   9.6 | work-end  163.8/ 165.7/ 168.2 combine-end  178.7 | per CTA compute   72.4 cons-wait  50.8 epi  12.1 prod-empty  47.8 dep   0.0
+DIAG total 26s
+Traceback (most recent call last):
+  File "/tmp/muse_moe_w4a16-7k93u3t5/run/worker.py", line 423, in child_main
+    send(_setup_op(msg, module, state, sync, perf))
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/tmp/muse_moe_w4a16-7k93u3t5/run/worker.py", line 322, in _setup_op
+    state["prep"] = prepare(weights)
+                    ^^^^^^^^^^^^^^^^
+  File "/tmp/muse_moe_w4a16-7k93u3t5/run/submission.py", line 1873, in prepare
+    raise RuntimeError("diagnostic build: prepare() measured and printed, nothing to score")
+RuntimeError: diagnostic build: prepare() measured and printed, nothing to score

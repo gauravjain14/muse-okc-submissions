@@ -1,0 +1,63 @@
+[gate] slot 0 at 14:59:51 (0 running)
+✓ Initialized. View run at 
+<modal-run-url>
+✓ Created objects.
+├── 🔨 Created mount 
+│   muse-opt-codex/muse_bf16_proj/claude/modal_run.p
+│   y
+├── 🔨 Created mount muse-opt-codex/muse_bf16_proj
+└── 🔨 Created function run.
+[gpu-before]
+NVIDIA H200, 0 %, 120 MiB, 345 MHz, 1980 MHz, 81.56 W
+0
+all ok
+all ok
+all ok
+all ok
+decode 1  m=1    qkv_gate  sglang   12.90 | v6    8.16 x1.580 | v5    8.09 x1.594   sol   7.87
+decode 1  m=1    o         sglang    5.62 | v6    4.31 x1.302 | v5    4.31 x1.304   sol   3.50
+decode 1  m=1    pooler    sglang   19.34 | v6   12.52 x1.545 | v5   12.38 x1.562   sol  13.99
+decode 1  m=1    unpooler  sglang    5.95 | v6    2.53 x2.355 | v5    2.52 x2.366   sol   1.75
+decode 1  m=1    router    sglang    9.26 | v6    2.84 x3.264 | v5    2.83 x3.269   sol   1.75
+decode 16 m=16   qkv_gate  sglang   12.99 | v6   10.86 x1.196 | v5   10.93 x1.189   sol   7.93
+decode 16 m=16   o         sglang    5.54 | v6    5.14 x1.076 | v5    4.96 x1.116   sol   3.56
+decode 16 m=16   pooler    sglang   19.76 | v6   15.80 x1.251 | v5   15.44 x1.280   sol  14.06
+decode 16 m=16   unpooler  sglang   17.49 | v6   15.17 x1.153 | v5   15.05 x1.162   sol  14.06
+decode 16 m=16   router    sglang   14.35 | v6    4.33 x3.313 | v5    4.33 x3.313   sol   1.81
+decode 32 m=32   qkv_gate  sglang   13.60 | v6   11.90 x1.143 | v5   12.09 x1.125   sol   8.00
+decode 32 m=32   o         sglang    5.78 | v6    5.13 x1.126 | v5    5.35 x1.079   sol   3.62
+decode 32 m=32   pooler    sglang   20.24 | v6   17.14 x1.181 | v5   17.45 x1.160   sol  14.14
+decode 32 m=32   unpooler  sglang   17.84 | v6   16.71 x1.068 | v5   16.67 x1.070   sol  14.14
+decode 32 m=32   router    sglang   14.48 | v6    4.70 x3.079 | v5    4.70 x3.084   sol   1.86
+verify 1  m=8    qkv_gate  sglang   13.04 | v6   10.56 x1.235 | v5   10.45 x1.248   sol   7.90
+verify 1  m=8    o         sglang    5.58 | v6    4.40 x1.269 | v5    5.02 x1.113   sol   3.53
+verify 1  m=8    pooler    sglang   19.62 | v6   14.66 x1.338 | v5   14.66 x1.338   sol  14.02
+verify 1  m=8    unpooler  sglang    6.08 | v6    4.02 x1.511 | v5    3.89 x1.565   sol   1.76
+verify 1  m=8    router    sglang   25.34 | v6    4.08 x6.219 | v5    4.30 x5.896   sol   1.78
+verify 16 m=128  qkv_gate  sglang   16.22 | v6   14.66 x1.107 | v5   14.37 x1.129   sol   8.42
+verify 16 m=128  o         sglang    6.45 | v6    5.95 x1.083 | v5    6.10 x1.058   sol   3.99
+verify 16 m=128  pooler    sglang   24.43 | v6   19.07 x1.281 | v5   19.13 x1.277   sol  14.64
+verify 16 m=128  unpooler  sglang   18.58 | v6   17.70 x1.050 | v5   17.88 x1.039   sol  14.64
+verify 16 m=128  router    sglang   15.49 | v6    6.96 x2.224 | v5    6.94 x2.231   sol   2.21
+verify 32 m=256  qkv_gate  sglang   18.58 | v6   16.38 x1.134 | v5   16.41 x1.132   sol   9.77
+verify 32 m=256  o         sglang    8.32 | v6    7.94 x1.048 | v5    7.76 x1.072   sol   4.48
+verify 32 m=256  pooler    sglang   28.53 | v6   23.84 x1.197 | v5   22.83 x1.249   sol  17.37
+verify 32 m=256  unpooler  sglang   23.86 | v6   23.53 x1.014 | v5   22.94 x1.040   sol  17.37
+verify 32 m=256  router    sglang   16.56 | v6    8.92 x1.857 | v5    9.02 x1.835   sol   2.68
+  decode 1  sglang   53.07 | v6   30.36 x1.748 | v5   30.12 x1.762
+  decode 16 sglang   70.13 | v6   51.30 x1.367 | v5   50.71 x1.383
+  decode 32 sglang   71.94 | v6   55.58 x1.294 | v5   56.25 x1.279
+  verify 1  sglang   69.66 | v6   37.71 x1.847 | v5   38.30 x1.819
+  verify 16 sglang   81.17 | v6   64.34 x1.262 | v5   64.42 x1.260
+  verify 32 sglang   95.84 | v6   80.60 x1.189 | v5   78.97 x1.214
+GEOMEAN v6: x1.4305 over 6 loads   judge-projected (+1.0 us/shape) x1.3871
+GEOMEAN v5: x1.4331 over 6 loads   judge-projected (+1.0 us/shape) x1.3895
+verify 1  m=8    unpooler  | s    4.22 | us1    4.42 | us2    4.61 | us3    4.56 | v5    3.87   sol   1.76
+[gpu-after]
+NVIDIA H200, 0 %, 120 MiB, 1980 MHz, 1980 MHz, 165.65 W
+0
+
+[exit 0]
+Stopping app - local entrypoint completed.
+✓ App completed. View run at 
+<modal-run-url>

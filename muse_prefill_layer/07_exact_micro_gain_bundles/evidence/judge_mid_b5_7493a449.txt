@@ -1,0 +1,159 @@
+okc run 7493a4491e4d4707 on muse_prefill_layer
+status      ok
+passed      true
+speedup     1.920304855522917
+speedup_ci  [1.891500282690073 1.9491094283557606]
+score_us    201740.83239221218
+tests       5/5 passed
+
+scored shapes (µs; speed of light is the reference's bound)
+case                                                         sglang      yours  speedup        sol  
+batch=1 ctx=80000 dist=soft layer=sliding load=turn 1 page=1 q_len=753    1064.16     558.93   1.904x     256.95  
+batch=1 ctx=80000 dist=soft layer=full load=turn 1 page=1 q_len=753    1475.18     777.30   1.898x     496.69  
+batch=4 ctx=80000 dist=soft layer=sliding load=turn 4 page=1 q_len=753    3330.80    1757.41   1.895x    1036.28  
+batch=4 ctx=80000 dist=soft layer=full load=turn 4 page=1 q_len=753    4956.83    2588.30   1.915x    1992.42  
+batch=1 ctx=0 dist=soft layer=full load=first turn page=1 q_len=16384   17525.52    9048.79   1.937x    5518.43  
+batch=1 ctx=32768 dist=soft layer=sliding load=first turn page=1 q_len=16384   17098.46    8789.56   1.945x    5663.35  
+batch=1 ctx=32768 dist=soft layer=full load=first turn page=1 q_len=16384   21762.50   10920.18   1.993x    7710.00  
+batch=1 ctx=65536 dist=soft layer=full load=first turn page=1 q_len=16384   25074.66   12438.56   2.016x    9847.68  
+
+profile 0: batch=1 ctx=80000 dist=soft layer=sliding load=turn 1 page=1 q_len=753
+kernel                                                           GPU time  share  calls
+moe_8_16_1_2_32                                                  277.7 µs  48.8%      1
+nvjet_sm90_tss_256x112_64x4_2x1_v_bz_coopA_TNT                    80.8 µs  14.2%      1
+nvjet_sm90_tst_128x192_64x5_2x1_v_bz_coopB_TNN                    67.1 µs  11.8%      1
+nvjet_sm90_tst_112x128_64x7_1x2_h_bz_TNN                          39.1 µs   6.9%      1
+bnd3_b2                                                           21.4 µs   3.8%      1
+sk2_3_1_128_128_4_1_0_0_2_0                                       20.5 µs   3.6%      1
+attn_fwd                                                          18.1 µs   3.2%      1
+_native_finish                                                    13.3 µs   2.3%      1
+bnd3_b1                                                           13.1 µs   2.3%      1
+qkv_post2                                                          6.8 µs   1.2%      1
+pnr5                                                               6.4 µs   1.1%      1
+kv_pack                                                            4.8 µs   0.8%      1
+total                                                            569.2 µs
+
+profile 1: batch=1 ctx=80000 dist=soft layer=full load=turn 1 page=1 q_len=753
+kernel                                                           GPU time  share  calls
+moe_8_16_1_2_32                                                  283.7 µs  35.1%      1
+attn_fwd                                                         213.0 µs  26.3%      1
+nvjet_sm90_tss_256x112_64x4_2x1_v_bz_coopA_TNT                    75.3 µs   9.3%      1
+nvjet_sm90_tst_128x192_64x5_2x1_v_bz_coopB_TNN                    66.2 µs   8.2%      1
+nvjet_sm90_tst_128x128_64x6_2x2_h_bz_TNT                          44.6 µs   5.5%      1
+sk2_3_1_128_128_4_1_0_0_2_0                                       28.2 µs   3.5%      1
+attn_comb                                                         24.5 µs   3.0%      1
+bnd3_b2                                                           21.5 µs   2.7%      1
+kv_pack                                                           13.7 µs   1.7%      1
+bnd3_b1                                                           13.3 µs   1.6%      1
+_native_finish                                                    12.3 µs   1.5%      1
+qkv_post2                                                          6.2 µs   0.8%      1
+... 1 more
+total                                                            808.7 µs
+GPU busy (kernels overlap: PDL or streams)                       780.9 µs
+an overlapping kernel's time includes any wait for the one before it, so the rows add up to more
+
+profile 2: batch=4 ctx=80000 dist=soft layer=sliding load=turn 4 page=1 q_len=753
+kernel                                                           GPU time  share  calls
+void okc_moe::moe_fused_persistent<1, false>(okc_moe::Fus...     748.0 µs  41.2%      1
+nvjet_sm90_tss_256x144_64x4_1x2_h_ssched_bz_coopA_TNT            283.1 µs  15.6%      1
+nvjet_sm90_tst_128x304_64x3_2x1_v_ssched_bz_coopA_TNT            250.8 µs  13.8%      1
+nvjet_sm90_tst_256x104_64x4_1x1_h_bz_coopA_TNT                   147.5 µs   8.1%      1
+bnd4_b2                                                           88.1 µs   4.9%      1
+sk2_2_1_256_256_3_1_0_0_2_0                                       70.1 µs   3.9%      1
+bnd4_b1                                                           51.4 µs   2.8%      1
+kv_pack                                                           44.2 µs   2.4%      2
+attn_fwd                                                          41.6 µs   2.3%      1
+void okc_moe::moe_gather_kernel<true>(__nv_bfloat16 const...      35.2 µs   1.9%      1
+_pm__combine_kernel                                               25.4 µs   1.4%      1
+pnr5                                                              22.6 µs   1.2%      1
+... 2 more
+total                                                           1814.6 µs
+GPU busy (kernels overlap: PDL or streams)                      1767.3 µs
+an overlapping kernel's time includes any wait for the one before it, so the rows add up to more
+
+profile 3: batch=4 ctx=80000 dist=soft layer=full load=turn 4 page=1 q_len=753
+kernel                                                           GPU time  share  calls
+attn_fwd                                                         801.4 µs  28.5%      1
+void okc_moe::moe_fused_persistent<1, false>(okc_moe::Fus...     786.6 µs  28.0%      1
+nvjet_sm90_tss_256x144_64x4_1x2_h_ssched_bz_coopA_TNT            283.6 µs  10.1%      1
+nvjet_sm90_tst_128x304_64x3_2x1_v_ssched_bz_coopA_TNT            249.7 µs   8.9%      1
+nvjet_sm90_tst_128x256_64x4_2x2_h_bz_coopA_TNN                   171.3 µs   6.1%      1
+kv_pack                                                          121.2 µs   4.3%      2
+bnd4_b2                                                           88.5 µs   3.1%      1
+sk2_2_1_256_256_3_1_0_0_2_0                                       86.5 µs   3.1%      1
+attn_comb                                                         75.2 µs   2.7%      1
+bnd4_b1                                                           51.8 µs   1.8%      1
+void okc_moe::moe_gather_kernel<true>(__nv_bfloat16 const...      36.4 µs   1.3%      1
+_pm__combine_kernel                                               26.1 µs   0.9%      1
+... 3 more
+total                                                           2813.5 µs
+GPU busy (kernels overlap: PDL or streams)                      2646.7 µs
+an overlapping kernel's time includes any wait for the one before it, so the rows add up to more
+
+profile 4: batch=1 ctx=0 dist=soft layer=full load=first turn page=1 q_len=16384
+kernel                                                           GPU time  share  calls
+void okc_moe::moe_fused_persistent<1, true>(okc_moe::Fuse...    3688.9 µs  40.4%      1
+ub2_2_192_3                                                     1710.4 µs  18.7%      1
+nvjet_sm90_tst_128x256_64x4_2x1_v_bz_coopA_TNN                  1365.4 µs  14.9%      1
+nvjet_sm90_tst_256x128_64x4_1x2_h_bz_coopA_TNT                   756.1 µs   8.3%      1
+ub2_2_192_4_4                                                    572.9 µs   6.3%      1
+attn_fwd                                                         500.4 µs   5.5%      1
+nvjet_sm90_tss_256x128_64x4_1x2_h_bz_coopA_TNT                   174.2 µs   1.9%      1
+pnr2y                                                            138.0 µs   1.5%      1
+_pm__combine_kernel                                              129.5 µs   1.4%      1
+okc_moe::moe_pg_metadata_kernel(int const*, int const*, i...      37.2 µs   0.4%      1
+attn_comb                                                         36.8 µs   0.4%      1
+qkv_post2                                                         17.9 µs   0.2%      1
+... 3 more
+total                                                           9139.6 µs
+
+profile 5: batch=1 ctx=32768 dist=soft layer=sliding load=first turn page=1 q_len=16384
+kernel                                                           GPU time  share  calls
+void okc_moe::moe_fused_persistent<1, true>(okc_moe::Fuse...    3725.2 µs  42.2%      1
+ub2_2_192_3                                                     1707.2 µs  19.4%      1
+nvjet_sm90_tst_128x256_64x4_2x1_v_bz_coopA_TNN                  1361.1 µs  15.4%      1
+nvjet_sm90_tst_256x128_64x4_1x2_h_bz_coopA_TNT                   753.8 µs   8.5%      1
+ub2_2_192_4_4                                                    565.0 µs   6.4%      1
+attn_fwd                                                         195.9 µs   2.2%      1
+nvjet_sm90_tss_256x128_64x4_1x2_h_bz_coopA_TNT                   173.9 µs   2.0%      1
+pnr2y                                                            133.8 µs   1.5%      1
+_pm__combine_kernel                                              130.6 µs   1.5%      1
+okc_moe::moe_pg_metadata_kernel(int const*, int const*, i...      36.9 µs   0.4%      1
+qkv_post2                                                         19.6 µs   0.2%      1
+kv_pack                                                           14.8 µs   0.2%      2
+... 2 more
+total                                                           8820.7 µs
+
+profile 6: batch=1 ctx=32768 dist=soft layer=full load=first turn page=1 q_len=16384
+kernel                                                           GPU time  share  calls
+void okc_moe::moe_fused_persistent<1, true>(okc_moe::Fuse...    3822.7 µs  35.0%      1
+attn_fwd                                                        2118.8 µs  19.4%      1
+ub2_2_192_3                                                     1711.5 µs  15.7%      1
+nvjet_sm90_tst_128x256_64x4_2x1_v_bz_coopA_TNN                  1364.8 µs  12.5%      1
+nvjet_sm90_tst_256x128_64x4_1x2_h_bz_coopA_TNT                   753.9 µs   6.9%      1
+ub2_2_192_4_4                                                    585.5 µs   5.4%      1
+nvjet_sm90_tss_256x128_64x4_1x2_h_bz_coopA_TNT                   174.0 µs   1.6%      1
+pnr2y                                                            134.8 µs   1.2%      1
+_pm__combine_kernel                                              131.1 µs   1.2%      1
+attn_comb                                                         36.8 µs   0.3%      1
+okc_moe::moe_pg_metadata_kernel(int const*, int const*, i...      34.9 µs   0.3%      1
+kv_pack                                                           28.1 µs   0.3%      2
+... 3 more
+total                                                          10916.8 µs
+
+profile 7: batch=1 ctx=65536 dist=soft layer=full load=first turn page=1 q_len=16384
+kernel                                                           GPU time  share  calls
+attn_fwd                                                        3695.0 µs  30.0%      1
+void okc_moe::moe_fused_persistent<1, true>(okc_moe::Fuse...    3636.4 µs  29.5%      1
+ub2_2_192_3                                                     1694.1 µs  13.7%      1
+nvjet_sm90_tst_128x256_64x4_2x1_v_bz_coopA_TNN                  1373.2 µs  11.1%      1
+nvjet_sm90_tst_256x128_64x4_1x2_h_bz_coopA_TNT                   756.0 µs   6.1%      1
+ub2_2_192_4_4                                                    583.7 µs   4.7%      1
+nvjet_sm90_tss_256x128_64x4_1x2_h_bz_coopA_TNT                   179.3 µs   1.5%      1
+pnr2y                                                            134.2 µs   1.1%      1
+_pm__combine_kernel                                              129.6 µs   1.1%      1
+attn_comb                                                         52.1 µs   0.4%      1
+kv_pack                                                           44.9 µs   0.4%      2
+okc_moe::moe_pg_metadata_kernel(int const*, int const*, i...      37.1 µs   0.3%      1
+... 3 more
+total                                                          12335.6 µs

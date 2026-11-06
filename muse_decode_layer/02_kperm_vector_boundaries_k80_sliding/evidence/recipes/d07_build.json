@@ -1,0 +1,7 @@
+{
+  "base": "muse-opt-codex/muse_decode_layer/variants/d06_parallel_route.py",
+  "output": "muse-opt-codex/muse_decode_layer/variants/d07_small_dense_pdl.py",
+  "sha256": "0ad55d2977ee8ba20fb17baec300d98979cbb277054b7eaeaa4be8df062253f6",
+  "bytes": 874906,
+  "change": "PDL-enabled small dense launchers; prefetch only weights before grid dependency wait, every input load follows wait."
+}

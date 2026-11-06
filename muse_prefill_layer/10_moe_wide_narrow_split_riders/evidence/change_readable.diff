@@ -1,0 +1,2832 @@
+# Readable form of change.diff for 10 (s3), in two steps: m16 -> s_b (stk lane, lever B; the submitted s_b also
+# carries the stk plumbing with every lever-A knob at 0, i.e. off) and s_b -> s3 (rw MoE W/N split + riders, kv full-layer attention).
+# Long string constants are diffed with their newlines expanded.
+# readable diff: m16.py -> s_b.py
+# part 1: Python skeleton (long string literals replaced by placeholders)
+--- m16.py
++++ s_b.py
+@@ -3225,3 +3225,678 @@
+         att.sla = _Sla(att, weights['qkv_gate'].device)
+     torch.cuda.synchronize()
+     return state
++
++
++# ==== stk (research/claude/stk): shared hooks for lever A (L2 prefetch of the next cuBLASLt GEMM's first weight
++# k-stages) and lever B (small-kernel trims around the MoE). Every flag off = m16's code paths. ====
++import os as _stk_os
++import triton.language.extra.cuda as _stk_tlc  # noqa: F401  (gdc_wait for the PDL combine)
++STK_PF_UNPOOL = 0       # A: k-stages of the unpool GEMM's weights the combine kernel prefetches into L2 (0 = off)
++STK_COMB_HOIST = False  # B: combine with every route's loads issued up front (same arithmetic, same order)
++STK_COMB_PDL = False    # B: combine launched with PDL (constants and the prefetch before griddepcontrol.wait)
++STK_MAX_T = 8191        # both levers only below the 16K path (T >= 8192 keeps m16's kernels)
++_STK_GATHER = [None]    # B: replacement gather + plan launcher
++_STK_ZBAR = [None]      # B: the fused router + gather's barrier words, zeroed by the combine (program 0)
++
++
++@triton.jit
++def _stk_combine_kernel(y_ptr, rrow_ptr, lid_ptr, w_ptr, gs_ptr, pw_ptr, out_ptr, reset_ptr, pg_slot_ptr, pg_count_ptr,
++                        zero_scratch_ptr, pf_base, pf_lines, pf_per_row, pf_ld, zbar_ptr, H: tl.constexpr, PGK: tl.constexpr = 0, ZBAR: tl.constexpr = 0,
++                        ZERO_SIZE: tl.constexpr = 0, ZERO_BLOCK: tl.constexpr = 0, CACHE_HINT: tl.constexpr = False,
++                        PF: tl.constexpr = 0, HOIST: tl.constexpr = False, GDC: tl.constexpr = False):
++    t = tl.program_id(0)
++    if PF > 0:
++        # lever A: this program's share of the unpool GEMM's first weight k-stages (128-byte lines) into L2
++        j = tl.minimum(t * PF + tl.arange(0, PF), pf_lines - 1)
++        addr = pf_base + (j // pf_per_row).to(tl.int64) * pf_ld + (j % pf_per_row).to(tl.int64) * 128
++        tl.inline_asm_elementwise("prefetch.global.L2 [$1];\n\tmov.u32 $0, 0;", "=r,l", [addr], dtype=tl.int32,
++                                  is_pure=False, pack=1)
++    offs = tl.arange(0, H)
++    pw = 1.0 + tl.load(pw_ptr + offs).to(tl.float32)
++    if GDC:
++        tl.extra.cuda.gdc_wait()
++    if tl.program_id(0) == 0:
++        tl.store(reset_ptr + tl.arange(0, 32), 0)
++        if PGK:
++            tl.store(pg_slot_ptr + tl.arange(0, 32 * PGK), -1)
++            tl.store(pg_count_ptr, 0)
++        if ZERO_SIZE:
++            zi = tl.arange(0, ZERO_BLOCK)
++            tl.store(zero_scratch_ptr + zi, 0, mask=zi < ZERO_SIZE)
++        if ZBAR:
++            tl.store(zbar_ptr + tl.arange(0, ZBAR), 0)
++    acc = tl.zeros([H], dtype=tl.float32)
++    if HOIST:
++        # every route's lid / row / weight, then every local route's row: all loads in flight at once; the
++        # arithmetic below is the original loop body, route by route in the same order
++        b8 = t * 8
++        l0 = tl.load(lid_ptr + b8 + 0, eviction_policy=("evict_last" if CACHE_HINT else ""))
++        l1 = tl.load(lid_ptr + b8 + 1, eviction_policy=("evict_last" if CACHE_HINT else ""))
++        l2 = tl.load(lid_ptr + b8 + 2, eviction_policy=("evict_last" if CACHE_HINT else ""))
++        l3 = tl.load(lid_ptr + b8 + 3, eviction_policy=("evict_last" if CACHE_HINT else ""))
++        l4 = tl.load(lid_ptr + b8 + 4, eviction_policy=("evict_last" if CACHE_HINT else ""))
++        l5 = tl.load(lid_ptr + b8 + 5, eviction_policy=("evict_last" if CACHE_HINT else ""))
++        l6 = tl.load(lid_ptr + b8 + 6, eviction_policy=("evict_last" if CACHE_HINT else ""))
++        l7 = tl.load(lid_ptr + b8 + 7, eviction_policy=("evict_last" if CACHE_HINT else ""))
++        r0 = tl.load(rrow_ptr + b8 + 0, eviction_policy=("evict_last" if CACHE_HINT else ""))
++        r1 = tl.load(rrow_ptr + b8 + 1, eviction_policy=("evict_last" if CACHE_HINT else ""))
++        r2 = tl.load(rrow_ptr + b8 + 2, eviction_policy=("evict_last" if CACHE_HINT else ""))
++        r3 = tl.load(rrow_ptr + b8 + 3, eviction_policy=("evict_last" if CACHE_HINT else ""))
++        r4 = tl.load(rrow_ptr + b8 + 4, eviction_policy=("evict_last" if CACHE_HINT else ""))
++        r5 = tl.load(rrow_ptr + b8 + 5, eviction_policy=("evict_last" if CACHE_HINT else ""))
++        r6 = tl.load(rrow_ptr + b8 + 6, eviction_policy=("evict_last" if CACHE_HINT else ""))
++        r7 = tl.load(rrow_ptr + b8 + 7, eviction_policy=("evict_last" if CACHE_HINT else ""))
++        w0 = tl.load(w_ptr + b8 + 0, eviction_policy=("evict_last" if CACHE_HINT else ""))
++        w1 = tl.load(w_ptr + b8 + 1, eviction_policy=("evict_last" if CACHE_HINT else ""))
++        w2 = tl.load(w_ptr + b8 + 2, eviction_policy=("evict_last" if CACHE_HINT else ""))
++        w3 = tl.load(w_ptr + b8 + 3, eviction_policy=("evict_last" if CACHE_HINT else ""))
++        w4 = tl.load(w_ptr + b8 + 4, eviction_policy=("evict_last" if CACHE_HINT else ""))
++        w5 = tl.load(w_ptr + b8 + 5, eviction_policy=("evict_last" if CACHE_HINT else ""))
++        w6 = tl.load(w_ptr + b8 + 6, eviction_policy=("evict_last" if CACHE_HINT else ""))
++        w7 = tl.load(w_ptr + b8 + 7, eviction_policy=("evict_last" if CACHE_HINT else ""))
++        v0 = (l0 >= 0) & (l0 < 32)
++        v1 = (l1 >= 0) & (l1 < 32)
++        v2 = (l2 >= 0) & (l2 < 32)
++        v3 = (l3 >= 0) & (l3 < 32)
++        v4 = (l4 >= 0) & (l4 < 32)
++        v5 = (l5 >= 0) & (l5 < 32)
++        v6 = (l6 >= 0) & (l6 < 32)
++        v7 = (l7 >= 0) & (l7 < 32)
++        y0 = tl.load(y_ptr + tl.where(v0, r0, 0).to(tl.int64) * H + offs, mask=(offs < H) & v0, other=0.0, eviction_policy=("evict_first" if CACHE_HINT else ""))
++        y1 = tl.load(y_ptr + tl.where(v1, r1, 0).to(tl.int64) * H + offs, mask=(offs < H) & v1, other=0.0, eviction_policy=("evict_first" if CACHE_HINT else ""))
++        y2 = tl.load(y_ptr + tl.where(v2, r2, 0).to(tl.int64) * H + offs, mask=(offs < H) & v2, other=0.0, eviction_policy=("evict_first" if CACHE_HINT else ""))
++        y3 = tl.load(y_ptr + tl.where(v3, r3, 0).to(tl.int64) * H + offs, mask=(offs < H) & v3, other=0.0, eviction_policy=("evict_first" if CACHE_HINT else ""))
++        y4 = tl.load(y_ptr + tl.where(v4, r4, 0).to(tl.int64) * H + offs, mask=(offs < H) & v4, other=0.0, eviction_policy=("evict_first" if CACHE_HINT else ""))
++        y5 = tl.load(y_ptr + tl.where(v5, r5, 0).to(tl.int64) * H + offs, mask=(offs < H) & v5, other=0.0, eviction_policy=("evict_first" if CACHE_HINT else ""))
++        y6 = tl.load(y_ptr + tl.where(v6, r6, 0).to(tl.int64) * H + offs, mask=(offs < H) & v6, other=0.0, eviction_policy=("evict_first" if CACHE_HINT else ""))
++        y7 = tl.load(y_ptr + tl.where(v7, r7, 0).to(tl.int64) * H + offs, mask=(offs < H) & v7, other=0.0, eviction_policy=("evict_first" if CACHE_HINT else ""))
++        if v0:
++            y = y0.to(tl.float32) * pw
++            rr = tl.rsqrt(tl.sum(y * y, 0) / H + 1e-08)
++            acc += y * (rr * w0)
++        if v1:
++            y = y1.to(tl.float32) * pw
++            rr = tl.rsqrt(tl.sum(y * y, 0) / H + 1e-08)
++            acc += y * (rr * w1)
++        if v2:
++            y = y2.to(tl.float32) * pw
++            rr = tl.rsqrt(tl.sum(y * y, 0) / H + 1e-08)
++            acc += y * (rr * w2)
++        if v3:
++            y = y3.to(tl.float32) * pw
++            rr = tl.rsqrt(tl.sum(y * y, 0) / H + 1e-08)
++            acc += y * (rr * w3)
++        if v4:
++            y = y4.to(tl.float32) * pw
++            rr = tl.rsqrt(tl.sum(y * y, 0) / H + 1e-08)
++            acc += y * (rr * w4)
++        if v5:
++            y = y5.to(tl.float32) * pw
++            rr = tl.rsqrt(tl.sum(y * y, 0) / H + 1e-08)
++            acc += y * (rr * w5)
++        if v6:
++            y = y6.to(tl.float32) * pw
++            rr = tl.rsqrt(tl.sum(y * y, 0) / H + 1e-08)
++            acc += y * (rr * w6)
++        if v7:
++            y = y7.to(tl.float32) * pw
++            rr = tl.rsqrt(tl.sum(y * y, 0) / H + 1e-08)
++            acc += y * (rr * w7)
++    else:
++        for k in tl.static_range(8):
++            lid = tl.load(lid_ptr + t * 8 + k, eviction_policy=("evict_last" if CACHE_HINT else ""))
++            if (lid >= 0) & (lid < 32):
++                row = tl.load(rrow_ptr + t * 8 + k, eviction_policy=("evict_last" if CACHE_HINT else ""))
++                y = tl.load(y_ptr + row.to(tl.int64) * H + offs, eviction_policy=("evict_first" if CACHE_HINT else "")).to(tl.float32) * pw
++                rr = tl.rsqrt(tl.sum(y * y, 0) / H + 1e-08)
++                acc += y * (rr * tl.load(w_ptr + t * 8 + k, eviction_policy=("evict_last" if CACHE_HINT else "")))
++    tl.store(out_ptr + t.to(tl.int64) * H + offs, acc.to(tl.bfloat16))
++
++
++def _stk_pf_unpool(state, M):
++    """(base, lines, per_row, ld) of the unpool GEMM's first STK_PF_UNPOOL k-stages (64 K-columns each), or None."""
++    if not STK_PF_UNPOOL or M > STK_MAX_T:
++        return None
++    cache = state.setdefault('stk_pfu', {})
++    if M not in cache:
++        w = state['dense']['unpooler']                    # [8192, 4096] BF16
++        sel = _PREFILL_LT_PLANS.get((M, w.shape[0], w.shape[1], w.data_ptr()))
++        wt = getattr(sel[0], 'wt', None) if sel is not None else None
++        S = STK_PF_UNPOOL
++        if wt is not None:   # 'nn': W^T [4096, 8192], the first S*64 rows are contiguous
++            cache[M] = (wt.data_ptr(), S * 64 * wt.shape[1] * 2 // 128, 1 << 30, 0)
++        else:                # 'tn' (or cuBLAS default): W [8192, 4096] K-major, S 128-byte lines at the head of every row
++            cache[M] = (w.data_ptr(), w.shape[0] * S, S, w.shape[1] * 2)
++    return cache[M]
++
++
++def _stk_combine(ex, lid, topk_weights, ps, nx, out, M, pg_xs, state, counts):
++    pf = _stk_pf_unpool(state, M)
++    pfa = pf if pf is not None else (0, 1, 1, 0)
++    PFN = 0
++    if pf is not None:
++        PFN = 1
++        while PFN * M < pf[1]:
++            PFN *= 2
++    kw = dict(H=4096, PGK=PG_KMAX if pg_xs is not None else 0, num_warps=8, ZERO_SIZE=ps['moe_zero_scratch'].numel(),
++              ZERO_BLOCK=triton.next_power_of_2(ps['moe_zero_scratch'].numel()), CACHE_HINT=2048 <= M < 8192, PF=PFN,
++              HOIST=bool(STK_COMB_HOIST and M <= STK_MAX_T), GDC=bool(STK_COMB_PDL and M <= STK_MAX_T))
++    if kw['GDC']:
++        kw['launch_pdl'] = True
++    zb = _STK_ZBAR[0]
++    if zb is not None:
++        kw['ZBAR'] = zb.numel()
++    _stk_combine_kernel[M,](ex['y'], ex['rrow'], lid, topk_weights, ps['ones32'], ps['g_post_expert_norm'], out, counts, nx['tslot'], nx['nslot'], ps['moe_zero_scratch'], pfa[0], pfa[1], pfa[2], pfa[3], zb if zb is not None else counts, **kw)
++
++
++def _stk_moe_forward(st, p, lid, pos, cnt, T, order=None, zb=None, cit=None, pg_xs=None, pg_slots=None):
++    """_pm__moe_forward with an optional gather replacement (lever B); otherwise the same launches."""
++    g = _STK_GATHER[0]
++    if g is None or pg_xs is not None or cit is not None or T > STK_MAX_T or not _pm_GATHER_PLAN or _pm_MOE_MODE_SMALL != 'fused' or T >= _pm_MOE_LARGE_T:
++        return _pm__moe_forward(st, p, lid, pos, cnt, T, order=order, zb=zb, cit=cit, pg_xs=pg_xs, pg_slots=pg_slots)
++    dev = p.device
++    mod = st['mod']
++    maxrows = T * _pm_TOP_K + _pm_LOCAL_EXPERTS * _pm_MAX_PADDED_ROWS_PER_EXPERT
++    maxtiles = _pm__max_tiles(T)
++    offsets = torch.empty((_pm_LOCAL_EXPERTS,), dtype=torch.int32, device=dev)
++    rows = torch.empty((_pm_LOCAL_EXPERTS,), dtype=torch.int32, device=dev)
++    tiles = torch.empty((maxtiles, 4), dtype=torch.int32, device=dev)
++    ntiles = torch.empty((1,), dtype=torch.int32, device=dev)
++    if order is None:
++        order = _pm_MOE_ORDER_SMALL
++    fine = 1 if _pm_FINE_MIN_T and T >= _pm_FINE_MIN_T else 0
++    order = order | fine << _pm_MOE_FINE_ORDER_SHIFT
++    xt = torch.empty((maxrows, _pm_D_EXPERT), dtype=torch.bfloat16, device=dev)
++    rrow = torch.empty((T, _pm_TOP_K), dtype=torch.int32, device=dev)
++    cz, ctok = st['no_zero'], st['no_zero']
++    g(st, p, lid, pos, cnt, xt, rrow, offsets, tiles, ntiles, rows, order, T)
++    inter = torch.empty((maxrows, _pm_D_EXPERT), dtype=torch.bfloat16, device=dev)
++    y = torch.empty((maxrows, _pm_D_EXPERT), dtype=torch.bfloat16, device=dev)
++    if zb is None:
++        zb = torch.zeros((1 + maxtiles,), dtype=torch.int32, device=dev)
++    mod.moe_fused(st['w13r'], st['w2r'], xt, inter, y, tiles, ntiles, st['w13_gs'], st['w2_gs'], st['nsm'] * (2 if _pm_SKINNY_TEST else 1), st['smem'], zb[0:1], zb[1:1 + maxtiles], st['moe_dbg'], st['moe_flags'] | fine << _pm_MOE_FINE_ORDER_SHIFT, cz, ctok, rrow, lid, st['no_zero_f'], st['g_post_expert_norm'], st['no_zero_b'])
++    return dict(y=y, rrow=rrow, xt=xt, inter=inter, tiles=tiles, ntiles=ntiles, offsets=offsets, rows=rows, counters=zb)
++
++
++_stk_prev_experts = _experts
++
++
++def _experts(x, topk_weights, topk_ids, state, prenorm=False, bucketed=False, pg_xs=None):
++    M = x.shape[0]
++    on = (STK_PF_UNPOOL or STK_COMB_HOIST or STK_COMB_PDL or _STK_GATHER[0] is not None) and M <= STK_MAX_T
++    if not on or M < 512 or M > MAX_M:
++        return _stk_prev_experts(x, topk_weights, topk_ids, state, prenorm, bucketed, pg_xs)
++    ps = state['public_experts']
++    nx = state['native_experts']
++    if prenorm:
++        x = F.rms_norm(x, (4096,), ps['prenorm'], 1e-05).to(x.dtype)
++    if bucketed:
++        lid, pos, counts = (topk_ids, nx['spos'].view(-1)[:M * 8].view(M, 8), nx['cur'])
++    else:
++        lid = torch.empty((M, 8), device=x.device, dtype=torch.int32)
++        pos = torch.empty_like(lid)
++        counts = torch.zeros(32, device=x.device, dtype=torch.int32)
++        _pm__mopt_public_bucket[triton.cdiv(M * 8, 256),](topk_ids, lid, pos, counts, M * 8, 0, 256)
++    ex = _stk_moe_forward(ps, x, lid, pos, counts, M, pg_xs=pg_xs, pg_slots=nx['tslot'] if pg_xs is not None else None, zb=ps['moe_zero_scratch'])
++    out = torch.empty_like(x)
++    _stk_combine(ex, lid, topk_weights, ps, nx, out, M, pg_xs, state, counts)
++    return out
++
++
++# ==== stk: MoE gather + plan infrastructure (shared by levers A and B) ====
++# stk_gather<TPC>: moe_gather_kernel<true>'s exact work (plan / offsets / rrow / tile-layout rows / pad zero fill), TPC
++# tokens per CTA, pad-fill CTAs first; block 0 (plan) can also L2-prefetch the expert kernel's first-wave weight stages
++# (lever A, a.npf items). The dispatcher picks per T: the fused router + gather (lever B), stk_gather, or m16's gather.
++STK_GATHER_TPC = int(_stk_os.environ.get('STK_GATHER_TPC', '0'))        # tokens per CTA below 2048 tokens (0: m16's gather)
++STK_GATHER_TPC_L = int(_stk_os.environ.get('STK_GATHER_TPC_L', '0'))    # tokens per CTA from 2048 tokens (0: m16's gather)
++STK_GATHER_PARTS = int(_stk_os.environ.get('STK_GATHER_PARTS', '8'))
++STK_GTRACE = int(_stk_os.environ.get('STK_GTRACE', '0'))
++STK_GPADFIRST = int(_stk_os.environ.get('STK_GPADFIRST', '1'))   # pad-fill CTAs before the token CTAs
++STK_MOEPF = 0           # A: first-wave expert items whose first weight stage the plan CTA prefetches (0 = off)
++
++
++def _stk_moe_helpers():
++    """The MoE plan's helpers (rem_tile / rem_tiles / plan_warp + MOE_FINE_MASK), verbatim from the expert module."""
++    src = _pm__CUDA_SRC
++    i0 = src.index('DEVI int rem_tile(int r, int fine) {')
++    i1 = src.index('__global__ void moe_plan_kernel(')
++    body = src[i0:i1]
++    m = [ln for ln in src.split('\n') if ln.startswith('#define MOE_FINE_MASK ')]
++    assert len(m) == 1 and 'plan_warp' in body and 'rem_tiles' in body
++    return m[0] + '\n' + body.replace('rem_tile', 'stk_rem_tile').replace('plan_warp', 'stk_plan_warp')
++
++
++STK_GATHER_SRC = '\n// ---- stk: MoE gather + plan with TPC tokens per CTA, pad-fill CTAs first ----\n' + _stk_moe_helpers() + r'''
++struct StkGP {
++  const unsigned short* p; const int* lid; const int* pos; const int* counts;
++  unsigned char* xt; int* rrow; int* offsets; int4* tiles; int* ntiles; int* rows;
++  int T, order, npad, parts;
++  unsigned long long* dbg;   // STK_GTRACE builds: per-CTA globaltimer stamps
++  const unsigned char* w13; int npf, matsmall;   // A: the expert kernel's first-wave weight stages to prefetch
++};
++// A: the expert kernel's first npf GEMM1 items (its claim order: item i -> (tile, weight n-tile) as moe_fused_persistent's
++// producer maps it), first weight stage (kps x 4608 bytes) of each into L2. Lane l of the plan warp, after the plan.
++DEVI void stk_moe_pf(const StkGP& a, int lane) {
++  if (a.w13 == nullptr || a.npf <= 0) return;
++  __syncwarp();
++  const int nt = __ldcg(a.ntiles);
++  const int n1 = nt * 64;
++  for (int item = lane; item < n1 && item < a.npf; item += 32) {
++    int tile, ntile;
++    if (a.matsmall) {
++      if (item < nt * 32) { tile = (item / 8) % nt; ntile = (item / (nt * 8)) * 8 + item % 8; }
++      else { const int rest = item - nt * 32; tile = rest / 32; ntile = 32 + rest % 32; }
++    } else { tile = item / 64; ntile = item % 64; }
++    const int4 ti = __ldcg(a.tiles + tile);
++    const int n = ti.z, kps = n >= 160 ? 1 : (n <= 32 ? 4 : 2);
++    asm volatile("cp.async.bulk.prefetch.L2.global [%0], %1;" :: "l"(a.w13 + (size_t)(ti.x * 64 + ntile) * 64 * 4608), "r"(kps * 4608) : "memory");
++  }
++}
++DEVI unsigned long long stk_gt() { unsigned long long t; asm volatile("mov.u64 %0, %%globaltimer;" : "=l"(t)); return t; }
++#ifdef STK_GTRACE
++#define GTR(i) do { if (threadIdx.x == 0 && a.dbg) a.dbg[blockIdx.x * 4 + (i)] = stk_gt(); } while (0)
++#else
++#define GTR(i) do {} while (0)
++#endif
++// token CTAs first (TPC tokens each), then npad pad-fill CTAs. Every global load the CTA needs (counts, its routes'
++// lid / pos, its rows) is issued right after the PDL wait; the expert offsets come from one warp scan (moe_gather's),
++// counts[l] / offsets[l] from shared memory: one dependent round trip before the stores (moe_gather: three).
++template <int TPC>
++DEVI void stk_gather_body(const StkGP& a) {
++  GTR(0);
++  asm volatile("griddepcontrol.launch_dependents;" ::: "memory");
++  asm volatile("griddepcontrol.wait;" ::: "memory");
++  GTR(1);
++  const int tid = threadIdx.x;
++  const int fine = a.order >> 8;
++  const int ntc = (a.T + TPC - 1) / TPC;
++  const bool tokc = (int)blockIdx.x < ntc;
++  __shared__ int off_s[32], cnt_s[32];
++  __shared__ long long mrow[8 * TPC];
++  __shared__ int mn[8 * TPC], mlr[8 * TPC];
++  const int tok0 = (int)blockIdx.x * TPC;
++  int c = 0, l = -1, ps = 0;
++  if (tid < 32) c = a.counts[tid];
++  if (tokc && tid < 8 * TPC) {
++    const int tok = tok0 + (tid >> 3);
++    if (tok < a.T) {
++      l = a.lid[tok * 8 + (tid & 7)];
++      ps = a.pos[tok * 8 + (tid & 7)];
++    }
++  }
++  uint4 v0[TPC], v1[TPC];
++  if (tokc) {
++#pragma unroll
++    for (int j = 0; j < TPC; ++j) {
++      const int tok = min(tok0 + j, a.T - 1);
++      const uint4* src = reinterpret_cast<const uint4*>(a.p + (size_t)tok * 4096 + tid * 8);
++      v0[j] = src[0];
++      v1[j] = src[256];
++    }
++  }
++  if (tid < 32) {
++    const int full = c >> 8, r = c & 255;
++    int nr, nb;
++    stk_rem_tiles(r, fine, nr, nb);
++    const int rows = full * 256 + nr + nb;
++    int v = rows;
++#pragma unroll
++    for (int o = 1; o < 32; o <<= 1) {
++      const int a2 = __shfl_up_sync(0xffffffffu, v, o);
++      if (tid >= o) v += a2;
++    }
++    off_s[tid] = v - rows;
++    cnt_s[tid] = c;
++    if (blockIdx.x == 0) { stk_plan_warp(a.counts, a.offsets, a.tiles, a.ntiles, a.rows, a.order, tid); stk_moe_pf(a, tid); }
++  }
++  __syncthreads();
++  GTR(2);
++  if (!tokc) {
++    // pad-row zero fill: CTA ntc + e * parts + part zeroes part of expert e's pad rows
++    const int idx = (int)blockIdx.x - ntc, e = idx / a.parts, part = idx % a.parts;
++    const int ce = cnt_s[e];
++    const int full = ce >> 8, r = ce & 255;
++    int nr, nb;
++    stk_rem_tiles(r, fine, nr, nb);
++#pragma unroll
++    for (int q = 0; q < 2; ++q) {
++      const int n = q ? nb : nr;
++      if (n == 0) continue;
++      const int r0 = off_s[e] + 256 * full + (q ? nr : 0);
++      const int used = q ? r - nr : (r < nr ? r : nr);
++      for (int lr = used + part; lr < n; lr += a.parts) {
++        for (int i = tid; i < 64 * 8; i += 256) {
++          const int stg = i >> 3, ch = i & 7;
++          *reinterpret_cast<uint4*>(a.xt + (size_t)r0 * 8192 + (size_t)stg * n * 128 + lr * 128 + ch * 16) = make_uint4(0, 0, 0, 0);
++        }
++      }
++    }
++    __syncthreads();
++    GTR(3);
++    return;
++  }
++  if (tid < 8 * TPC) {
++    const int k = tid & 7, tok = tok0 + (tid >> 3);
++    if (tok >= a.T) {
++      mn[tid] = 0;
++    } else if (l < 0 || l >= 32) {
++      a.rrow[tok * 8 + k] = -1;
++      mn[tid] = 0;
++    } else {
++      const int cl = cnt_s[l];
++      const int full = cl >> 8, r = cl & 255;
++      int nr, nb;
++      stk_rem_tiles(r, fine, nr, nb);
++      const int tl = ps >> 8;
++      int row0 = off_s[l] + 256 * tl, lr = ps & 255, n = tl < full ? 256 : nr;
++      if (tl >= full && nb && lr >= nr) {  // a split remainder's second tile
++        row0 += nr;
++        lr -= nr;
++        n = nb;
++      }
++      a.rrow[tok * 8 + k] = row0 + lr;
++      mrow[tid] = (long long)row0 * 8192 + lr * 128;
++      mn[tid] = n;
++      mlr[tid] = lr;
++    }
++  }
++  __syncthreads();
++  const int stg = tid >> 3, ch0 = tid & 7;
++#pragma unroll
++  for (int j = 0; j < TPC; ++j) {
++#pragma unroll
++    for (int k = 0; k < 8; ++k) {
++      const int n = mn[8 * j + k];
++      if (n == 0) continue;
++      const int lr = mlr[8 * j + k];
++      unsigned char* rowp = a.xt + mrow[8 * j + k] + (size_t)stg * n * 128;
++      const int x = lr & 7;
++      *reinterpret_cast<uint4*>(rowp + ((ch0 ^ x) << 4)) = v0[j];
++      *reinterpret_cast<uint4*>(rowp + (size_t)32 * n * 128 + ((ch0 ^ x) << 4)) = v1[j];
++    }
++  }
++  __syncthreads();
++  GTR(3);
++}
++extern "C" __global__ void __launch_bounds__(256, 4) stk_gather1(StkGP a) { stk_gather_body<1>(a); }
++extern "C" __global__ void __launch_bounds__(256, 4) stk_gather2(StkGP a) { stk_gather_body<2>(a); }
++extern "C" __global__ void __launch_bounds__(256, 4) stk_gather3(StkGP a) { stk_gather_body<3>(a); }
++extern "C" __global__ void __launch_bounds__(256, 4) stk_gather4(StkGP a) { stk_gather_body<4>(a); }
++extern "C" __global__ void __launch_bounds__(256, 3) stk_gather6(StkGP a) { stk_gather_body<6>(a); }
++extern "C" __global__ void __launch_bounds__(256, 3) stk_gather8(StkGP a) { stk_gather_body<8>(a); }
++'''
++if STK_GTRACE:
++    STK_GATHER_SRC = '#define STK_GTRACE\n' + STK_GATHER_SRC
++if STK_GPADFIRST:
++    STK_GATHER_SRC = STK_GATHER_SRC.replace('const bool tokc = (int)blockIdx.x < ntc;', 'const bool tokc = (int)blockIdx.x >= a.npad;').replace(
++        'const int tok0 = (int)blockIdx.x * TPC;', 'const int tok0 = ((int)blockIdx.x - a.npad) * TPC;').replace(
++        'const int idx = (int)blockIdx.x - ntc, e', 'const int idx = (int)blockIdx.x, e')
++    assert STK_GATHER_SRC.count('a.npad') >= 2
++ROUTE_SRC = ROUTE_SRC + STK_GATHER_SRC
++
++
++class _StkGP(ctypes.Structure):
++    _fields_ = [(n, ctypes.c_void_p) for n in ('p', 'lid', 'pos', 'counts', 'xt', 'rrow', 'offsets', 'tiles', 'ntiles', 'rows')] + \
++        [(n, ctypes.c_int) for n in ('T', 'order', 'npad', 'parts')] + [('dbg', ctypes.c_void_p)] + \
++        [('w13', ctypes.c_void_p), ('npf', ctypes.c_int), ('matsmall', ctypes.c_int)]
++
++
++_STK_BND = [None]
++_STK_GDBG = [None]
++
++
++_STK_W13 = [None]
++_STK_FUSED = [None]     # B: callable(st, args...) -> True when it ran the fused router + gather for this call
++
++
++def _stk_gp(st, p, lid, pos, cnt, xt, rrow, offsets, tiles, ntiles, rows, order, T, npad, parts):
++    w13 = _STK_W13[0]
++    return _StkGP(p.data_ptr(), lid.data_ptr(), pos.data_ptr(), cnt.data_ptr(), xt.data_ptr(), rrow.data_ptr(), offsets.data_ptr(),
++                  tiles.data_ptr(), ntiles.data_ptr(), rows.data_ptr(), T, order, npad, parts,
++                  _STK_GDBG[0].data_ptr() if _STK_GDBG[0] is not None else 0,
++                  w13.data_ptr() if (w13 is not None and STK_MOEPF) else 0, STK_MOEPF, 1 if 512 <= T < 2048 else 0)
++
++
++def _stk_gather_dispatch(st, p, lid, pos, cnt, xt, rrow, offsets, tiles, ntiles, rows, order, T):
++    f = _STK_FUSED[0]
++    if f is not None and f(st, p, lid, pos, cnt, xt, rrow, offsets, tiles, ntiles, rows, order, T):
++        return
++    px = _STK_BND[0]
++    if px is not None and hasattr(px, 'flush'):
++        px.flush()
++    tpc = STK_GATHER_TPC if T < 2048 else STK_GATHER_TPC_L
++    if tpc <= 0 and STK_MOEPF:
++        tpc = 1
++    if tpc <= 0:
++        st['mod'].moe_gather_plan(p, st['g_pre_expert_norm'], lid, pos, cnt, xt, rrow, offsets, tiles, ntiles, rows, order, st['no_zero'], st['no_zero'])
++        return
++    npad = 32 * STK_GATHER_PARTS
++    prm = _stk_gp(st, p, lid, pos, cnt, xt, rrow, offsets, tiles, ntiles, rows, order, T, npad, STK_GATHER_PARTS)
++    _STK_BND[0].launch(f'stk_gather{tpc}', (T + tpc - 1) // tpc + npad, 256, 0, prm, pdl=True)
++
++
++_STK_GATHER[0] = _stk_gather_dispatch
++_stkG_prev_prepare = prepare
++
++
++def prepare(weights):
++    state = _stkG_prev_prepare(weights)
++    _STK_BND[0] = state['bnd_mod']
++    _STK_W13[0] = state['public_experts']['w13r']
++    if STK_GTRACE:
++        _STK_GDBG[0] = torch.zeros(4 * 8192, dtype=torch.int64, device=weights['w13'].device)
++    return state
++
++
++# ==== stk lever B: small kernels around the MoE ====
++# ---- fused pnr5 + gather (STK_FUSE_MIN <= T <= 4096): one cooperative grid; phase 1 is pnr5's code with each normalized row
++# kept in shared memory instead of written to global; a grid barrier (all routes counted); phase 2 is the gather's code
++# storing the rows from shared memory into the tile layout (+ plan, pad fill, rrow). Saves the p round trip
++# (T x 8 KB written + read) and the gather launch. ----
++STK_FUSE = int(_stk_os.environ.get('STK_FUSE', '1'))
++STK_FUSE_MIN = int(_stk_os.environ.get('STK_FUSE_MIN', '2048'))
++STK_COMB_PDL = bool(int(_stk_os.environ.get('STK_COMB_PDL', '0')))
++STK_FUSE_SRC = <<string STK_FUSE_SRC: 6914 chars, md5 4b4436ff>>
++STK_LATE_TRIG = int(_stk_os.environ.get('STK_LATE_TRIG', '0'))
++STK_COOP = int(_stk_os.environ.get('STK_COOP', '1'))
++STK_BAR_NS = int(_stk_os.environ.get('STK_BAR_NS', '20'))
++STK_FUSE_SRC = '#define STK_LATE_TRIG %d\n#define STK_BAR_NS %d\n' % (STK_LATE_TRIG, STK_BAR_NS) + STK_FUSE_SRC
++if STK_GTRACE:
++    STK_FUSE_SRC = '#define STK_GTRACE\n' + STK_FUSE_SRC
++ROUTE_SRC = ROUTE_SRC + STK_FUSE_SRC
++
++
++class _StkFP(ctypes.Structure):
++    _fields_ = [('r', _RouteP), ('g', _StkGP), ('bar', ctypes.c_void_p)]
++
++
++class _StkBndProxy:
++    """state['bnd_mod'] stand-in: holds back a pnr5 launch so the expert path can run the fused pnr5 + gather."""
++
++    def __init__(self, mod):
++        self._m = mod
++        self.pending = None
++
++    def __getattr__(self, k):
++        return getattr(self._m, k)
++
++    def flush(self):
++        if self.pending is not None:
++            prm, grid = self.pending
++            self.pending = None
++            self._m.launch('pnr5', grid, 160, 0, prm)
++
++    def launch(self, name, grid, block, smem, params, pdl=False):
++        if name == 'pnr5' and _STK_FUSER[0] is not None and _STK_FUSER[0].ok(grid):
++            self.flush()
++            self.pending = (params, grid)
++            return
++        self.flush()
++        return self._m.launch(name, grid, block, smem, params, pdl)
++
++
++class _StkFuser:
++    def __init__(self, mod, device):
++        from cuda.bindings import driver
++        self.d = driver
++        self.mod = mod
++        self.nsm = torch.cuda.get_device_properties(device).multi_processor_count
++        self.bar = torch.zeros(2048, dtype=torch.int32, device=device)   # zeroed by the combine after each use
++        self.caps = {}
++        f = mod.func('stk_pnrg', 0)
++        err, = driver.cuFuncSetAttribute(f, driver.CUfunction_attribute.CU_FUNC_ATTRIBUTE_MAX_DYNAMIC_SHARED_SIZE_BYTES, 8 * 8192)
++        if int(err):
++            raise RuntimeError(f'stk_pnrg smem attribute: {err}')
++
++    def cfg(self, T):
++        """(grid, tokens per CTA, smem) with every CTA co-resident, or None."""
++        if T in self.caps:
++            return self.caps[T]
++        res = None
++        for tpc in range(1, 9):
++            smem = tpc * (8192 + 64 + 64 + 32)
++            f = self.mod.func('stk_pnrg', smem)
++            err, nb = self.d.cuOccupancyMaxActiveBlocksPerMultiprocessor(f, 160, smem)
++            if int(err) == 0 and (nb * self.nsm - 1) * tpc >= T:
++                G = min(T, nb * self.nsm - 1)
++                if (T + G - 1) // G <= tpc:
++                    res = (G, tpc, smem)
++                    break
++        self.caps[T] = res
++        return res
++
++    def ok(self, T):
++        return STK_FUSE and max(512, STK_FUSE_MIN) <= T <= min(4096, STK_MAX_T) and self.cfg(T) is not None
++
++    def launch(self, rp, gp, T):
++        G, tpc, smem = self.cfg(T)
++        gp.parts = max(1, G // 32)
++        gp.npad = tpc   # (the fused kernel reads the row-slot count from npad)
++        prm = _StkFP(rp, gp, self.bar.data_ptr())
++        d = self.d
++        f = self.mod.func('stk_pnrg', smem)
++        cfg = d.CUlaunchConfig()
++        cfg.gridDimX, cfg.gridDimY, cfg.gridDimZ = (G + 1, 1, 1)
++        cfg.blockDimX, cfg.blockDimY, cfg.blockDimZ = (160, 1, 1)
++        cfg.sharedMemBytes = smem
++        cfg.hStream = d.CUstream(torch.cuda.current_stream().cuda_stream)
++        at = d.CUlaunchAttribute()
++        at.id = d.CUlaunchAttributeID.CU_LAUNCH_ATTRIBUTE_COOPERATIVE
++        at.value.cooperative = 1
++        cfg.attrs = [at] if STK_COOP else []
++        cfg.numAttrs = 1 if STK_COOP else 0
++        argv = (ctypes.c_void_p * 1)(ctypes.addressof(prm))
++        self._keep = prm
++        err, = d.cuLaunchKernelEx(cfg, f, ctypes.addressof(argv), 0)
++        if int(err):
++            raise RuntimeError(f'stk_pnrg launch failed: {err}')
++
++
++_STK_FUSER = [None]
++
++
++def _stk_fused_launch(st, p, lid, pos, cnt, xt, rrow, offsets, tiles, ntiles, rows, order, T):
++    """The expert path's gather: if pnr5 was held back for this T, run the fused kernel instead of both."""
++    px = _STK_BND[0]
++    pend = getattr(px, 'pending', None)
++    if pend is not None and pend[1] == T and _STK_FUSER[0] is not None and _STK_FUSER[0].ok(T):
++        px.pending = None
++        gp = _stk_gp(st, p, lid, pos, cnt, xt, rrow, offsets, tiles, ntiles, rows, order, T, 0, 1)
++        _STK_FUSER[0].launch(pend[0], gp, T)
++        return True
++    return False
++
++
++if STK_FUSE:
++    _STK_FUSED[0] = _stk_fused_launch
++_stkF_prev_prepare = prepare
++
++
++def prepare(weights):
++    state = _stkF_prev_prepare(weights)
++    if STK_FUSE:
++        try:
++            fz = _StkFuser(state['bnd_mod'], weights['w13'].device)
++            ok = fz.cfg(753) is not None
++        except Exception as e:  # noqa: BLE001
++            print('stk: fused pnr5 + gather unavailable:', e, flush=True)
++            ok = False
++        if ok:
++            ok = _stk_fuse_selftest(state, fz)
++        if ok:
++            _STK_FUSER[0] = fz
++            _STK_ZBAR[0] = fz.bar
++            state['bnd_mod'] = _StkBndProxy(state['bnd_mod'])
++            _STK_BND[0] = state['bnd_mod']
++    return state
++
++
++def _stk_fuse_selftest(state, fz):
++    """prepare-time check (untimed): the cooperative launch works here and reproduces pnr5 + m16's gather plan and
++    routing on random router inputs; otherwise the fused path stays off."""
++    try:
++        T = max(2048, STK_FUSE_MIN)
++        if fz.cfg(T) is None:
++            return False
++        dev = state['pool_route_w'].device
++        nx, ps = state['native_experts'], state['public_experts']
++        g = torch.Generator(device=dev).manual_seed(1234)
++        y = torch.randn(T, D_EXPERT + 512, device=dev, generator=g)
++        ls = torch.zeros(1, dtype=torch.int32, device=dev)
++        outs = []
++        for fused in (False, True):
++            nx['cur'].zero_()
++            fz.bar.zero_()
++            ei = torch.zeros((T, D_EXPERT), dtype=torch.bfloat16, device=dev)
++            tw = torch.empty(T, 8, device=dev)
++            ti = torch.empty(T, 8, dtype=torch.int32, device=dev)
++            li = torch.empty(T, 8, dtype=torch.int32, device=dev)
++            prm = _RouteP(y.data_ptr(), D_EXPERT + 512, state['pre_expert_w32'].data_ptr(), ei.data_ptr(), state['router_bias32'].data_ptr(), tw.data_ptr(), ti.data_ptr(), li.data_ptr(), ls.data_ptr(), ROUTER_MULT, RMS_EPS, T, nx['cur'].data_ptr(), nx['bkt'].data_ptr(), nx['spos'].data_ptr(), 0, nx['tslot'].data_ptr(), nx['nslot'].data_ptr(), 0, PG_KMAX)
++            maxtiles = _pm__max_tiles(T)
++            xt = torch.zeros((T * 8 + 32 * 256, D_EXPERT), dtype=torch.bfloat16, device=dev)
++            rrow = torch.empty((T, 8), dtype=torch.int32, device=dev)
++            offs = torch.empty(32, dtype=torch.int32, device=dev)
++            rows = torch.empty(32, dtype=torch.int32, device=dev)
++            tiles = torch.zeros((maxtiles, 4), dtype=torch.int32, device=dev)
++            nt = torch.empty(1, dtype=torch.int32, device=dev)
++            order = _pm_MOE_ORDER_SMALL | (1 if _pm_FINE_MIN_T and T >= _pm_FINE_MIN_T else 0) << _pm_MOE_FINE_ORDER_SHIFT
++            pos = nx['spos'].view(-1)[:T * 8].view(T, 8)
++            if fused:
++                gp = _stk_gp(ps, ei, li, pos, nx['cur'], xt, rrow, offs, tiles, nt, rows, order, T, 0, 1)
++                fz.launch(prm, gp, T)
++            else:
++                state['bnd_mod'].launch('pnr5', T, 160, 0, prm)
++                ps['mod'].moe_gather_plan(ei, ps['g_pre_expert_norm'], li, pos, nx['cur'], xt, rrow, offs, tiles, nt, rows, order, ps['no_zero'], ps['no_zero'])
++            torch.cuda.synchronize()
++            n = int(nt)
++            loc = (li >= 0) & (li < 32)
++            # each local route's row: row rrow of the tile layout (chunk c of a row at stage c >> 3, (c & 7) ^ (lr & 7))
++            tl = tiles[:n].cpu().tolist()
++            xb = xt.view(torch.uint8).view(-1)
++            rec = torch.zeros((T * 8 + 32 * 256, 8192), dtype=torch.uint8, device=dev)
++            for e_, row0, w_, used in tl:
++                blk = xb[row0 * 8192:(row0 + w_) * 8192].view(64, w_, 8, 16)
++                lr = torch.arange(w_, device=dev)
++                pp = torch.arange(8, device=dev)[None, :] ^ (lr[:, None] & 7)
++                rec[row0:row0 + w_] = blk[:, lr[:, None], pp].permute(1, 0, 2, 3).reshape(w_, 8192)
++            tok = torch.arange(T, device=dev)[:, None].expand(T, 8)[loc]
++            outs.append(dict(tw=tw, ti=ti, li=li, offs=offs, rows=rows, tiles=tiles[:n].clone(), nt=nt, cnt=nx['cur'].clone(),
++                             rows_ok=rec[rrow[loc].long()], ei=ei, tok=tok, nonloc=bool((rrow[~loc] == -1).all())))
++        nx['cur'].zero_()
++        fz.bar.zero_()
++        a, b = outs
++        same = all(torch.equal(a[k], b[k]) for k in ('tw', 'ti', 'li', 'offs', 'rows', 'tiles', 'nt', 'cnt'))
++        same = same and a['nonloc'] and b['nonloc'] and torch.equal(b['rows_ok'], a['ei'].view(torch.uint8).view(T, 8192)[b['tok']])
++        torch.cuda.synchronize()
++        if not same:
++            print('stk: fused router + gather self-test mismatch: fused path off', flush=True)
++        return same
++    except Exception as e:  # noqa: BLE001
++        print('stk: fused router + gather self-test failed:', e, flush=True)
++        try:
++            state['native_experts']['cur'].zero_()
++            fz.bar.zero_()
++            torch.cuda.synchronize()
++        except Exception:  # noqa: BLE001
++            pass
++        return False
+
+# part 2: string STK_FUSE_SRC (0 -> 6914 chars)
+--- m16.py:STK_FUSE_SRC
++++ s_b.py:STK_FUSE_SRC
+@@ -0,0 +1,162 @@
++
++struct StkFP {
++  RouteP r;
++  StkGP g;
++  int* bar;   // [0] groups arrived, [1 + i] CTAs of group i arrived (zeroed by the combine kernel after each call)
++};
++// grid = G token CTAs (tokens blockIdx.x + j G) + 1 plan CTA (blockIdx.x == G)
++extern "C" __global__ void __launch_bounds__(160) stk_pnrg(StkFP P) {
++  const RouteP& p = P.r;
++  const StkGP& a = P.g;
++  extern __shared__ __align__(16) unsigned char srow[];   // tpc normalized rows (8 KB each), then tpc x 8 (lid, pos)
++  __shared__ float red[2][4];
++  __shared__ int off_s[32], cnt_s[32];
++#ifdef STK_GTRACE
++#define FTR(i) do { if (threadIdx.x == 0 && a.dbg) a.dbg[blockIdx.x * 4 + (i)] = stk_gt(); } while (0)
++#else
++#define FTR(i) do {} while (0)
++#endif
++  FTR(0);
++  asm volatile("griddepcontrol.launch_dependents;" ::: "memory");
++  const int t = threadIdx.x, lane = t & 31, wp = t >> 5;
++  const int G = gridDim.x - 1;
++  const bool plan_cta = (int)blockIdx.x == G;
++  const int ntok = plan_cta ? 0 : (p.rows - (int)blockIdx.x + G - 1) / G;
++  int2* meta = reinterpret_cast<int2*>(srow + (size_t)a.parts * 0 + (size_t)P.g.npad * 8192);   // npad = tpc here
++  // ---- phase 1: pnr5 for tokens blockIdx.x + j G ----
++  for (int j = 0; j < ntok; ++j) {
++    const size_t row = blockIdx.x + (size_t)j * G;
++    const float* y = p.y + row * p.ld;
++    if (wp == 4) {
++      float lg[8];
++      const float4 h0 = *reinterpret_cast<const float4*>(y + 4096 + 8 * lane), h1 = *reinterpret_cast<const float4*>(y + 4096 + 8 * lane + 4);
++      const float4 l0 = *reinterpret_cast<const float4*>(y + 4352 + 8 * lane), l1 = *reinterpret_cast<const float4*>(y + 4352 + 8 * lane + 4);
++      lg[0] = h0.x + l0.x; lg[1] = h0.y + l0.y; lg[2] = h0.z + l0.z; lg[3] = h0.w + l0.w;
++      lg[4] = h1.x + l1.x; lg[5] = h1.y + l1.y; lg[6] = h1.z + l1.z; lg[7] = h1.w + l1.w;
++      topk8<false, true>(p, row, lg, lane);
++      __syncwarp();
++      if (lane < 8) meta[j * 8 + lane] = make_int2(p.li[row * 8 + lane], p.spos[row * 8 + lane]);   // this lane's own stores
++      continue;
++    }
++    float4 v[8];
++    float q = 0.f;
++#pragma unroll
++    for (int k = 0; k < 8; ++k) {
++      v[k] = *reinterpret_cast<const float4*>(y + 512 * k + 4 * t);
++      q += v[k].x * v[k].x + v[k].y * v[k].y + v[k].z * v[k].z + v[k].w * v[k].w;
++    }
++#pragma unroll
++    for (int o = 16; o; o >>= 1) q += __shfl_xor_sync(0xffffffff, q, o);
++    if (lane == 0) red[j & 1][wp] = q;
++    asm volatile("bar.sync 1, 128;" ::: "memory");
++    q = red[j & 1][0] + red[j & 1][1] + red[j & 1][2] + red[j & 1][3];
++    const float r = rsqrtf(q * (1.f / 4096.f) + p.eps);
++    u32* out = reinterpret_cast<u32*>(srow + (size_t)j * 8192);
++#pragma unroll
++    for (int k = 0; k < 8; ++k) {
++      const float4 w = *reinterpret_cast<const float4*>(p.w + 512 * k + 4 * t);
++      *reinterpret_cast<uint2*>(out + 256 * k + 2 * t) =
++          make_uint2(pack_bf(v[k].x * r * w.x, v[k].y * r * w.y), pack_bf(v[k].z * r * w.z, v[k].w * r * w.w));
++    }
++  }
++  // ---- grid barrier (co-residency: cooperative launch): groups of 32 CTAs, then the groups ----
++  __syncthreads();
++  FTR(1);
++  if (t == 0) {
++    // release / acquire only (no full fences); group counters 128 bytes apart, then one counter of groups
++    const int ng = (G + 1 + 31) >> 5, gi = blockIdx.x >> 5, gsz = min(32, G + 1 - gi * 32);
++    int old;
++    asm volatile("atom.add.release.gpu.global.s32 %0, [%1], 1;" : "=r"(old) : "l"(P.bar + 32 * (1 + gi)) : "memory");
++    if (old == gsz - 1) asm volatile("red.add.release.gpu.global.s32 [%0], 1;" :: "l"(P.bar) : "memory");
++    int v;
++    while (true) {
++      asm volatile("ld.acquire.gpu.global.b32 %0, [%1];" : "=r"(v) : "l"(P.bar) : "memory");
++      if (v >= ng) break;
++      __nanosleep(STK_BAR_NS);
++    }
++  }
++  __syncthreads();
++  FTR(2);
++  // ---- phase 2: moe_gather's offsets / plan / pad fill / rows (rows from shared memory) ----
++  const int fine = a.order >> 8;
++  if (t < 32) {
++    const int c = __ldcg(a.counts + t);
++    const int full = c >> 8, r = c & 255;
++    int nr, nb;
++    stk_rem_tiles(r, fine, nr, nb);
++    const int rows = full * 256 + nr + nb;
++    int v = rows;
++#pragma unroll
++    for (int o = 1; o < 32; o <<= 1) {
++      const int a2 = __shfl_up_sync(0xffffffffu, v, o);
++      if (t >= o) v += a2;
++    }
++    off_s[t] = v - rows;
++    cnt_s[t] = c;
++    if (plan_cta) { stk_plan_warp(a.counts, a.offsets, a.tiles, a.ntiles, a.rows, a.order, t); stk_moe_pf(a, t); }
++  }
++  if (plan_cta) { FTR(3); return; }
++  __syncthreads();
++  if ((int)blockIdx.x < 32 * a.parts) {
++    // pad-row zero fill: CTA e * parts + part zeroes part of expert e's pad rows
++    const int e = blockIdx.x / a.parts, part = blockIdx.x % a.parts;
++    const int ce = cnt_s[e];
++    const int full = ce >> 8, r = ce & 255;
++    int nr, nb;
++    stk_rem_tiles(r, fine, nr, nb);
++#pragma unroll
++    for (int q = 0; q < 2; ++q) {
++      const int n = q ? nb : nr;
++      if (n == 0) continue;
++      const int r0 = off_s[e] + 256 * full + (q ? nr : 0);
++      const int used = q ? r - nr : (r < nr ? r : nr);
++      for (int lr = used + part; lr < n; lr += a.parts) {
++        for (int i = t; i < 64 * 8; i += 160) {
++          const int stg = i >> 3, ch = i & 7;
++          *reinterpret_cast<uint4*>(a.xt + (size_t)r0 * 8192 + (size_t)stg * n * 128 + lr * 128 + ch * 16) = make_uint4(0, 0, 0, 0);
++        }
++      }
++    }
++  }
++  // every token's local routes at once (one thread per route) into a compact list, then (route, 16-byte chunk) items
++  long long* mrow = reinterpret_cast<long long*>(meta + ntok * 8);   // [ntok * 8]
++  int* mjn = reinterpret_cast<int*>(mrow + ntok * 8);              // token j | width n << 8 | (lr & 7) << 20
++  __shared__ int nval;
++  if (t == 0) nval = 0;
++  __syncthreads();
++  for (int i = t; i < ntok * 8; i += 160) {
++    const int j = i >> 3, k = i & 7;
++    const int tok = blockIdx.x + j * G;
++    const int2 lp = meta[i];
++    const int l = lp.x;
++    if (l < 0 || l >= 32) {
++      a.rrow[tok * 8 + k] = -1;
++    } else {
++      const int ps = lp.y;
++      const int cl = cnt_s[l];
++      const int full = cl >> 8, r = cl & 255;
++      int nr, nb;
++      stk_rem_tiles(r, fine, nr, nb);
++      const int tl = ps >> 8;
++      int row0 = off_s[l] + 256 * tl, lr = ps & 255, n = tl < full ? 256 : nr;
++      if (tl >= full && nb && lr >= nr) {  // a split remainder's second tile
++        row0 += nr;
++        lr -= nr;
++        n = nb;
++      }
++      a.rrow[tok * 8 + k] = row0 + lr;
++      const int q = atomicAdd(&nval, 1);
++      mrow[q] = (long long)row0 * 8192 + lr * 128;
++      mjn[q] = j | n << 8 | (lr & 7) << 20;
++    }
++  }
++  __syncthreads();
++  const int nv = nval;
++  for (int i = t; i < nv * 512; i += 160) {
++    const int q = i >> 9, c16 = i & 511;
++    const int jn = mjn[q], j = jn & 255, n = (jn >> 8) & 4095, x = jn >> 20;
++    const uint4 val = *reinterpret_cast<const uint4*>(srow + (size_t)j * 8192 + c16 * 16);
++    *reinterpret_cast<uint4*>(a.xt + mrow[q] + (size_t)(c16 >> 3) * n * 128 + (((c16 & 7) ^ x) << 4)) = val;
++  }
++  FTR(3);
++}
+# readable diff: s_b.py -> s3.py
+# part 1: Python skeleton (long string literals replaced by placeholders)
+--- s_b.py
++++ s3.py
+@@ -1,4 +1,5 @@
+ # okc: problem=muse_prefill_layer
++# rw variant s16LnZ (research/claude/rw/var.py PROD, mkfinal.py): s_b + n16 riders in kernel W of the W/N split, lean combo producer, tile-major W and N, one W consumer with a shared epilogue (worker W), fast prologue, scale-d 0 first k16 (combos + wide)
+ """SGLang's decoder layer for Muse Spark Open, as one H200 runs it under TP8/EP8, at SGLang commit
+ a55ab7d5ae1bba59ac351e55026fe7f7644ecc5f (MuseSpark1xDecoderLayer.forward), with the same modules:
+ 
+@@ -2812,8 +2813,8 @@
+     name = 'okc_prefill_moe_' + hashlib.sha1((src + _pm_CPP + arch).encode()).hexdigest()[:16]
+     return load_inline(name, cpp_sources=_pm_CPP, cuda_sources=src, functions=['qk_prep', 'moe_route', 'moe_plan', 'moe_gather', 'moe_gather_plan', 'moe_combine', 'moe_gemm', 'moe_init', 'moe_gemm_p', 'moe_fused', 'boundary', 'boundary_rc', 'kv_gather', 'attn_prep', 'attn_fwd', 'attn_init', 'attn_set_prof', 'moe_fused_pg', 'moe_pg_metadata'], extra_cuda_cflags=['-O3', f'-gencode=arch=compute_{arch},code=sm_{arch}', '-std=c++20', '--use_fast_math'])
+ _pm_CPP = <<string _pm_CPP: 14894 chars, md5 38d3453f>>
+-_pm_GLUE = <<string _pm_GLUE: 18333 chars, md5 a108b925>>
+-_pm__CUDA_SRC = <<string _pm__CUDA_SRC: 212175 chars, md5 ad23dd80>>
++_pm_GLUE = <<string _pm_GLUE: 19049 chars, md5 d8ecaf6d>>
++_pm__CUDA_SRC = <<string _pm__CUDA_SRC: 269300 chars, md5 17be85f4>>
+ 
+ @triton.jit
+ def _pm__mopt_public_bucket(IDS, LID, POS, CNT, N: tl.constexpr, START: tl.constexpr, B: tl.constexpr):
+@@ -3900,3 +3901,193 @@
+         except Exception:  # noqa: BLE001
+             pass
+         return False
++
++# ==== kv (research/claude/kv) ov_att (v1v: cached-key full-layer module only): full-layer attn_fwd consumer-loop changes. Every change is compiled only into the
++# full-layer modules (the ones built with ATT_VOTEMAX: mod_sk_vote / mod_sk_empty / the dkv modules); the sliding
++# modules (mod_sk without VOTEMAX, the unit module, sla) compile s_b's code unchanged. ====
++import os as _kv_os
++
++KVA_PROBE = int(_kv_os.environ.get('KVA_PROBE', '1'))   # early non-blocking probe of the next tile's full barrier
++KVA_F16S2 = int(_kv_os.environ.get('KVA_F16S2', '0'))   # test: double-buffered f16 scores (ATT_F16S 2) on full layers
++
++
++def _kva_rep(src, old, new, count=1):
++    assert src.count(old) == count, (src.count(old), old[:100])
++    return src.replace(old, new)
++
++
++_KVA_HDR = r'''
++#ifndef KVA_PROBE
++#define KVA_PROBE %d
++#endif
++#ifndef KVA_F16S2
++#define KVA_F16S2 %d
++#endif
++#if defined(ATT_VOTEMAX) && KVA_F16S2
++#undef ATT_F16S
++#define ATT_F16S 2
++#endif
++#if defined(ATT_VOTEMAX) && KVA_PROBE
++#define KVA_PROBE_ON 1
++#else
++#define KVA_PROBE_ON 0
++#endif
++'''
++
++
++def _kva_patch(src):
++    s = (_KVA_HDR % (KVA_PROBE, KVA_F16S2)) + src
++    # the cached-bias derivation guard: F16S 2 reuses softmax_h unchanged (the guard only rejects other paths)
++    s = _kva_rep(s, '#if ATT_EXPQ != 1 || ATT_F16S != 1 || ATT_BIAS\n',
++                 '#if ATT_EXPQ != 1 || (ATT_F16S != 1 && !(defined(ATT_VOTEMAX) && KVA_F16S2)) || ATT_BIAS\n')
++    # helpers: non-blocking phase probe; wait unless a probe already saw the phase complete
++    s = _kva_rep(s, '// arrive by one thread of the warpgroup, without a branch\n',
++                 'DEVI u32 mbar_test(u32 bar, u32 parity) {\n'
++                 '  u32 ok;\n'
++                 '  asm volatile("{ .reg .pred p; mbarrier.test_wait.parity.shared::cta.b64 p, [%1], %2; selp.u32 %0, 1, 0, p; }"\n'
++                 '               : "=r"(ok) : "r"(bar), "r"(parity) : "memory");\n'
++                 '  return ok;\n'
++                 '}\n'
++                 'DEVI void mbar_wait_unless(u32 bar, u32 parity, u32 ready) {\n'
++                 '  asm volatile("{ .reg .pred P1; setp.ne.b32 P1, %2, 0; @P1 bra DONE_%=; WAIT_%=: mbarrier.try_wait.parity.shared::cta.b64 P1, [%0], %1; @P1 bra DONE_%=; bra WAIT_%=; DONE_%=: }"\n'
++                 '               :: "r"(bar), "r"(parity), "r"(ready) : "memory");\n'
++                 '}\n'
++                 '// arrive by one thread of the warpgroup, without a branch\n')
++    # issue_qk_h: skip the blocking wait when the probe saw the tile's data land
++    s = _kva_rep(s, '''      auto issue_qk_h = [&](u32 (&hs)[16][2], int jt) {
++        const u32 itj = (u32)(it0 + jt), st = itj % ATT_NS;
++        mbar_wait(bars + 16 * st, (itj / ATT_NS) & 1);
++''', '''      u32 kva_rdy = 0u;   // KVA_PROBE: the next tile's full barrier was seen complete
++      auto kva_probe = [&](int jt) {
++        const u32 itj = (u32)(it0 + jt);
++        kva_rdy = jt < n ? mbar_test(bars + 16 * (itj % ATT_NS), (itj / ATT_NS) & 1) : 0u;
++      };
++      auto issue_qk_h = [&](u32 (&hs)[16][2], int jt) {
++        const u32 itj = (u32)(it0 + jt), st = itj % ATT_NS;
++#if KVA_PROBE_ON
++        mbar_wait_unless(bars + 16 * st, (itj / ATT_NS) & 1, kva_rdy);
++        kva_rdy = 0u;
++#else
++        mbar_wait(bars + 16 * st, (itj / ATT_NS) & 1);
++#endif
++''')
++    # F16S 1 loop: probe tile 1 after tile 0's softmax, tile j + 1 once PV(j - 1) has retired
++    s = _kva_rep(s, '''        softmax_h(hs, 0, true);
++        // No PV has issued: O is +0, and the first rescale factors are 0 or 1.
++        resc = false;
++        to_p_h(hs);
++''', '''        softmax_h(hs, 0, true);
++        // No PV has issued: O is +0, and the first rescale factors are 0 or 1.
++        resc = false;
++#if KVA_PROBE_ON
++        kva_probe(1);
++#endif
++        to_p_h(hs);
++''')
++    s = _kva_rep(s, '''          mbar_arrive_if(bars + 16 * ((u32)(it0 + j - 1) % ATT_NS) + 8, lt == 0);
++          rescale_o();
++          to_p_h(hs);
++        }
++''', '''          mbar_arrive_if(bars + 16 * ((u32)(it0 + j - 1) % ATT_NS) + 8, lt == 0);
++#if KVA_PROBE_ON
++          kva_probe(j + 1);
++#endif
++          rescale_o();
++          to_p_h(hs);
++        }
++''')
++    return s
++
++
++ATT_EXPQ_CACHE_CUDA_SRC = _kva_patch(ATT_EXPQ_CACHE_CUDA_SRC)
++# (the empty-cache module -- ctx 0 prefill -- keeps s_b's code: the probe measured -12 us at case 4)
++# ==== kv (research/claude/kv) ov_t: per-tile overhead trims in the cached-key full-layer attn_fwd module (on top of
++# ov_att_v1v). The vote / empty modules only run full layers (glue: `not prm.window`), so p.window == 0 there.
++# KVT_JM: the causal-mask test of every tile, (bt + tfirst + jt) * 128 + 127 > pmin, becomes jt >= jm with
++# jm = ((pmin + 1) >> 7) - bt - tfirst computed once per segment (same decision: bit-identical). ====
++import os as _kv_os
++
++KVT_JM = int(_kv_os.environ.get('KVT_JM', '1'))
++KVT_EMPTY = int(_kv_os.environ.get('KVT_EMPTY', '0'))   # also patch the empty-cache module
++
++
++def _kvt_rep(src, old, new):
++    assert src.count(old) == 1, (src.count(old), old[:100])
++    return src.replace(old, new)
++
++
++def _kvt_patch(src):
++    s = ('\n#if defined(ATT_VOTEMAX) && %d\n#define KVT_JM_ON 1\n#else\n#define KVT_JM_ON 0\n#endif\n' % KVT_JM) + src
++    s = _kvt_rep(s, '      const int pmin = L0 + sg.qb * ATT_QB, pmax = L0 + min(sg.qb * ATT_QB + ATT_QB - 1, p.L - 1);\n',
++                 '      const int pmin = L0 + sg.qb * ATT_QB, pmax = L0 + min(sg.qb * ATT_QB + ATT_QB - 1, p.L - 1);\n'
++                 '#if KVT_JM_ON\n      const int kvt_jm = ((pmin + 1) >> 7) - bt - tfirst;   // first tile index with a key past pmin\n#endif\n')
++    s = _kvt_rep(s, '''      auto softmax_h = [&](u32 (&hs)[16][2], int jt, const bool first_zero = false) {
++        const int k0 = (bt + tfirst + jt) * 128;
++        const bool masked = (k0 + 127 > pmin) || (p.window && k0 < pmax - (p.window - 1));
++''', '''      auto softmax_h = [&](u32 (&hs)[16][2], int jt, const bool first_zero = false) {
++        const int k0 = (bt + tfirst + jt) * 128;
++#if KVT_JM_ON
++        const bool masked = jt >= kvt_jm;   // full layers (p.window == 0): k0 + 127 > pmin
++#else
++        const bool masked = (k0 + 127 > pmin) || (p.window && k0 < pmax - (p.window - 1));
++#endif
++''')
++    return s
++
++
++ATT_EXPQ_CACHE_CUDA_SRC = _kvt_patch(ATT_EXPQ_CACHE_CUDA_SRC)
++if KVT_EMPTY:
++    ATT_EMPTY_EXPQ_CACHE_CUDA_SRC = _kvt_patch(ATT_EMPTY_EXPQ_CACHE_CUDA_SRC)
++# ==== kv (research/claude/kv) ov_kvc: compact grid for kv_pack part 2 (the tiles holding new keys, on the main stream
++# after qkv_post2). Part 2 launched B * 2 * nta + B blocks (case 3: 5436, ~56 of them with work); part 4 launches only
++# B * 2 * (ceil(L / 128) + 1): block (b, h, j) packs the j-th tile from the one holding key seq_lens[b], the same tiles
++# and bytes part 2 packs (tiles past the request's end return before any store; no ctab blocks, as in part 2). ====
++import os as _kv_os
++
++KVC = int(_kv_os.environ.get('KVC', '1'))
++
++
++def _kvc_rep(src, old, new):
++    assert src.count(old) == 1, (src.count(old), old[:100])
++    return src.replace(old, new)
++
++
++def _kvc_patch(s):
++    s = _kvc_rep(s, '  if ((int)blockIdx.x < p.B) {   // the ctab / split-table blocks come first\n    if (p.part == 2) return;\n',
++                 '  if (p.part != 4 && (int)blockIdx.x < p.B) {   // the ctab / split-table blocks come first\n    if (p.part == 2) return;\n')
++    s = _kvc_rep(s, '  const int bx_ = (int)blockIdx.x - p.B; const int tile = bx_ % p.nta, h = (bx_ / p.nta) & 1, b = bx_ / (2 * p.nta);\n',
++                 '  int tile, h, b;\n'
++                 '  if (p.part == 4) {   // compact part 2: block (b, h, j) -> the j-th tile from the one holding key seq_lens[b]\n'
++                 '    const int nt2 = (p.L + 127) / 128 + 1, j = (int)blockIdx.x % nt2;\n'
++                 '    h = ((int)blockIdx.x / nt2) & 1; b = (int)blockIdx.x / (2 * nt2);\n'
++                 '    const int L0b = p.seq_lens[b];\n'
++                 '    tile = L0b / 128 - base_tile(p, L0b) + j;\n'
++                 '  } else {\n'
++                 '    const int bx_ = (int)blockIdx.x - p.B; tile = bx_ % p.nta; h = (bx_ / p.nta) & 1; b = bx_ / (2 * p.nta);\n'
++                 '  }\n')
++    s = _kvc_rep(s, '  if ((p.part == 1 && k0 + 128 > L0) || (p.part == 2 && k0 + 128 <= L0)) return;\n',
++                 '  if ((p.part == 1 && k0 + 128 > L0) || ((p.part == 2 || p.part == 4) && k0 + 128 <= L0)) return;\n')
++    return s
++
++
++if KVC:
++    ATT_CUDA_SRC = _kvc_patch(ATT_CUDA_SRC)
++    _kvc_prev_prepare = prepare
++
++    def prepare(weights):
++        state = _kvc_prev_prepare(weights)
++        att = state.get('att')
++        mod = getattr(att, 'mod', None) if att is not None else None
++        if mod is not None:
++            _orig = mod.launch
++
++            def _kvc_launch(name, grid, block, smem, params, pdl=False, _o=_orig):
++                if name == 'kv_pack' and params.part == 2:
++                    params.part = 4
++                    try:
++                        return _o(name, params.B * 2 * ((params.L + 127) // 128 + 1), block, smem, params, pdl)
++                    finally:
++                        params.part = 2
++                return _o(name, grid, block, smem, params, pdl)
++            mod.launch = _kvc_launch
++        return state
+
+# part 2: string _pm_GLUE (18333 -> 19049 chars)
+--- s_b.py:_pm_GLUE
++++ s3.py:_pm_GLUE
+@@ -117,10 +117,14 @@
+   fa.done = done;
+   fa.pg_slots=nullptr; fa.pg_offsets=nullptr; fa.pg_kmax=0; fa.pg_tail=nullptr;
+   if (T >= 512 && T < 2048) {
+-    if ((fa.flags >> 8) & 1)
+-      okc_launch(moe_fused_persistent<1,false,true>, dim3((unsigned)nctas), dim3(MOE_FUSED_THREADS), (size_t)smem, st, fa);
+-    else
+-      okc_launch(moe_fused_persistent<0,false,true>, dim3((unsigned)nctas), dim3(MOE_FUSED_THREADS), (size_t)smem, st, fa);
++    // mx: kernel W (wide items + riders), then kernel N (the other items), PDL-chained
++    if ((fa.flags >> 8) & 1) {
++      okc_launch(moe_fused_persistent<1,false,true,false,1>, dim3((unsigned)nctas), dim3(MOE_FUSED_THREADS), (size_t)smem, st, fa);
++      okc_launch(moe_fused_persistent<1,false,true,false,2>, dim3((unsigned)nctas), dim3(MOE_N_THREADS), (size_t)smem, st, fa);
++    } else {
++      okc_launch(moe_fused_persistent<0,false,true,false,1>, dim3((unsigned)nctas), dim3(MOE_FUSED_THREADS), (size_t)smem, st, fa);
++      okc_launch(moe_fused_persistent<0,false,true,false,2>, dim3((unsigned)nctas), dim3(MOE_N_THREADS), (size_t)smem, st, fa);
++    }
+     return;
+   }
+   if ((fa.flags >> 8) & 1)  // bit 8: fine remainder tiles (the plan used the same flag)
+@@ -129,8 +133,11 @@
+     okc_launch(moe_fused_persistent<0>, dim3((unsigned)nctas), dim3(MOE_FUSED_THREADS), (size_t)smem, st, fa);
+ }
+ void k_moe_init(int smem) {
+-  cudaFuncSetAttribute(moe_fused_persistent<0,false,true>, cudaFuncAttributeMaxDynamicSharedMemorySize, smem);
+-  cudaFuncSetAttribute(moe_fused_persistent<1,false,true>, cudaFuncAttributeMaxDynamicSharedMemorySize, smem);
++  // mx: the single-kernel MAT_SMALL instantiations are no longer launched (not compiled)
++  cudaFuncSetAttribute(moe_fused_persistent<0,false,true,false,1>, cudaFuncAttributeMaxDynamicSharedMemorySize, smem);
++  cudaFuncSetAttribute(moe_fused_persistent<0,false,true,false,2>, cudaFuncAttributeMaxDynamicSharedMemorySize, smem);
++  cudaFuncSetAttribute(moe_fused_persistent<1,false,true,false,1>, cudaFuncAttributeMaxDynamicSharedMemorySize, smem);
++  cudaFuncSetAttribute(moe_fused_persistent<1,false,true,false,2>, cudaFuncAttributeMaxDynamicSharedMemorySize, smem);
+   cudaFuncSetAttribute(moe_fused_persistent<0>, cudaFuncAttributeMaxDynamicSharedMemorySize, smem);
+   cudaFuncSetAttribute(moe_fused_persistent<1>, cudaFuncAttributeMaxDynamicSharedMemorySize, smem);
+   cudaFuncSetAttribute(moe_gemm_persistent<true>, cudaFuncAttributeMaxDynamicSharedMemorySize, smem);
+
+# part 2: string _pm__CUDA_SRC (212175 -> 269300 chars)
+--- s_b.py:_pm__CUDA_SRC
++++ s3.py:_pm__CUDA_SRC
+@@ -186,6 +186,18 @@
+ }
+ 
+ #define MOE_XPF256 0
++#define MX_CONC 0
++#define MX_WBIAS 2
++#define MX_RMAX 16
++#define MX_HMIN 256
++#define MX_STASH 2
++#define MX_RFIRST 1
++#define MX_RW 16
++#define MX_LDS1 0
++#define MX_ORD 0
++#define MX_PIPE 0
++#define MX_GK 1
++#define MX_ORDER 0
+ #define MOE_XPFSMALL 0
+ #define MOE_FINE_MASK 15  // extra widths: 1 = 96, 2 = 160, 4 = 192, 8 = 224 (3+ of them: ptxas C7512, wgmma serialized)
+ 
+@@ -462,7 +474,7 @@
+ }
+ 
+ // ---- persistent variant: grid = #SMs, items (tile, ntile) round-robin, fixed slot ring + separate staging ----
+-constexpr int SLOT = 43008;     // bytes per ring slot (1024-aligned): fits kps k-stages of any tile size
++constexpr int SLOT = 46080;  // mx: host + rider stage (was 43008)     // bytes per ring slot (1024-aligned): fits kps k-stages of any tile size
+ constexpr int NSLOT = 4;
+ constexpr int STG_BYTES = 45056; // epilogue staging
+ 
+@@ -517,6 +529,229 @@
+ #define MOE_PB (MOE_CONS_FIRST ? 256 : 0)  // first producer thread
+ #define MOE_FUSED_THREADS (MOE_CONS_FIRST ? 320 : 384)
+ struct NoPre { DEVI void operator()() const {} };
++// mx: the item epilogue (was inline in consumer_item). RIDER (= no wait): a combo's second epilogue, in its own
++// staging region (no staging wait / barrier: the first epilogue's wait covered the previous item's jobs)
++template <int N, int CB, bool EP_REMAT, bool MAT_SMALL, bool RIDER = false>
++DEVI void item_epilogue(const Args& p, float (&acc)[128], uint8_t* stg0, int soff, int e, int row0, int ntile,
++                        bool GATED, int* done, volatile long long* pubq, int nreal, unsigned long long* t_mid,
++                        int nrt = N) {  // nrt: the tile's real width (a rider computed as an N-wide wgmma)
++  uint8_t* stg = stg0 + soff;  // soff: staging offset (bytes, multiple of 1024), passed to the publisher in kind
++  const int ctid = threadIdx.x - CB;
++  const int wg = MOE_UNIFORM_WG ? __shfl_sync(0xffffffffu, ctid >> 7, 0) : ctid >> 7;
++  const int w = MOE_UNIFORM_WG ? __shfl_sync(0xffffffffu, (ctid >> 5) & 3, 0) : (ctid >> 5) & 3;
++  const int lane = ctid & 31;
++  const int g = lane >> 2, t = lane & 3;
++  (void)t_mid; (void)g; (void)t;
++  // ---- epilogue through the dedicated staging buffer ----
++  const float cs = p.gscale[e] * 128.f;
++  if constexpr (!RIDER) {  // (a rider's region was freed by its host's wait)
++  if (pubq && ctid == 0) wait_staging_free(pubq);
++  named_bar_sync(1, 256);  // previous item's copy-out is done with the staging buffer
++  }
++  if (GATED) {
++    const int q = wg * 4 + w;
++    // stmatrix.trans: the accumulator fragment of an 8-token group is an 8x8 matrix [row g][token]; stored transposed,
++    // each token's 8 rows (16 bytes) land in its tile-layout chunk in one instruction per 4 groups
++#pragma unroll
++    for (int j4 = 0; j4 < N / 32; ++j4) {
++      uint32_t r[4];
++#pragma unroll
++      for (int u = 0; u < 4; ++u) {
++        const int jj = 4 * j4 + u;
++        const float h0 = silu_fast(acc[4 * jj] * cs) * (acc[4 * jj + 2] * cs);
++        const float h1 = silu_fast(acc[4 * jj + 1] * cs) * (acc[4 * jj + 3] * cs);
++        r[u] = bf162_u32(__floats2bfloat162_rn(h0, h1));
++      }
++      const int rr = lane & 7, tokr = 8 * (4 * j4 + (lane >> 3)) + rr;
++      const uint32_t addr = smem_u32(stg + tokr * 128 + ((q ^ rr) << 4));
++      asm volatile("stmatrix.sync.aligned.m8n8.x4.trans.shared.b16 [%0], {%1, %2, %3, %4};" ::"r"(addr), "r"(r[0]),
++                   "r"(r[1]), "r"(r[2]), "r"(r[3]) : "memory");
++    }
++    if constexpr (N > 16 && N % 32 != 0) {
++      static_assert(N % 32 == 16);
++      uint32_t r[2];
++#pragma unroll
++      for (int u = 0; u < 2; ++u) {
++        constexpr int first = (N / 32) * 4;
++        const int jj = first + u;
++        const float h0 = silu_fast(acc[4 * jj] * cs) * (acc[4 * jj + 2] * cs);
++        const float h1 = silu_fast(acc[4 * jj + 1] * cs) * (acc[4 * jj + 3] * cs);
++        r[u] = bf162_u32(__floats2bfloat162_rn(h0, h1));
++      }
++      const int rr = lane & 7, tokr = (N / 32) * 32 + (lane & 15);
++      const uint32_t addr = smem_u32(stg + tokr * 128 + ((q ^ rr) << 4));
++      asm volatile("stmatrix.sync.aligned.m8n8.x2.trans.shared.b16 [%0], {%1, %2};"
++                   :: "r"(addr), "r"(r[0]), "r"(r[1]) : "memory");
++    }
++    if constexpr (N <= 16 && EP_REMAT && MAT_SMALL) {
++      uint32_t r[N / 8];
++#pragma unroll
++      for (int jj = 0; jj < N / 8; ++jj) {
++        const float h0 = silu_fast(acc[4 * jj] * cs) * (acc[4 * jj + 2] * cs);
++        const float h1 = silu_fast(acc[4 * jj + 1] * cs) * (acc[4 * jj + 3] * cs);
++        r[jj] = bf162_u32(__floats2bfloat162_rn(h0, h1));
++      }
++      const int tok = lane & (N - 1);
++      const uint32_t addr = smem_u32(stg + tok * 128 + ((q ^ (tok & 7)) << 4));
++      if constexpr (N == 8)
++        asm volatile("stmatrix.sync.aligned.m8n8.x1.trans.shared.b16 [%0], {%1};"
++                     :: "r"(addr), "r"(r[0]) : "memory");
++      else
++        asm volatile("stmatrix.sync.aligned.m8n8.x2.trans.shared.b16 [%0], {%1, %2};"
++                     :: "r"(addr), "r"(r[0]), "r"(r[1]) : "memory");
++    }
++    if constexpr (N <= 16 && (!EP_REMAT || !MAT_SMALL)) {
++#pragma unroll
++      for(int jj=(N/32)*4;jj<N/8;++jj) {
++        const float h0=silu_fast(acc[4*jj]*cs)*(acc[4*jj+2]*cs);
++        const float h1=silu_fast(acc[4*jj+1]*cs)*(acc[4*jj+3]*cs);
++        const int tok0=8*jj+2*t,tok1=tok0+1;
++        *reinterpret_cast<__nv_bfloat16*>(stg+tok0*128+((q^(tok0&7))<<4)+g*2)=__float2bfloat16_rn(h0);
++        *reinterpret_cast<__nv_bfloat16*>(stg+tok1*128+((q^(tok1&7))<<4)+g*2)=__float2bfloat16_rn(h1);
++      }
++    }
++    if (pubq) {  // fused sm_90: the publisher warp copies the staged tile out (bulk copy) and then publishes `done`
++      asm volatile("fence.proxy.async.shared::cta;" ::: "memory");
++      named_bar_sync(1, 256);
++      if (ctid == 0) enqueue_out(pubq, p.out + (size_t)row0 * 8192 + (size_t)ntile * nrt * 128, done, 0 | ((soff >> 10) << 8), nrt * 128);
++    } else {
++      named_bar_sync(1, 256);
++      uint4* dst = reinterpret_cast<uint4*>(p.out + (size_t)row0 * 8192 + (size_t)ntile * N * 128);
++      const uint4* src = reinterpret_cast<const uint4*>(stg);
++      for (int i = ctid; i < N * 8; i += 256) dst[i] = src[i];
++      if (done) {  // fused kernel: publish this n-tile of the tile's intermediate rows
++        __threadfence();
++        named_bar_sync(1, 256);
++        if (ctid == 0) atomicAdd(done, 1);
++      }
++    }
++  } else {
++    if constexpr (EP_REMAT) {
++    // Re-read only the down-epilogue coordinate after the async drain and
++    // staging barrier. Keep its derived addresses out of the mainloop live set.
++    uint32_t ep_tid;
++    asm volatile("mov.u32 %0, %%tid.x;" : "=r"(ep_tid) :: "memory");
++    const int ep_ctid = (int)ep_tid - CB;
++    const int ep_q = ep_ctid >> 5;
++    const int ep_lane = ep_ctid & 31;
++    const int c0 = ep_q * 16 + (ep_lane >> 2);
++    // halves of up to 128 tokens through the 128-row staging buffer: half 1 (tiles over 128 rows) holds N - 128 rows
++    auto gemm2_half = [&]<int half, int NJ>() {
++      if (half) named_bar_sync(1, 256);  // (half 0 was copied out by the consumers themselves)
++      // stmatrix.trans: per 8-token group, two 8x8 matrices (this warp's columns 16w..16w+7 and 16w+8..16w+15)
++      if constexpr (NJ >= 2) {
++#pragma unroll
++        for (int j2 = 0; j2 < NJ / 2; ++j2) {
++          uint32_t r[4];
++#pragma unroll
++          for (int u = 0; u < 2; ++u) {
++            const int ai = 4 * (2 * j2 + u + half * 16);
++            r[2 * u] = bf162_u32(__floats2bfloat162_rn(acc[ai] * cs, acc[ai + 1] * cs));
++            r[2 * u + 1] = bf162_u32(__floats2bfloat162_rn(acc[ai + 2] * cs, acc[ai + 3] * cs));
++          }
++          const int m = ep_lane >> 3, rr = ep_lane & 7;
++          const int tl = 8 * (2 * j2 + (m >> 1)) + rr;
++          const uint32_t addr = smem_u32(stg + tl * 272 + (ep_q * 16 + 8 * (m & 1)) * 2);
++          asm volatile("stmatrix.sync.aligned.m8n8.x4.trans.shared.b16 [%0], {%1, %2, %3, %4};" ::"r"(addr), "r"(r[0]),
++                       "r"(r[1]), "r"(r[2]), "r"(r[3]) : "memory");
++        }
++      } else if constexpr (MAT_SMALL) {
++        static_assert(NJ == 1);
++        const int ai = 4 * half * 16;
++        const uint32_t r0 = bf162_u32(__floats2bfloat162_rn(acc[ai] * cs, acc[ai + 1] * cs));
++        const uint32_t r1 = bf162_u32(__floats2bfloat162_rn(acc[ai + 2] * cs, acc[ai + 3] * cs));
++        const int rr = ep_lane & 7, m = (ep_lane >> 3) & 1;
++        const uint32_t addr = smem_u32(stg + rr * 272 + (ep_q * 16 + 8 * m) * 2);
++        asm volatile("stmatrix.sync.aligned.m8n8.x2.trans.shared.b16 [%0], {%1, %2};"
++                     :: "r"(addr), "r"(r0), "r"(r1) : "memory");
++      } else {
++#pragma unroll
++        for (int jj = 0; jj < NJ; ++jj) {
++#pragma unroll
++          for (int b = 0; b < 2; ++b) {
++            const int tl = 8 * jj + 2 * (ep_lane & 3) + b;
++            const int ai = 4 * (jj + half * 16) + b;
++            __nv_bfloat16* r = reinterpret_cast<__nv_bfloat16*>(stg + tl * 272);
++            r[c0] = __float2bfloat16_rn(acc[ai] * cs);
++            r[c0 + 8] = __float2bfloat16_rn(acc[ai + 2] * cs);
++          }
++        }
++      }
++      constexpr int ntok = 8 * NJ;
++      // the last half goes to the publisher warp (its copy loop overlaps the next item); a first half is copied by the
++      // consumers, since the second half needs the staging buffer right away
++      if (pubq && half == (N > 128 ? 1 : 0)) {
++        named_bar_sync(1, 256);
++        if (ctid == 0)
++          enqueue_out(pubq, p.out + ((size_t)(row0 + half * 128) * 4096 + ntile * 128) * 2, done, 1 | ((soff >> 10) << 8), min(ntok, nrt), row0, nreal);
++      } else {
++        named_bar_sync(1, 256);
++        for (int i = ctid; i < ntok * 16; i += 256) {
++          const int tl = i >> 4, c = i & 15;
++          *reinterpret_cast<uint4*>(p.out + ((size_t)(row0 + half * 128 + tl) * 4096 + ntile * 128) * 2 + c * 16) =
++              *reinterpret_cast<const uint4*>(stg + tl * 272 + c * 16);
++        }
++      }
++    };
++    gemm2_half.template operator()<0, (N > 128 ? 16 : N / 8)>();
++    if constexpr (N > 128) gemm2_half.template operator()<1, (N - 128) / 8>();
++    } else {
++    const int c0 = (wg * 4 + w) * 16 + g;
++    // halves of up to 128 tokens through the 128-row staging buffer: half 1 (tiles over 128 rows) holds N - 128 rows
++    auto gemm2_half = [&]<int half, int NJ>() {
++      if (half) named_bar_sync(1, 256);  // (half 0 was copied out by the consumers themselves)
++      // stmatrix.trans: per 8-token group, two 8x8 matrices (this warp's columns 16w..16w+7 and 16w+8..16w+15)
++      if constexpr (NJ >= 2) {
++#pragma unroll
++        for (int j2 = 0; j2 < NJ / 2; ++j2) {
++          uint32_t r[4];
++#pragma unroll
++          for (int u = 0; u < 2; ++u) {
++            const int ai = 4 * (2 * j2 + u + half * 16);
++            r[2 * u] = bf162_u32(__floats2bfloat162_rn(acc[ai] * cs, acc[ai + 1] * cs));
++            r[2 * u + 1] = bf162_u32(__floats2bfloat162_rn(acc[ai + 2] * cs, acc[ai + 3] * cs));
++          }
++          const int m = lane >> 3, rr = lane & 7;
++          const int tl = 8 * (2 * j2 + (m >> 1)) + rr;
++          const uint32_t addr = smem_u32(stg + tl * 272 + ((wg * 4 + w) * 16 + 8 * (m & 1)) * 2);
++          asm volatile("stmatrix.sync.aligned.m8n8.x4.trans.shared.b16 [%0], {%1, %2, %3, %4};" ::"r"(addr), "r"(r[0]),
++                       "r"(r[1]), "r"(r[2]), "r"(r[3]) : "memory");
++        }
++      } else {
++#pragma unroll
++        for (int jj = 0; jj < NJ; ++jj) {
++#pragma unroll
++          for (int b = 0; b < 2; ++b) {
++            const int tl = 8 * jj + 2 * t + b;
++            const int ai = 4 * (jj + half * 16) + b;
++            __nv_bfloat16* r = reinterpret_cast<__nv_bfloat16*>(stg + tl * 272);
++            r[c0] = __float2bfloat16_rn(acc[ai] * cs);
++            r[c0 + 8] = __float2bfloat16_rn(acc[ai + 2] * cs);
++          }
++        }
++      }
++      constexpr int ntok = 8 * NJ;
++      // the last half goes to the publisher warp (its copy loop overlaps the next item); a first half is copied by the
++      // consumers, since the second half needs the staging buffer right away
++      if (pubq && half == (N > 128 ? 1 : 0)) {
++        named_bar_sync(1, 256);
++        if (ctid == 0)
++          enqueue_out(pubq, p.out + ((size_t)(row0 + half * 128) * 4096 + ntile * 128) * 2, done, 1 | ((soff >> 10) << 8), min(ntok, nrt), row0, nreal);
++      } else {
++        named_bar_sync(1, 256);
++        for (int i = ctid; i < ntok * 16; i += 256) {
++          const int tl = i >> 4, c = i & 15;
++          *reinterpret_cast<uint4*>(p.out + ((size_t)(row0 + half * 128 + tl) * 4096 + ntile * 128) * 2 + c * 16) =
++              *reinterpret_cast<const uint4*>(stg + tl * 272 + c * 16);
++        }
++      }
++    };
++    gemm2_half.template operator()<0, (N > 128 ? 16 : N / 8)>();
++    if constexpr (N > 128) gemm2_half.template operator()<1, (N - 128) / 8>();
++    }
++  }
++}
++
+ template <int N, int CB = 128, bool EP_REMAT = false, bool MAT_SMALL = false, bool BIG = false, class PRE = NoPre>
+ DEVI void consumer_item(const Args& p, uint8_t* ring, uint8_t* stg, uint32_t bars, int& slot, uint32_t& ph,
+                         int e, int row0, int ntile, bool GATED, int* done = nullptr, unsigned long long* t_mid = nullptr,
+@@ -765,212 +1000,261 @@
+ #pragma unroll
+     for (int i = 0; i < N / 2; ++i) acc[i] += acc2[i];
+   }
+-  // ---- epilogue through the dedicated staging buffer ----
+-  const float cs = p.gscale[e] * 128.f;
+-  if (pubq && ctid == 0) wait_staging_free(pubq);
+-  named_bar_sync(1, 256);  // previous item's copy-out is done with the staging buffer
+-  if (GATED) {
+-    const int q = wg * 4 + w;
+-    // stmatrix.trans: the accumulator fragment of an 8-token group is an 8x8 matrix [row g][token]; stored transposed,
+-    // each token's 8 rows (16 bytes) land in its tile-layout chunk in one instruction per 4 groups
+-#pragma unroll
+-    for (int j4 = 0; j4 < N / 32; ++j4) {
+-      uint32_t r[4];
+-#pragma unroll
+-      for (int u = 0; u < 4; ++u) {
+-        const int jj = 4 * j4 + u;
+-        const float h0 = silu_fast(acc[4 * jj] * cs) * (acc[4 * jj + 2] * cs);
+-        const float h1 = silu_fast(acc[4 * jj + 1] * cs) * (acc[4 * jj + 3] * cs);
+-        r[u] = bf162_u32(__floats2bfloat162_rn(h0, h1));
+-      }
+-      const int rr = lane & 7, tokr = 8 * (4 * j4 + (lane >> 3)) + rr;
+-      const uint32_t addr = smem_u32(stg + tokr * 128 + ((q ^ rr) << 4));
+-      asm volatile("stmatrix.sync.aligned.m8n8.x4.trans.shared.b16 [%0], {%1, %2, %3, %4};" ::"r"(addr), "r"(r[0]),
+-                   "r"(r[1]), "r"(r[2]), "r"(r[3]) : "memory");
+-    }
+-    if constexpr (N > 16 && N % 32 != 0) {
+-      static_assert(N % 32 == 16);
+-      uint32_t r[2];
++  item_epilogue<N, CB, EP_REMAT, MAT_SMALL>(p, acc, stg, 0, e, row0, ntile, GATED, done, pubq, nreal, t_mid);
++}
++
++#ifndef MX_RIDE
++#define MX_RIDE 1
++#endif
++#ifndef MX_RMAX
++#define MX_RMAX 32   // rider tiles: N <= MX_RMAX
++#endif
++#ifndef MX_HMIN
++#define MX_HMIN 256  // host tiles: N >= MX_HMIN (one k-block per stage)
++#endif
++#ifndef MX_RW
++#define MX_RW 32
++#endif
++                     // MX_RW: the rider's wgmma width (riders of 8 / 16 tokens run as 32-wide wgmma; their extra columns are
++                     // stale shared memory, computed and never stored)
++// mx: a host item (N >= 160, one k-block per stage) with a rider (rn <= 32 tokens) in the same ring stages:
++// slot = host X (N x 128) | rider X (32 x 128 reserved, rn x 128 loaded) | host W | rider W. One commit group per k16
++// carries both wgmmas. The rider accumulates in one chain (k order); its weights decode with the opaque multipliers
++// (IMAD) like the small tiles' standalone path.
++template <int N, int CB, bool EP_REMAT, bool MAT_SMALL>
++DEVI void consumer_combo(const Args& p, uint8_t* ring, uint8_t* stg, uint32_t bars, int& slot, uint32_t& ph,
++                         int e, int row0, int ntile, bool GATED, int* done, unsigned long long* t_mid,
++                         volatile long long* pubq, int nreal, int re, int rrow0, int rntile, int* rdone, int rnreal,
++                         int rn) {
++  static_assert(N >= MX_HMIN, "combo shape");
++  constexpr int RN = MX_RW;
++  // MX_STASH: the epilogue coordinates wait in shared memory (one 48-byte copy per warp at base + 640) instead of
++  // registers across the main loop (1: the rider's, 2: the host's too)
++  {
++    const int wq_ = (threadIdx.x - CB) >> 5;
++    volatile int* sx = reinterpret_cast<volatile int*>(ring - 1024 + 640 + 48 * wq_);
++    if ((threadIdx.x & 31) == 0) {
++      if (MX_STASH >= 1) {
++        sx[6] = re; sx[7] = rrow0; sx[8] = rntile; sx[9] = rnreal | (rn << 16);
++        sx[10] = (int)(reinterpret_cast<uintptr_t>(rdone) & 0xffffffffu); sx[11] = (int)(reinterpret_cast<uintptr_t>(rdone) >> 32);
++      }
++      if (MX_STASH >= 2) {
++        sx[0] = e; sx[1] = row0; sx[2] = ntile; sx[3] = nreal;
++        sx[4] = (int)(reinterpret_cast<uintptr_t>(done) & 0xffffffffu); sx[5] = (int)(reinterpret_cast<uintptr_t>(done) >> 32);
++      }
++    }
++    __syncwarp();
++  }
++  const uint32_t zz_ = 0u;
++  const uint32_t m16 = 16u + zz_, m64 = 64u + zz_;
++  const uint32_t rm16 = 16u, rm64 = 64u;  // rw: constants (the rider decode hides under the host anyway)
++  constexpr int XB = N * 128, RXB = RN * 128, WO = XB + RXB;
++  static_assert(WO + 2 * WBLK <= SLOT, "combo stage does not fit a ring slot");
++  const int ctid = threadIdx.x - CB;
++  const int wg = ctid >> 7, w = (ctid >> 5) & 3, lane = ctid & 31, g = lane >> 2;
++  float acc[128];
++  float racc[128];  // first RN / 2 live
++#pragma unroll
++  for (int i = 0; i < N / 2; ++i) acc[i] = 0.f;
++#pragma unroll
++  for (int i = 0; i < RN / 2; ++i) racc[i] = 0.f;
++  uint32_t afrag[2][4], rfrag[MX_ORD == 2 ? 4 : 2][4];
++  int prev = -1;
++  int woff = ((wg * 4 + w) * 32 + lane) * 16, soff = 4096 + ((wg * 4 + w) * 8 + g) * 8;
++  const int zx_ = (int)(p.mul16 ^ 16u);  // rw: a runtime zero (pins woff / soff in registers)
++#if MX_GK == 2
++  // MX_GK 2: two k16 steps per commit group (host + rider wgmma for both), A fragments double-buffered by the
++  // group's parity: under register pressure ptxas keeps the decodes after each wait, so the waits must be rarer
++  mbar_wait(bars + 8 * slot, ph);
++  if (t_mid) t_mid[1] = clock64();
++  uint32_t ag[2][2][4], rg[2][2][4];
++  for (int it = 0; it < KS; ++it) {
++    uint8_t* st = ring + slot * SLOT;
++    const uint8_t* wbase = st + WO + woff;
++    const uint8_t* sbase = st + WO + soff;
++    const uint64_t dbase = desc_sw128(smem_u32(st));
++    const uint64_t rdbase = dbase + (uint64_t)(XB >> 4);
++    if (it > 0) mbar_wait(bars + 8 * slot, ph);
++    const uint4 wq = *reinterpret_cast<const uint4*>(wbase);
++    const uint2 sc = *reinterpret_cast<const uint2*>(sbase);
++    const uint4 rwq = *reinterpret_cast<const uint4*>(wbase + WBLK);
++    const uint2 rsc = *reinterpret_cast<const uint2*>(sbase + WBLK);
++#pragma unroll
++    for (int pr = 0; pr < 2; ++pr) {
+ #pragma unroll
+       for (int u = 0; u < 2; ++u) {
+-        constexpr int first = (N / 32) * 4;
+-        const int jj = first + u;
+-        const float h0 = silu_fast(acc[4 * jj] * cs) * (acc[4 * jj + 2] * cs);
+-        const float h1 = silu_fast(acc[4 * jj + 1] * cs) * (acc[4 * jj + 3] * cs);
+-        r[u] = bf162_u32(__floats2bfloat162_rn(h0, h1));
+-      }
+-      const int rr = lane & 7, tokr = (N / 32) * 32 + (lane & 15);
+-      const uint32_t addr = smem_u32(stg + tokr * 128 + ((q ^ rr) << 4));
+-      asm volatile("stmatrix.sync.aligned.m8n8.x2.trans.shared.b16 [%0], {%1, %2};"
+-                   :: "r"(addr), "r"(r[0]), "r"(r[1]) : "memory");
+-    }
+-    if constexpr (N <= 16 && EP_REMAT && MAT_SMALL) {
+-      uint32_t r[N / 8];
+-#pragma unroll
+-      for (int jj = 0; jj < N / 8; ++jj) {
+-        const float h0 = silu_fast(acc[4 * jj] * cs) * (acc[4 * jj + 2] * cs);
+-        const float h1 = silu_fast(acc[4 * jj + 1] * cs) * (acc[4 * jj + 3] * cs);
+-        r[jj] = bf162_u32(__floats2bfloat162_rn(h0, h1));
+-      }
+-      const int tok = lane & (N - 1);
+-      const uint32_t addr = smem_u32(stg + tok * 128 + ((q ^ (tok & 7)) << 4));
+-      if constexpr (N == 8)
+-        asm volatile("stmatrix.sync.aligned.m8n8.x1.trans.shared.b16 [%0], {%1};"
+-                     :: "r"(addr), "r"(r[0]) : "memory");
+-      else
+-        asm volatile("stmatrix.sync.aligned.m8n8.x2.trans.shared.b16 [%0], {%1, %2};"
+-                     :: "r"(addr), "r"(r[0]), "r"(r[1]) : "memory");
+-    }
+-    if constexpr (N <= 16 && (!EP_REMAT || !MAT_SMALL)) {
+-#pragma unroll
+-      for(int jj=(N/32)*4;jj<N/8;++jj) {
+-        const float h0=silu_fast(acc[4*jj]*cs)*(acc[4*jj+2]*cs);
+-        const float h1=silu_fast(acc[4*jj+1]*cs)*(acc[4*jj+3]*cs);
+-        const int tok0=8*jj+2*t,tok1=tok0+1;
+-        *reinterpret_cast<__nv_bfloat16*>(stg+tok0*128+((q^(tok0&7))<<4)+g*2)=__float2bfloat16_rn(h0);
+-        *reinterpret_cast<__nv_bfloat16*>(stg+tok1*128+((q^(tok1&7))<<4)+g*2)=__float2bfloat16_rn(h1);
+-      }
+-    }
+-    if (pubq) {  // fused sm_90: the publisher warp copies the staged tile out (bulk copy) and then publishes `done`
+-      asm volatile("fence.proxy.async.shared::cta;" ::: "memory");
+-      named_bar_sync(1, 256);
+-      if (ctid == 0) enqueue_out(pubq, p.out + (size_t)row0 * 8192 + (size_t)ntile * N * 128, done, 0, N * 128);
+-    } else {
+-      named_bar_sync(1, 256);
+-      uint4* dst = reinterpret_cast<uint4*>(p.out + (size_t)row0 * 8192 + (size_t)ntile * N * 128);
+-      const uint4* src = reinterpret_cast<const uint4*>(stg);
+-      for (int i = ctid; i < N * 8; i += 256) dst[i] = src[i];
+-      if (done) {  // fused kernel: publish this n-tile of the tile's intermediate rows
+-        __threadfence();
+-        named_bar_sync(1, 256);
+-        if (ctid == 0) atomicAdd(done, 1);
+-      }
+-    }
+-  } else {
+-    if constexpr (EP_REMAT) {
+-    // Re-read only the down-epilogue coordinate after the async drain and
+-    // staging barrier. Keep its derived addresses out of the mainloop live set.
+-    uint32_t ep_tid;
+-    asm volatile("mov.u32 %0, %%tid.x;" : "=r"(ep_tid) :: "memory");
+-    const int ep_ctid = (int)ep_tid - CB;
+-    const int ep_q = ep_ctid >> 5;
+-    const int ep_lane = ep_ctid & 31;
+-    const int c0 = ep_q * 16 + (ep_lane >> 2);
+-    // halves of up to 128 tokens through the 128-row staging buffer: half 1 (tiles over 128 rows) holds N - 128 rows
+-    auto gemm2_half = [&]<int half, int NJ>() {
+-      if (half) named_bar_sync(1, 256);  // (half 0 was copied out by the consumers themselves)
+-      // stmatrix.trans: per 8-token group, two 8x8 matrices (this warp's columns 16w..16w+7 and 16w+8..16w+15)
+-      if constexpr (NJ >= 2) {
+-#pragma unroll
+-        for (int j2 = 0; j2 < NJ / 2; ++j2) {
+-          uint32_t r[4];
+-#pragma unroll
+-          for (int u = 0; u < 2; ++u) {
+-            const int ai = 4 * (2 * j2 + u + half * 16);
+-            r[2 * u] = bf162_u32(__floats2bfloat162_rn(acc[ai] * cs, acc[ai + 1] * cs));
+-            r[2 * u + 1] = bf162_u32(__floats2bfloat162_rn(acc[ai + 2] * cs, acc[ai + 3] * cs));
+-          }
+-          const int m = ep_lane >> 3, rr = ep_lane & 7;
+-          const int tl = 8 * (2 * j2 + (m >> 1)) + rr;
+-          const uint32_t addr = smem_u32(stg + tl * 272 + (ep_q * 16 + 8 * (m & 1)) * 2);
+-          asm volatile("stmatrix.sync.aligned.m8n8.x4.trans.shared.b16 [%0], {%1, %2, %3, %4};" ::"r"(addr), "r"(r[0]),
+-                       "r"(r[1]), "r"(r[2]), "r"(r[3]) : "memory");
+-        }
+-      } else if constexpr (MAT_SMALL) {
+-        static_assert(NJ == 1);
+-        const int ai = 4 * half * 16;
+-        const uint32_t r0 = bf162_u32(__floats2bfloat162_rn(acc[ai] * cs, acc[ai + 1] * cs));
+-        const uint32_t r1 = bf162_u32(__floats2bfloat162_rn(acc[ai + 2] * cs, acc[ai + 3] * cs));
+-        const int rr = ep_lane & 7, m = (ep_lane >> 3) & 1;
+-        const uint32_t addr = smem_u32(stg + rr * 272 + (ep_q * 16 + 8 * m) * 2);
+-        asm volatile("stmatrix.sync.aligned.m8n8.x2.trans.shared.b16 [%0], {%1, %2};"
+-                     :: "r"(addr), "r"(r0), "r"(r1) : "memory");
+-      } else {
+-#pragma unroll
+-        for (int jj = 0; jj < NJ; ++jj) {
+-#pragma unroll
+-          for (int b = 0; b < 2; ++b) {
+-            const int tl = 8 * jj + 2 * (ep_lane & 3) + b;
+-            const int ai = 4 * (jj + half * 16) + b;
+-            __nv_bfloat16* r = reinterpret_cast<__nv_bfloat16*>(stg + tl * 272);
+-            r[c0] = __float2bfloat16_rn(acc[ai] * cs);
+-            r[c0 + 8] = __float2bfloat16_rn(acc[ai + 2] * cs);
+-          }
+-        }
+-      }
+-      constexpr int ntok = 8 * NJ;
+-      // the last half goes to the publisher warp (its copy loop overlaps the next item); a first half is copied by the
+-      // consumers, since the second half needs the staging buffer right away
+-      if (pubq && half == (N > 128 ? 1 : 0)) {
+-        named_bar_sync(1, 256);
+-        if (ctid == 0)
+-          enqueue_out(pubq, p.out + ((size_t)(row0 + half * 128) * 4096 + ntile * 128) * 2, done, 1, ntok, row0, nreal);
+-      } else {
+-        named_bar_sync(1, 256);
+-        for (int i = ctid; i < ntok * 16; i += 256) {
+-          const int tl = i >> 4, c = i & 15;
+-          *reinterpret_cast<uint4*>(p.out + ((size_t)(row0 + half * 128 + tl) * 4096 + ntile * 128) * 2 + c * 16) =
+-              *reinterpret_cast<const uint4*>(stg + tl * 272 + c * 16);
+-        }
+-      }
++        const int j = 2 * pr + u;
++        const uint32_t q = j == 0 ? wq.x : j == 1 ? wq.y : j == 2 ? wq.z : wq.w;
++        const uint32_t sw = pr == 0 ? sc.x : sc.y;
++        if constexpr (MAT_SMALL || EP_REMAT) convert8_reuse(q, scale_pair_sel(sw, u, m16), ag[pr][u], m16, m64); else convert8(q, scale_pair_sel(sw, u, m16), ag[pr][u], m16, m64);
++        const uint32_t rq = j == 0 ? rwq.x : j == 1 ? rwq.y : j == 2 ? rwq.z : rwq.w;
++        const uint32_t rsw = pr == 0 ? rsc.x : rsc.y;
++        convert8_reuse(rq, scale_pair_sel(rsw, u, rm16), rg[pr][u], rm16, rm64);
++      }
++      wg_fence();
++#pragma unroll
++      for (int u = 0; u < 2; ++u) {
++        const int j = 2 * pr + u;
++        wgmma_rs<N>(acc, ag[pr][u], dbase + 2 * j, 1);
++        wgmma_rs<RN>(racc, rg[pr][u], rdbase + 2 * j, 1);
++      }
++      wg_commit();
++      wg_wait<1>();
++      if (pr == 0 && prev >= 0) { rel_sync(); if (MOE_ALLLANE_RELEASE || lane == 0) mbar_arrive(bars + 8 * NSLOT + 8 * prev); }
++    }
++    prev = slot;
++    if (++slot == NSLOT) { slot = 0; ph ^= 1; }
++  }
++#elif MX_PIPE
++  // MX_PIPE: each k16's codes / scales (host and rider, one word each) are loaded one k16 ahead, right after the
++  // previous commit, and the next slot's full barrier is waited for before the k-block's last wait: the path from a
++  // wait to the next wgmma issue is only the two decodes (no shared-memory latency, no barrier at a k-block start)
++  mbar_wait(bars + 8 * slot, ph);
++  if (t_mid) t_mid[1] = clock64();
++  uint32_t cq, csw, crq, crsw;
++  {
++    const uint8_t* w0 = ring + slot * SLOT + WO + woff;
++    const uint8_t* s0 = ring + slot * SLOT + WO + soff;
++    cq = *reinterpret_cast<const uint32_t*>(w0);
++    csw = *reinterpret_cast<const uint32_t*>(s0);
++    crq = *reinterpret_cast<const uint32_t*>(w0 + WBLK);
++    crsw = *reinterpret_cast<const uint32_t*>(s0 + WBLK);
++  }
++  for (int it = 0; it < KS; ++it) {
++    uint8_t* st = ring + slot * SLOT;
++    const uint8_t* wbase = st + WO + woff;
++    const uint8_t* sbase = st + WO + soff;
++    const uint64_t dbase = desc_sw128(smem_u32(st));
++    const uint64_t rdbase = dbase + (uint64_t)(XB >> 4);
++    const int ns = slot + 1 == NSLOT ? 0 : slot + 1;
++    const uint32_t nph = slot + 1 == NSLOT ? ph ^ 1 : ph;
++#pragma unroll
++    for (int j = 0; j < 4; ++j) {
++      if constexpr (MAT_SMALL || EP_REMAT) convert8_reuse(cq, scale_pair_sel(csw, j & 1, m16), afrag[j & 1], m16, m64); else convert8(cq, scale_pair_sel(csw, j & 1, m16), afrag[j & 1], m16, m64);
++      convert8_reuse(crq, scale_pair_sel(crsw, j & 1, rm16), rfrag[j & 1], rm16, rm64);
++      wg_fence();
++      wgmma_rs<N>(acc, afrag[j & 1], dbase + 2 * j, 1);
++      wgmma_rs<RN>(racc, rfrag[j & 1], rdbase + 2 * j, 1);
++      wg_commit();
++      if (j < 3) {
++        cq = *reinterpret_cast<const uint32_t*>(wbase + 4 * (j + 1));
++        csw = *reinterpret_cast<const uint32_t*>(sbase + 4 * ((j + 1) >> 1));
++        crq = *reinterpret_cast<const uint32_t*>(wbase + WBLK + 4 * (j + 1));
++        crsw = *reinterpret_cast<const uint32_t*>(sbase + WBLK + 4 * ((j + 1) >> 1));
++      } else if (it + 1 < KS) {
++        mbar_wait(bars + 8 * ns, nph);
++        const uint8_t* nw = ring + ns * SLOT + WO + woff;
++        const uint8_t* nsb = ring + ns * SLOT + WO + soff;
++        cq = *reinterpret_cast<const uint32_t*>(nw);
++        csw = *reinterpret_cast<const uint32_t*>(nsb);
++        crq = *reinterpret_cast<const uint32_t*>(nw + WBLK);
++        crsw = *reinterpret_cast<const uint32_t*>(nsb + WBLK);
++      }
++      wg_wait<1>();
++      if (j == 0 && prev >= 0) { rel_sync(); if (MOE_ALLLANE_RELEASE || lane == 0) mbar_arrive(bars + 8 * NSLOT + 8 * prev); }
++    }
++    prev = slot;
++    if (++slot == NSLOT) { slot = 0; ph ^= 1; }
++  }
++#else
++  mbar_wait(bars + 8 * slot, ph);
++  if (t_mid) t_mid[1] = clock64();
++  uint4 nwq = *reinterpret_cast<const uint4*>(ring + slot * SLOT + WO + woff);
++  uint2 nsc = *reinterpret_cast<const uint2*>(ring + slot * SLOT + WO + soff);
++  for (int it = 0; it < KS; ++it) {
++    asm volatile("" : "+r"(woff), "+r"(soff));  // rw: pinned in registers
++    uint8_t* st = ring + slot * SLOT;
++    const uint8_t* wbase = st + WO + woff;
++    const uint8_t* sbase = st + WO + soff;
++    const uint64_t dbase = desc_sw128(smem_u32(st));
++    const uint64_t rdbase = dbase + (uint64_t)(XB >> 4);
++    if (it > 0) {
++      mbar_wait(bars + 8 * slot, ph);
++      if (MX_LDS1 < 2) {
++        nwq = *reinterpret_cast<const uint4*>(wbase);
++        nsc = *reinterpret_cast<const uint2*>(sbase);
++      }
++    }
++    const uint4 wq = nwq;
++    const uint2 sc = nsc;
++#if MX_LDS1 == 0
++    const uint4 rwq = *reinterpret_cast<const uint4*>(wbase + WBLK);
++    const uint2 rsc = *reinterpret_cast<const uint2*>(sbase + WBLK);
++#endif
++    auto rdec = [&](int j, uint32_t (&ra)[4]) {
++#if MX_LDS1 >= 1  // the rider's codes / scales one k16 at a time
++      const uint32_t rq = *reinterpret_cast<const uint32_t*>(wbase + WBLK + 4 * j);
++      const uint32_t rsw = *reinterpret_cast<const uint32_t*>(sbase + WBLK + 4 * (j >> 1));
++#else
++      const uint32_t rq = j == 0 ? rwq.x : j == 1 ? rwq.y : j == 2 ? rwq.z : rwq.w;
++      const uint32_t rsw = j < 2 ? rsc.x : rsc.y;
++#endif
++      convert8_reuse(rq, scale_pair_sel(rsw, j & 1, rm16), ra, rm16, rm64);
+     };
+-    gemm2_half.template operator()<0, (N > 128 ? 16 : N / 8)>();
+-    if constexpr (N > 128) gemm2_half.template operator()<1, (N - 128) / 8>();
+-    } else {
+-    const int c0 = (wg * 4 + w) * 16 + g;
+-    // halves of up to 128 tokens through the 128-row staging buffer: half 1 (tiles over 128 rows) holds N - 128 rows
+-    auto gemm2_half = [&]<int half, int NJ>() {
+-      if (half) named_bar_sync(1, 256);  // (half 0 was copied out by the consumers themselves)
+-      // stmatrix.trans: per 8-token group, two 8x8 matrices (this warp's columns 16w..16w+7 and 16w+8..16w+15)
+-      if constexpr (NJ >= 2) {
+-#pragma unroll
+-        for (int j2 = 0; j2 < NJ / 2; ++j2) {
+-          uint32_t r[4];
+-#pragma unroll
+-          for (int u = 0; u < 2; ++u) {
+-            const int ai = 4 * (2 * j2 + u + half * 16);
+-            r[2 * u] = bf162_u32(__floats2bfloat162_rn(acc[ai] * cs, acc[ai + 1] * cs));
+-            r[2 * u + 1] = bf162_u32(__floats2bfloat162_rn(acc[ai + 2] * cs, acc[ai + 3] * cs));
+-          }
+-          const int m = lane >> 3, rr = lane & 7;
+-          const int tl = 8 * (2 * j2 + (m >> 1)) + rr;
+-          const uint32_t addr = smem_u32(stg + tl * 272 + ((wg * 4 + w) * 16 + 8 * (m & 1)) * 2);
+-          asm volatile("stmatrix.sync.aligned.m8n8.x4.trans.shared.b16 [%0], {%1, %2, %3, %4};" ::"r"(addr), "r"(r[0]),
+-                       "r"(r[1]), "r"(r[2]), "r"(r[3]) : "memory");
+-        }
+-      } else {
+-#pragma unroll
+-        for (int jj = 0; jj < NJ; ++jj) {
+-#pragma unroll
+-          for (int b = 0; b < 2; ++b) {
+-            const int tl = 8 * jj + 2 * t + b;
+-            const int ai = 4 * (jj + half * 16) + b;
+-            __nv_bfloat16* r = reinterpret_cast<__nv_bfloat16*>(stg + tl * 272);
+-            r[c0] = __float2bfloat16_rn(acc[ai] * cs);
+-            r[c0 + 8] = __float2bfloat16_rn(acc[ai + 2] * cs);
+-          }
+-        }
+-      }
+-      constexpr int ntok = 8 * NJ;
+-      // the last half goes to the publisher warp (its copy loop overlaps the next item); a first half is copied by the
+-      // consumers, since the second half needs the staging buffer right away
+-      if (pubq && half == (N > 128 ? 1 : 0)) {
+-        named_bar_sync(1, 256);
+-        if (ctid == 0)
+-          enqueue_out(pubq, p.out + ((size_t)(row0 + half * 128) * 4096 + ntile * 128) * 2, done, 1, ntok, row0, nreal);
+-      } else {
+-        named_bar_sync(1, 256);
+-        for (int i = ctid; i < ntok * 16; i += 256) {
+-          const int tl = i >> 4, c = i & 15;
+-          *reinterpret_cast<uint4*>(p.out + ((size_t)(row0 + half * 128 + tl) * 4096 + ntile * 128) * 2 + c * 16) =
+-              *reinterpret_cast<const uint4*>(stg + tl * 272 + c * 16);
+-        }
+-      }
+-    };
+-    gemm2_half.template operator()<0, (N > 128 ? 16 : N / 8)>();
+-    if constexpr (N > 128) gemm2_half.template operator()<1, (N - 128) / 8>();
+-    }
+-  }
++    if constexpr (MX_ORD == 2) rdec(0, rfrag[0]);
++#pragma unroll
++    for (int j = 0; j < 4; ++j) {
++#if MX_LDS1 >= 2  // the host's codes / scales one k16 at a time (fewer live registers)
++      const uint32_t q = *reinterpret_cast<const uint32_t*>(wbase + 4 * j);
++      const uint32_t sw = *reinterpret_cast<const uint32_t*>(sbase + 4 * (j >> 1));
++#else
++      const uint32_t q = j == 0 ? wq.x : j == 1 ? wq.y : j == 2 ? wq.z : wq.w;
++      const uint32_t sw = j < 2 ? sc.x : sc.y;
++#endif
++      if constexpr (MAT_SMALL || EP_REMAT) convert8_reuse(q, scale_pair_sel(sw, j & 1, m16), afrag[j & 1], m16, m64); else convert8(q, scale_pair_sel(sw, j & 1, m16), afrag[j & 1], m16, m64);
++      if constexpr (MX_ORD == 0) {  // both decodes, then both wgmmas
++        rdec(j, rfrag[j & 1]);
++        wg_fence();
++        wgmma_rs<N>(acc, afrag[j & 1], dbase + 2 * j, 1);
++        wgmma_rs<RN>(racc, rfrag[j & 1], rdbase + 2 * j, 1);
++      } else if constexpr (MX_ORD == 1) {  // the host's wgmma issues before the rider's decode
++        wg_fence();
++        wgmma_rs<N>(acc, afrag[j & 1], dbase + 2 * j, 1);
++        rdec(j, rfrag[j & 1]);
++        wg_fence();
++        wgmma_rs<RN>(racc, rfrag[j & 1], rdbase + 2 * j, 1);
++      } else {  // the rider's A fragments were decoded one k16 ahead (4 buffers)
++        wg_fence();
++        wgmma_rs<N>(acc, afrag[j & 1], dbase + 2 * j, 1);
++        wgmma_rs<RN>(racc, rfrag[j], rdbase + 2 * j, 1);
++      }
++      wg_commit();
++      if constexpr (MX_ORD == 2) { if (j < 3) rdec(j + 1, rfrag[j + 1]); }
++      wg_wait<1>();
++      if (j == 0 && prev >= 0) { rel_sync(); if (MOE_ALLLANE_RELEASE || lane == 0) mbar_arrive(bars + 8 * NSLOT + 8 * prev); }
++    }
++    prev = slot;
++    if (++slot == NSLOT) { slot = 0; ph ^= 1; }
++  }
++#endif
++  wg_wait<0>();
++  rel_sync();
++  if (MOE_ALLLANE_RELEASE || lane == 0) mbar_arrive(bars + 8 * NSLOT + 8 * prev);
++  if (t_mid) t_mid[0] = clock64();
++  {
++    const int wq_ = (threadIdx.x - CB) >> 5;
++    const volatile int* sx = reinterpret_cast<const volatile int*>(ring - 1024 + 640 + 48 * wq_);
++    if (MX_STASH >= 1) {
++      re = sx[6]; rrow0 = sx[7]; rntile = sx[8]; rnreal = sx[9] & 0xffff; rn = sx[9] >> 16;
++      rdone = reinterpret_cast<int*>((uintptr_t)(uint32_t)sx[10] | ((uintptr_t)(uint32_t)sx[11] << 32));
++    }
++    if (MX_STASH >= 2) {
++      e = sx[0]; row0 = sx[1]; ntile = sx[2]; nreal = sx[3];
++      done = reinterpret_cast<int*>((uintptr_t)(uint32_t)sx[4] | ((uintptr_t)(uint32_t)sx[5] << 32));
++    }
++  }
++#if MX_RFIRST
++  // the rider's epilogue first (it waits for the staging buffer; its accumulators die before the host's epilogue,
++  // which then skips the wait). Its staging region follows the host's (GEMM1: <= 256 x 128 B; GEMM2: 34816 B); only
++  // its rn real tokens are copied out.
++  item_epilogue<RN, CB, EP_REMAT, MAT_SMALL, false>(p, racc, stg, GATED ? 32768 : 34816, re, rrow0, rntile, GATED,
++                                                    rdone, pubq, rnreal, nullptr, rn);
++  item_epilogue<N, CB, EP_REMAT, MAT_SMALL, true>(p, acc, stg, 0, e, row0, ntile, GATED, done, pubq, nreal, t_mid);
++#else
++  item_epilogue<N, CB, EP_REMAT, MAT_SMALL>(p, acc, stg, 0, e, row0, ntile, GATED, done, pubq, nreal, t_mid);
++  item_epilogue<RN, CB, EP_REMAT, MAT_SMALL, true>(p, racc, stg, GATED ? 32768 : 34816, re, rrow0, rntile, GATED,
++                                                   rdone, pubq, rnreal, nullptr, rn);
++#endif
+ }
+ 
+ template <bool GATED>
+@@ -1061,6 +1345,440 @@
+ 
+ // ---- both expert GEMMs in one persistent launch: the queue holds every GEMM1 item, then every GEMM2 item; a GEMM2
+ // item's loads wait until all 64 GEMM1 n-tiles of its token tile have been written (per-tile counters) ----
++#define WW_SCALE0 1
++#ifndef WW_BIGSTG
++#define WW_BIGSTG 0
++#endif
++
++// ---- ww: kernel W's consumer: every wide width (160..256) through ONE epilogue (runtime width), so a width class's
++// first item on an SM finds the epilogue code warm (cold first-of-class epilogues: mw NOTES 0). One main loop per width
++// (the incumbent's N >= 160 loop: one k-block a stage, one commit group per k16, wait<1>); same per-element arithmetic
++// and order as consumer_item<N> (bit-identical outputs).
++#ifndef WW_XPF_MAX
++#define WW_XPF_MAX 0     // widths <= this load the next stage's weight codes one k-block ahead (cross-stage)
++#endif
++#ifndef WW_SLOT
++#define WW_SLOT SLOT     // kernel W's ring slot (wide stages only: 256 x 128 + 4608 <= 37888)
++#endif
++template <int NN, bool CONV_REUSE>
++DEVI void ww_wide_loop(float (&acc)[128], uint8_t* ring, uint32_t bars, int& slot, uint32_t& ph, int woff, int soff, int lane,
++                       unsigned long long* t_mid, int zx = 0) {
++  constexpr int XB = NN * 128;
++  constexpr int RS_ = WW_SLOT;
++  constexpr bool XPF_ = NN <= WW_XPF_MAX;
++  static_assert(XB + WBLK <= WW_SLOT, "wide stage does not fit kernel W's slot");
++  const uint32_t m16 = 16u, m64 = 64u;
++#if !WW_SCALE0
++#pragma unroll
++  for (int i = 0; i < NN / 2; ++i) acc[i] = 0.f;
++#endif
++  uint32_t afrag[2][4];
++  int prev = -1;
++  mbar_wait(bars + 8 * slot, ph);
++  if (t_mid) t_mid[1] = clock64();
++  uint4 nwq = *reinterpret_cast<const uint4*>(ring + slot * RS_ + XB + woff);
++  uint2 nsc = *reinterpret_cast<const uint2*>(ring + slot * RS_ + XB + soff);
++  for (int it = 0; it < KS; ++it) {
++    asm volatile("" : "+r"(woff), "+r"(soff));  // rw: pinned in registers
++    uint8_t* st = ring + slot * RS_;
++    const uint8_t* wbase = st + XB + woff;
++    const uint8_t* sbase = st + XB + soff;
++    const uint64_t dbase = desc_sw128(smem_u32(st));
++    if (!XPF_ && it > 0) {
++      mbar_wait(bars + 8 * slot, ph);
++      nwq = *reinterpret_cast<const uint4*>(wbase);
++      nsc = *reinterpret_cast<const uint2*>(sbase);
++    }
++    const uint4 wq = nwq;
++    const uint2 sc = nsc;
++#pragma unroll
++    for (int j = 0; j < 4; ++j) {
++      const uint32_t q = j == 0 ? wq.x : j == 1 ? wq.y : j == 2 ? wq.z : wq.w;
++      const uint32_t sw = j < 2 ? sc.x : sc.y;
++      if constexpr (CONV_REUSE) convert8_reuse(q, scale_pair_sel(sw, j & 1, m16), afrag[j & 1], m16, m64); else convert8(q, scale_pair_sel(sw, j & 1, m16), afrag[j & 1], m16, m64);
++      wg_fence();
++      // WW_SCALE0: the item's first k16 step overwrites the accumulators (scale-d 0) instead of a zero-init (which
++      // ptxas staged through ~34 uniform registers, leaving none for the item's other uniform state)
++      wgmma_rs<NN>(acc, afrag[j & 1], dbase + 2 * j, WW_SCALE0 ? (j > 0 || it > 0) : 1);
++      wg_commit();
++      if (XPF_ && j == 2 && it + 1 < KS) {  // ww xpf: the next stage's codes while k16 steps 1, 2 run (X and codes share
++        const int ns = slot + 1 == NSLOT ? 0 : slot + 1;  // one full barrier)
++        mbar_wait(bars + 8 * ns, slot + 1 == NSLOT ? ph ^ 1 : ph);
++        nwq = *reinterpret_cast<const uint4*>(ring + ns * RS_ + XB + woff);
++        nsc = *reinterpret_cast<const uint2*>(ring + ns * RS_ + XB + soff);
++      }
++      wg_wait<1>();
++      if (j == 0 && prev >= 0) { rel_sync(); if (MOE_ALLLANE_RELEASE || lane == 0) mbar_arrive(bars + 8 * NSLOT + 8 * prev); }
++    }
++    prev = slot;
++    if (++slot == NSLOT) { slot = 0; ph ^= 1; }
++  }
++  wg_wait<0>();
++  rel_sync();
++  if (MOE_ALLLANE_RELEASE || lane == 0) mbar_arrive(bars + 8 * NSLOT + 8 * prev);
++}
++template <int CB, bool EP_REMAT, bool MAT_SMALL, int FINE>
++DEVI void consumer_item_wide(const Args& p, uint8_t* ring, uint8_t* stg, uint32_t bars, int& slot, uint32_t& ph,
++                             int e, int row0, int ntile, bool GATED, int N, int* done, unsigned long long* t_mid,
++                             volatile long long* pubq, int nreal) {
++  const int ctid = threadIdx.x - CB;
++  const int wg = ctid >> 7;
++  const int w = (ctid >> 5) & 3;
++  const int lane = ctid & 31;
++  const int g = lane >> 2;
++  float acc[128];
++  const int woff = ((wg * 4 + w) * 32 + lane) * 16, soff = 4096 + ((wg * 4 + w) * 8 + g) * 8;
++  constexpr bool CR = MAT_SMALL || EP_REMAT;
++  if (FINE == 0 || N == 256) ww_wide_loop<256, CR>(acc, ring, bars, slot, ph, woff, soff, lane, t_mid);
++  else if (N == 224) ww_wide_loop<224, CR>(acc, ring, bars, slot, ph, woff, soff, lane, t_mid);
++  else if (N == 208) ww_wide_loop<208, CR>(acc, ring, bars, slot, ph, woff, soff, lane, t_mid);
++  else if (N == 192) ww_wide_loop<192, CR>(acc, ring, bars, slot, ph, woff, soff, lane, t_mid);
++  else ww_wide_loop<160, CR>(acc, ring, bars, slot, ph, woff, soff, lane, t_mid);
++  if (t_mid) t_mid[0] = clock64();
++  // ---- epilogue through the dedicated staging buffer (runtime width: one copy of the code for every wide class) ----
++  const float cs = p.gscale[e] * 128.f;
++  if (ctid == 0) wait_staging_free(pubq);
++  named_bar_sync(1, 256);  // previous item's copy-out is done with the staging buffer
++  if (t_mid) t_mid[2] = clock64();
++  if (GATED) {
++    const int q = wg * 4 + w;
++    const int n32 = N >> 5;
++#pragma unroll
++    for (int j4 = 0; j4 < 8; ++j4) {
++      if (j4 < n32) {
++        uint32_t r[4];
++#pragma unroll
++        for (int u = 0; u < 4; ++u) {
++          const int jj = 4 * j4 + u;
++          const float h0 = silu_fast(acc[4 * jj] * cs) * (acc[4 * jj + 2] * cs);
++          const float h1 = silu_fast(acc[4 * jj + 1] * cs) * (acc[4 * jj + 3] * cs);
++          r[u] = bf162_u32(__floats2bfloat162_rn(h0, h1));
++        }
++        const int rr = lane & 7, tokr = 8 * (4 * j4 + (lane >> 3)) + rr;
++        const uint32_t addr = smem_u32(stg + tokr * 128 + ((q ^ rr) << 4));
++        asm volatile("stmatrix.sync.aligned.m8n8.x4.trans.shared.b16 [%0], {%1, %2, %3, %4};" ::"r"(addr), "r"(r[0]),
++                     "r"(r[1]), "r"(r[2]), "r"(r[3]) : "memory");
++      }
++    }
++    if (FINE != 0 && N == 208) {  // 208 = 6 x 32 + 16: the last 16 tokens (accumulator groups 24, 25)
++      uint32_t r[2];
++#pragma unroll
++      for (int u = 0; u < 2; ++u) {
++        const int jj = 24 + u;
++        const float h0 = silu_fast(acc[4 * jj] * cs) * (acc[4 * jj + 2] * cs);
++        const float h1 = silu_fast(acc[4 * jj + 1] * cs) * (acc[4 * jj + 3] * cs);
++        r[u] = bf162_u32(__floats2bfloat162_rn(h0, h1));
++      }
++      const int rr = lane & 7, tokr = 192 + (lane & 15);
++      const uint32_t addr = smem_u32(stg + tokr * 128 + ((q ^ rr) << 4));
++      asm volatile("stmatrix.sync.aligned.m8n8.x2.trans.shared.b16 [%0], {%1, %2};"
++                   :: "r"(addr), "r"(r[0]), "r"(r[1]) : "memory");
++    }
++    asm volatile("fence.proxy.async.shared::cta;" ::: "memory");
++    named_bar_sync(1, 256);
++    if (ctid == 0) enqueue_out(pubq, p.out + (size_t)row0 * 8192 + (size_t)ntile * N * 128, done, 0, N * 128);
++  } else {
++    // down: half 0 (tokens 0..127) staged and copied out by the consumers, half 1 (N - 128 tokens) to the publisher
++    uint32_t ep_tid;
++    asm volatile("mov.u32 %0, %%tid.x;" : "=r"(ep_tid) :: "memory");
++    const int ep_ctid = (int)ep_tid - CB;
++    const int ep_q = ep_ctid >> 5;
++    const int ep_lane = ep_ctid & 31;
++#pragma unroll
++    for (int j2 = 0; j2 < 8; ++j2) {
++      uint32_t r[4];
++#pragma unroll
++      for (int u = 0; u < 2; ++u) {
++        const int ai = 4 * (2 * j2 + u);
++        r[2 * u] = bf162_u32(__floats2bfloat162_rn(acc[ai] * cs, acc[ai + 1] * cs));
++        r[2 * u + 1] = bf162_u32(__floats2bfloat162_rn(acc[ai + 2] * cs, acc[ai + 3] * cs));
++      }
++      const int m = ep_lane >> 3, rr = ep_lane & 7;
++      const int tl = 8 * (2 * j2 + (m >> 1)) + rr;
++      const uint32_t addr = smem_u32(stg + tl * 272 + (ep_q * 16 + 8 * (m & 1)) * 2);
++      asm volatile("stmatrix.sync.aligned.m8n8.x4.trans.shared.b16 [%0], {%1, %2, %3, %4};" ::"r"(addr), "r"(r[0]),
++                   "r"(r[1]), "r"(r[2]), "r"(r[3]) : "memory");
++    }
++#if !WW_BIGSTG
++    named_bar_sync(1, 256);
++    for (int i = ctid; i < 128 * 16; i += 256) {
++      const int tl = i >> 4, c = i & 15;
++      *reinterpret_cast<uint4*>(p.out + ((size_t)(row0 + tl) * 4096 + ntile * 128) * 2 + c * 16) =
++          *reinterpret_cast<const uint4*>(stg + tl * 272 + c * 16);
++    }
++    named_bar_sync(1, 256);
++    constexpr int H1 = 0;  // half 1 reuses staging rows 0..
++#else
++    constexpr int H1 = 128;  // ww bigstg: half 1 in staging rows 128.. (the staging holds all 256 rows)
++#endif
++    const int nj2 = (N - 128) >> 4;  // half 1: 2, 4, 5, 6 or 8 groups of 16 tokens
++#pragma unroll
++    for (int j2 = 0; j2 < 8; ++j2) {
++      if (j2 < nj2) {
++        uint32_t r[4];
++#pragma unroll
++        for (int u = 0; u < 2; ++u) {
++          const int ai = 4 * (2 * j2 + u + 16);
++          r[2 * u] = bf162_u32(__floats2bfloat162_rn(acc[ai] * cs, acc[ai + 1] * cs));
++          r[2 * u + 1] = bf162_u32(__floats2bfloat162_rn(acc[ai + 2] * cs, acc[ai + 3] * cs));
++        }
++        const int m = ep_lane >> 3, rr = ep_lane & 7;
++        const int tl = H1 + 8 * (2 * j2 + (m >> 1)) + rr;
++        const uint32_t addr = smem_u32(stg + tl * 272 + (ep_q * 16 + 8 * (m & 1)) * 2);
++        asm volatile("stmatrix.sync.aligned.m8n8.x4.trans.shared.b16 [%0], {%1, %2, %3, %4};" ::"r"(addr), "r"(r[0]),
++                     "r"(r[1]), "r"(r[2]), "r"(r[3]) : "memory");
++      }
++    }
++    named_bar_sync(1, 256);
++    if (ctid == 0) {
++      if (H1) enqueue_out(pubq, p.out + ((size_t)row0 * 4096 + ntile * 128) * 2, done, 1, N, row0, nreal);
++      else enqueue_out(pubq, p.out + ((size_t)(row0 + 128) * 4096 + ntile * 128) * 2, done, 1, N - 128, row0, nreal);
++    }
++  }
++}
++
++// ---- rw: kernel W's one consumer. RIDE_: host 256 + rider (consumer_combo's loop, rw's pinned offsets / constant
++// rider multipliers); else a plain wide item (worker W's ww_wide_loop). Then one runtime-width host epilogue. ----
++template <int CB, bool EP_REMAT, bool MAT_SMALL, int FINE>
++DEVI void rw_consumer_w(const Args& p, uint8_t* ring, uint8_t* stg, uint32_t bars, int& slot, uint32_t& ph,
++                        int e, int row0, int ntile, bool GATED, int N, int* done, unsigned long long* t_mid,
++                        volatile long long* pubq, int nreal, bool RIDE_, int re, int rrow0, int rntile, int* rdone,
++                        int rnreal, int rn) {
++  constexpr int RN = MX_RW;
++  constexpr bool CR = MAT_SMALL || EP_REMAT;
++  const int ctid = threadIdx.x - CB;
++  const int wg = ctid >> 7, w = (ctid >> 5) & 3, lane = ctid & 31, g = lane >> 2;
++  float acc[128];
++  if (RIDE_) {
++    // MX_STASH: the epilogue coordinates wait in shared memory (one 48-byte copy per warp at base + 640) instead of
++    // registers across the main loop (1: the rider's, 2: the host's too)
++    {
++      const int wq_ = (threadIdx.x - CB) >> 5;
++      volatile int* sx = reinterpret_cast<volatile int*>(ring - 1024 + 640 + 48 * wq_);
++      if ((threadIdx.x & 31) == 0) {
++        if (MX_STASH >= 1) {
++          sx[6] = re; sx[7] = rrow0; sx[8] = rntile; sx[9] = rnreal | (rn << 16);
++          sx[10] = (int)(reinterpret_cast<uintptr_t>(rdone) & 0xffffffffu); sx[11] = (int)(reinterpret_cast<uintptr_t>(rdone) >> 32);
++        }
++        if (MX_STASH >= 2) {
++          sx[0] = e; sx[1] = row0; sx[2] = ntile; sx[3] = nreal;
++          sx[4] = (int)(reinterpret_cast<uintptr_t>(done) & 0xffffffffu); sx[5] = (int)(reinterpret_cast<uintptr_t>(done) >> 32);
++        }
++      }
++      __syncwarp();
++    }
++    const uint32_t zz_ = 0u;
++    const uint32_t m16 = 16u + zz_, m64 = 64u + zz_;
++    const uint32_t rm16 = 16u, rm64 = 64u;
++    constexpr int XB = 256 * 128, RXB = RN * 128, WO = XB + RXB;
++    static_assert(WO + 2 * WBLK <= SLOT, "combo stage does not fit a ring slot");
++    float racc[128];  // first RN / 2 live
++    uint32_t afrag[2][4], rfrag[2][4];
++    int prev = -1;
++    int woff = ((wg * 4 + w) * 32 + lane) * 16, soff = 4096 + ((wg * 4 + w) * 8 + g) * 8;
++    const int zx_ = (int)(p.mul16 ^ 16u);  // rw: a runtime zero (pins woff / soff in registers)
++    mbar_wait(bars + 8 * slot, ph);
++    if (t_mid) t_mid[1] = clock64();
++    uint4 nwq = *reinterpret_cast<const uint4*>(ring + slot * SLOT + WO + woff);
++    uint2 nsc = *reinterpret_cast<const uint2*>(ring + slot * SLOT + WO + soff);
++    for (int it = 0; it < KS; ++it) {
++      asm volatile("" : "+r"(woff), "+r"(soff));  // rw: pinned in registers
++      uint8_t* st = ring + slot * SLOT;
++      const uint8_t* wbase = st + WO + woff;
++      const uint8_t* sbase = st + WO + soff;
++      const uint64_t dbase = desc_sw128(smem_u32(st));
++      const uint64_t rdbase = dbase + (uint64_t)(XB >> 4);
++      if (it > 0) {
++        mbar_wait(bars + 8 * slot, ph);
++        if (MX_LDS1 < 2) {
++          nwq = *reinterpret_cast<const uint4*>(wbase);
++          nsc = *reinterpret_cast<const uint2*>(sbase);
++        }
++      }
++      const uint4 wq = nwq;
++      const uint2 sc = nsc;
++#if MX_LDS1 == 0
++      const uint4 rwq = *reinterpret_cast<const uint4*>(wbase + WBLK);
++      const uint2 rsc = *reinterpret_cast<const uint2*>(sbase + WBLK);
++#endif
++      auto rdec = [&](int j, uint32_t (&ra)[4]) {
++#if MX_LDS1 >= 1  // the rider's codes / scales one k16 at a time
++        const uint32_t rq = *reinterpret_cast<const uint32_t*>(wbase + WBLK + 4 * j);
++        const uint32_t rsw = *reinterpret_cast<const uint32_t*>(sbase + WBLK + 4 * (j >> 1));
++#else
++        const uint32_t rq = j == 0 ? rwq.x : j == 1 ? rwq.y : j == 2 ? rwq.z : rwq.w;
++        const uint32_t rsw = j < 2 ? rsc.x : rsc.y;
++#endif
++        convert8_reuse(rq, scale_pair_sel(rsw, j & 1, rm16), ra, rm16, rm64);
++      };
++      if constexpr (MX_ORD == 2) rdec(0, rfrag[0]);
++#pragma unroll
++      for (int j = 0; j < 4; ++j) {
++#if MX_LDS1 >= 2  // the host's codes / scales one k16 at a time (fewer live registers)
++        const uint32_t q = *reinterpret_cast<const uint32_t*>(wbase + 4 * j);
++        const uint32_t sw = *reinterpret_cast<const uint32_t*>(sbase + 4 * (j >> 1));
++#else
++        const uint32_t q = j == 0 ? wq.x : j == 1 ? wq.y : j == 2 ? wq.z : wq.w;
++        const uint32_t sw = j < 2 ? sc.x : sc.y;
++#endif
++        if constexpr (MAT_SMALL || EP_REMAT) convert8_reuse(q, scale_pair_sel(sw, j & 1, m16), afrag[j & 1], m16, m64); else convert8(q, scale_pair_sel(sw, j & 1, m16), afrag[j & 1], m16, m64);
++        if constexpr (MX_ORD == 0) {  // both decodes, then both wgmmas
++          rdec(j, rfrag[j & 1]);
++          wg_fence();
++          wgmma_rs<256>(acc, afrag[j & 1], dbase + 2 * j, (j > 0 || it > 0));
++          wgmma_rs<RN>(racc, rfrag[j & 1], rdbase + 2 * j, (j > 0 || it > 0));
++        } else if constexpr (MX_ORD == 1) {  // the host's wgmma issues before the rider's decode
++          wg_fence();
++          wgmma_rs<256>(acc, afrag[j & 1], dbase + 2 * j, (j > 0 || it > 0));
++          rdec(j, rfrag[j & 1]);
++          wg_fence();
++          wgmma_rs<RN>(racc, rfrag[j & 1], rdbase + 2 * j, (j > 0 || it > 0));
++        } else {  // the rider's A fragments were decoded one k16 ahead (4 buffers)
++          wg_fence();
++          wgmma_rs<256>(acc, afrag[j & 1], dbase + 2 * j, (j > 0 || it > 0));
++          wgmma_rs<RN>(racc, rfrag[j], rdbase + 2 * j, (j > 0 || it > 0));
++        }
++        wg_commit();
++        if constexpr (MX_ORD == 2) { if (j < 3) rdec(j + 1, rfrag[j + 1]); }
++        wg_wait<1>();
++        if (j == 0 && prev >= 0) { rel_sync(); if (MOE_ALLLANE_RELEASE || lane == 0) mbar_arrive(bars + 8 * NSLOT + 8 * prev); }
++      }
++      prev = slot;
++      if (++slot == NSLOT) { slot = 0; ph ^= 1; }
++    }
++    wg_wait<0>();
++    rel_sync();
++    if (MOE_ALLLANE_RELEASE || lane == 0) mbar_arrive(bars + 8 * NSLOT + 8 * prev);
++    {
++      const int wq_ = (threadIdx.x - CB) >> 5;
++      const volatile int* sx = reinterpret_cast<const volatile int*>(ring - 1024 + 640 + 48 * wq_);
++      if (MX_STASH >= 1) {
++        re = sx[6]; rrow0 = sx[7]; rntile = sx[8]; rnreal = sx[9] & 0xffff; rn = sx[9] >> 16;
++        rdone = reinterpret_cast<int*>((uintptr_t)(uint32_t)sx[10] | ((uintptr_t)(uint32_t)sx[11] << 32));
++      }
++      if (MX_STASH >= 2) {
++        e = sx[0]; row0 = sx[1]; ntile = sx[2]; nreal = sx[3];
++        done = reinterpret_cast<int*>((uintptr_t)(uint32_t)sx[4] | ((uintptr_t)(uint32_t)sx[5] << 32));
++      }
++    }
++    item_epilogue<RN, CB, EP_REMAT, MAT_SMALL, false>(p, racc, stg, GATED ? 32768 : 34816, re, rrow0, rntile, GATED,
++                                                      rdone, pubq, rnreal, nullptr, rn);
++    N = 256;
++  } else {
++    const int woff = ((wg * 4 + w) * 32 + lane) * 16, soff = 4096 + ((wg * 4 + w) * 8 + g) * 8;
++    const int zw_ = (int)(p.mul16 ^ 16u);
++    if (FINE == 0 || N == 256) ww_wide_loop<256, CR>(acc, ring, bars, slot, ph, woff, soff, lane, t_mid, zw_);
++    else if (N == 224) ww_wide_loop<224, CR>(acc, ring, bars, slot, ph, woff, soff, lane, t_mid, zw_);
++    else if (N == 208) ww_wide_loop<208, CR>(acc, ring, bars, slot, ph, woff, soff, lane, t_mid, zw_);
++    else if (N == 192) ww_wide_loop<192, CR>(acc, ring, bars, slot, ph, woff, soff, lane, t_mid, zw_);
++    else ww_wide_loop<160, CR>(acc, ring, bars, slot, ph, woff, soff, lane, t_mid, zw_);
++    (void)zw_;
++  }
++  if (t_mid) t_mid[0] = clock64();
++  // ---- epilogue through the dedicated staging buffer (runtime width: one copy of the code for every wide class) ----
++  const float cs = p.gscale[e] * 128.f;
++  if (!RIDE_) {  // (a combo's rider epilogue already waited for the staging buffer)
++    if (ctid == 0) wait_staging_free(pubq);
++    named_bar_sync(1, 256);  // previous item's copy-out is done with the staging buffer
++  }
++  if (t_mid) t_mid[2] = clock64();
++  if (GATED) {
++    const int q = wg * 4 + w;
++    const int n32 = N >> 5;
++#pragma unroll
++    for (int j4 = 0; j4 < 8; ++j4) {
++      if (j4 < n32) {
++        uint32_t r[4];
++#pragma unroll
++        for (int u = 0; u < 4; ++u) {
++          const int jj = 4 * j4 + u;
++          const float h0 = silu_fast(acc[4 * jj] * cs) * (acc[4 * jj + 2] * cs);
++          const float h1 = silu_fast(acc[4 * jj + 1] * cs) * (acc[4 * jj + 3] * cs);
++          r[u] = bf162_u32(__floats2bfloat162_rn(h0, h1));
++        }
++        const int rr = lane & 7, tokr = 8 * (4 * j4 + (lane >> 3)) + rr;
++        const uint32_t addr = smem_u32(stg + tokr * 128 + ((q ^ rr) << 4));
++        asm volatile("stmatrix.sync.aligned.m8n8.x4.trans.shared.b16 [%0], {%1, %2, %3, %4};" ::"r"(addr), "r"(r[0]),
++                     "r"(r[1]), "r"(r[2]), "r"(r[3]) : "memory");
++      }
++    }
++    if (FINE != 0 && N == 208) {  // 208 = 6 x 32 + 16: the last 16 tokens (accumulator groups 24, 25)
++      uint32_t r[2];
++#pragma unroll
++      for (int u = 0; u < 2; ++u) {
++        const int jj = 24 + u;
++        const float h0 = silu_fast(acc[4 * jj] * cs) * (acc[4 * jj + 2] * cs);
++        const float h1 = silu_fast(acc[4 * jj + 1] * cs) * (acc[4 * jj + 3] * cs);
++        r[u] = bf162_u32(__floats2bfloat162_rn(h0, h1));
++      }
++      const int rr = lane & 7, tokr = 192 + (lane & 15);
++      const uint32_t addr = smem_u32(stg + tokr * 128 + ((q ^ rr) << 4));
++      asm volatile("stmatrix.sync.aligned.m8n8.x2.trans.shared.b16 [%0], {%1, %2};"
++                   :: "r"(addr), "r"(r[0]), "r"(r[1]) : "memory");
++    }
++    asm volatile("fence.proxy.async.shared::cta;" ::: "memory");
++    named_bar_sync(1, 256);
++    if (ctid == 0) enqueue_out(pubq, p.out + (size_t)row0 * 8192 + (size_t)ntile * N * 128, done, 0, N * 128);
++  } else {
++    // down: half 0 (tokens 0..127) staged and copied out by the consumers, half 1 (N - 128 tokens) to the publisher
++    uint32_t ep_tid;
++    asm volatile("mov.u32 %0, %%tid.x;" : "=r"(ep_tid) :: "memory");
++    const int ep_ctid = (int)ep_tid - CB;
++    const int ep_q = ep_ctid >> 5;
++    const int ep_lane = ep_ctid & 31;
++#pragma unroll
++    for (int j2 = 0; j2 < 8; ++j2) {
++      uint32_t r[4];
++#pragma unroll
++      for (int u = 0; u < 2; ++u) {
++        const int ai = 4 * (2 * j2 + u);
++        r[2 * u] = bf162_u32(__floats2bfloat162_rn(acc[ai] * cs, acc[ai + 1] * cs));
++        r[2 * u + 1] = bf162_u32(__floats2bfloat162_rn(acc[ai + 2] * cs, acc[ai + 3] * cs));
++      }
++      const int m = ep_lane >> 3, rr = ep_lane & 7;
++      const int tl = 8 * (2 * j2 + (m >> 1)) + rr;
++      const uint32_t addr = smem_u32(stg + tl * 272 + (ep_q * 16 + 8 * (m & 1)) * 2);
++      asm volatile("stmatrix.sync.aligned.m8n8.x4.trans.shared.b16 [%0], {%1, %2, %3, %4};" ::"r"(addr), "r"(r[0]),
++                   "r"(r[1]), "r"(r[2]), "r"(r[3]) : "memory");
++    }
++#if !WW_BIGSTG
++    named_bar_sync(1, 256);
++    for (int i = ctid; i < 128 * 16; i += 256) {
++      const int tl = i >> 4, c = i & 15;
++      *reinterpret_cast<uint4*>(p.out + ((size_t)(row0 + tl) * 4096 + ntile * 128) * 2 + c * 16) =
++          *reinterpret_cast<const uint4*>(stg + tl * 272 + c * 16);
++    }
++    named_bar_sync(1, 256);
++    constexpr int H1 = 0;  // half 1 reuses staging rows 0..
++#else
++    constexpr int H1 = 128;  // ww bigstg: half 1 in staging rows 128.. (the staging holds all 256 rows)
++#endif
++    const int nj2 = (N - 128) >> 4;  // half 1: 2, 4, 5, 6 or 8 groups of 16 tokens
++#pragma unroll
++    for (int j2 = 0; j2 < 8; ++j2) {
++      if (j2 < nj2) {
++        uint32_t r[4];
++#pragma unroll
++        for (int u = 0; u < 2; ++u) {
++          const int ai = 4 * (2 * j2 + u + 16);
++          r[2 * u] = bf162_u32(__floats2bfloat162_rn(acc[ai] * cs, acc[ai + 1] * cs));
++          r[2 * u + 1] = bf162_u32(__floats2bfloat162_rn(acc[ai + 2] * cs, acc[ai + 3] * cs));
++        }
++        const int m = ep_lane >> 3, rr = ep_lane & 7;
++        const int tl = H1 + 8 * (2 * j2 + (m >> 1)) + rr;
++        const uint32_t addr = smem_u32(stg + tl * 272 + (ep_q * 16 + 8 * (m & 1)) * 2);
++        asm volatile("stmatrix.sync.aligned.m8n8.x4.trans.shared.b16 [%0], {%1, %2, %3, %4};" ::"r"(addr), "r"(r[0]),
++                     "r"(r[1]), "r"(r[2]), "r"(r[3]) : "memory");
++      }
++    }
++    named_bar_sync(1, 256);
++    if (ctid == 0) {
++      if (H1) enqueue_out(pubq, p.out + ((size_t)row0 * 4096 + ntile * 128) * 2, done, 1, N, row0, nreal);
++      else enqueue_out(pubq, p.out + ((size_t)(row0 + 128) * 4096 + ntile * 128) * 2, done, 1, N - 128, row0, nreal);
++    }
++  }
++}
++
+ struct FusedArgs {
+   Args g1, g2;     // GEMM1 (gated, writes inter in tile layout) and GEMM2 (reads inter, writes y)
+   int* done;       // [max tiles] GEMM1 n-tiles finished per token tile (zeroed before launch)
+@@ -1264,10 +1982,208 @@
+   }
+ }
+ 
+-template <int FINE, bool DIRECT_PG = false, bool MAT_SMALL = false, bool BIG = false>
++
++// ---- mx riders: work units (MAT_SMALL instantiation) ----
++struct RideInfo { int nW, rb, nRide, nH; };
++// tiles are sorted by width (plan order 1): wide tiles first, the eligible rider tiles last. Warp-collective.
++DEVI RideInfo ride_info(const int4* tiles, int nt, bool pre = false, int z0 = 0) {
++  int nW = 0, nE = 0, nH = 0;
++  const int lane = threadIdx.x & 31;
++  for (int b = 0; b < nt; b += 32) {
++    const int i = b + lane;
++    const int z = i < nt ? ((pre && b == 0) ? z0 : tiles[i].z) : 0;
++    nW += __popc(__ballot_sync(0xffffffffu, z >= 160));
++    nH += __popc(__ballot_sync(0xffffffffu, z >= MX_HMIN));
++    nE += __popc(__ballot_sync(0xffffffffu, z > 0 && z <= MX_RMAX));
++  }
++  RideInfo r;
++  r.nW = nW;
++  r.nH = nH;
++  r.nRide = min(nH, nE);
++  r.rb = nt - nE;
++  return r;
++}
++#if MX_ORDER == 1
++// MX_ORDER 1: GEMM1 host units first (the wide tiles; hosts h < nRide carry rider tile rb + h, same n-tile), then the
++// other tiles' GEMM1 items in s_b's MAT_SMALL order, then GEMM2 the same way: the combos run together
++DEVI void unit_of(int u, int nt, const RideInfo& ri, bool& second, int& tile, int& ntile, int& rtile, int& rntile) {
++  const int nW = ri.nW, nS = nt - nW - ri.nRide;
++  int v = u, per = 64;
++  second = false;
++  if (u >= (nW + nS) * 64) { second = true; v = u - (nW + nS) * 64; per = 32; }
++  if (v < nW * per) {
++    if (!second && v < nW * 32) { tile = (v / 8) % nW; ntile = (v / (nW * 8)) * 8 + v % 8; }
++    else if (!second) { const int r = v - nW * 32; tile = r / 32; ntile = 32 + r % 32; }
++    else { tile = v / 32; ntile = v % 32; }
++  } else {
++    const int w = v - nW * per;
++    int s2;
++    if (!second && nS > 0 && w < nS * 32) { s2 = (w / 8) % nS; ntile = (w / (nS * 8)) * 8 + w % 8; }
++    else if (!second) { const int r = w - nS * 32; s2 = r / 32; ntile = 32 + r % 32; }
++    else { s2 = w / 32; ntile = w % 32; }
++    tile = s2 < ri.rb - nW ? nW + s2 : nW + s2 + ri.nRide;
++  }
++  rtile = tile < ri.nRide ? ri.rb + tile : -1;
++  rntile = ntile;
++}
++#else
++// unit u -> GEMM (second), host tile / ntile, rider tile / ntile (rtile -1: none). The units follow s_b's MAT_SMALL
++// item order over the tiles that do not ride (GEMM1 n-tiles 0..31 interleaved by 8 across the tiles, then n-tiles
++// 32..63 tile-major, then GEMM2 tile-major); wide tile h < nRide carries rider tile rb + h at the same n-tile.
++DEVI void unit_of(int u, int nt, const RideInfo& ri, bool& second, int& tile, int& ntile, int& rtile, int& rntile) {
++  const int nt2 = nt - ri.nRide;
++  int t2;
++  if (u < nt2 * 64) {
++    second = false;
++    if (u < nt2 * 32) { t2 = (u / 8) % nt2; ntile = (u / (nt2 * 8)) * 8 + u % 8; }
++    else { const int r = u - nt2 * 32; t2 = r / 32; ntile = 32 + r % 32; }
++  } else {
++    second = true;
++    const int v = u - nt2 * 64;
++    t2 = v / 32; ntile = v % 32;
++  }
++  tile = t2 < ri.rb ? t2 : t2 + ri.nRide;
++  rtile = tile < ri.nRide ? ri.rb + tile : -1;
++  rntile = ntile;
++}
++#endif
++
++// ---- mx W / N split: work units per kernel part (PART 1 = W, 2 = N, 0 = the single-kernel ride order) ----
++#ifndef MOE_N_THREADS
++#define MOE_N_THREADS MOE_FUSED_THREADS  // kernel N's block size (mn: a 3-4 consumer-WG kernel N plugs in here)
++#endif
++DEVI int part_tiles(int PART_, int nt, const RideInfo& ri) {
++  return PART_ == 1 ? ri.nW : (PART_ == 2 ? nt - ri.nW - ri.nRide : nt - ri.nRide);
++}
++// W: the nW wide tiles in s_b's MAT_SMALL order (GEMM1 n-tiles 0..31 interleaved by 8 across the tiles, then 32..63
++// tile-major, then GEMM2 tile-major); wide tile h < nRide carries rider tile rb + h at the same n-tile.
++// N: the solo tiles [nW, rb) U [rb + nRide, nt) in the same order.
++// MX_CONC: kernel W keeps only its share of the SMs (the plan's work estimate), its other CTAs exit at once, so kernel N
++// starts on the rest right away and runs NEXT TO W (narrow weight streaming beside wide compute) instead of after it.
++#ifndef MX_CONC
++#define MX_CONC 0
++#endif
++#ifndef MX_WBIAS
++#define MX_WBIAS 2     // extra W CTAs (W cannot grow later; N takes every SM a W CTA leaves)
++#endif
++#ifndef MX_COMBO_US
++#define MX_COMBO_US 11.f  // a rider's cost to its host (us), measured in W
++#endif
++DEVI float item_us(int z) {  // per-item SM time (us, gate / down average) at T~753, from s_b's item traces
++  if (z >= 160) return 0.155f * z + 1.5f;
++  return z <= 8 ? 10.2f : z <= 16 ? 10.9f : z <= 32 ? 12.0f : z <= 64 ? 16.6f : z <= 96 ? 19.7f : 22.5f;
++}
++// warp-collective: kernel W's CTA count out of G
++DEVI int w_grid(const int4* tiles, int nt, const RideInfo& ri, int G) {
++  const int lane = threadIdx.x & 31;
++  float cw = 0.f, cn = 0.f;
++  for (int i = lane; i < nt; i += 32) {
++    const int z = tiles[i].z;
++    if (i < ri.nW) cw += item_us(z) + (i < ri.nRide ? MX_COMBO_US : 0.f);
++    else if (i < ri.rb || i >= ri.rb + ri.nRide) cn += item_us(z);
++  }
++#pragma unroll
++  for (int o = 16; o > 0; o >>= 1) {
++    cw += __shfl_xor_sync(0xffffffffu, cw, o);
++    cn += __shfl_xor_sync(0xffffffffu, cn, o);
++  }
++  if (cn <= 0.f) return G;
++  const int g = (int)ceilf((float)G * cw / (cw + cn)) + MX_WBIAS;
++  return g < 1 ? 1 : (g > G ? G : g);
++}
++template <int PART_>
++DEVI void part_unit(int u, int nt, const RideInfo& ri, bool& second, int& tile, int& ntile, int& rtile, int& rntile) {
++  if constexpr (PART_ == 0) {
++    unit_of(u, nt, ri, second, tile, ntile, rtile, rntile);
++  } else {
++    const int m = part_tiles(PART_, nt, ri);
++    int t2;
++    if (u < m * 64) {
++      second = false;
++      if (PART_ != 0) { t2 = u >> 6; ntile = u & 63; }  // rw/ww: W (and N) tile-major (GEMM1 NT = 64)
++      else if (u < m * 32) { t2 = (u / 8) % m; ntile = (u / (m * 8)) * 8 + u % 8; }
++      else { const int r = u - m * 32; t2 = r / 32; ntile = 32 + r % 32; }
++    } else {
++      second = true;
++      const int v = u - m * 64;
++      t2 = v / 32; ntile = v % 32;
++    }
++    if constexpr (PART_ == 1) {
++      tile = t2;
++      rtile = tile < ri.nRide ? ri.rb + tile : -1;
++    } else {
++      tile = t2 < ri.rb - ri.nW ? ri.nW + t2 : ri.nW + t2 + ri.nRide;
++      rtile = -1;
++    }
++    rntile = ntile;
++  }
++}
++#define RW_WAITMODE 0
++
++// ---- rw: the producer as a convergent warp (mn's recipe): every lane runs the item / stage loop on warp-uniform values,
++// one elected lane issues expect_tx + the bulk copies. A single-thread producer's operands sit in vector registers
++// (they come from loads: tiles[], the item counter), so every copy / prefetch compiled to an ELECT / R2UR x5 / BRA.U.ANY
++// waterfall: ~900 cycles to issue a combo stage's 4 copies, more than the consumers' k-block (rw NOTES 3). ----
++DEVI bool rw_elect() {
++  uint32_t r;
++  asm volatile("{\n.reg .pred P;\nelect.sync _|P, 0xffffffff;\nselp.u32 %0, 1, 0, P;\n}\n" : "=r"(r));
++  return r != 0;
++}
++#ifndef RW_WAITMODE
++#define RW_WAITMODE 0  // 0: every lane polls (vote exit); 1: + nanosleep between polls; 2: lane 0 waits, the warp syncs
++#endif
++DEVI void rw_wait_l0(uint32_t bar, uint32_t parity) {  // lane 0 waits (try_wait suspends), the warp re-converges
++  if ((threadIdx.x & 31) == 0) mbar_wait(bar, parity);
++  __syncwarp();
++}
++DEVI void rw_wait_all(uint32_t bar, uint32_t parity) {  // warp-uniform exit: the warp stays provably converged
++  if (RW_WAITMODE == 2) {
++    if ((threadIdx.x & 31) == 0) mbar_wait(bar, parity);
++    __syncwarp();
++    return;
++  }
++  while (true) {
++    uint32_t ok;
++    asm volatile("{\n.reg .pred P1;\nmbarrier.try_wait.parity.shared.b64 P1, [%1], %2;\nselp.u32 %0, 1, 0, P1;\n}\n"
++                 : "=r"(ok) : "r"(bar), "r"(parity) : "memory");
++    if (__all_sync(0xffffffffu, ok != 0)) break;
++    if (RW_WAITMODE == 1) __nanosleep(32);
++  }
++}
++// redux.sync results live in uniform registers: per-item producer values passed through it keep the stage loop's
++// address arithmetic on the uniform datapath (no R2UR per copy)
++DEVI uint32_t rw_uni(uint32_t v) { return __reduce_max_sync(0xffffffffu, v); }
++DEVI const uint8_t* rw_unip(const uint8_t* p) {
++  const uint64_t x = reinterpret_cast<uint64_t>(p);
++  const uint32_t lo = rw_uni((uint32_t)x), hi = rw_uni((uint32_t)(x >> 32));
++  return reinterpret_cast<const uint8_t*>(((uint64_t)hi << 32) | lo);
++}
++DEVI int4 rw_bcast4(int4 v) {
++  v.x = __shfl_sync(0xffffffffu, v.x, 0); v.y = __shfl_sync(0xffffffffu, v.y, 0);
++  v.z = __shfl_sync(0xffffffffu, v.z, 0); v.w = __shfl_sync(0xffffffffu, v.w, 0);
++  return v;
++}
++template <int FINE, bool DIRECT_PG = false, bool MAT_SMALL = false, bool BIG = false, int PART = 0>
+ #define MOE_EARLY_INIT 0  // 1: shared-memory barrier setup before the PDL wait (overlaps the gather's tail)
+-__global__ void __launch_bounds__(MOE_FUSED_THREADS, 1) moe_fused_persistent(FusedArgs fa) {
+-  if constexpr (!MOE_EARLY_INIT) pdl_enter();
++__global__ void __launch_bounds__(PART == 2 ? MOE_N_THREADS : MOE_FUSED_THREADS, 1) moe_fused_persistent(FusedArgs fa) {
++  if constexpr (PART == 1) {  // mx W: the gather's results first, then let kernel N launch
++    asm volatile("griddepcontrol.wait;" ::: "memory");
++    asm volatile("griddepcontrol.launch_dependents;" ::: "memory");
++  } else if constexpr (PART == 2) {  // mx N: runs next to W (no wait here; see the end)
++    asm volatile("griddepcontrol.launch_dependents;" ::: "memory");
++  } else if constexpr (!MOE_EARLY_INIT) pdl_enter();
++  // rw: tile count / first widths / ride info / W's share / the producer's first item before the barrier setup
++  const int nt_pre_ = PART != 0 ? *fa.g1.ntiles : 0;
++  const int z_pre_ = PART != 0 ? fa.g1.tiles[threadIdx.x & 31].z : 0;
++  RideInfo ri_pre_;
++  ri_pre_.nW = 0; ri_pre_.rb = 0; ri_pre_.nRide = 0; ri_pre_.nH = 0;
++  if constexpr (PART != 0) ri_pre_ = ride_info(fa.g1.tiles, nt_pre_, true, z_pre_);
++  if constexpr (PART == 1 && MX_CONC) {
++    if ((int)blockIdx.x >= w_grid(fa.g1.tiles, nt_pre_, ri_pre_, (int)gridDim.x)) {  return; }
++  }
++  int item0_ = -1;
++  if (PART == 2 && threadIdx.x == MOE_PB) item0_ = atomicAdd(fa.done + nt_pre_, 1);
++  if (PART == 1 && 1 && threadIdx.x == MOE_PB) item0_ = atomicAdd(fa.g1.counter, 1);
+   extern __shared__ __align__(1024) uint8_t smem_raw[];
+   const uint32_t raw = smem_u32(smem_raw);
+   const uint32_t pad = ((raw + 1023) & ~1023u) - raw;
+@@ -1295,18 +2211,156 @@
+   }
+   __syncthreads();
+   if constexpr (MOE_EARLY_INIT) pdl_enter();
+-  const int nt = *fa.g1.ntiles;
+-  const int n1 = nt * fa.g1.NT, nitems = n1 + nt * fa.g2.NT;
++  const int nt = PART != 0 ? nt_pre_ : *fa.g1.ntiles;
++  const int n1 = nt * fa.g1.NT;
++  RideInfo ri;
++  ri.nW = 0; ri.rb = nt; ri.nRide = 0;
++  if constexpr (MAT_SMALL && MX_RIDE) ri = PART != 0 ? ri_pre_ : ride_info(fa.g1.tiles, nt);  // mx: every warp, converged
++  const int nitems = (MAT_SMALL && MX_RIDE) ? part_tiles(PART, nt, ri) * (fa.g1.NT + fa.g2.NT) : n1 + nt * fa.g2.NT;
++  const int trace_off = PART == 2 ? ri.nW * (fa.g1.NT + fa.g2.NT) : 0;  // (item trace records of N after W's)
++  (void)trace_off;
++  if constexpr (PART == 1 && MX_CONC) {  // mx: W keeps its share of the SMs, the rest go to N at once
++    // rw: (W's share checked at entry)
++  }
+   int slot = 0;
+   uint32_t ph = 0;
+   if (MOE_CONS_FIRST ? threadIdx.x >= 256 : threadIdx.x < 128) {
+     if (!MOE_CONS_FIRST) asm volatile("setmaxnreg.dec.sync.aligned.u32 40;\n");
+-    if (threadIdx.x == MOE_PB) {
++    if (PART == 1 ? threadIdx.x < MOE_PB + 32 : threadIdx.x == MOE_PB) {  // rw: W: producer warp; N: one thread
++      if constexpr (PART == 1) {
++      const int plane = threadIdx.x - MOE_PB;
++      int k = 0;
++      uint32_t iph = 0;
++      while (true) {
++        rw_wait_l0(ibar + 16 + 8 * k, iph ^ 1);
++        int item_ = 0;
++        if (plane == 0) { item_ = item0_ >= 0 ? item0_ : atomicAdd(PART == 2 ? fa.done + nt : fa.g1.counter, 1); item0_ = -1; }
++        const int item = __shfl_sync(0xffffffffu, item_, 0);
++        if constexpr (BIG) {  // moe16: tile entry for the consumers' fetch (read before they release iring slot k)
++          if (item < nitems && plane == 0) {
++            const bool sec_ = item >= n1;
++            const Args& p_ = sec_ ? fa.g2 : fa.g1;
++            const int it_ = sec_ ? item - n1 : item;
++            const int tl_ = it_ / p_.NT;
++            const int4 ti_ = p_.tiles[tl_];
++            const uint32_t ba = smem_u32(base + 576 + 32 * k);
++            asm volatile("st.shared.v4.s32 [%0], {%1, %2, %3, %4};" ::"r"(ba), "r"(ti_.x), "r"(ti_.y), "r"(ti_.z), "r"(ti_.w) : "memory");
++            asm volatile("st.shared.v2.s32 [%0], {%1, %2};" ::"r"(ba + 16), "r"(it_ - tl_ * p_.NT), "r"(tl_) : "memory");
++          }
++        }
++        if (rw_elect()) { iring[k] = item; mbar_arrive(ibar + 8 * k); }
++        __syncwarp();
++        if (item >= nitems) break;
++        bool sec_u = item >= n1;
++        int tile, ntile, rtile = -1, rntile = 0;
++        if constexpr (MAT_SMALL && MX_RIDE) part_unit<PART>(item, nt, ri, sec_u, tile, ntile, rtile, rntile);
++        const bool second = sec_u;
++        const Args& p = second ? fa.g2 : fa.g1;
++        const int it2 = second ? item - n1 : item;
++        if constexpr (MAT_SMALL && MX_RIDE) {
++        } else if constexpr (MAT_SMALL) {
++          if (item < n1 && it2 < nt * 32) {
++            tile = (it2 / 8) % nt; ntile = (it2 / (nt * 8)) * 8 + it2 % 8;
++          } else if (item < n1) {
++            const int rest = it2 - nt * 32; tile = rest / 32; ntile = 32 + rest % 32;
++          } else { tile = it2 / 32; ntile = it2 % 32; }
++        } else { tile = it2 / p.NT; ntile = it2 - tile * p.NT; }
++        const int4 ti = rw_bcast4(p.tiles[tile]);
++        const int e = ti.x, row0 = ti.y, n = ti.z;
++        if (second) {
++          const int need = fa.g1.NT;
++          int v;
++          while (true) {
++            asm volatile("ld.acquire.gpu.global.b32 %0, [%1];" : "=r"(v) : "l"(fa.done + tile) : "memory");
++            if (__all_sync(0xffffffffu, v >= need)) break;
++            __nanosleep(64);
++          }
++          if (MAT_SMALL && MX_RIDE && rtile >= 0) {  // mx: the rider's tile too
++            while (true) {
++              asm volatile("ld.acquire.gpu.global.b32 %0, [%1];" : "=r"(v) : "l"(fa.done + rtile) : "memory");
++              if (__all_sync(0xffffffffu, v >= need)) break;
++              __nanosleep(64);
++            }
++          }
++          asm volatile("fence.proxy.async.global;" ::: "memory");
++        }
++        const int kps = kps_for(n);
++        if (MAT_SMALL && MX_RIDE && rtile >= 0) {  // mx: host + rider stages (kps = 1 for every host)
++          const int4 rti = rw_bcast4(p.tiles[rtile]);
++          const uint32_t rxb = rw_uni(rti.z * 128);
++          const uint8_t* rwsrc = rw_unip(p.wrep + ((size_t)(rti.x * p.NT + rntile) * KS) * WBLK);
++          const uint8_t* rxsrc = rw_unip(p.xt + (size_t)rti.y * 8192);
++          const uint32_t xb = rw_uni(n * 128);
++          const uint8_t* wsrc = rw_unip(p.wrep + ((size_t)(e * p.NT + ntile) * KS) * WBLK);
++          const uint8_t* xsrc = rw_unip(p.xt + (size_t)row0 * 8192);
++          // rw lean producer: incremental sources, ring base outside the loop
++          const uint32_t ring_s_ = smem_u32(ring);
++          const uint32_t stx_ = xb + rxb + 2 * WBLK;
++          const uint8_t* xs_ = xsrc;
++          const uint8_t* rxs_ = rxsrc;
++          const uint8_t* ws_ = wsrc;
++          const uint8_t* rws_ = rwsrc;
++          if (1 && MOE_L2PF > 0 && rw_elect()) { prefetch_l2(wsrc, WBLK); prefetch_l2(rwsrc, WBLK); }
++          for (int it = 0; it < KS; ++it) {
++            rw_wait_all(bars + 8 * NSLOT + 8 * slot, ph ^ 1);
++            const uint32_t full = bars + 8 * slot;
++            const uint32_t dst = ring_s_ + slot * SLOT;
++            if (rw_elect()) {
++              mbar_expect_tx(full, stx_);
++              bulk_g2s(dst, xs_, xb, full);
++              bulk_g2s(dst + xb + MX_RW * 128, ws_, WBLK, full);
++              bulk_g2s(dst + xb, rxs_, rxb, full);
++              bulk_g2s(dst + xb + MX_RW * 128 + WBLK, rws_, WBLK, full);
++              if (1 && MOE_L2PF > 0 && it + 1 < KS) { prefetch_l2(ws_ + WBLK, WBLK); prefetch_l2(rws_ + WBLK, WBLK); }
++            }
++            xs_ += xb; rxs_ += rxb; ws_ += WBLK; rws_ += WBLK;
++            __syncwarp();
++            if (++slot == NSLOT) { slot = 0; ph ^= 1; }
++          }
++          k ^= 1;
++          if (k == 0) iph ^= 1;
++          continue;
++        }
++        if (plane == 0) {  // rw: plain item stages by one thread (s_b's code)
++        const uint32_t xb = n * 128;
++        const uint8_t* wsrc = p.wrep + ((size_t)(e * p.NT + ntile) * KS) * WBLK;
++        const bool direct_pg = DIRECT_PG && !second;
++        const int pg_pos = direct_pg ? row0 - fa.pg_offsets[e] : 0;
++        const int pg_slot_id = direct_pg && n==256 ? fa.pg_slots[e * fa.pg_kmax + (pg_pos >> 8)] : 0;
++        const uint8_t* xsrc = direct_pg ? (n==256 ? p.xt + (size_t)pg_slot_id * 2097152
++                                               : fa.pg_tail + (size_t)e*2097152 + (size_t)(pg_pos&255)*8192)
++                                      : p.xt + (size_t)row0 * 8192;
++        const bool pf = !BIG && MOE_L2PF > 0 && (MOE_L2PF_ALL || kps >= 2);
++        if (pf) {  // the item's first stages: a head start while the previous item's last stages are consumed
++          for (int j = 0; j < MOE_L2PF && j < KS / kps; ++j) prefetch_l2(wsrc + (size_t)j * kps * WBLK, kps * WBLK);
++        }
++        for (int it = 0; it < KS / kps; ++it) {
++          if (pf && it + MOE_L2PF < KS / kps) prefetch_l2(wsrc + (size_t)(it + MOE_L2PF) * kps * WBLK, kps * WBLK);
++          mbar_wait(bars + 8 * NSLOT + 8 * slot, ph ^ 1);
++          slot_proxy_fence();
++          const uint32_t full = bars + 8 * slot;
++          const bool lx = !(fa.flags & 1) || it < NSLOT, lw = !(fa.flags & 2) || it < NSLOT;
++          mbar_expect_tx(full, (lx ? kps * xb : 0) + (lw ? kps * WBLK : 0) + (!lx && !lw ? 16 : 0));
++          const uint32_t dst = smem_u32(ring + slot * SLOT);
++          if (lx) bulk_g2s(dst,xsrc+(size_t)it*kps*xb,kps*xb,full);
++          if (lw) bulk_g2s(dst + kps * xb, wsrc + (size_t)it * kps * WBLK, kps * WBLK, full);
++          if (!lx && !lw) bulk_g2s(dst, xsrc, 16, full);
++          if (++slot == NSLOT) { slot = 0; ph ^= 1; }
++        }
++        }
++        __syncwarp();
++        slot = __shfl_sync(0xffffffffu, slot, 0);
++        ph = __shfl_sync(0xffffffffu, ph, 0);
++        k ^= 1;
++        if (k == 0) iph ^= 1;
++      }
++          } else {
+       int k = 0;
+       uint32_t iph = 0;
+       while (true) {
+         mbar_wait(ibar + 16 + 8 * k, iph ^ 1);
+-        const int item = atomicAdd(fa.g1.counter, 1);
++        const int item = item0_ >= 0 ? item0_ : atomicAdd(PART == 2 ? fa.done + nt : fa.g1.counter, 1);
++        item0_ = -1;
+         if constexpr (BIG) {  // moe16: tile entry for the consumers' fetch (read before they release iring slot k)
+           if (item < nitems) {
+             const bool sec_ = item >= n1;
+@@ -1322,11 +2376,14 @@
+         iring[k] = item;
+         mbar_arrive(ibar + 8 * k);
+         if (item >= nitems) break;
+-        const bool second = item >= n1;
++        bool sec_u = item >= n1;
++        int tile, ntile, rtile = -1, rntile = 0;
++        if constexpr (MAT_SMALL && MX_RIDE) part_unit<PART>(item, nt, ri, sec_u, tile, ntile, rtile, rntile);
++        const bool second = sec_u;
+         const Args& p = second ? fa.g2 : fa.g1;
+         const int it2 = second ? item - n1 : item;
+-        int tile, ntile;
+-        if constexpr (MAT_SMALL) {
++        if constexpr (MAT_SMALL && MX_RIDE) {
++        } else if constexpr (MAT_SMALL) {
+           if (item < n1 && it2 < nt * 32) {
+             tile = (it2 / 8) % nt; ntile = (it2 / (nt * 8)) * 8 + it2 % 8;
+           } else if (item < n1) {
+@@ -1343,9 +2400,44 @@
+             if (v >= need) break;
+             __nanosleep(64);
+           }
++          if (MAT_SMALL && MX_RIDE && rtile >= 0) {  // mx: the rider's tile too
++            while (true) {
++              asm volatile("ld.acquire.gpu.global.b32 %0, [%1];" : "=r"(v) : "l"(fa.done + rtile) : "memory");
++              if (v >= need) break;
++              __nanosleep(64);
++            }
++          }
+           asm volatile("fence.proxy.async.global;" ::: "memory");
+         }
+         const int kps = kps_for(n);
++        if (MAT_SMALL && MX_RIDE && rtile >= 0) {  // mx: host + rider stages (kps = 1 for every host)
++          const int4 rti = p.tiles[rtile];
++          const uint32_t rxb = rti.z * 128;
++          const uint8_t* rwsrc = p.wrep + ((size_t)(rti.x * p.NT + rntile) * KS) * WBLK;
++          const uint8_t* rxsrc = p.xt + (size_t)rti.y * 8192;
++          const uint32_t xb = n * 128;
++          const uint8_t* wsrc = p.wrep + ((size_t)(e * p.NT + ntile) * KS) * WBLK;
++          const uint8_t* xsrc = p.xt + (size_t)row0 * 8192;
++          if (MOE_L2PF > 0) { prefetch_l2(wsrc, WBLK); prefetch_l2(rwsrc, WBLK); }
++          for (int it = 0; it < KS; ++it) {
++            if (MOE_L2PF > 0 && it + MOE_L2PF < KS) {
++              prefetch_l2(wsrc + (size_t)(it + MOE_L2PF) * WBLK, WBLK);
++              prefetch_l2(rwsrc + (size_t)(it + MOE_L2PF) * WBLK, WBLK);
++            }
++            mbar_wait(bars + 8 * NSLOT + 8 * slot, ph ^ 1);
++            const uint32_t full = bars + 8 * slot;
++            mbar_expect_tx(full, xb + rxb + 2 * WBLK);
++            const uint32_t dst = smem_u32(ring + slot * SLOT);
++            bulk_g2s(dst, xsrc + (size_t)it * xb, xb, full);
++            bulk_g2s(dst + xb + MX_RW * 128, wsrc + (size_t)it * WBLK, WBLK, full);
++            bulk_g2s(dst + xb, rxsrc + (size_t)it * rxb, rxb, full);
++            bulk_g2s(dst + xb + MX_RW * 128 + WBLK, rwsrc + (size_t)it * WBLK, WBLK, full);
++            if (++slot == NSLOT) { slot = 0; ph ^= 1; }
++          }
++          k ^= 1;
++          if (k == 0) iph ^= 1;
++          continue;
++        }
+         const uint32_t xb = n * 128;
+         const uint8_t* wsrc = p.wrep + ((size_t)(e * p.NT + ntile) * KS) * WBLK;
+         const bool direct_pg = DIRECT_PG && !second;
+@@ -1374,6 +2466,7 @@
+         k ^= 1;
+         if (k == 0) iph ^= 1;
+       }
++          }
+     } else if (threadIdx.x >= MOE_PB + 32 && threadIdx.x < MOE_PB + 64) {
+       // publisher warp: copies each staged epilogue tile out with bulk copies (the consumers go on with their next
+       // item), frees the staging buffer once read, and for GEMM1 tiles waits for the writes, then a GPU-scope release
+@@ -1390,17 +2483,18 @@
+           volatile long long* e = pubq + 4 * (seen & 7);
+           uint8_t* dst = reinterpret_cast<uint8_t*>(e[0]);
+           int* d = reinterpret_cast<int*>(e[1]);
+-          const int kind = reinterpret_cast<volatile int*>(e)[4], amount = reinterpret_cast<volatile int*>(e)[5];
++          const int kraw_ = reinterpret_cast<volatile int*>(e)[4], kind = kraw_ & 255, amount = reinterpret_cast<volatile int*>(e)[5];
++          const uint32_t soff_ = (uint32_t)(kraw_ >> 8) * 1024u;  // mx: the job's staging region
+           if (kind == 0) {  // one contiguous tile-layout block: a single bulk copy
+             if (lane == 0) {
+-              bulk_s2g(dst, stg_s, amount);
++              bulk_s2g(dst, stg_s + soff_, amount);
+               asm volatile("cp.async.bulk.commit_group;" ::: "memory");
+               asm volatile("cp.async.bulk.wait_group.read 0;" ::: "memory");
+             }
+           } else {  // token rows of 256 bytes (272-byte staging pitch): the warp copies them, 16 bytes per lane
+             for (int i = lane; i < amount * 16; i += 32) {
+               const int tl = i >> 4, c = i & 15;
+-              *reinterpret_cast<uint4*>(dst + (size_t)tl * 8192 + c * 16) = *reinterpret_cast<const uint4*>(stg + tl * 272 + c * 16);
++              *reinterpret_cast<uint4*>(dst + (size_t)tl * 8192 + c * 16) = *reinterpret_cast<const uint4*>(stg + soff_ + tl * 272 + c * 16);
+             }
+           }
+           __syncwarp();  // after lane 0's bulk-copy read of the staging buffer has completed
+@@ -1513,11 +2607,15 @@
+       if (k == 0) iph ^= 1;
+       unsigned long long t_start = 0;
+       if (false /* item tracing disabled */) asm volatile("mov.u64 %0, %%globaltimer;" : "=l"(t_start));
+-      const bool first = item < n1;
++      bool sec_u = item >= n1;
++      int tile, ntile, rtile = -1, rntile = 0;
++      if constexpr (MAT_SMALL && MX_RIDE) part_unit<PART>(item, nt, ri, sec_u, tile, ntile, rtile, rntile);
++      const bool first = !sec_u;
+       const Args& p = first ? fa.g1 : fa.g2;
+       const int it2 = first ? item : item - n1;
+-      int tile, ntile;
+-        if constexpr (MAT_SMALL) {
++      int mx_rw = 0;
++        if constexpr (MAT_SMALL && MX_RIDE) {
++        } else if constexpr (MAT_SMALL) {
+           if (item < n1 && it2 < nt * 32) {
+             tile = (it2 / 8) % nt; ntile = (it2 / (nt * 8)) * 8 + it2 % 8;
+           } else if (item < n1) {
+@@ -1528,6 +2626,24 @@
+       int* dn = first ? fa.done + tile : ((MOE_CIT && fa.cit != nullptr) ? fa.cit + tile : nullptr);
+       unsigned long long t_mid = 0;
+       unsigned long long* tm = (false /* item tracing disabled */) ? &t_mid : nullptr;
++      if constexpr (PART == 1) {  // rw: kernel W = one consumer call (combos and plain wide items)
++        int4 rti = make_int4(0, 0, 0, 0);
++        int* rdn = nullptr;
++        if (rtile >= 0) { rti = p.tiles[rtile]; rdn = first ? fa.done + rtile : nullptr; }
++        rw_consumer_w<MOE_CB, !DIRECT_PG, MAT_SMALL, FINE>(p, ring, stg, bars, slot, ph, ti.x, ti.y, ntile, first, ti.z, dn, tm, pq, ti.w,
++                                                       rtile >= 0, rti.x, rti.y, rntile, rdn, rti.w, rti.z);
++      } else
++      if (MAT_SMALL && MX_RIDE && rtile >= 0) {  // mx: host + rider
++        const int4 rti = p.tiles[rtile];
++        int* rdn = first ? fa.done + rtile : nullptr;
++        mx_rw = rti.z;
++#define MX_C(HN_) consumer_combo<HN_, MOE_CB, !DIRECT_PG, MAT_SMALL>(p, ring, stg, bars, slot, ph, ti.x, ti.y, ntile, first, dn, tm, pq, ti.w, rti.x, rti.y, rntile, rdn, rti.w, rti.z)
++        if constexpr (MAT_SMALL && MX_RIDE && PART != 2) {
++          if (MX_HMIN <= 224 && ti.z == 224) { if constexpr (FINE != 0 && MX_HMIN <= 224) MX_C(224); }
++          else MX_C(256);
++        }
++#undef MX_C
++      } else
+       if constexpr (DIRECT_PG) {
+       switch (ti.z) {
+         case 32: consumer_item<32, MOE_CB, !DIRECT_PG, MAT_SMALL, BIG>(p, ring, stg, bars, slot, ph, ti.x, ti.y, ntile, first, dn, tm, pq, ti.w); break;
+@@ -1553,27 +2669,27 @@
+       }
+       } else {
+       switch (ti.z) {
+-        case 208: if constexpr(FINE != 0) consumer_item<208, MOE_CB, !DIRECT_PG, MAT_SMALL>(p, ring, stg, bars, slot, ph, ti.x, ti.y, ntile, first, dn, tm, pq, ti.w); break;
+-        case 32: consumer_item<32, MOE_CB, !DIRECT_PG, MAT_SMALL>(p, ring, stg, bars, slot, ph, ti.x, ti.y, ntile, first, dn, tm, pq, ti.w); break;
+-        case 64: consumer_item<64, MOE_CB, !DIRECT_PG, MAT_SMALL>(p, ring, stg, bars, slot, ph, ti.x, ti.y, ntile, first, dn, tm, pq, ti.w); break;
+-        case 16: consumer_item<16, MOE_CB, !DIRECT_PG, MAT_SMALL>(p, ring, stg, bars, slot, ph, ti.x, ti.y, ntile, first, dn, tm, pq, ti.w); break;
+-        case 8: consumer_item<8, MOE_CB, !DIRECT_PG, MAT_SMALL>(p, ring, stg, bars, slot, ph, ti.x, ti.y, ntile, first, dn, tm, pq, ti.w); break;
+-        case 128: consumer_item<128, MOE_CB, !DIRECT_PG, MAT_SMALL>(p, ring, stg, bars, slot, ph, ti.x, ti.y, ntile, first, dn, tm, pq, ti.w); break;
++        case 208: if constexpr(FINE != 0 && PART != 2) consumer_item<208, MOE_CB, !DIRECT_PG, MAT_SMALL>(p, ring, stg, bars, slot, ph, ti.x, ti.y, ntile, first, dn, tm, pq, ti.w); break;
++        case 32: if constexpr (PART != 1) consumer_item<32, MOE_CB, !DIRECT_PG, MAT_SMALL>(p, ring, stg, bars, slot, ph, ti.x, ti.y, ntile, first, dn, tm, pq, ti.w); break;
++        case 64: if constexpr (PART != 1) consumer_item<64, MOE_CB, !DIRECT_PG, MAT_SMALL>(p, ring, stg, bars, slot, ph, ti.x, ti.y, ntile, first, dn, tm, pq, ti.w); break;
++        case 16: if constexpr (PART != 1) consumer_item<16, MOE_CB, !DIRECT_PG, MAT_SMALL>(p, ring, stg, bars, slot, ph, ti.x, ti.y, ntile, first, dn, tm, pq, ti.w); break;
++        case 8: if constexpr (PART != 1) consumer_item<8, MOE_CB, !DIRECT_PG, MAT_SMALL>(p, ring, stg, bars, slot, ph, ti.x, ti.y, ntile, first, dn, tm, pq, ti.w); break;
++        case 128: if constexpr (PART != 1) consumer_item<128, MOE_CB, !DIRECT_PG, MAT_SMALL>(p, ring, stg, bars, slot, ph, ti.x, ti.y, ntile, first, dn, tm, pq, ti.w); break;
+         case 160:
+-          if constexpr (FINE != 0) {
++          if constexpr (FINE != 0 && PART != 2) {
+             if constexpr (MOE_FINE_NOINLINE) consumer_item_ni<160>(p, ring, stg, bars, slot, ph, ti.x, ti.y, ntile, first, dn, tm, pq, ti.w);
+             else consumer_item<160, MOE_CB, !DIRECT_PG, MAT_SMALL>(p, ring, stg, bars, slot, ph, ti.x, ti.y, ntile, first, dn, tm, pq, ti.w);
+           }
+           break;
+         case 192:
+-          if constexpr (FINE != 0) {
++          if constexpr (FINE != 0 && PART != 2) {
+             if constexpr (MOE_FINE_NOINLINE) consumer_item_ni<192>(p, ring, stg, bars, slot, ph, ti.x, ti.y, ntile, first, dn, tm, pq, ti.w);
+             else consumer_item<192, MOE_CB, !DIRECT_PG, MAT_SMALL>(p, ring, stg, bars, slot, ph, ti.x, ti.y, ntile, first, dn, tm, pq, ti.w);
+           }
+           break;
+-        case 96: if constexpr(FINE != 0) consumer_item<96, MOE_CB, !DIRECT_PG, MAT_SMALL>(p, ring, stg, bars, slot, ph, ti.x, ti.y, ntile, first, dn, tm, pq, ti.w); break;
+-        case 224: if constexpr(FINE != 0) consumer_item<224, MOE_CB, !DIRECT_PG, MAT_SMALL>(p, ring, stg, bars, slot, ph, ti.x, ti.y, ntile, first, dn, tm, pq, ti.w); break;
+-        default: consumer_item<256, MOE_CB, !DIRECT_PG, MAT_SMALL>(p, ring, stg, bars, slot, ph, ti.x, ti.y, ntile, first, dn, tm, pq, ti.w); break;
++        case 96: if constexpr(FINE != 0 && PART != 1) consumer_item<96, MOE_CB, !DIRECT_PG, MAT_SMALL>(p, ring, stg, bars, slot, ph, ti.x, ti.y, ntile, first, dn, tm, pq, ti.w); break;
++        case 224: if constexpr(FINE != 0 && PART != 2) consumer_item<224, MOE_CB, !DIRECT_PG, MAT_SMALL>(p, ring, stg, bars, slot, ph, ti.x, ti.y, ntile, first, dn, tm, pq, ti.w); break;
++        default: if constexpr (PART != 2) consumer_item<256, MOE_CB, !DIRECT_PG, MAT_SMALL>(p, ring, stg, bars, slot, ph, ti.x, ti.y, ntile, first, dn, tm, pq, ti.w); break;
+       }
+       }
+       if (false /* item tracing disabled */) {
+@@ -1587,6 +2703,9 @@
+         fa.dbg[(size_t)item * 4 + 3] = blockIdx.x;
+       }
+     }
++  }
++  if constexpr (PART == 2) {  // mx N: the combine (plain launch after N) must see W's output too
++    if (threadIdx.x == 0) asm volatile("griddepcontrol.wait;" ::: "memory");
+   }
+ }
+ 

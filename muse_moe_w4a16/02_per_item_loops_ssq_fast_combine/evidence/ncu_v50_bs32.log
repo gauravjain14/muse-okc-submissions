@@ -1,0 +1,228 @@
+✓ Initialized. View run at 
+<modal-run-url>
+✓ Created objects.
+├── ✓ Uploaded 
+│   muse-opt/muse_moe_w4a16/dev/modal_run.py
+├── ✓ Uploaded muse-opt/muse_moe_w4a16
+└── ✓ Created Function run.
+done
+==PROF== Disconnected from process 40
+==PROF== Report: /tmp/p32.ncu-rep
+[40] python3.12@127.0.0.1
+  moe_8_4_2_4_1 (132, 1, 1)x(384, 1, 1), Context 1, Stream 7, Device 0, CC 9.0
+    Warning: Data collection happened without fixed GPU frequencies. Profiling results may be inconsistent.
+    Section: GPU Speed Of Light Throughput
+    ----------------------- ----------- ------------
+    Metric Name             Metric Unit Metric Value
+    ----------------------- ----------- ------------
+    DRAM Frequency                  Ghz         3.20
+    SM Frequency                    Ghz         1.68
+    Elapsed Cycles                cycle      197,711
+    Memory Throughput                 %        71.03
+    DRAM Throughput                   %        71.03
+    Duration                         us       117.06
+    L1/TEX Cache Throughput           %        29.93
+    L2 Cache Throughput               %        79.24
+    SM Active Cycles              cycle   180,802.42
+    Compute (SM) Throughput           %        48.95
+    ----------------------- ----------- ------------
+
+    OPT   Memory is more heavily utilized than Compute: Look at the Memory Workload Analysis section to identify the    
+          DRAM bottleneck. Check memory replay (coalescing) metrics to make sure you're efficiently utilizing the       
+          bytes transferred. Also consider whether it is possible to do more work per memory access (kernel fusion) or  
+          whether there are values you can (re)compute.                                                                 
+
+    Section: Compute Workload Analysis
+    -------------------- ----------- ------------
+    Metric Name          Metric Unit Metric Value
+    -------------------- ----------- ------------
+    Executed Ipc Active   inst/cycle         2.12
+    Executed Ipc Elapsed  inst/cycle         1.95
+    Issue Slots Busy               %        48.95
+    Issued Ipc Active     inst/cycle         2.13
+    SM Busy                        %        48.95
+    -------------------- ----------- ------------
+
+    INF   ALU is the highest-utilized pipeline (45.8%) based on elapsed cycles in the workload, taking into account the 
+          rates of its different instructions. It executes integer and logic operations. It is well-utilized, but       
+          should not be a bottleneck.                                                                                   
+
+    Section: Memory Workload Analysis
+    -------------------------------------- ----------- ------------
+    Metric Name                            Metric Unit Metric Value
+    -------------------------------------- ----------- ------------
+    Local Memory Spilling Requests                                0
+    Local Memory Spilling Request Overhead           %      no data
+    Memory Throughput                          Tbyte/s         3.42
+    Mem Busy                                         %        50.50
+    Max Bandwidth                                    %        71.03
+    L1/TEX Hit Rate                                  %        44.03
+    L2 Persisting Size                           Mbyte        11.80
+    L2 Compression Success Rate                      %            0
+    L2 Compression Ratio                             %            0
+    L2 Compression Input Sectors                sector      102,400
+    L2 Hit Rate                                      %         5.28
+    Mem Pipes Busy                                   %         8.66
+    -------------------------------------- ----------- ------------
+
+    Section: Scheduler Statistics
+    ---------------------------- ----------- ------------
+    Metric Name                  Metric Unit Metric Value
+    ---------------------------- ----------- ------------
+    One or More Eligible                   %        53.16
+    Issued Warp Per Scheduler                        0.53
+    No Eligible                            %        46.84
+    Active Warps Per Scheduler          warp         2.47
+    Eligible Warps Per Scheduler        warp         0.81
+    ---------------------------- ----------- ------------
+
+    OPT   Est. Local Speedup: 28.97%                                                                                    
+          Every scheduler is capable of issuing one instruction per cycle, but for this workload each scheduler only    
+          issues an instruction every 1.9 cycles. This might leave hardware resources underutilized and may lead to     
+          less optimal performance. Out of the maximum of 16 warps per scheduler, this workload allocates an average    
+          of 2.47 active warps per scheduler, but only an average of 0.81 warps were eligible per cycle. Eligible       
+          warps are the subset of active warps that are ready to issue their next instruction. Every cycle with no      
+          eligible warp results in no instruction being issued and the issue slot remains unused. To increase the       
+          number of eligible warps, avoid possible load imbalances due to highly different execution durations per      
+          warp. Reducing stalls indicated on the Warp State Statistics and Source Counters sections can help, too.      
+
+    Section: Warp State Statistics
+    ---------------------------------------- ----------- ------------
+    Metric Name                              Metric Unit Metric Value
+    ---------------------------------------- ----------- ------------
+    Warp Cycles Per Issued Instruction             cycle         4.64
+    Warp Cycles Per Executed Instruction           cycle         4.66
+    Avg. Active Threads Per Warp                                31.21
+    Avg. Not Predicated Off Threads Per Warp                    30.78
+    ---------------------------------------- ----------- ------------
+
+    Section: Source Counters
+    ------------------------- ----------- ------------
+    Metric Name               Metric Unit Metric Value
+    ------------------------- ----------- ------------
+    Branch Instructions Ratio           %         0.02
+    Branch Instructions              inst    1,075,223
+    Branch Efficiency                   %        92.77
+    Avg. Divergent Branches      branches        91.63
+    ------------------------- ----------- ------------
+
+    OPT   Est. Speedup: 43.89%                                                                                          
+          This kernel has uncoalesced global accesses resulting in a total of 152496 excessive sectors (47% of the      
+          total 327515 sectors). Check the L2 Theoretical Sectors Global Excessive table for the primary source         
+          locations. The CUDA Programming Guide                                                                         
+          (https://docs.nvidia.com/cuda/cuda-c-programming-guide/index.html#device-memory-accesses) has additional      
+          information on reducing uncoalesced device memory accesses.                                                   
+    ----- --------------------------------------------------------------------------------------------------------------
+    OPT   Est. Speedup: 0.4697%                                                                                         
+          This kernel has uncoalesced shared accesses resulting in a total of 35136 excessive wavefronts (1% of the     
+          total 6869287 wavefronts). Check the L1 Wavefronts Shared Excessive table for the primary source locations.   
+          The CUDA Best Practices Guide                                                                                 
+           (https://docs.nvidia.com/cuda/cuda-c-best-practices-guide/index.html#shared-memory-in-matrix-multiplication-c
+          -ab) has an example on optimizing shared memory accesses.                                                     
+
+"Kernel Name","moe_8_4_2_4_1",
+"Address","Source","Warp Stall Sampling (All Samples)","Warp Stall Sampling (Not-issued Samples)","# Samples","Instructions Executed","Thread Instructions Executed","Predicated-On Thread Instructions Executed","Avg. Threads Executed","Avg. Predicated-On Threads Executed","Derivative Avg. Predicated-On Threads Executed","Avg. Predicated-On Threads Unexecuted","Divergent Branches","Address Space","Access Operation","Access Size","L1 Tag Requests Global","L1 Conflicts Shared N-Way","L1 Wavefronts Shared Excessive","L1 Wavefronts Shared","L1 Wavefronts Shared Ideal","L2 Theoretical Sectors Global Excessive","L2 Theoretical Sectors Global","L2 Theoretical Sectors Global Ideal","L2 Theoretical Sectors Local","L2 Explicit Evict Policies","L2 Explicit Hit Policy Evict First","L2 Explicit Hit Policy Evict Last","L2 Explicit Hit Policy Evict Normal","L2 Explicit Hit Policy Evict Normal Demote","L2 Explicit Miss Policy Evict First","L2 Explicit Miss Policy Evict Normal","stall_barrier","stall_branch_resolving","stall_dispatch","stall_drain","stall_imc","stall_lg","stall_long_sb","stall_math","stall_membar","stall_mio","stall_misc","stall_no_inst","stall_not_selected","stall_selected","stall_short_sb","stall_sleep","stall_tex","stall_wait","stall_barrier (Not Issued)","stall_branch_resolving (Not Issued)","stall_dispatch (Not Issued)","stall_drain (Not Issued)","stall_imc (Not Issued)","stall_lg (Not Issued)","stall_long_sb (Not Issued)","stall_math (Not Is
+columns: ['Address', 'Source', 'Warp Stall Sampling (All Samples)', 'Warp Stall Sampling (Not-issued Samples)', '# Samples', 'Instructions Executed', 'Thread Instructions Executed', 'Predicated-On Thread Instructions Executed', 'Avg. Threads Executed', 'Avg. Predicated-On Threads Executed', 'Derivative Avg. Predicated-On Threads Executed', 'Avg. Predicated-On Threads Unexecuted'] ... stall cols 36
+total samples 11638
+  5.3%  0x2afcbf8a5b60  @!P0  BRA 0x2afcbf8b9410                                               long_sb:604 long_sb (Not Issued):570 selected:5
+  5.1%  0x2afcbf8b9840  @!P0  BRA 0x2afcbf8b9820                                               long_sb:591 long_sb (Not Issued):205
+  2.4%  0x2afcbf8aea30        BSSY B0, 0x2afcbf8b01d0                                          barrier:277 barrier (Not Issued):267
+  2.2%  0x2afcbf8a5a80        S2R R31, SR_SWINHI                                               branch_resolving:206 branch_resolving (Not Issued):158 wait:18
+  2.1%  0x2afcbf8b48e0  @!P0  BRA 0x2afcbf8b9820                                               long_sb:249 long_sb (Not Issued):69
+  1.6%  0x2afcbf8aca70        IMAD R56, R40, R80, RZ                                           short_sb:179 short_sb (Not Issued):164 selected:5
+  1.1%  0x2afcbf8a5b80        ISETP.GE.AND P0, PT, R48, RZ, PT                                 short_sb:122 short_sb (Not Issued):94 selected:4
+  1.0%  0x2afcbf8a5bd0        VIADD R27, R39, 0x7                                              short_sb:102 short_sb (Not Issued):70 selected:5
+  0.7%  0x2afcbf8acf40        LOP3.LUT R31, R42, 0x81c081c0, RZ, 0xc0, !PT                     math:45 not_selected:31 math (Not Issued):8
+  0.7%  0x2afcbf8ada70        LOP3.LUT R57, R56, 0x81c081c0, RZ, 0xc0, !PT                     not_selected:26 math:24 dispatch:19
+  0.7%  0x2afcbf8ae940        NOP                                                              wait:74 wait (Not Issued):38 selected:5
+  0.7%  0x2afcbf8acc80        SHF.L.W.U32.HI R56, R41, 0xa, R41                                math:30 not_selected:26 wait:17
+  0.6%  0x2afcbf8ad6d0        LOP3.LUT R28, R28, 0x81c081c0, RZ, 0xc0, !PT                     math:35 not_selected:28 math (Not Issued):11
+  0.6%  0x2afcbf8ae500        HMMA.16816.F32.BF16 R56, R56, R30, R60                           wait:22 not_selected:21 dispatch:20
+  0.6%  0x2afcbf8a5b90  @!P0  BRA 0x2afcbf8b0670                                               wait:56 wait (Not Issued):41 selected:7
+  0.6%  0x2afcbf8ad100        SHF.L.W.U32.HI R91, R47, 0xe, R47                                wait:31 math:18 dispatch:12
+  0.6%  0x2afcbf8ad450        PRMT R57, R32, 0x4343, RZ                                        math:27 not_selected:22 dispatch:12
+  0.6%  0x2afcbf8a2ac0  @P0   BRA 0x2afcbf8a3be0                                               barrier (Not Issued):66 barrier:66
+  0.6%  0x2afcbf8adf90        LOP3.LUT R46, R44, 0x1000100, R45, 0xf8, !PT                     math:22 not_selected:17 dispatch:12
+  0.6%  0x2afcbf8b98d0        NOP                                                              branch_resolving:52 branch_resolving (Not Issued):17 wait:10
+  0.5%  0x2afcbf8ae980  @!P0  IADD3 R28, P1, R118, 0x20, RZ                                    wait:50 wait (Not Issued):35 selected:7
+  0.5%  0x2afcbf8ae210        LOP3.LUT R32, R32, 0x80c080c0, RZ, 0xc0, !PT                     not_selected:30 math:15 dispatch:12
+  0.5%  0x2afcbf8ad8d0        SHF.L.W.U32.HI R89, R43, 0xe, R43                                wait:23 dispatch:16 wait (Not Issued):10
+  0.5%  0x2afcbf8ad750        SHF.L.W.U32.HI R29, R42, 0xa, R42                                math:19 not_selected:16 dispatch:12
+  0.5%  0x2afcbf8ae530        LOP3.LUT R63, R41, 0x1000100, R28, 0xf8, !PT                     wait:25 wait (Not Issued):13 math:13
+  0.5%  0x2afcbf8ae730        LOP3.LUT R31, R46, 0x81c081c0, RZ, 0xc0, !PT                     wait:27 not_selected:15 wait (Not Issued):9
+  0.4%  0x2afcbf8ae260        LOP3.LUT R59, R32, 0x1000100, R57, 0xf8, !PT                     wait:17 math:16 not_selected:12
+  0.4%  0x2afcbf8ae950        LOP3.LUT P0, RZ, R38, 0x1f, R3, 0xf8, !PT                        wait:39 wait (Not Issued):34 selected:7
+  0.4%  0x2afcbf8a3c10        BSSY B0, 0x2afcbf8a55e0                                          barrier (Not Issued):47 barrier:47 wait (Not Issued):1
+  0.4%  0x2afcbf8adbf0        SHF.L.W.U32.HI R56, R45, 0xa, R45                                dispatch:16 math:12 selected:8
+  0.4%  0x2afcbf8ae9d0  @!P0  BRA 0x2afcbf8a5a40                                               wait:44 wait (Not Issued):31 not_selected:3
+  0.4%  0x2afcbf8ad880        LOP3.LUT R82, R28, 0x1000100, R29, 0xf8, !PT                     math:19 not_selected:16 math (Not Issued):7
+  0.4%  0x2afcbf8ac9f0        LDS.128 R40, [R50]                                               no_inst:36 no_inst (Not Issued):29 branch_resolving:10
+  0.4%  0x2afcbf8adeb0        LOP3.LUT R81, R40, 0x1000100, R41, 0xf8, !PT                     math:15 not_selected:12 dispatch:8
+  0.4%  0x2afcbf8a5ad0        SHF.L.U32 R27, R27, 0x1f, RZ                                     wait:19 wait (Not Issued):14 math:10
+  0.4%  0x2afcbf8adc80        LOP3.LUT R45, R56, 0x81c081c0, RZ, 0xc0, !PT                     not_selected:19 math:17 dispatch:5
+  0.4%  0x2afcbf8ae3c0        IMAD R57, R44, R75, RZ                                           math:18 not_selected:14 wait:6
+  0.4%  0x2afcbf8aa890        IMAD R83, R56, R28, RZ                                           short_sb:43 short_sb (Not Issued):40 selected:1
+  0.4%  0x2afcbf8ae660        HMUL2.BF16_V2 R29, R29, R32                                      math:22 not_selected:10 dispatch:6
+  0.4%  0x2afcbf8a5c50  @!P0  BRA 0x2afcbf8ac9f0                                               wait:32 wait (Not Issued):24 selected:8
+  0.4%  0x2afcbf8ad2e0        LOP3.LUT R59, R28, 0x81c081c0, RZ, 0xc0, !PT                     not_selected:15 math:15 wait:5
+  0.4%  0x2afcbf8ad510        IMAD R83, R43, R80, RZ                                           not_selected:16 math:10 wait:7
+  0.4%  0x2afcbf8ae0b0        SHF.L.W.U32.HI R85, R31, 0xe, R31                                wait:23 wait (Not Issued):8 selected:8
+  0.4%  0x2afcbf8ad260        HMMA.16816.F32.BF16 R88, R88, R58, R84                           wait:21 not_selected:11 wait (Not Issued):7
+  0.4%  0x2afcbf8ad5c0        HMMA.16816.F32.BF16 R60, R84, R46, R60                           not_selected:21 wait:9 dispatch:6
+  0.4%  0x2afcbf8ad6e0        LOP3.LUT R29, R30, 0x81c081c0, RZ, 0xc0, !PT                     math:14 not_selected:11 wait:9
+  0.4%  0x2afcbf8ade70        SHF.L.W.U32.HI R41, R46, 0xe, R46                                math:13 not_selected:10 dispatch:8
+  0.4%  0x2afcbf8b9900        BRA 0x2afcbf8b5730                                               branch_resolving:33 branch_resolving (Not Issued):7 wait:4
+  0.3%  0x2afcbf8ad210        HMUL2.BF16_V2 R88, R83, R82                                      math:13 not_selected:11 wait:6
+  0.3%  0x2afcbf8b4aa0  @P0   REDG.E.ADD.S32.STRONG.GPU desc[UR40][R4.64], R7                  membar:40 membar (Not Issued):16
+  0.3%  0x2afcbf8acfd0        LOP3.LUT R44, R42, 0x1000100, R45, 0xf8, !PT                     not_selected:17 math:13 selected:5
+  0.3%  0x2afcbf8ad130        LOP3.LUT R104, R96, 0x1000100, R91, 0xf8, !PT                    not_selected:13 math:13 selected:7
+  0.3%  0x2afcbf8ad730        HMUL2.BF16_V2 R44, R29, R98                                      wait:14 math:9 selected:8
+  0.3%  0x2afcbf8ae920        HMUL2.BF16_V2 R30, R47, R40                                      not_selected:15 math:14 selected:5
+  0.3%  0x2afcbf8ae930        HMMA.16816.F32.BF16 R104, R28, R106, R88                         wait:28 wait (Not Issued):15 dispatch:6
+  0.3%  0x2afcbf8ad910        LOP3.LUT R91, R56, 0x1000100, R89, 0xf8, !PT                     math:13 not_selected:12 math (Not Issued):7
+  0.3%  0x2afcbf8add60        HMMA.16816.F32.BF16 R60, R84, R42, R60                           not_selected:14 wait:11 wait (Not Issued):6
+  0.3%  0x2afcbf8a5a40        S2R R29, SR_CgaCtaId                                             no_inst:22 no_inst (Not Issued):15 branch_resolving:10
+  0.3%  0x2afcbf8ad290        IMAD R98, R57, R74, 0x77007700                                   math:13 math (Not Issued):7 dispatch (Not Issued):7
+  0.3%  0x2afcbf8ae490        IMAD R41, R45, R80, RZ                                           not_selected:11 math:7 dispatch (Not Issued):6
+by reason:
+  stall_selected                                      22.1%
+  stall_wait                                          17.9%
+  stall_long_sb                                       13.9%
+  stall_not_selected                                  11.5%
+  stall_math                                          10.1%
+  stall_wait (Not Issued)                              9.4%
+  stall_long_sb (Not Issued)                           8.2%
+  stall_dispatch                                       7.9%
+  stall_short_sb                                       5.1%
+  stall_branch_resolving                               4.1%
+  stall_short_sb (Not Issued)                          4.0%
+  stall_barrier                                        3.9%
+  stall_barrier (Not Issued)                           3.8%
+  stall_math (Not Issued)                              2.9%
+  stall_branch_resolving (Not Issued)                  2.3%
+  stall_no_inst                                        1.9%
+by opcode:
+  LOP3          20.8%
+                18.9%
+  IMAD          11.1%
+  HMUL2         10.6%
+  SHF            8.0%
+  HMMA           5.7%
+  BSSY           3.2%
+  LDS            2.8%
+  S2R            2.6%
+  ISETP          2.5%
+  PRMT           2.1%
+  VIADD          1.5%
+  NOP            1.4%
+  STS            1.0%
+  LEA            0.9%
+  MOV            0.9%
+  BSYNC          0.7%
+  BRA            0.5%
+  SYNCS          0.5%
+  IADD3          0.5%
+
+Stopping app - local entrypoint completed.
+✓ App completed. View run at 
+<modal-run-url>

@@ -1,0 +1,16 @@
+[sbx] box 0
+verify 32 m=256  qkv_gate  sglang   18.61 | bo12   16.80 x1.107   sol   9.77
+verify 32 m=256  qkv_gate  sglang   18.72 | bo12q   14.49 x1.292   sol   9.77
+verify 32 m=256  qkv_gate  sglang   18.38 | bo12   16.58 x1.108   sol   9.77
+verify 32 m=256  qkv_gate  sglang   18.72 | bo12q   14.38 x1.302   sol   9.77
+verify 32 m=256  qkv_gate  sglang   18.62 | bo12   16.21 x1.149   sol   9.77
+verify 32 m=256  qkv_gate  sglang   18.61 | bo12q   14.59 x1.276   sol   9.77
+verify 32 m=256  qkv_gate  sglang   18.62 | bo12   16.81 x1.108   sol   9.77
+verify 32 m=256  qkv_gate  sglang   18.69 | bo12q   14.59 x1.281   sol   9.77
+verify 32 m=256  qkv_gate  sglang   18.62 | bo12   15.96 x1.167 | bo12q   14.46 x1.288   sol   9.77
+verify 32 m=256  qkv_gate  sglang   18.64 | bo12q   14.75 x1.264 | bo12   16.94 x1.101   sol   9.77
+verify 32 m=256  qkv_gate  sglang   18.54 | bo12   16.01 x1.158 | bo12q   14.46 x1.282   sol   9.77
+verify 32 m=256  qkv_gate  sglang   18.37 | bo12q   14.61 x1.257 | bo12   15.50 x1.185   sol   9.77
+REMOTE_EXIT 0
+
+[exited with code 0]

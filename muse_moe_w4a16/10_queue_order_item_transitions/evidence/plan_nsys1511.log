@@ -1,0 +1,123 @@
+[modal_gate] slot 0 acquired at 11:34:30 (0 okc containers running)
+✓ Initialized. View run at 
+<modal-run-url>
+✓ Created objects.
+├── 🔨 Created mount 
+│   muse-opt/muse_moe_w4a16/dev/modal_run.py
+├── 🔨 Created mount muse-opt/muse_moe_w4a16
+└── 🔨 Created function run.
+GPU_BEFORE NVIDIA H200, 345 MHz, 3201 MHz, 91.79 W, 57, 0 %, 4 MiB
+NVIDIA Nsight Systems version 2026.4.1.191-264138605071v0
+GPUCHECK before v1511: apps=[] 0 %, 4 MiB
+STEP capture v1511
+{"source": "dev/moe_v1511.py", "shapes": "1,8,16,32,128,256", "seeds": "70261,70449,70513", "reps": 48, "requested_frequency_hz": 75000, "metric_rows": 957978, "metric_names": ["GPC Clock Frequency [MHz]", "SYS Clock Frequency [MHz]", "GR Active [Throughput %]", "SMs Active [Throughput %]", "SM Issue [Throughput %]", "Tensor Active [Throughput %]", "Compute Warps in Flight [Throughput %]", "DRAM Read Bandwidth [Throughput %]", "DRAM Write Bandwidth [Throughput %]"], "sqlite": "/tmp/nsys_v1511.sqlite", "report": "/tmp/nsys_v1511.nsys-rep", "isolated_idle_guards": true}
+STEP analyze v1511
+== v1511: 1728 kernels, 864 ours; metrics: GPC Clock Frequency=GPC Clock Frequency [MHz], SMs Active=SMs Active [Throughput %], SM Issue=SM Issue [Throughput %], Tensor Active=Tensor Active [Throughput %], Compute Warps in Flight=Compute Warps in Flight [Throughput %], DRAM Read Bandwidth=DRAM Read Bandwidth [Throughput %], DRAM Write Bandwidth=DRAM Write Bandwidth [Throughput %]
+-- bs1 moe1t_4: n=144 dur med 18.7 us (p10 18.3 p90 25.0)
+   GPC Clock Frequency    mean 1850257085.2  from start/10us: 1784335201 1897846911 1960804719  | last bins (end-0..): 1912473052 1787917873 1752976247 -
+   SMs Active             mean    60.9  from start/10us: 89 41 9  | last bins (end-0..): 33 91 97 -
+   SM Issue               mean    32.3  from start/10us: 50 19 2  | last bins (end-0..): 15 51 57 -
+   Tensor Active          mean    10.7  from start/10us: 17 6 1  | last bins (end-0..): 5 17 19 -
+   Compute Warps in Fligh mean     9.8  from start/10us: 16 6 1  | last bins (end-0..): 4 16 18 -
+   DRAM Read Bandwidth    mean    40.7  from start/10us: 72 16 0  | last bins (end-0..): 10 69 95 -
+   DRAM Write Bandwidth   mean     0.2  from start/10us: 0 0 0  | last bins (end-0..): 0 0 1 -
+-- bs8 moe_4_1_1_4_1: n=144 dur med 62.4 us (p10 40.8 p90 64.0)
+   GPC Clock Frequency    mean 1791675173.0  from start/10us: 1779478313 1785379567 1806973330 1832072903 1742230755 1771481188 1806315487 -  | last bins (end-0..): 1851409652 1759258156 1775565594 1790247813
+   SMs Active             mean    80.6  from start/10us: 100 100 96 74 84 34 1 -  | last bins (end-0..): 14 76 100 100
+   SM Issue               mean    48.3  from start/10us: 58 62 57 44 52 18 1 -  | last bins (end-0..): 6 44 62 61
+   Tensor Active          mean    16.5  from start/10us: 20 22 20 15 17 5 0 -  | last bins (end-0..): 2 14 21 22
+   Compute Warps in Fligh mean    15.0  from start/10us: 19 19 18 14 15 5 1 -  | last bins (end-0..): 2 13 19 19
+   DRAM Read Bandwidth    mean    71.2  from start/10us: 92 96 87 67 66 14 0 -  | last bins (end-0..): 3 49 95 97
+   DRAM Write Bandwidth   mean     0.4  from start/10us: 1 1 0 0 0 0 0 -  | last bins (end-0..): 0 0 0 1
+-- bs16 moe_4_2_1_4_1: n=144 dur med 67.7 us (p10 53.1 p90 74.1)
+   GPC Clock Frequency    mean 1764696261.3  from start/10us: 1787522931 1782143182 1797603301 1790454188 1752376366 1691075918 1729341282 1747314528  | last bins (end-0..): 1780908679 1715029022 1730055354 1773182274
+   SMs Active             mean    82.6  from start/10us: 100 100 100 96 81 65 17 1  | last bins (end-0..): 12 76 100 100
+   SM Issue               mean    47.1  from start/10us: 51 61 60 56 48 35 7 1  | last bins (end-0..): 4 39 61 61
+   Tensor Active          mean    19.2  from start/10us: 20 26 25 23 20 13 2 0  | last bins (end-0..): 1 15 26 26
+   Compute Warps in Fligh mean    15.4  from start/10us: 19 19 19 18 15 11 3 1  | last bins (end-0..): 2 13 19 19
+   DRAM Read Bandwidth    mean    70.5  from start/10us: 88 95 94 86 68 34 3 0  | last bins (end-0..): 1 40 93 96
+   DRAM Write Bandwidth   mean     0.7  from start/10us: 1 1 1 1 1 0 0 0  | last bins (end-0..): 0 1 1 1
+-- bs32 moe_8_4_1_4_1: n=144 dur med 100.6 us (p10 91.4 p90 102.4)
+   GPC Clock Frequency    mean 1700075014.8  from start/10us: 1780225027 1771651604 1799795912 1790608756 1706889191 1600726376 1555372752 1562393896 1657799053 1787966432 1855095845 -  | last bins (end-0..): 1804056439 1627510406 1553310288 1564557573
+   SMs Active             mean    89.1  from start/10us: 100 100 100 100 100 100 100 95 63 20 0 -  | last bins (end-0..): 12 75 100 100
+   SM Issue               mean    52.9  from start/10us: 46 60 60 60 62 65 65 60 35 9 0 -  | last bins (end-0..): 5 42 64 65
+   Tensor Active          mean    21.2  from start/10us: 20 30 25 21 23 26 26 22 12 3 0 -  | last bins (end-0..): 1 14 24 27
+   Compute Warps in Fligh mean    16.7  from start/10us: 19 19 19 19 19 19 19 18 11 3 0 -  | last bins (end-0..): 2 13 19 19
+   DRAM Read Bandwidth    mean    77.1  from start/10us: 79 93 93 98 98 92 85 75 39 6 0 -  | last bins (end-0..): 2 46 84 86
+   DRAM Write Bandwidth   mean     0.9  from start/10us: 1 1 1 1 1 1 1 1 1 0 0 -  | last bins (end-0..): 0 1 1 1
+-- bs128 moe_8_8_1_3_4: n=144 dur med 153.3 us (p10 143.5 p90 181.4)
+   GPC Clock Frequency    mean 1669291038.3  from start/10us: 1800969057 1737961286 1777659964 1799290482 1740957239 1611724165 1511118723 1481021393 1509017153 1553733100 1606716373 1644975107 1666343261 1722457364 1788760070 1711223934 1713412570  | last bins (end-0..): 1873624015 1729225095 1673535607 1662055409
+   SMs Active             mean    93.8  from start/10us: 100 100 100 100 100 100 100 100 100 100 100 100 99 82 55 86 87  | last bins (end-0..): 18 82 100 100
+   SM Issue               mean    53.6  from start/10us: 28 48 51 54 60 62 67 69 66 62 61 60 57 46 31 54 48  | last bins (end-0..): 7 45 62 60
+   Tensor Active          mean    31.0  from start/10us: 27 60 57 35 26 23 24 25 29 36 38 34 33 23 11 19 15  | last bins (end-0..): 2 14 22 28
+   Compute Warps in Fligh mean    17.7  from start/10us: 19 19 19 19 19 19 19 19 19 19 19 19 19 15 10 16 15  | last bins (end-0..): 3 14 19 19
+   DRAM Read Bandwidth    mean    72.1  from start/10us: 37 53 63 80 92 92 93 93 86 82 82 82 76 57 39 80 53  | last bins (end-0..): 3 48 91 88
+   DRAM Write Bandwidth   mean     1.0  from start/10us: 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1  | last bins (end-0..): 1 1 1 1
+-- bs256 moe_8_8_1_3_8: n=144 dur med 209.0 us (p10 186.2 p90 238.0)
+   GPC Clock Frequency    mean 1681922954.6  from start/10us: 1768772311 1730544053 1768064975 1778006012 1744793050 1641957431 1545194619 1501624143 1502972985 1542929250 1595005646 1626484188 1646610485 1665111287 1680505020 1689231025 1704981381 1752469244 1790139456 1771959156 1833450177 1718464073  | last bins (end-0..): 1908202638 1761650716 1710296764 1724269578
+   SMs Active             mean    95.3  from start/10us: 100 100 100 100 100 100 100 100 100 100 100 100 100 100 100 100 100 90 73 92 60 100  | last bins (end-0..): 18 86 100 100
+   SM Issue               mean    51.9  from start/10us: 31 44 44 48 53 54 60 63 65 66 64 61 59 55 55 54 55 46 42 51 31 58  | last bins (end-0..): 6 43 60 59
+   Tensor Active          mean    37.9  from start/10us: 35 70 65 52 54 49 42 38 32 26 25 28 34 42 43 46 43 30 20 20 11 20  | last bins (end-0..): 1 12 22 27
+   Compute Warps in Fligh mean    18.0  from start/10us: 19 19 19 19 19 19 19 19 19 19 19 19 19 19 19 19 19 16 14 17 11 18  | last bins (end-0..): 3 14 19 19
+   DRAM Read Bandwidth    mean    60.6  from start/10us: 16 24 28 45 53 60 76 78 84 92 94 89 81 70 65 57 62 53 59 62 45 76  | last bins (end-0..): 1 40 87 88
+   DRAM Write Bandwidth   mean     1.1  from start/10us: 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 2 1 1  | last bins (end-0..): 1 1 1 1
+GPUCHECK before v1504: apps=[] 0 %, 4 MiB
+STEP capture v1504
+{"source": "dev/moe_v1504.py", "shapes": "1,8,16,32,128,256", "seeds": "70261,70449,70513", "reps": 48, "requested_frequency_hz": 75000, "metric_rows": 948879, "metric_names": ["GPC Clock Frequency [MHz]", "SYS Clock Frequency [MHz]", "GR Active [Throughput %]", "SMs Active [Throughput %]", "SM Issue [Throughput %]", "Tensor Active [Throughput %]", "Compute Warps in Flight [Throughput %]", "DRAM Read Bandwidth [Throughput %]", "DRAM Write Bandwidth [Throughput %]"], "sqlite": "/tmp/nsys_v1504.sqlite", "report": "/tmp/nsys_v1504.nsys-rep", "isolated_idle_guards": true}
+STEP analyze v1504
+== v1504: 1728 kernels, 864 ours; metrics: GPC Clock Frequency=GPC Clock Frequency [MHz], SMs Active=SMs Active [Throughput %], SM Issue=SM Issue [Throughput %], Tensor Active=Tensor Active [Throughput %], Compute Warps in Flight=Compute Warps in Flight [Throughput %], DRAM Read Bandwidth=DRAM Read Bandwidth [Throughput %], DRAM Write Bandwidth=DRAM Write Bandwidth [Throughput %]
+-- bs1 moe1t_4: n=144 dur med 18.9 us (p10 18.5 p90 25.1)
+   GPC Clock Frequency    mean 1850065178.4  from start/10us: 1781795833 1903090235 1958800813  | last bins (end-0..): 1921384694 1786867354 1755967084 -
+   SMs Active             mean    60.7  from start/10us: 90 38 11  | last bins (end-0..): 29 90 97 -
+   SM Issue               mean    32.3  from start/10us: 51 18 3  | last bins (end-0..): 12 51 56 -
+   Tensor Active          mean    10.7  from start/10us: 17 6 1  | last bins (end-0..): 4 17 19 -
+   Compute Warps in Fligh mean     9.9  from start/10us: 16 5 1  | last bins (end-0..): 4 15 18 -
+   DRAM Read Bandwidth    mean    41.1  from start/10us: 72 16 0  | last bins (end-0..): 8 68 94 -
+   DRAM Write Bandwidth   mean     0.2  from start/10us: 0 0 0  | last bins (end-0..): 0 0 1 -
+-- bs8 moe_4_1_1_4_1: n=144 dur med 62.9 us (p10 41.4 p90 64.6)
+   GPC Clock Frequency    mean 1790541146.9  from start/10us: 1783254150 1785518559 1808056793 1829244494 1743812057 1768087137 1813861065 -  | last bins (end-0..): 1842281712 1764356423 1775358403 1792272201
+   SMs Active             mean    81.9  from start/10us: 100 100 95 78 87 36 1 -  | last bins (end-0..): 13 77 100 100
+   SM Issue               mean    47.8  from start/10us: 55 60 56 46 53 19 1 -  | last bins (end-0..): 5 45 61 59
+   Tensor Active          mean    16.5  from start/10us: 19 21 19 16 18 6 0 -  | last bins (end-0..): 2 14 21 21
+   Compute Warps in Fligh mean    15.2  from start/10us: 19 19 18 14 16 6 1 -  | last bins (end-0..): 2 13 19 19
+   DRAM Read Bandwidth    mean    72.4  from start/10us: 91 96 87 70 71 16 0 -  | last bins (end-0..): 2 52 95 97
+   DRAM Write Bandwidth   mean     0.4  from start/10us: 1 1 0 0 0 0 0 -  | last bins (end-0..): 0 0 0 1
+-- bs16 moe_4_2_1_4_1: n=144 dur med 69.5 us (p10 54.7 p90 76.4)
+   GPC Clock Frequency    mean 1760106994.9  from start/10us: 1775932050 1783178173 1795784257 1787483200 1743868714 1689152087 1716310649 1753893565  | last bins (end-0..): 1781105524 1708488528 1713299576 1769848954
+   SMs Active             mean    82.6  from start/10us: 100 100 100 98 78 67 31 3  | last bins (end-0..): 14 71 99 100
+   SM Issue               mean    46.0  from start/10us: 57 60 60 56 44 30 8 1  | last bins (end-0..): 3 28 59 60
+   Tensor Active          mean    18.9  from start/10us: 22 26 25 23 18 13 3 0  | last bins (end-0..): 1 11 24 25
+   Compute Warps in Fligh mean    15.3  from start/10us: 19 19 19 18 14 12 5 1  | last bins (end-0..): 2 12 18 19
+   DRAM Read Bandwidth    mean    68.6  from start/10us: 93 94 94 87 61 31 5 0  | last bins (end-0..): 1 27 84 95
+   DRAM Write Bandwidth   mean     0.7  from start/10us: 1 1 1 1 1 0 0 0  | last bins (end-0..): 0 0 1 1
+-- bs32 moe_8_4_1_4_1: n=144 dur med 101.4 us (p10 92.7 p90 103.9)
+   GPC Clock Frequency    mean 1703659166.7  from start/10us: 1775915809 1776123704 1800815260 1791050241 1707283690 1604696418 1557651619 1563671960 1655244454 1798740331 1867812667 -  | last bins (end-0..): 1818880296 1627700526 1558339527 1562117915
+   SMs Active             mean    88.2  from start/10us: 100 100 100 100 100 100 100 96 66 18 1 -  | last bins (end-0..): 10 76 100 100
+   SM Issue               mean    52.2  from start/10us: 48 60 60 60 62 63 63 59 38 8 1 -  | last bins (end-0..): 4 43 62 63
+   Tensor Active          mean    20.9  from start/10us: 22 30 25 21 23 26 25 21 13 2 0 -  | last bins (end-0..): 1 14 22 25
+   Compute Warps in Fligh mean    16.6  from start/10us: 19 19 19 19 19 19 19 18 12 3 1 -  | last bins (end-0..): 2 13 19 19
+   DRAM Read Bandwidth    mean    75.8  from start/10us: 80 92 93 98 98 92 84 74 40 5 0 -  | last bins (end-0..): 1 43 82 85
+   DRAM Write Bandwidth   mean     0.8  from start/10us: 1 1 1 1 1 1 1 1 1 0 0 -  | last bins (end-0..): 0 1 1 1
+-- bs128 moe_8_8_1_3_4: n=144 dur med 153.7 us (p10 144.4 p90 182.6)
+   GPC Clock Frequency    mean 1671527220.3  from start/10us: 1798593577 1737779955 1775685627 1799105870 1745505934 1616385258 1517231933 1486401992 1514531463 1558682138 1605354272 1645321929 1669303062 1723216629 1793233316 1717918978 1706112041  | last bins (end-0..): 1877913455 1730924922 1677426839 1665306389
+   SMs Active             mean    94.1  from start/10us: 100 100 100 100 100 100 100 100 100 100 100 100 99 83 55 85 91  | last bins (end-0..): 17 83 100 100
+   SM Issue               mean    53.8  from start/10us: 28 47 50 53 60 63 67 69 66 62 61 60 59 47 31 53 52  | last bins (end-0..): 7 46 63 61
+   Tensor Active          mean    30.9  from start/10us: 27 60 58 37 26 23 24 25 29 35 38 35 33 23 11 18 16  | last bins (end-0..): 1 14 22 28
+   Compute Warps in Fligh mean    17.7  from start/10us: 19 19 19 19 19 19 19 19 19 19 19 19 19 15 10 16 16  | last bins (end-0..): 3 14 19 19
+   DRAM Read Bandwidth    mean    72.0  from start/10us: 36 52 62 78 91 91 94 93 85 82 81 82 78 56 38 78 56  | last bins (end-0..): 3 48 92 88
+   DRAM Write Bandwidth   mean     1.0  from start/10us: 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1  | last bins (end-0..): 1 1 1 1
+-- bs256 moe_8_8_1_3_8: n=144 dur med 209.2 us (p10 186.8 p90 238.9)
+   GPC Clock Frequency    mean 1683132427.2  from start/10us: 1762266756 1731331186 1767212770 1777762286 1742670241 1643284304 1548737900 1498265390 1504021718 1546753264 1597563902 1630121830 1648933254 1668324023 1681274032 1690482785 1705661470 1757611363 1785902766 1779653327 1835882078 1731164550  | last bins (end-0..): 1910366686 1774302518 1716216172 1724853087
+   SMs Active             mean    95.5  from start/10us: 100 100 100 100 100 100 100 100 100 100 100 100 100 100 100 100 100 90 77 91 60 100  | last bins (end-0..): 20 83 100 100
+   SM Issue               mean    52.1  from start/10us: 32 43 44 49 54 53 60 63 65 66 64 62 58 56 54 54 55 46 44 50 31 58  | last bins (end-0..): 7 41 60 60
+   Tensor Active          mean    37.9  from start/10us: 37 70 66 52 52 50 41 38 32 26 24 28 35 40 44 46 41 32 20 20 10 19  | last bins (end-0..): 1 11 22 28
+   Compute Warps in Fligh mean    18.0  from start/10us: 19 19 19 19 19 19 19 19 19 19 19 19 19 19 19 19 19 16 14 16 11 19  | last bins (end-0..): 3 14 19 19
+   DRAM Read Bandwidth    mean    60.7  from start/10us: 18 24 27 45 56 59 76 78 84 92 93 89 80 71 62 58 63 51 62 60 45 79  | last bins (end-0..): 1 36 86 88
+   DRAM Write Bandwidth   mean     1.1  from start/10us: 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 1 2 1 1  | last bins (end-0..): 1 1 1 1
+GPU_AFTER NVIDIA H200, 675 MHz, 3201 MHz, 140.60 W, 56, 0 %, 4 MiB
+STEP done
+
+fetched into muse-opt/muse_moe_w4a16/dev/remote_out: 14240473 bytes
+Stopping app - local entrypoint completed.
+✓ App completed. View run at 
+<modal-run-url>

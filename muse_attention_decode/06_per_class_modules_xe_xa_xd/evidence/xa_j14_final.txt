@@ -1,0 +1,73 @@
+[gate] slot 1 at 14:40:54 (2 running)
+✓ Initialized. View run at 
+<modal-run-url>
+✓ Created objects.
+├── 🔨 Created mount 
+│   autoresearch-kernels/attn/tools/modal_run.py
+├── 🔨 Created mount autoresearch-kernels/attn
+└── 🔨 Created function run.
+[gpu-before]
+NVIDIA H200, 0 %, 130 MiB, 345 MHz, 1980 MHz, 76.47 W
+0
+PASS xa=True {'batch': 1, 'heads': 'tp8', 'layer': 'full', 'q_len': 1, 'page': 1, 'ctx': 80000, 'dist': 'coherent'} seq=80000 w=80001 s0 c0: relative L2 error 3.725e-02 (worst row 3.725e-02) [bound 0.108: 2.5 x the reference's 0.037 with FP8 E4M3 queries + 0.015]
+PASS xa=True {'batch': 1, 'heads': 'tp8', 'layer': 'full', 'q_len': 1, 'page': 1, 'ctx': 80000, 'dist': 'coherent'} seq=80000 w=80001 s0 c1: relative L2 error 3.725e-02 (worst row 3.725e-02) [bound 0.108: 2.5 x the reference's 0.037 with FP8 E4M3 queries + 0.015]
+PASS xa=True {'batch': 1, 'heads': 'tp8', 'layer': 'full', 'q_len': 1, 'page': 1, 'ctx': 80000, 'dist': 'coherent'} seq=80000 w=80001 s0 c2: relative L2 error 3.725e-02 (worst row 3.725e-02) [bound 0.108: 2.5 x the reference's 0.037 with FP8 E4M3 queries + 0.015]
+PASS xa=True {'batch': 1, 'heads': 'tp8', 'layer': 'full', 'q_len': 1, 'page': 1, 'ctx': 3000, 'dist': 'normal', 'spread': 'mixed'} seq=1613 w=12001 s0 c0: relative L2 error 6.876e-02 (worst row 6.876e-02) [bound 0.150: 2.5 x the reference's 0.069 with FP8 E4M3 queries + 0.015]
+PASS xa=True {'batch': 1, 'heads': 'tp8', 'layer': 'full', 'q_len': 1, 'page': 1, 'ctx': 3000, 'dist': 'normal', 'spread': 'mixed'} seq=1613 w=12001 s0 c1: relative L2 error 6.876e-02 (worst row 6.876e-02) [bound 0.150: 2.5 x the reference's 0.069 with FP8 E4M3 queries + 0.015]
+PASS xa=True {'batch': 1, 'heads': 'tp8', 'layer': 'full', 'q_len': 1, 'page': 1, 'ctx': 3000, 'dist': 'normal', 'spread': 'mixed'} seq=1613 w=12001 s0 c2: relative L2 error 6.876e-02 (worst row 6.876e-02) [bound 0.150: 2.5 x the reference's 0.069 with FP8 E4M3 queries + 0.015]
+PASS xa=False {'batch': 1, 'heads': 'tp8', 'layer': 'full', 'q_len': 8, 'page': 1, 'ctx': 80000, 'dist': 'coherent'} seq=80000 w=80008 s0 c0: relative L2 error 3.371e-02 (worst row 4.328e-02) [bound 0.101: 2.5 x the reference's 0.035 with FP8 E4M3 queries + 0.015]
+PASS xa=False {'batch': 1, 'heads': 'tp8', 'layer': 'full', 'q_len': 8, 'page': 1, 'ctx': 80000, 'dist': 'coherent'} seq=80000 w=80008 s0 c1: relative L2 error 3.371e-02 (worst row 4.328e-02) [bound 0.101: 2.5 x the reference's 0.035 with FP8 E4M3 queries + 0.015]
+PASS xa=False {'batch': 1, 'heads': 'tp8', 'layer': 'full', 'q_len': 8, 'page': 1, 'ctx': 80000, 'dist': 'coherent'} seq=80000 w=80008 s0 c2: relative L2 error 3.371e-02 (worst row 4.328e-02) [bound 0.101: 2.5 x the reference's 0.035 with FP8 E4M3 queries + 0.015]
+PASS xa=False {'batch': 1, 'heads': 'tp8', 'layer': 'full', 'q_len': 8, 'page': 1, 'ctx': 3000, 'dist': 'normal', 'spread': 'mixed'} seq=1613 w=12008 s0 c0: relative L2 error 6.947e-02 (worst row 8.466e-02) [bound 0.150: 2.5 x the reference's 0.069 with FP8 E4M3 queries + 0.015]
+PASS xa=False {'batch': 1, 'heads': 'tp8', 'layer': 'full', 'q_len': 8, 'page': 1, 'ctx': 3000, 'dist': 'normal', 'spread': 'mixed'} seq=1613 w=12008 s0 c1: relative L2 error 6.947e-02 (worst row 8.466e-02) [bound 0.150: 2.5 x the reference's 0.069 with FP8 E4M3 queries + 0.015]
+PASS xa=False {'batch': 1, 'heads': 'tp8', 'layer': 'full', 'q_len': 8, 'page': 1, 'ctx': 3000, 'dist': 'normal', 'spread': 'mixed'} seq=1613 w=12008 s0 c2: relative L2 error 6.947e-02 (worst row 8.466e-02) [bound 0.150: 2.5 x the reference's 0.069 with FP8 E4M3 queries + 0.015]
+
+0 failures (4s)
+import 1.8s
+
+0 failures
+
+0 failures (5s)
+[k34a] import 2.0s
+[k34b] import 1.4s
+[xa] import 1.2s
+fixed graph cost 5.41 us
+  check k34a decode 1 full: relative L2 error 2.685e-02 (worst row 2.685e-02) [bound 0.081: 2.5 x the reference's 0.027 with FP8 E4M3 queries + 0.015]
+  check k34b decode 1 full: relative L2 error 2.685e-02 (worst row 2.685e-02) [bound 0.081: 2.5 x the reference's 0.027 with FP8 E4M3 queries + 0.015]
+  check xa decode 1 full: relative L2 error 2.676e-02 (worst row 2.676e-02) [bound 0.081: 2.5 x the reference's 0.027 with FP8 E4M3 queries + 0.015]
+decode 1  full    w16 sglang    30.08 | k34a    12.33 x2.440 | k34b    12.16 x2.474 | xa    10.26 x2.933   sol    4.27
+  check k34a verify 1 full: relative L2 error 2.549e-02 (worst row 3.574e-02) [bound 0.079: 2.5 x the reference's 0.025 with FP8 E4M3 queries + 0.015]
+  check k34b verify 1 full: relative L2 error 2.549e-02 (worst row 3.574e-02) [bound 0.079: 2.5 x the reference's 0.025 with FP8 E4M3 queries + 0.015]
+  check xa verify 1 full: relative L2 error 2.549e-02 (worst row 3.574e-02) [bound 0.079: 2.5 x the reference's 0.025 with FP8 E4M3 queries + 0.015]
+verify 1  full    w16 sglang    34.48 | k34a    16.19 x2.130 | k34b    15.97 x2.159 | xa    15.84 x2.176   sol    4.28
+
+per-load (weighted sums, us):
+  decode 1  sglang     481.3 | k34a     197.2 x2.440 | k34b     194.5 x2.474 | xa     164.1 x2.933
+  verify 1  sglang     551.7 | k34a     259.0 x2.130 | k34b     255.6 x2.159 | xa     253.5 x2.176
+GEOMEAN k34a: x2.2800 (board time 226.0 us)   judge-projected (+1.0 us/call) x2.1943 (board 263.1 us)
+GEOMEAN k34b: x2.3110 (board time 223.0 us)   judge-projected (+1.0 us/call) x2.2221 (board 259.9 us)
+GEOMEAN xa: x2.5264 (board time 204.0 us)   judge-projected (+1.0 us/call) x2.4117 (board 239.4 us)
+[xa_d1f] xa_b1f_1L: nsys dur med 11.36 p10 11.07 p90 11.62 | gap 4.13 | event-minus-empty 10.30  (9s)
+[xa_v1f] attn_8_0_1_1: nsys dur med 16.91 p10 16.61 p90 17.31 | gap 4.19 | event-minus-empty 15.74  (6s)
+[k34_d1f] attn_1_0_1_1w: nsys dur med 13.25 p10 12.93 p90 14.14 | gap 4.19 | event-minus-empty 12.05  (8s)
+[k34_v1f] attn_8_0_1_1: nsys dur med 17.02 p10 16.74 p90 17.60 | gap 4.19 | event-minus-empty 15.78  (6s)
+[gpu-after]
+NVIDIA H200, 0 %, 130 MiB, 1980 MHz, 1980 MHz, 130.56 W
+0
++ XA_DEFS=
++ timeout 120 python3 dev/xa/t_xa.py dev/xa/k34xa.py --L 1,8 --quick
++ K2_DEFS=
++ timeout 1500 python3 tools/check.py dev/xa/k34xa.py
++ grep -v '^PASS'
++ XA_DEFS=
++ timeout 900 python3 dev/xa/t_xa.py dev/xa/k34xa.py --L 1,8
++ grep -v PASS
++ timeout 1500 python3 tools/bench.py --cand k34a=dev/k34.py --cand k34b=dev/coord/k34b.py --cand xa=dev/xa/k34xa.py@ --loads 'decode 1,verify 1' --layers full --reps 40
++ K2_DEFS=
++ python3 dev/xa/run_nsys.py --file dev/xa/k34xa.py --shapes '1,1,full;1,8,full' --tag xa --defs ''
++ python3 dev/xa/run_nsys.py --file dev/k34.py --shapes '1,1,full;1,8,full' --tag k34
+
+[exit 0]
+Stopping app - local entrypoint completed.
+✓ App completed. View run at 
+<modal-run-url>

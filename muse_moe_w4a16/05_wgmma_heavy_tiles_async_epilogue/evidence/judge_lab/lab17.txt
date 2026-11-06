@@ -1,0 +1,5 @@
+[
+    {"check": [4, 8, 16], "variants": [("akw2", ["MOE_AEPI_KW2=1", "MOE_AEPI_NT=1"], {}), ("pnext", ["MOE_PNEXT=1"], {}), ("ea1", ["MOE_EARLY_ALL", "MOE_EARLY_NS=1"], {}), ("susp", ["MOE_SUSPEND_ALL"], {})], "seeds": 2},
+    {"bs": [8, 16], "variants": [("v152", [], {}), ("akw2", ["MOE_AEPI_KW2=1", "MOE_AEPI_NT=1"], {}), ("pnext", ["MOE_PNEXT=1"], {}), ("ea1", ["MOE_EARLY_ALL", "MOE_EARLY_NS=1"], {}),
+                                 ("susp", ["MOE_SUSPEND_ALL"], {}), ("akpn", ["MOE_AEPI_KW2=1", "MOE_AEPI_NT=1", "MOE_PNEXT=1"], {}), ("v152b", [], {})], "seeds": 16, "reps": 3},
+]

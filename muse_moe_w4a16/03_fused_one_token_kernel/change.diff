@@ -1,0 +1,778 @@
+--- 02_per_item_loops_ssq_fast_combine/build.py
++++ 03_fused_one_token_kernel/build.py
+@@ -59,10 +59,13 @@
+ TOPK = 8
+ NLOCAL = 32
+ MAX_M = 512          # larger batches take the PyTorch path
++ONE_TOKEN = True     # M = 1: the fused one-token kernel
+ CTR_WORDS = 16384    # workspace counters: [0] queue head, [1] down items done, [2] CTAs done, [3] gathered, [8..] per tile x k chunk
+ SMEM_MAX = 232448
+ 
+ CUDA_SRC = r"""
++// the main kernel streams weights with plain bulk copies (tensor maps only in the one-token kernel)
++#define MOE_NO_TMAP
+ typedef unsigned int u32;
+ typedef unsigned short u16;
+ typedef unsigned long long u64;
+@@ -121,6 +124,12 @@
+   asm volatile("cp.async.bulk.shared::cluster.global.mbarrier::complete_tx::bytes.L2::cache_hint [%0], [%1], %2, [%3], %4;"
+                :: "r"(dst), "l"(src), "r"(bytes), "r"(bar), "l"(pol) : "memory");
+ #endif
++}
++// One tiled tensor-map copy (4-D box) into shared memory, completing on an mbarrier.
++DEVI void tma_4d(u32 dst, u64 tmap, int c0, int c1, int c2, int c3, u32 bar, u64 pol) {
++  asm volatile("cp.async.bulk.tensor.4d.shared::cluster.global.tile.mbarrier::complete_tx::bytes.L2::cache_hint"
++               " [%0], [%1, {%2, %3, %4, %5}], [%6], %7;"
++               :: "r"(dst), "l"(tmap), "r"(c0), "r"(c1), "r"(c2), "r"(c3), "r"(bar), "l"(pol) : "memory");
+ }
+ DEVI void prefetch_l2(const void* src, u32 bytes) {
+   asm volatile("cp.async.bulk.prefetch.L2.global [%0], %1;" :: "l"(src), "r"(bytes) : "memory");
+@@ -142,7 +151,8 @@
+   int* b = ctr + 32768 + blockIdx.x * 512 + half * 256;
+   const int n = code == 0 ? 0 : tr_n[half];
+   if (code == 0) tr_n[1] = 0;
+-  if (n < 127) { b[1 + 2 * n] = (code << 24) | (item & 0xFFFFFF); b[2 + 2 * n] = (int)gtimer(); b[0] = n + 1; tr_n[half] = n + 1; }
++  // the producer half's words from 192 on hold its startup stamps
++  if (n < (half ? 95 : 127)) { b[1 + 2 * n] = (code << 24) | (item & 0xFFFFFF); b[2 + 2 * n] = (int)gtimer(); b[0] = n + 1; tr_n[half] = n + 1; }
+ }
+ #define MOE_TR(half, code, item) trace_ev(P.ctr, half, code, item)
+ #else
+@@ -474,6 +484,8 @@
+   u16* inter; float* ypart; u16* out; int* ctr; int pmax;
+   u16* xs;  // NT >= 2: the gate/up activations gathered per tile, stage-major like the intermediate
+   float* ssq;  // [pmax][64]: per pair and 64-row slot, the sum of squares of y * (1 + w), full-k items
++  // tensor maps of this config's stage boxes (RGS row groups x KW k chunks): w13, s13, w2, s2
++  const unsigned char* tmap;
+ };
+ 
+ // Register split after the role dispatch: the launch gives 168 per thread (384 threads), so the
+@@ -550,6 +562,7 @@
+   int* ftile = reinterpret_cast<int*>(smem + 416);              // [32] first tile of each expert
+   int* off = reinterpret_cast<int*>(smem + 544);                // [32]
+   u64* rdy = reinterpret_cast<u64*>(smem + 672);               // pair list (and gather) done
++  u64* rtd = reinterpret_cast<u64*>(smem + 688);               // routing tables (tiles, scal) done
+   float* gsm = reinterpret_cast<float*>(smem + 768);            // [64] gate/up then down global scales x 2^8
+   u32* bm = reinterpret_cast<u32*>(smem + 1024);                // [32][MW] token bitmaps per expert
+   int* wpre = reinterpret_cast<int*>(bm + 32 * MW);             // [32][MW] exclusive popcount prefix
+@@ -589,13 +602,18 @@
+       mbar_init(smem_addr(&sfree[s]), 1);
+     }
+     mbar_init(smem_addr(rdy), 1);
++    mbar_init(smem_addr(rtd), 1);
+     asm volatile("fence.mbarrier_init.release.cluster;" ::: "memory");
+     asm volatile("fence.proxy.async.shared::cta;" ::: "memory");
+   }
+   __syncthreads();
++  // With the early start (bs 1 config), routing runs on warps 0-7 (named barriers) and the
++  // producer warpgroup does not wait for it; otherwise every warp takes part.
++  constexpr bool EARLY = NT == 1 && KW == 4 && MW == 1;
++  if (warp < 8 || !EARLY) {
+   // Token bitmaps per expert without atomics: a warp takes 32 tokens (one bitmap word), each lane
+   // its token's local-expert mask, and 32 ballots give the word of every expert.
+-  for (int t0 = warp * 32; t0 < MW * 32; t0 += (int)(blockDim.x / 32) * 32) {
++  for (int t0 = warp * 32; t0 < MW * 32; t0 += (EARLY ? 8 : 12) * 32) {
+     const int t = t0 + lane;
+     u32 em = 0;
+     if (t < M) {
+@@ -617,7 +635,7 @@
+     }
+     bm[lane * MW + (t0 >> 5)] = mine;
+   }
+-  __syncthreads();
++  if constexpr (EARLY) consumer_sync(); else __syncthreads();
+   if (tid == 0) MOE_TR(0, 10, 0);
+ #ifdef MOE_TIMING
+   if (tid == 0) reinterpret_cast<u32*>(P.ctr)[14420 + blockIdx.x * 4 + 2] = gtimer();
+@@ -629,13 +647,16 @@
+       c += __popc(bm[lane * MW + w]);
+     }
+     const int nt = (c + T - 1) / T;
+-#ifdef MOE_NOSORT
+-    const int rank = lane;  // experts in index order
+-#else
+-    int rank = 0;  // largest experts first
+-    for (int j = 0; j < 32; ++j) {
+-      const int cj = __shfl_sync(0xffffffffu, c, j);
+-      rank += (cj > c) || (cj == c && j < lane);
++    // Largest experts first (load balance), except with single-group tiles, where every tile is
++    // about the same size and index order saves the ranking's latency at startup.
++    int rank = lane;
++#ifndef MOE_NOSORT
++    if constexpr (NT > 1) {
++      rank = 0;
++      for (int j = 0; j < 32; ++j) {
++        const int cj = __shfl_sync(0xffffffffu, c, j);
++        rank += (cj > c) || (cj == c && j < lane);
++      }
+     }
+ #endif
+     // pairs and tiles before this expert in rank order: an exclusive scan in rank space (the
+@@ -680,7 +701,9 @@
+       scal[5] = nspl > 0 ? tiles[tsplit].y : tot_p;  // first pair with KSX partials
+     }
+   }
+-  __syncthreads();
++  if constexpr (EARLY) consumer_sync(); else __syncthreads();
++  if (tid == 0) mbar_arrive(smem_addr(rtd));  // the producer reads the tables after this
++  }
+   if (tid == 0) MOE_TR(0, 11, 0);
+ #ifdef MOE_TIMING
+   if (tid == 0) reinterpret_cast<u32*>(P.ctr)[14420 + blockIdx.x * 4 + 0] = gtimer();
+@@ -783,7 +806,8 @@
+ #elif defined(MOE_ONLY_G1)
+   const int ntiles = scal[0], n1 = scal[1], total = scal[1], tsplit = scal[4], psplit = scal[5];
+ #else
+-  const int ntiles = scal[0], n1 = scal[1], total = scal[2], tsplit = scal[4], psplit = scal[5];
++  int ntiles = 0, n1 = 0, total = 0, tsplit = 0, psplit = 0;
++  if (warp < 8 || !EARLY) { ntiles = scal[0]; n1 = scal[1]; total = scal[2]; tsplit = scal[4]; psplit = scal[5]; }
+ #endif
+ #ifdef MOE_TIMING
+   if (tid == 0) tdbg[1] = gtimer();
+@@ -807,6 +831,12 @@
+     // ------------------------------ producer ------------------------------
+     const u64 pol_w = policy_evict_first();
+     const u64 pol_x = policy_evict_last();
++    const u32 stage0 = smem_addr(stages), bars0 = smem_addr(bars);
++#ifndef MOE_NO_TMAP
++    // a stage's weights and scales: one tensor-map copy each (lanes 0 and 1)
++    const u64 tmap0 = reinterpret_cast<u64>(P.tmap) + (lane & 1) * 128;
++    if (lane < 4) asm volatile("prefetch.tensormap [%0];" :: "l"(reinterpret_cast<u64>(P.tmap) + lane * 128) : "memory");
++#endif
+ #ifdef MOE_TRACE
+     pst[1] = (u32)clock64();
+ #endif
+@@ -819,6 +849,103 @@
+     bool gathered = false, routed = false;
+     // The first wave is static (CTA b takes item b); the queue hands out items from gridDim on.
+     item = blockIdx.x;
++    int early = 0;
++#ifdef MOE_TRACE
++    u32 est[16];
++    for (int k = 0; k < 16; ++k) est[k] = 0;
++    est[12] = gtimer();
++#endif
++#ifndef MOE_NO_EARLY
++    if constexpr (EARLY && !GATHER && !HASWG) {
++      // bs 1 config: this warp works out its first item from the token ids
++      // itself (same per-expert counts, index-order tiles and offsets as the routing) and issues
++      // its first stages while warps 0-7 are still routing.
++      u32 em = 0;
++      if (lane < M) {
++        const int4 v0 = reinterpret_cast<const int4*>(P.ids)[lane * 2], v1 = reinterpret_cast<const int4*>(P.ids)[lane * 2 + 1];
++        const int ev[8] = {v0.x, v0.y, v0.z, v0.w, v1.x, v1.y, v1.z, v1.w};
++#pragma unroll
++        for (int j = 0; j < 8; ++j) {
++          const int e = ev[j] - P.local_start;
++          em |= (unsigned)e < 32u ? 1u << e : 0u;
++        }
++      }
++      u32 mybm = 0;
++#pragma unroll
++      for (int e = 0; e < 32; ++e) {
++        const u32 b = __ballot_sync(0xffffffffu, (em >> e) & 1u);
++        if (lane == e) mybm = b;
++      }
++      const int c = __popc(mybm), ntl = (c + T - 1) / T;
++      int sc = c, stt = ntl;
++#pragma unroll
++      for (int d = 1; d < 32; d <<= 1) {
++        const int a = __shfl_up_sync(0xffffffffu, sc, d), b = __shfl_up_sync(0xffffffffu, stt, d);
++        if (lane >= d) { sc += a; stt += b; }
++      }
++      const int tot_t = __shfl_sync(0xffffffffu, stt, 31);
++      const int ft_e = stt - ntl, off_e = sc - c;
++      if (item < NRB1 * tot_t) {
++        const int tile = item / NRB1, rb = item - tile * NRB1;
++        const u32 own = __ballot_sync(0xffffffffu, ntl > 0 && ft_e <= tile && tile < ft_e + ntl);
++        const int e = __ffs(own) - 1;
++        const int c_e = __shfl_sync(0xffffffffu, c, e), ft = __shfl_sync(0xffffffffu, ft_e, e);
++        const int p0 = __shfl_sync(0xffffffffu, off_e, e) + (tile - ft) * T;
++        const u32 bme = __shfl_sync(0xffffffffu, mybm, e);
++        const int kt = tile - ft, n = min(T, c_e - kt * T);
++        const int r = (lane < M && ((bme >> lane) & 1u)) ? __popc(bme & ((1u << lane) - 1u)) - kt * T : -1;
++        early = NS < ST1 ? NS : ST1;
++        const unsigned char* esrc = reinterpret_cast<const unsigned char*>(P.w13 + (size_t)e * (8192 * 512));
++        const unsigned char* essrc = P.s13 + (size_t)e * (8192 * 256);
++        for (int st = 0; st < early; ++st) {
++          const u32 full = bars0 + st * 8;
++          if (lane == 0) {
++            int4* fi = reinterpret_cast<int4*>(&info[st]);
++            fi[0] = make_int4(item, 1, tile, rb);
++            fi[1] = make_int4(0, st, st == ST1 - 1, n);
++            fi[2] = make_int4(p0, e, 0, 0);
++            mbar_arrive_tx(full, WB + SB + n * KST * 2);
++          }
++          __syncwarp();
++#ifdef MOE_TRACE
++          __syncwarp();
++          if (st < 4) est[st * 3] = gtimer();
++#endif
++#ifndef MOE_NO_TMAP
++          if (lane < 2) tma_4d(stage0 + st * STAGE + (lane ? WB : 0), tmap0, 0, rb * RGS, st * KW, e, full, pol_w);
++#else
++          if (lane < KW * 2) {
++            const int kw = lane >> 1;
++            const size_t blk = (size_t)(st * KW + kw) * 512 + rb * RGS;
++            if (lane & 1) bulk_g2s(stage0 + st * STAGE + WB + kw * RGS * 256, essrc + blk * 256, RGS * 256, full, pol_w);
++            else bulk_g2s(stage0 + st * STAGE + kw * RGS * 2048, esrc + blk * 2048, RGS * 2048, full, pol_w);
++          }
++#endif
++#ifdef MOE_TRACE
++          __syncwarp();
++          if (st < 4) est[st * 3 + 1] = gtimer();
++#endif
++          if (r >= 0 && r < n)
++            bulk_g2s(stage0 + st * STAGE + WB + SB + r * XP, P.x + (size_t)lane * 4096 + st * KW * 256, KST * 2, full, pol_x);
++#ifdef MOE_TRACE
++          __syncwarp();
++          if (st < 4) est[st * 3 + 2] = gtimer();
++#endif
++        }
++      }
++    }
++#endif
++    if constexpr (EARLY) {
++#ifdef MOE_TRACE
++      est[13] = gtimer();
++#endif
++      if (lane == 0) mbar_sleep(smem_addr(rtd), 0);
++      __syncwarp();
++#ifdef MOE_TRACE
++      est[14] = gtimer();
++#endif
++      ntiles = scal[0]; n1 = scal[1]; total = scal[2]; tsplit = scal[4]; psplit = scal[5];
++    }
+ #ifndef MOE_PD
+ #define MOE_PD 0
+ #endif
+@@ -856,6 +983,7 @@
+       int next;
+ #ifdef MOE_TRACE
+       if (it == 0) pst[2] = (u32)clock64();
++      if (lane == 0) MOE_TR(1, 4, item);
+ #endif
+       // The next item, claimed ahead so its latency hides behind this item. Inline PTX: a plain
+       // atomicAdd here is warp-aggregated by the compiler, whose shuffle of the result made the
+@@ -892,11 +1020,22 @@
+       const unsigned char* nsc = nullptr;
+       int nnrg = 0, nrbo = 0, nkc = 0, nns = 0;
+       u32 rmask = 0;
++      // This lane's piece of every stage (the weights or scales of k chunk lane / 2): a source
++      // advanced by one stage's k per stage and a fixed offset in the slot. Computed once per item
++      // so a stage costs the producer (which shares a scheduler with two consumer warps) a few adds.
++      const int pkw = lane >> 1;
++      const bool pscl = lane & 1;
++      const unsigned char* csrc = pscl ? ssrc + ((size_t)(kc_item + pkw) * nrg_tot + rb * RGS) * 256
++                                       : wsrc + ((size_t)(kc_item + pkw) * nrg_tot + rb * RGS) * 2048;
++      const size_t cstep = (size_t)KW * nrg_tot * (pscl ? 256 : 2048);
++      const u32 cdst = pscl ? WB + pkw * RGS * 256 : pkw * RGS * 2048;
++      const u32 cbytes = pscl ? RGS * 256 : RGS * 2048;
+       for (int st = 0; st < nst; ++st, ++it) {
++        if (it < early) { csrc += cstep; continue; }  // issued before the routing tables were ready
+         const int s = it % NS;
+         const u32 ph = (it / NS) & 1;
+         unsigned char* sbase = stages + s * STAGE;
+-        const u32 full = smem_addr(&bars[s]);
++        const u32 full = bars0 + s * 8;
+         const int kc0 = kc_item + st * KW;
+ #if MOE_PD > 0
+         if (st == 0 && item < total) {
+@@ -927,10 +1066,12 @@
+ #endif
+ #ifdef MOE_TRACE
+           if (it == 0) pst[5] = (u32)clock64();
+-#endif
+-          StageInfo& f = info[s];
+-          f.item = item; f.phase = phase; f.tile = tile; f.rb = rb; f.ks = ks; f.st = st;
+-          f.last = st == nst - 1; f.n = n; f.p0 = p0; f.e = e;
++          MOE_TR(1, 5, item * 16 + st);
++#endif
++          int4* fi = reinterpret_cast<int4*>(&info[s]);
++          fi[0] = make_int4(item, phase, tile, rb);
++          fi[1] = make_int4(ks, st, st == nst - 1, n);
++          fi[2] = make_int4(p0, e, 0, 0);
+ #ifdef MOE_NO_LOAD
+           mbar_arrive(full);
+ #else
+@@ -946,14 +1087,16 @@
+ #ifdef MOE_NO_LOAD
+         continue;
+ #endif
+-        for (int pc = lane; pc < KW * 2; pc += 32) {
+-          const int kw = pc >> 1;
+-          const size_t blk = (size_t)(kc0 + kw) * nrg_tot + rb * RGS;
+-          if (pc & 1)
+-            bulk_g2s(smem_addr(sbase + WB + kw * RGS * 256), ssrc + blk * 256, RGS * 256, full, pol_w);
+-          else
+-            bulk_g2s(smem_addr(sbase + kw * RGS * 2048), wsrc + blk * 2048, RGS * 2048, full, pol_w);
+-        }
++#ifndef MOE_NO_TMAP
++        if (lane < 2) tma_4d(stage0 + s * STAGE + (lane ? WB : 0), tmap0 + (phase == 2 ? 256 : 0), 0, rb * RGS, kc0, e, full, pol_w);
++#else
++        if (lane < KW * 2) bulk_g2s(stage0 + s * STAGE + cdst, csrc, cbytes, full, pol_w);
++        csrc += cstep;
++#endif
++#ifdef MOE_TRACE
++        __syncwarp();
++        if (lane == 0) MOE_TR(1, 24, item * 16 + st);
++#endif
+ #ifdef MOE_TRACE
+         if (it == 0) pst[6] = (u32)clock64();
+ #endif
+@@ -1006,7 +1149,7 @@
+             bulk_g2s(smem_addr(sbase + WB + SB), xreg + (size_t)(kc0 / KW) * T * XP, n * XP, full, pol_x);
+           }
+         } else {
+-          if (st == 0) {
++          if (st == 0 || (early > 0 && it == early)) {
+             if (!routed) {
+               if (lane == 0) mbar_sleep(smem_addr(rdy), 0);
+               __syncwarp();
+@@ -1029,6 +1172,10 @@
+ #endif
+     }
+ #ifdef MOE_TRACE
++    if (lane == 0) {
++      int* eb = P.ctr + 32768 + 160 * 512 + 160 * 192 + 160 * 80 + blockIdx.x * 16;
++      for (int k = 0; k < 15; ++k) eb[k] = (int)est[k];
++    }
+     if (lane == 0) {
+       int* b = P.ctr + 32768 + blockIdx.x * 512 + 256 + 192;
+       b[0] = (int)pgt;
+@@ -1458,7 +1605,25 @@
+     }
+     return fast;
+   };
+-  for (int t = blockIdx.x; t < M; t += gridDim.x) {
++  // Combine work is claimed from a counter (tokens here; units below), so the CTAs that finish
++  // their items first take it and each token is combined as soon as its tiles are done, instead
++  // of waiting for a fixed CTA that may itself be among the last to finish.
++#ifndef MOE_NO_DYNCOMB
++  constexpr bool DYN = !SSQ;
++#else
++  constexpr bool DYN = false;
++#endif
++  auto claim = [&](int* ctr_word, int static_first, int static_step, int& prev) -> int {
++    if constexpr (!DYN) { prev = prev < 0 ? static_first : prev + static_step; return prev; }
++    if (tid == 0) scal[8] = atomicAdd(ctr_word, 1);
++    consumer_sync();
++    const int v = scal[8];
++    consumer_sync();
++    return v;
++  };
++  int tprev = -1;
++  for (int t = SSQ ? blockIdx.x : claim(P.ctr + 4, blockIdx.x, gridDim.x, tprev); t < M;
++       t = SSQ ? t + (int)gridDim.x : claim(P.ctr + 4, blockIdx.x, gridDim.x, tprev)) {
+     if constexpr (SSQ) { if (token_fast(t)) continue; }
+     int plist[8];
+     float wl[8];
+@@ -1602,7 +1767,8 @@
+   if constexpr (SSQ) {
+   // Fast tokens: an elementwise pass in (token, 1024-column) units spread over every CTA. Each
+   // warp sums a pair's 64 slot sums itself, so no barrier is needed beyond the tiles' polls.
+-  for (int u = blockIdx.x; u < M * 4; u += gridDim.x) {
++  int uprev = -1;
++  for (int u = claim(P.ctr + 5, blockIdx.x, gridDim.x, uprev); u < M * 4; u = claim(P.ctr + 5, blockIdx.x, gridDim.x, uprev)) {
+     const int t = u >> 2, c = u & 3;
+     if (!token_fast(t)) continue;
+     int plist[8];
+@@ -1666,21 +1832,242 @@
+   if (tid == 0) tdbg[3] = gtimer();
+ #endif
+   // ------------------------------ reset for the next call ------------------------------
++  // One acquire-release arrival per CTA: its uses of the counters happen before it, and the last
++  // CTA's resets (ordered after its arrival by the barrier) happen after everyone's; kernel
++  // completion publishes them to the next call. The last CTA's 256 consumer threads zero the
++  // counters together: one thread's serial stores sat on the kernel's critical path.
+   if (tid == 0) {
+-    // One acquire-release arrival: this CTA's uses of the counters happen before it, and the last
+-    // CTA's resets happen after everyone's; kernel completion publishes the resets to the next call.
+     int prev;
+     asm volatile("atom.acq_rel.gpu.global.add.s32 %0, [%1], 1;" : "=r"(prev) : "l"(P.ctr + 2) : "memory");
+-    if (prev == (int)gridDim.x - 1) {
+-      P.ctr[0] = 0;
+-      P.ctr[1] = 0;
+-      P.ctr[3] = 0;
+-      for (int i = 0; i < ntiles * 16; ++i) cnt1[i] = 0;
+-      for (int i = 0; i < ntiles; ++i) cnt2[i] = 0;
+-      P.ctr[2] = 0;
+-    }
+-  }
+-}
++    scal[9] = prev == (int)gridDim.x - 1;
++  }
++  consumer_sync();
++  if (scal[9]) {
++    for (int i = tid; i < ntiles * 16; i += 256) cnt1[i] = 0;
++    for (int i = tid; i < ntiles; i += 256) cnt2[i] = 0;
++    if (tid < 6) P.ctr[tid] = 0;  // queue head, down items done, CTAs done, gathered, combine claims
++  }
++}
++
++// ------------------------------ one token (M = 1) ------------------------------
++// Every local expert of the token is split into 128 units of 32 intermediate values. A unit runs
++// its 64 gate/up rows (4 stages, the token's row resident in shared memory), then those 32 values'
++// share of the down projection (2 stages from a slice-major copy of w2), and adds its partial down
++// output into yacc. No CTA waits for another one until the last one combines: under a streaming
++// load a cross-CTA signal takes microseconds to be seen.
++struct Params1 {
++  const u16* x; const int* ids; const float* topk_w;
++  const float* gs13; const float* gs2; const float* nw1;
++  const unsigned char* w2f; const unsigned char* s2f;
++  u16* out; int* ctr; float* yacc; const unsigned char* tmap;
++  int local_start;
++};
++DEVI void red_v4(float* p, float4 v) {
++  asm volatile("red.relaxed.gpu.global.add.v4.f32 [%0], {%1, %2, %3, %4};"
++               :: "l"(p), "f"(v.x), "f"(v.y), "f"(v.z), "f"(v.w) : "memory");
++}
++template <int NS>
++__device__ __forceinline__ void moe1_body(const Params1& P) {
++  constexpr int STAGE = 36864, WB = 32768;
++  extern __shared__ __align__(128) unsigned char smem[];
++  u64* bars = reinterpret_cast<u64*>(smem);            // full[8], empty[8], x
++  float* red = reinterpret_cast<float*>(smem + 256);   // [4 k-warps][64 rows] gate/up partials
++  u32* inter = reinterpret_cast<u32*>(smem + 1280);    // [16] the unit's 32 intermediate values (bf16 pairs)
++  int* flag = reinterpret_cast<int*>(smem + 1344);
++  float* rsum = reinterpret_cast<float*>(smem + 1408); // [8] combine sums of squares
++  float* ystg = reinterpret_cast<float*>(smem + 2048); // [8 warps][256] down rows of a stage
++  unsigned char* xres = smem + 10240;                  // the token's row
++  unsigned char* stages = smem + 18432;
++  const int tid = threadIdx.x, lane = tid & 31, warp = tid >> 5;
++  // the token's local experts: every warp derives them from the ids (no barrier on a global load)
++  const int4 v0 = reinterpret_cast<const int4*>(P.ids)[0], v1 = reinterpret_cast<const int4*>(P.ids)[1];
++  if (tid == 0) {
++    for (int s = 0; s < NS; ++s) { mbar_init(smem_addr(&bars[s]), 1); mbar_init(smem_addr(&bars[8 + s]), 8); }
++    mbar_init(smem_addr(&bars[16]), 1);
++    asm volatile("fence.mbarrier_init.release.cluster;" ::: "memory");
++  }
++  __syncthreads();
++  u64 elist = 0;   // 5 bits per local expert, in slot order
++  u32 slist = 0;   // 3 bits per local expert: its top-k slot
++  int ne = 0;
++  {
++    const int ev[8] = {v0.x, v0.y, v0.z, v0.w, v1.x, v1.y, v1.z, v1.w};
++#pragma unroll
++    for (int j = 0; j < 8; ++j) {
++      const int e = ev[j] - P.local_start;
++      if ((unsigned)e < 32u) { elist |= (u64)e << (5 * ne); slist |= (u32)j << (3 * ne); ++ne; }
++    }
++  }
++  const int nu = ne * 128;
++  if (warp == 8) {
++    // ------------------------------ producer ------------------------------
++    const u64 pol_w = policy_evict_first();
++    const u32 stage0 = smem_addr(stages), bars0 = smem_addr(bars);
++    const u64 tmap0 = reinterpret_cast<u64>(P.tmap) + (lane & 1) * 128;
++    if (lane == 0) {
++      mbar_arrive_tx(smem_addr(&bars[16]), 8192);
++      bulk_g2s(smem_addr(xres), P.x, 8192, smem_addr(&bars[16]), policy_evict_last());
++    }
++    int it = 0;
++    for (int u = blockIdx.x; u < nu; u += gridDim.x) {
++      const int q = u >> 7, j = u & 127;
++      const int e = (int)((elist >> (5 * q)) & 31);
++      const unsigned char* w2u = P.w2f + (size_t)(e * 128 + j) * 65536;
++      const unsigned char* s2u = P.s2f + (size_t)(e * 128 + j) * 8192;
++      for (int st = 0; st < 6; ++st, ++it) {
++        const int s = it % NS;
++        const u32 ph = (it / NS) & 1;
++        const u32 full = bars0 + s * 8;
++        if (lane == 0) {
++          mbar_sleep(bars0 + (8 + s) * 8, ph ^ 1);
++          mbar_arrive_tx(full, STAGE);
++        }
++        __syncwarp();
++        const u32 dst = stage0 + s * STAGE;
++        if (st < 4) {
++          if (lane < 2) tma_4d(dst + (lane ? WB : 0), tmap0, 0, j * 4, st * 4, e, full, pol_w);
++        } else if (lane == 0) {
++          bulk_g2s(dst, w2u + (st - 4) * 32768, 32768, full, pol_w);
++        } else if (lane == 1) {
++          bulk_g2s(dst + WB, s2u + (st - 4) * 4096, 4096, full, pol_w);
++        }
++      }
++    }
++    return;
++  }
++  if (warp > 8) return;
++  // ------------------------------ consumers ------------------------------
++  const int kw = warp & 3, rw = warp >> 2;
++  const int g = lane >> 2, tig = lane & 3;
++  mbar_wait(smem_addr(&bars[16]), 0);
++  int it = 0;
++  for (int u = blockIdx.x; u < nu; u += gridDim.x) {
++    const int q = u >> 7;
++    const int e = (int)((elist >> (5 * q)) & 31);
++    const float gs1 = P.gs13[e] * 256.f;
++    float acc[2][1][4], acc2[2][1][4];
++#pragma unroll
++    for (int a = 0; a < 2; ++a)
++#pragma unroll
++      for (int c = 0; c < 4; ++c) { acc[a][0][c] = 0.f; acc2[a][0][c] = 0.f; }
++    // gate/up: 64 rows (4 row groups; this warp 2 of them and 256 k of each 1024-k stage)
++#pragma unroll 1
++    for (int st = 0; st < 4; ++st, ++it) {
++      const int s = it % NS;
++      mbar_wait(smem_addr(&bars[s]), (it / NS) & 1);
++      const unsigned char* sbase = stages + s * STAGE;
++      stage_compute<1, 1>(acc, acc2, sbase + (kw * 4 + rw * 2) * 2048 + lane * 16, sbase + WB + (kw * 4 + rw * 2) * 256 + lane * 8,
++                          xres + (st * 4 + kw) * 512 + tig * 32, 0);
++      __syncwarp();
++      if (lane == 0) mbar_arrive(smem_addr(&bars[8 + s]));
++    }
++    // reduce the k-warps' partials (the token is column 0: lanes tig == 0), then SwiGLU
++    if (tig == 0) {
++#pragma unroll
++      for (int a = 0; a < 2; ++a) {
++        red[kw * 64 + 16 * (2 * rw + a) + g] = acc[a][0][0];
++        red[kw * 64 + 16 * (2 * rw + a) + g + 8] = acc[a][0][2];
++      }
++    }
++    consumer_sync();
++    if (tid < 16) {
++      // values 2 tid, 2 tid + 1: group q' = tid / 4 (gate rows 16 q' + i, up rows 16 q' + 8 + i)
++      u32 h2[2];
++#pragma unroll
++      for (int k = 0; k < 2; ++k) {
++        const int v = 2 * tid + k, rg = 16 * (v >> 3) + (v & 7);
++        float gt = 0.f, up = 0.f;
++#pragma unroll
++        for (int k2 = 0; k2 < 4; ++k2) { gt += red[k2 * 64 + rg]; up += red[k2 * 64 + rg + 8]; }
++        gt *= gs1; up *= gs1;
++        h2[k] = f2bf(__fdividef(gt, 1.f + __expf(-gt)) * up);
++      }
++      inter[tid] = h2[0] | (h2[1] << 16);
++    }
++    consumer_sync();
++    // B fragments of the down GEMM's two k16 steps (every column the token: all equal)
++    const u32 b00 = inter[tig], b01 = inter[tig + 4], b10 = inter[8 + tig], b11 = inter[12 + tig];
++    // down: 2 stages of 2048 rows x 32 k; this warp 256 rows (8 row-group pairs) of each
++#pragma unroll 1
++    for (int h = 0; h < 2; ++h, ++it) {
++      const int s = it % NS;
++      mbar_wait(smem_addr(&bars[s]), (it / NS) & 1);
++      const unsigned char* sbase = stages + s * STAGE;
++      float* yw = ystg + warp * 256;
++#pragma unroll
++      for (int rp = 0; rp < 8; ++rp) {
++        const uint4 qv = *reinterpret_cast<const uint4*>(sbase + (warp * 8 + rp) * 512 + lane * 16);
++        const uint2 sv = *reinterpret_cast<const uint2*>(sbase + WB + (warp * 8 + rp) * 64 + g * 8);
++#pragma unroll
++        for (int r2 = 0; r2 < 2; ++r2) {
++          const u32 sw = r2 ? sv.y : sv.x;
++          const u32 w0 = r2 ? qv.z : qv.x, w1 = r2 ? qv.w : qv.y;
++          float c[4] = {0.f, 0.f, 0.f, 0.f};
++          u32 a0, a1, a2, a3;
++          dequant(w0, scale_of<0, true>(sw), scale_of<1, true>(sw), a0, a1, a2, a3);
++          mma16816(c, a0, a1, a2, a3, b00, b01);
++          dequant(w1, scale_of<2, true>(sw), scale_of<3, true>(sw), a0, a1, a2, a3);
++          mma16816(c, a0, a1, a2, a3, b10, b11);
++          if (tig == 0) { yw[(rp * 2 + r2) * 16 + g] = c[0]; yw[(rp * 2 + r2) * 16 + g + 8] = c[2]; }
++        }
++      }
++      __syncwarp();
++      if (lane == 0) mbar_arrive(smem_addr(&bars[8 + s]));
++      float* ya = P.yacc + q * 4096 + h * 2048 + warp * 256;
++      red_v4(ya + lane * 4, *reinterpret_cast<const float4*>(yw + lane * 4));
++      red_v4(ya + 128 + lane * 4, *reinterpret_cast<const float4*>(yw + 128 + lane * 4));
++      __syncwarp();
++    }
++  }
++  // ------------------------------ combine (the last CTA) ------------------------------
++  consumer_sync();  // the CTA's adds before thread 0's release (cumulative)
++  if (tid == 0) {
++    int prev;
++    asm volatile("atom.acq_rel.gpu.global.add.s32 %0, [%1], 1;" : "=r"(prev) : "l"(P.ctr) : "memory");
++    *flag = prev == (int)gridDim.x - 1;
++  }
++  consumer_sync();
++  if (!*flag) return;
++  float accv[16];
++#pragma unroll
++  for (int k = 0; k < 16; ++k) accv[k] = 0.f;
++  for (int q = 0; q < ne; ++q) {
++    const int e = (int)((elist >> (5 * q)) & 31), sl = (slist >> (3 * q)) & 7;
++    const float gsc = P.gs2[e] * 256.f, wq = P.topk_w[sl];
++    float v[16], ss = 0.f;
++#pragma unroll
++    for (int k = 0; k < 4; ++k) {
++      const int n = (tid + 256 * k) * 4;
++      float* yp = P.yacc + q * 4096 + n;
++      const float4 y = __ldcg(reinterpret_cast<const float4*>(yp));
++      __stcg(reinterpret_cast<float4*>(yp), make_float4(0.f, 0.f, 0.f, 0.f));  // zero for the next call
++      const float4 w = *reinterpret_cast<const float4*>(P.nw1 + n);
++      v[4 * k] = y.x * gsc * w.x; v[4 * k + 1] = y.y * gsc * w.y; v[4 * k + 2] = y.z * gsc * w.z; v[4 * k + 3] = y.w * gsc * w.w;
++#pragma unroll
++      for (int i = 0; i < 4; ++i) ss += v[4 * k + i] * v[4 * k + i];
++    }
++#pragma unroll
++    for (int s2 = 16; s2 > 0; s2 >>= 1) ss += __shfl_xor_sync(0xffffffffu, ss, s2);
++    if (lane == 0) rsum[warp] = ss;
++    consumer_sync();
++    float tot = 0.f;
++#pragma unroll
++    for (int w = 0; w < 8; ++w) tot += rsum[w];
++    consumer_sync();
++    const float r = rsqrtf(tot * (1.f / 4096.f) + 1e-8f) * wq;
++#pragma unroll
++    for (int k = 0; k < 16; ++k) accv[k] += r * v[k];
++  }
++#pragma unroll
++  for (int k = 0; k < 4; ++k) {
++    const int n = (tid + 256 * k) * 4;
++    const u32 lo = (u32)f2bf(accv[4 * k]) | ((u32)f2bf(accv[4 * k + 1]) << 16);
++    const u32 hi = (u32)f2bf(accv[4 * k + 2]) | ((u32)f2bf(accv[4 * k + 3]) << 16);
++    *reinterpret_cast<uint2*>(P.out + n) = make_uint2(lo, hi);
++  }
++  if (tid == 0) *P.ctr = 0;  // for the next call (ordered before it by the kernel boundary)
++}
++extern "C" __global__ void __launch_bounds__(288, 1) moe1_5(Params1 p) { moe1_body<5>(p); }
+ 
+ #define INST(RW, NT, KS2, NS, MW)                                                                   \
+   extern "C" __global__ void __launch_bounds__(384, 1) moe_##RW##_##NT##_##KS2##_##NS##_##MW(Params p) { \
+@@ -1804,8 +2191,22 @@
+         ("w2", ctypes.c_void_p), ("s2", ctypes.c_void_p), ("gs2", ctypes.c_void_p), ("nw1", ctypes.c_void_p),
+         ("inter", ctypes.c_void_p), ("ypart", ctypes.c_void_p), ("out", ctypes.c_void_p),
+         ("ctr", ctypes.c_void_p), ("pmax", ctypes.c_int), ("xs", ctypes.c_void_p),
+-        ("ssq", ctypes.c_void_p),
++        ("ssq", ctypes.c_void_p), ("tmap", ctypes.c_void_p),
+     ]
++
++
++class _Params1C(ctypes.Structure):
++    _fields_ = [
++        ("x", ctypes.c_void_p), ("ids", ctypes.c_void_p), ("topk_w", ctypes.c_void_p),
++        ("gs13", ctypes.c_void_p), ("gs2", ctypes.c_void_p), ("nw1", ctypes.c_void_p),
++        ("w2f", ctypes.c_void_p), ("s2f", ctypes.c_void_p),
++        ("out", ctypes.c_void_p), ("ctr", ctypes.c_void_p), ("yacc", ctypes.c_void_p), ("tmap", ctypes.c_void_p),
++        ("local_start", ctypes.c_int),
++    ]
++
++
++NS1 = 5
++SMEM1 = 18432 + NS1 * 36864
+ 
+ 
+ _POS = [  # per A register (o) and half (h): bit positions of (sign, m2, m1, m0) in the packed word
+@@ -1850,6 +2251,36 @@
+     return words, s
+ 
+ 
++def _codes_to_words(c):
++    """c int64 [..., 8] codes in (pairsel, rowhalf, h) order -> int32 words (bit positions _POS)."""
++    c = c.reshape(-1, 8)
++    q = torch.zeros(c.shape[0], dtype=torch.int64, device=c.device)
++    for v in range(8):
++        o, h = v // 2, v % 2
++        sgn, m2, m1, m0 = _POS[o][h]
++        cv = c[:, v]
++        q |= ((cv >> 3) & 1) << sgn
++        q |= ((cv >> 2) & 1) << m2
++        q |= ((cv >> 1) & 1) << m1
++        q |= (cv & 1) << m0
++    return q.view(torch.int32).view(-1, 2)[:, 0].contiguous()
++
++
++def _repack_w2_slices(packed, sf):
++    """w2 of one expert for the one-token kernel: per 32-column slice j of the intermediate,
++    [row-group pair rp 128][lane 32][rg % 2][k16 step 2] words in the mma's natural k order
++    (k = 32 j + 16 s + 8 pairsel + 2 tig + h), and scales [rp][g][rg % 2][s][rowhalf]."""
++    R = packed.shape[0]
++    codes = torch.stack((packed & 15, packed >> 4), -1).reshape(R, 4096)
++    sb = sf.view(torch.uint8)
++    codes = codes.masked_fill((sb == 0).repeat_interleave(16, dim=1), 0)
++    # rows: rp, r2, rowhalf, g ; k: j, s, pairsel, tig, h
++    c = codes.view(128, 2, 2, 8, 128, 2, 2, 4, 2).permute(4, 0, 3, 7, 1, 5, 6, 2, 8).to(torch.int64)
++    words = _codes_to_words(c)
++    sc = sb.reshape(128, 2, 2, 8, 128, 2).permute(4, 0, 3, 1, 5, 2).contiguous().flatten()
++    return words, sc
++
++
+ _MOD = None
+ 
+ 
+@@ -1869,6 +2300,33 @@
+         if not bool((((b >= 0x08) & (b <= 0x7E)) | (b == 0)).all()):
+             return False
+     return True
++
++
++def _tensor_maps(w13, s13, w2, s2):
++    """Per row-warp count RW: tiled tensor maps (w13, s13, w2, s2) whose box is one stage's weights
++    (RGS = 2 RW row groups x KW = 8 / RW k chunks of 2 KB) or scales (256 B blocks), [4][128] bytes."""
++    from cuda.bindings import driver as d
++    import struct
++    out = {}
++    for rw in (2, 4, 8):
++        rgs, kw = 2 * rw, 8 // rw
++        maps = []
++        for t, nrg, blk in ((w13, 512, 2048), (s13, 512, 256), (w2, 256, 2048), (s2, 256, 256)):
++            err, tm = d.cuTensorMapEncodeTiled(
++                d.CUtensorMapDataType.CU_TENSOR_MAP_DATA_TYPE_UINT64, d.cuuint32_t(4), t.data_ptr(),
++                [d.cuuint64_t(v) for v in (blk // 8, nrg, 16, t.shape[0])],
++                [d.cuuint64_t(v) for v in (blk, nrg * blk, 16 * nrg * blk)],
++                [d.cuuint32_t(v) for v in (blk // 8, rgs, kw, 1)], [d.cuuint32_t(1)] * 4,
++                d.CUtensorMapInterleave.CU_TENSOR_MAP_INTERLEAVE_NONE, d.CUtensorMapSwizzle.CU_TENSOR_MAP_SWIZZLE_NONE,
++                d.CUtensorMapL2promotion.CU_TENSOR_MAP_L2_PROMOTION_L2_256B,
++                d.CUtensorMapFloatOOBfill.CU_TENSOR_MAP_FLOAT_OOB_FILL_NONE)
++            if int(err) != 0:
++                raise RuntimeError(f"cuTensorMapEncodeTiled failed: {err}")
++            maps.append(b"".join(struct.pack("<Q", int(v)) for v in tm.opaque))
++        out[rw] = b"".join(maps)
++    order = sorted(out)
++    buf = torch.frombuffer(bytearray(b"".join(out[rw] for rw in order)), dtype=torch.uint8).to(w13.device)
++    return buf, {rw: i * 512 for i, rw in enumerate(order)}
+ 
+ 
+ def _name(cfg):
+@@ -1886,10 +2344,16 @@
+     for e in range(count):
+         w13p[e], s13p[e] = _repack(weights["w13"][start + e], weights["w13_sf"][start + e], rows13)
+         w2p[e], s2p[e] = _repack(weights["w2"][start + e], weights["w2_sf"][start + e])
++    tmaps, tmap_off = _tensor_maps(w13p, s13p, w2p, s2p)
++    w2f = torch.empty((count, 4096 * 512), dtype=torch.int32, device=dev)
++    s2f = torch.empty((count, 4096 * 256), dtype=torch.uint8, device=dev)
++    for e in range(count):
++        w2f[e], s2f[e] = _repack_w2_slices(weights["w2"][start + e], weights["w2_sf"][start + e])
+     fast = _fast_scales_ok(s13p, s2p)
+     mod = _module(fast)
+     for cfg in _all_cfgs():
+         mod.func(_name(cfg), _smem_bytes(*cfg[:2], cfg[3], cfg[4]))
++    mod.func(f"moe1_{NS1}", SMEM1)
+     torch.cuda.synchronize()
+     return {
+         "start": start, "count": count, "sms": torch.cuda.get_device_properties(dev).multi_processor_count,
+@@ -1897,6 +2361,9 @@
+         "w2": w2p, "s2": s2p, "gs2": weights["w2_gs"][start:start + count].float().contiguous(),
+         "nw1": (1.0 + weights["post_norm_w"].float()).contiguous(),
+         "ctr": torch.zeros(CTR_WORDS, dtype=torch.int32, device=dev),
++        "tmaps": tmaps, "tmap_off": tmap_off,
++        "w2f": w2f, "s2f": s2f, "yacc": torch.zeros(8 * 4096, dtype=torch.float32, device=dev),
++        "ctr1": torch.zeros(4, dtype=torch.int32, device=dev),
+         "raw": weights,
+     }
+ 
+@@ -1931,6 +2398,14 @@
+         return _torch_path(data, state)
+     ids = data["topk_ids"].to(torch.int32).contiguous()
+     tw = data["topk_weights"].to(torch.float32).contiguous()
++    if M == 1 and ONE_TOKEN:
++        out = torch.empty((1, H), dtype=torch.bfloat16, device=x.device)
++        p1 = _Params1C(x.data_ptr(), ids.data_ptr(), tw.data_ptr(), state["gs13"].data_ptr(), state["gs2"].data_ptr(),
++                       state["nw1"].data_ptr(), state["w2f"].data_ptr(), state["s2f"].data_ptr(), out.data_ptr(),
++                       state["ctr1"].data_ptr(), state["yacc"].data_ptr(), state["tmaps"].data_ptr() + state["tmap_off"][2],
++                       state["start"])
++        _module().launch(f"moe1_{NS1}", state["sms"], 288, SMEM1, p1)
++        return out
+     kc = _kernel_cfg(M)
+     rw, nt, ks2, ns, mw = kc
+     pmax = M * TOPK
+@@ -1947,6 +2422,6 @@
+                  state["w13"].data_ptr(), state["s13"].data_ptr(), state["gs13"].data_ptr(),
+                  state["w2"].data_ptr(), state["s2"].data_ptr(), state["gs2"].data_ptr(), state["nw1"].data_ptr(),
+                  inter.data_ptr(), ypart.data_ptr(), out.data_ptr(), state["ctr"].data_ptr(), pmax, xs.data_ptr(),
+-                 ssq.data_ptr())
++                 ssq.data_ptr(), state["tmaps"].data_ptr() + state["tmap_off"][rw])
+     _module().launch(_name(kc), state["sms"], 384, _smem_bytes(rw, nt, ns, mw), p)
+     return out

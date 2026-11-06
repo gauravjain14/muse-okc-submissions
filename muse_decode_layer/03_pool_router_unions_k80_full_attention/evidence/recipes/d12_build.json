@@ -1,0 +1,8 @@
+{
+  "base": "muse-opt-codex/muse_decode_layer/variants/d10_pool_router_union.py",
+  "donor": "opt-muse-decode/runs/k80.py",
+  "output": "muse-opt-codex/muse_decode_layer/variants/d12_full_verify.py",
+  "sha256": "2dd1eb2d81b4a0028cb0ded5af48966a60c54a6e6dc975849189915f0ea47612",
+  "bytes": 977799,
+  "change": "k80 XD/XC full-verify attention for batch 2..128 with general fallback; removes disabled tuner and non-license CUDA comments to stay within source cap."
+}

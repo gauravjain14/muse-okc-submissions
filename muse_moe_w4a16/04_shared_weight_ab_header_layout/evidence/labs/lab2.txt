@@ -1,0 +1,7 @@
+[
+    {"bs": [1], "variants": [("bulk5", [], {}), ("tmap5", ["MOE_FUSED_TMAP"], {}), ("bulk4", [], {"NS1": 4}), ("bulk3", [], {"NS1": 3})], "seeds": 24, "reps": 3},
+    {"trace1": [9000, 9001, 9004, 9005, 9006], "variants": [("bulk5", [], {})]},
+    {"bs": [8, 16], "variants": [("ns4", [], {}), ("ns5", [], {"NS_MAX": 5}), ("early", ["MOE_EARLY_ALL"], {})], "seeds": 16, "reps": 3},
+    {"bs": [32], "variants": [("ks2", [], {}), ("ks1", [], {"BUCKETS": [(1, (2, 1, 1)), (16, (4, 1, 1)), (32, (8, 4, 1)), (128, (8, 4, 1)), (512, (8, 8, 1))]})], "seeds": 12, "reps": 3},
+    {"bs": [128, 256], "variants": [("base", [], {}), ("splw0.5", ["MOE_SPLW=0.5f"], {}), ("splw2", ["MOE_SPLW=2.0f"], {}), ("wgmin4", ["MOE_WGMIN=4"], {})], "seeds": 8, "reps": 2},
+]

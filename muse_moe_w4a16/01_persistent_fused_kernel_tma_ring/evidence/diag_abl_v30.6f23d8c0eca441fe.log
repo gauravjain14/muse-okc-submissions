@@ -1,0 +1,18 @@
+DIAG gpu NVIDIA H200 sms 132 prepare 8.2s
+DIAG fixed replay 5.28 us
+DIAG full                                     1:   35.2 16:   94.5 32:  124.6 8:   67.6 128:  189.4 256:  235.6   (0s)
+DIAG MOE_NO_LOAD                              1:   29.2 16:   85.9 32:  115.4 8:   60.6 128:  177.1 256:  225.2   (8s)
+DIAG MOE_NO_MMA+MOE_NO_DEQ                    1:   29.7 16:   84.7 32:  111.9 8:   59.6 128:  156.2 256:  188.9   (6s)
+DIAG MOE_NO_WORK                              1:    8.0 16:    8.7 32:   12.9 8:    7.8 128:   16.6 256:   24.0   (8s)
+DIAG full                                     1:   35.2 16:   95.6 32:  124.9 8:   67.0 128:  188.5 256:  235.8   (0s)
+DIAG total 30s
+Traceback (most recent call last):
+  File "/tmp/muse_moe_w4a16-2ag_vt31/run/worker.py", line 423, in child_main
+    send(_setup_op(msg, module, state, sync, perf))
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/tmp/muse_moe_w4a16-2ag_vt31/run/worker.py", line 322, in _setup_op
+    state["prep"] = prepare(weights)
+                    ^^^^^^^^^^^^^^^^
+  File "/tmp/muse_moe_w4a16-2ag_vt31/run/submission.py", line 1633, in prepare
+    raise RuntimeError("diagnostic build: prepare() measured and printed, nothing to score")
+RuntimeError: diagnostic build: prepare() measured and printed, nothing to score

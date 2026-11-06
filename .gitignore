@@ -1,0 +1,7 @@
+# binary profiler reports stay out of git (text exports are committed); originals are linked from each milestone
+*.ncu-rep
+*.nsys-rep
+*.sqlite
+*.qdrep
+__pycache__/
+*.pyc

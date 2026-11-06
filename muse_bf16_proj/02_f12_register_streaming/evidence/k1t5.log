@@ -1,0 +1,44 @@
+[gate] slot 0 at 12:46:02 (1 running)
+✓ Initialized. View run at 
+<modal-run-url>
+✓ Created objects.
+├── 🔨 Created mount 
+│   muse-opt-codex/muse_bf16_proj/claude/modal_run.p
+│   y
+├── 🔨 Created mount muse-opt-codex/muse_bf16_proj
+└── 🔨 Created function run.
+[gpu-before]
+NVIDIA H200, 0 %, 4 MiB, 345 MHz, 1980 MHz, 81.39 W
+0
+[k1t] qkv_gate: 32.44 MB, raw tiles 2616 (0.0310), ovstride 4352, base 108
+[k1t] o: 12.98 MB, raw tiles 970 (0.0287), ovstride 2176, base 108
+[k1t] pooler: 51.90 MB, raw tiles 4485 (0.0332), ovstride 6400, base 108
+[k1t] pooler1: 51.90 MB, raw tiles 4485 (0.0332), ovstride 6528, base 108
+[k1t] unpooler: 51.90 MB, raw tiles 3249 (0.0240), ovstride 5376, base 108
+[k1t] unpslice: 6.29 MB, raw tiles 383 (0.0234), ovstride 896, base 108
+[k1t] qkv32: 32.44 MB, raw tiles 2616 (0.0310), ovstride 4352, base 108
+[k1t] pooler32: 51.90 MB, raw tiles 4485 (0.0332), ovstride 6400, base 108
+[k1t] unpooler32: 51.90 MB, raw tiles 3249 (0.0240), ovstride 5376, base 108
+[k1t] o32: 12.98 MB, raw tiles 970 (0.0287), ovstride 2176, base 108
+[k1t] qkv32: 32.44 MB, raw tiles 2616 (0.0310), ovstride 4352, base 108
+[k1t] pooler32: 51.90 MB, raw tiles 4485 (0.0332), ovstride 6400, base 108
+[k1t] unpooler32: 51.90 MB, raw tiles 3249 (0.0240), ovstride 5376, base 108
+[k1t] o32: 12.98 MB, raw tiles 970 (0.0287), ovstride 2176, base 108
+[k1t] qkv_gate: 32.44 MB, raw tiles 2616 (0.0310), ovstride 4352, base 108
+[k1t] o: 12.98 MB, raw tiles 970 (0.0287), ovstride 2176, base 108
+[k1t] pooler: 51.90 MB, raw tiles 4485 (0.0332), ovstride 6400, base 108
+[k1t] pooler1: 51.90 MB, raw tiles 4485 (0.0332), ovstride 6528, base 108
+[k1t] unpooler: 51.90 MB, raw tiles 3249 (0.0240), ovstride 5376, base 108
+[k1t] unpslice: 6.29 MB, raw tiles 383 (0.0234), ovstride 896, base 108
+[k1t] qkv32: 32.44 MB, raw tiles 2616 (0.0310), ovstride 4352, base 108
+[k1t] pooler32: 51.90 MB, raw tiles 4485 (0.0332), ovstride 6400, base 108
+[k1t] unpooler32: 51.90 MB, raw tiles 3249 (0.0240), ovstride 5376, base 108
+[k1t] o32: 12.98 MB, raw tiles 970 (0.0287), ovstride 2176, base 108
+[gpu-after]
+NVIDIA H200, 0 %, 4 MiB, 1980 MHz, 1980 MHz, 138.68 W
+0
+
+[exit 0]
+Stopping app - local entrypoint completed.
+✓ App completed. View run at 
+<modal-run-url>

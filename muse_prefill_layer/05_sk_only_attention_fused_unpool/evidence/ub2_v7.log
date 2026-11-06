@@ -1,0 +1,53 @@
+✓ Initialized. View run at 
+<modal-run-url>
+✓ Created objects.
+├── 🔨 Created mount 
+│   <scratch>
+│   5-ce57afd4da60/scratchpad/snap.b1kUDm/dev/modal_run.py
+├── 🔨 Created mount 
+│   <scratch>
+│   5-ce57afd4da60/scratchpad/snap.b1kUDm
+└── 🔨 Created function run.
+[gpu before]
+0 %, 4 MiB, 345 MHz, 82.13 W, 37
+compute procs: 0
+M 3012: tiles 516 groups [4, 4, 2, 1, 1] bnd items 189 cap 16 grid 132  f vs torch 0.00e+00  layer path vs torch: s 4.55e-08 x 1.08e-05  fused vs layer path: s 8.45e-06 x 1.72e-05  max|ds| 1.54e-02
+    trace: span 396.4 us, last tile done 363.7 us; tiles 516 median 67.9 p90 80.2 us; bnd items 189 median 37.18 p90 41.63 us (2.32 us/row), producer fetch waits (bnd) total 1365 us max 48.7; bnd items after the last tile 18, CTA busy sum 43811 us = 331.9 us/CTA
+    trace: first item start 0.00 us; per-CTA end spread 290.5 .. 396.4 us
+    traced plan vs layer path s 8.45e-06 x 1.72e-05
+    cublas+bnd2         345.9 us   x1.000 vs cublas+bnd2
+    cublas              256.4 us   x1.349 vs cublas+bnd2
+    ub2 gemm only       274.9 us   x1.258 vs cublas+bnd2
+    ub2 fused           403.3 us   x0.858 vs cublas+bnd2
+    after replays: fused vs layer path s 8.45e-06 x 1.72e-05
+M 16384: tiles 2752 groups [4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 2, 1, 1] bnd items 1024 cap 16 grid 132  f vs torch 0.00e+00  layer path vs torch: s 1.96e-06 x 1.37e-05  fused vs layer path: s 2.36e-06 x 1.14e-05  max|ds| 7.63e-03
+    trace: span 1761.4 us, last tile done 1728.2 us; tiles 2752 median 66.9 p90 72.7 us; bnd items 1024 median 34.75 p90 37.41 us (2.17 us/row), producer fetch waits (bnd) total 2531 us max 41.8; bnd items after the last tile 32, CTA busy sum 222921 us = 1688.8 us/CTA
+    trace: first item start 0.00 us; per-CTA end spread 1689.8 .. 1761.4 us
+    traced plan vs layer path s 2.36e-06 x 1.14e-05
+    cublas+bnd2        1885.6 us   x1.000 vs cublas+bnd2
+    cublas             1397.6 us   x1.349 vs cublas+bnd2
+    ub2 gemm only      1399.4 us   x1.347 vs cublas+bnd2
+    ub2 fused          1770.8 us   x1.065 vs cublas+bnd2
+    after replays: fused vs layer path s 2.36e-06 x 1.14e-05
+M 3012: tiles 516 groups [4, 4, 2, 1, 1] bnd items 189 cap 16 grid 132  f vs torch 0.00e+00  layer path vs torch: s 4.55e-08 x 1.08e-05  fused vs layer path: s 8.45e-06 x 1.72e-05  max|ds| 1.54e-02
+    trace: span 363.9 us, last tile done 339.1 us; tiles 516 median 67.1 p90 73.5 us; bnd items 189 median 23.87 p90 26.40 us (1.49 us/row), producer fetch waits (bnd) total 1135 us max 48.6; bnd items after the last tile 13, CTA busy sum 39774 us = 301.3 us/CTA
+    trace: first item start 0.00 us; per-CTA end spread 274.5 .. 363.9 us
+    traced plan vs layer path s 8.45e-06 x 1.72e-05
+M 16384: tiles 2752 groups [4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 2, 1, 1] bnd items 1024 cap 16 grid 132  f vs torch 0.00e+00  layer path vs torch: s 1.96e-06 x 1.37e-05  fused vs layer path: s 2.36e-06 x 1.14e-05  max|ds| 7.63e-03
+    trace: span 1626.8 us, last tile done 1602.1 us; tiles 2752 median 65.3 p90 67.3 us; bnd items 1024 median 25.41 p90 26.40 us (1.59 us/row), producer fetch waits (bnd) total 2565 us max 57.1; bnd items after the last tile 32, CTA busy sum 206281 us = 1562.7 us/CTA
+    trace: first item start 0.00 us; per-CTA end spread 1552.5 .. 1626.8 us
+    traced plan vs layer path s 2.36e-06 x 1.14e-05
+M 3012: tiles 516 groups [4, 4, 2, 1, 1] bnd items 189 cap 16 grid 132  f vs torch 0.00e+00  layer path vs torch: s 4.55e-08 x 1.08e-05  fused vs layer path: s 8.45e-06 x 1.72e-05  max|ds| 1.54e-02
+    trace: span 375.0 us, last tile done 344.4 us; tiles 516 median 66.5 p90 75.4 us; bnd items 189 median 30.21 p90 31.94 us (1.89 us/row), producer fetch waits (bnd) total 1234 us max 50.4; bnd items after the last tile 16, CTA busy sum 41386 us = 313.5 us/CTA
+    trace: first item start 0.00 us; per-CTA end spread 281.0 .. 375.0 us
+    traced plan vs layer path s 1.21e+00 x 1.42e+00
+M 16384: tiles 2752 groups [4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 2, 1, 1] bnd items 1024 cap 16 grid 132  f vs torch 0.00e+00  layer path vs torch: s 1.96e-06 x 1.37e-05  fused vs layer path: s 2.36e-06 x 1.14e-05  max|ds| 7.63e-03
+    trace: span 1678.9 us, last tile done 1646.8 us; tiles 2752 median 64.4 p90 71.2 us; bnd items 1024 median 31.97 p90 33.38 us (2.00 us/row), producer fetch waits (bnd) total 2249 us max 48.3; bnd items after the last tile 16, CTA busy sum 212038 us = 1606.4 us/CTA
+    trace: first item start 0.00 us; per-CTA end spread 1607.5 .. 1678.9 us
+    traced plan vs layer path s 1.20e+00 x 1.41e+00
+[gpu after]
+0 %, 4 MiB, 1980 MHz, 132.22 W, 34
+compute procs: 0
+Stopping app - local entrypoint completed.
+✓ App completed. View run at 
+<modal-run-url>

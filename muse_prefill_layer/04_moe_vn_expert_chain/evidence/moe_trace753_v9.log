@@ -1,0 +1,29 @@
+✓ Initialized. View run at 
+<modal-run-url>
+✓ Created objects.
+├── 🔨 Created mount 
+│   <scratch>
+│   5-ce57afd4da60/scratchpad/snap.azoWAE/dev/modal_run.py
+├── 🔨 Created mount 
+│   <scratch>
+│   5-ce57afd4da60/scratchpad/snap.azoWAE
+└── 🔨 Created function run.
+M 753: 24 tiles [(563, 128), (563, 128), (563, 128), (563, 128), (563, 51), (205, 128), (205, 77), (202, 128), (202, 74), (146, 128), (146, 18), (139, 128), (139, 11), (44, 44), (36, 36), (28, 28), (19, 19), (2, 2), (2, 2), (1, 1), (1, 1), (1, 1), (1, 1), (1, 1)]
+  phase 1 big  :  127 items, compute   43.5 us + epi  1.9 us each,    590 KB weights ->  13.5 GB/s per SM while computing
+  phase 1 hot  :  159 items, compute   44.0 us + epi  2.5 us each,    590 KB weights ->  13.4 GB/s per SM while computing
+  phase 1 mid  :  128 items, compute   32.3 us + epi  1.5 us each,    590 KB weights ->  18.3 GB/s per SM while computing
+  phase 1 small:  348 items, compute   22.1 us + epi  1.6 us each,    590 KB weights ->  26.7 GB/s per SM while computing
+  phase 2 big  :   64 items, compute   40.3 us + epi  2.3 us each,    590 KB weights ->  14.6 GB/s per SM while computing
+  phase 2 hot  :   79 items, compute   38.9 us + epi  2.5 us each,    590 KB weights ->  15.2 GB/s per SM while computing
+  phase 2 mid  :   64 items, compute   30.5 us + epi  1.6 us each,    590 KB weights ->  19.4 GB/s per SM while computing
+  phase 2 small:  174 items, compute   22.4 us + epi  1.2 us each,    590 KB weights ->  26.3 GB/s per SM while computing
+  CTAs per 10 us bin:
+   hot     0  36 131 131 131 130  93  28  28  26   5   0   0   0   0   0   0   0   0   0   3  60  79  79  79  27   0   0   0   0   0   0   0
+   big     0   0   0   0   0   0  19  63  63  63  80  72  64  64  61  29   0   0   0   0   0   2  25  32  32  47  45  32  32  25   0   0   0
+   mid     0   0   0   0   0   1  16  40  40  41  28  22  24  32  33  58  57  37   4   0   0   0  11  20  20  33  42  44  32   3   0   0   0
+   small   0   0   0   0   0   0   0   0   0   0  14  35  43  34  35  43  73  92 125 129 124  65  14   0   0  21  43  55  62  93  94  41   2
+   weight GB/s (sum of item streams, incl. L2 hits):  0.0 457.3 1672.0 1672.0 1672.0 1634.8 1304.8 1986.0 1984.3 1948.4 1770.1 1999.4 2259.7 2071.6 2172.5 2452.9 2745.9 2906.9 3226.6 3593.2 3477.7 2643.3 2044.4 2042.9 1948.5 1903.3 2395.9 2505.0 2475.0 2795.9 2591.0 1049.5 14.3
+Stopping app - local entrypoint completed.
+✓ App completed. View run at 
+<modal-run-url>
+done

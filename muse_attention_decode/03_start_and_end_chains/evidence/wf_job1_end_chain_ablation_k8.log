@@ -1,0 +1,244 @@
+[gate] slot 2 at 01:37:02 (2 running)
+✓ Initialized. View run at 
+<modal-run-url>
+✓ Created objects.
+├── 🔨 Created mount 
+│   autoresearch-kernels/attn/tools/modal_run.py
+├── 🔨 Created mount autoresearch-kernels/attn
+└── 🔨 Created function run.
+[gpu-before]
+NVIDIA H200, 0 %, 4 MiB, 345 MHz, 1980 MHz, 82.07 W
+0
+=== probe floor
+fixed 5.44 us, 132 SMs
+  n= 1280000 (  327.7 MB) ring_8_2   grid   396:    80.10 us   4.09 TB/s
+  n= 1280000 (  327.7 MB) ring_16_2  grid   132:    80.02 us   4.10 TB/s
+  n= 1280000 (  327.7 MB) ldg_16     grid   264:    80.26 us   4.08 TB/s
+BEST n=1280000 327.7 MB: ldg_8 grid 264 80.02 us 4.10 TB/s
+  n= 2560000 (  655.4 MB) ring_8_2   grid   396:   159.02 us   4.12 TB/s
+  n= 2560000 (  655.4 MB) ring_16_2  grid   132:   159.55 us   4.11 TB/s
+  n= 2560000 (  655.4 MB) ldg_16     grid   264:   159.60 us   4.11 TB/s
+BEST n=2560000 655.4 MB: ring_8_2 grid 396 159.02 us 4.12 TB/s
+=== bench (ablations; checks off)
+[c1] import 2.3s
+[c2] import 0.1s
+[nc] import 1.5s
+[ne] import 0.8s
+[ncne] import 0.7s
+fixed graph cost 5.25 us
+decode 16 full    w16 sglang   198.48 | c1    90.19 x2.201 | c2    90.23 x2.200 | nc    88.54 x2.242 | ne    83.17 x2.386 | ncne    81.48 x2.436   sol   63.18
+decode 32 full    w16 sglang   381.76 | c1   169.54 x2.252 | c2   169.24 x2.256 | nc   167.40 x2.281 | ne   161.84 x2.359 | ncne   161.18 x2.368   sol  126.35
+verify 16 full    w16 sglang   202.54 | c1   124.37 x1.629 | c2   124.13 x1.632 | nc    96.30 x2.103 | ne    83.84 x2.416 | ncne    82.26 x2.462   sol   63.39
+verify 32 full    w16 sglang   386.54 | c1   224.68 x1.720 | c2   223.89 x1.726 | nc   178.43 x2.166 | ne   163.30 x2.367 | ncne   161.42 x2.395   sol  126.78
+
+per-load (weighted sums, us):
+  decode 16 sglang    3175.7 | c1    1443.1 x2.201 | c2    1443.7 x2.200 | nc    1416.6 x2.242 | ne    1330.7 x2.386 | ncne    1303.7 x2.436
+  decode 32 sglang    6108.2 | c1    2712.7 x2.252 | c2    2707.8 x2.256 | nc    2678.4 x2.281 | ne    2589.4 x2.359 | ncne    2578.9 x2.368
+  verify 16 sglang    3240.7 | c1    1989.9 x1.629 | c2    1986.0 x1.632 | nc    1540.8 x2.103 | ne    1341.5 x2.416 | ncne    1316.1 x2.462
+  verify 32 sglang    6184.7 | c1    3594.9 x1.720 | c2    3582.2 x1.726 | nc    2854.8 x2.166 | ne    2612.9 x2.367 | ncne    2582.7 x2.395
+GEOMEAN c1: x1.9303 (board time 2300.4 us)   judge-projected (+1.0 us/call) x1.9235 (board 2342.5 us)
+GEOMEAN c2: x1.9336 (board time 2296.4 us)   judge-projected (+1.0 us/call) x1.9267 (board 2338.5 us)
+GEOMEAN nc: x2.1969 (board time 2021.2 us)   judge-projected (+1.0 us/call) x2.1871 (board 2060.1 us)
+GEOMEAN ne: x2.3819 (board time 1864.2 us)   judge-projected (+1.0 us/call) x2.3695 (board 1901.5 us)
+GEOMEAN ncne: x2.4151 (board time 1838.6 us)   judge-projected (+1.0 us/call) x2.4021 (board 1875.7 us)
+=== traces
+
+[flush] 32,1,full defs=WF_ONLYFLAT: (us from first CTA start; median over 10 reps)
+   0 start     min    0.00  med    0.13  max    0.22   (CTAs 132)
+   9 prefix    min    0.99  med    1.04  max    1.09   (CTAs 132)
+  16 pt-iss    min    2.08  med    2.95  max  151.42   (CTAs 132)
+  17 row-back  min    2.46  med    3.40  max  151.98   (CTAs 132)
+   1 issued    min    4.32  med    6.54  max  153.30   (CTAs 132)
+   2 q/new     min    4.61  med    6.97  max  153.70   (CTAs 132)
+   3 tile0     min    4.75  med    7.13  max  153.97   (CTAs 132)
+   4 tiles     min  149.44  med  161.08  max  165.07   (CTAs 132)
+  11 mstore    min  150.83  med  162.66  max  165.70   (CTAs 132)
+  12 merged    min  151.25  med  163.06  max  166.13   (CTAs 132)
+   5 segend    min  151.26  med  163.07  max  166.16   (CTAs 132)
+   6 publish   min  154.34  med  164.44  max  167.65   (CTAs 132)
+   7 comb0     min  163.92  med  165.82  max  167.86   (CTAs 32)
+   8 combined  min  165.66  med  167.70  max  169.62   (CTAs 32)
+  last stamp med 169.62 max 171.49
+  tiles-done p0/p10/p50/p90/max/mean:  149.44  155.34  161.14  163.36  165.07  160.04
+  nseg 1: n  1039 tiles mean  161.05 max  167.04
+  nseg 2: n   281 tiles mean  156.35 max  162.56
+  critical CTA (med): start=0.11 prefix=1.02 pt-iss=3.15 row-back=3.71 issued=7.06 q/new=7.78 tile0=8.19 tiles=164.91 mstore=165.70 merged=166.13 segend=166.16 publish=167.65 comb0=167.86 combined=169.62
+  per-SM mean deviation of tiles-done (us): min -10.45 (sm 124) max 1.33 (sm 63) stdev 1.72
+
+[flush] 16,1,full defs=WF_ONLYFLAT: (us from first CTA start; median over 10 reps)
+   0 start     min    0.00  med    0.10  max    0.22   (CTAs 132)
+   9 prefix    min    1.06  med    1.09  max    1.14   (CTAs 132)
+  16 pt-iss    min    2.11  med    2.53  max   67.82   (CTAs 132)
+  17 row-back  min    2.46  med    2.94  max   68.94   (CTAs 132)
+   1 issued    min    3.97  med    5.93  max   71.33   (CTAs 132)
+   2 q/new     min    4.24  med    6.51  max   71.92   (CTAs 132)
+   3 tile0     min    4.40  med    6.68  max   72.22   (CTAs 132)
+   4 tiles     min   69.62  med   82.62  max   85.41   (CTAs 132)
+  11 mstore    min   70.59  med   83.60  max   86.11   (CTAs 132)
+  12 merged    min   71.02  med   84.02  max   86.54   (CTAs 132)
+   5 segend    min   71.04  med   84.05  max   86.58   (CTAs 132)
+   6 publish   min   73.33  med   85.39  max   87.82   (CTAs 132)
+   7 comb0     min   85.58  med   86.83  max   88.06   (CTAs 16)
+   8 combined  min   87.98  med   89.06  max   90.40   (CTAs 16)
+  last stamp med 90.40 max 91.81
+  tiles-done p0/p10/p50/p90/max/mean:   69.62   77.36   82.62   84.06   85.41   81.72
+  nseg 1: n  1199 tiles mean   82.37 max   87.04
+  nseg 2: n   121 tiles mean   76.04 max   81.15
+  critical CTA (med): start=0.13 prefix=1.09 pt-iss=2.67 row-back=3.15 issued=6.61 q/new=7.18 tile0=7.33 tiles=85.10 mstore=86.11 merged=86.54 segend=86.58 publish=87.82 comb0=88.06 combined=90.40
+  per-SM mean deviation of tiles-done (us): min -9.08 (sm 124) max 1.33 (sm 44) stdev 1.32
+
+[flush] 32,8,full defs=WF_ONLYFLAT: (us from first CTA start; median over 10 reps)
+   0 start     min    0.00  med    0.16  max    0.27   (CTAs 132)
+   1 issued    min    3.63  med    6.73  max  211.54   (CTAs 132)
+   2 q/new     min    4.00  med    7.29  max  211.84   (CTAs 132)
+   3 tile0     min    4.78  med    8.70  max  212.14   (CTAs 132)
+   4 tiles     min  207.98  med  216.31  max  222.61   (CTAs 132)
+  11 mstore    min  209.12  med  217.27  max  223.68   (CTAs 132)
+  12 merged    min  209.49  med  217.42  max  223.74   (CTAs 132)
+   5 segend    min  211.10  med  218.90  max  225.18   (CTAs 132)
+   6 publish   min  213.10  med  221.09  max  227.41   (CTAs 132)
+   7 comb0     min  218.67  med  223.50  max  231.09   (CTAs 132)
+   8 combined  min  221.71  med  226.38  max  234.16   (CTAs 132)
+  last stamp med 234.16 max 237.28
+  tiles-done p0/p10/p50/p90/max/mean:  207.98  213.30  216.32  218.77  222.61  216.27
+  nseg 0: n  1320 tiles mean  215.82 max  224.51
+  critical CTA (med): start=0.16 issued=28.34 q/new=28.69 tile0=29.12 tiles=218.27 mstore=219.18 merged=219.34 segend=220.77 publish=223.81 comb0=231.09 combined=234.16
+  per-SM mean deviation of tiles-done (us): min -3.44 (sm 129) max 2.17 (sm 74) stdev 1.14
+
+[flush] 16,8,full defs=WF_ONLYFLAT: (us from first CTA start; median over 10 reps)
+   0 start     min    0.00  med    0.10  max    0.19   (CTAs 132)
+   1 issued    min    3.71  med    4.86  max  104.43   (CTAs 132)
+   2 q/new     min    4.10  med    5.31  max  104.85   (CTAs 132)
+   3 tile0     min    4.59  med    6.52  max  105.18   (CTAs 132)
+   4 tiles     min  103.66  med  111.54  max  120.27   (CTAs 132)
+  11 mstore    min  104.82  med  112.55  max  121.28   (CTAs 132)
+  12 merged    min  104.88  med  112.62  max  121.44   (CTAs 132)
+   5 segend    min  106.48  med  114.16  max  122.93   (CTAs 132)
+   6 publish   min  108.34  med  116.28  max  124.80   (CTAs 132)
+   7 comb0     min  115.95  med  119.43  max  127.25   (CTAs 132)
+   8 combined  min  118.64  med  122.30  max  130.03   (CTAs 132)
+  last stamp med 130.03 max 134.18
+  tiles-done p0/p10/p50/p90/max/mean:  103.66  109.95  111.54  113.79  120.27  111.82
+  nseg 0: n  1320 tiles mean  111.91 max  122.56
+  critical CTA (med): start=0.11 issued=39.30 q/new=39.63 tile0=40.13 tiles=111.87 mstore=112.85 merged=112.90 segend=114.50 publish=117.74 comb0=127.22 combined=130.03
+  per-SM mean deviation of tiles-done (us): min -2.43 (sm 123) max 2.35 (sm 12) stdev 0.90
+
+[flush] 32,1,full defs=WF_ONLYFLAT,ABL_NOCOMPUTE: (us from first CTA start; median over 8 reps)
+   0 start     min    0.00  med    0.11  max    0.22   (CTAs 132)
+   9 prefix    min    1.06  med    1.12  max    1.18   (CTAs 132)
+  16 pt-iss    min    2.26  med    3.25  max  151.66   (CTAs 132)
+  17 row-back  min    2.62  med    3.79  max  152.40   (CTAs 132)
+   1 issued    min    3.92  med    6.60  max  152.77   (CTAs 132)
+   2 q/new     min    4.24  med    7.14  max  153.50   (CTAs 132)
+   3 tile0     min    4.38  med    7.50  max  154.34   (CTAs 132)
+   4 tiles     min  145.47  med  160.18  max  162.93   (CTAs 132)
+  11 mstore    min  147.46  med  161.50  max  163.74   (CTAs 132)
+  12 merged    min  147.82  med  161.87  max  164.08   (CTAs 132)
+   5 segend    min  147.84  med  161.88  max  164.10   (CTAs 132)
+   6 publish   min  151.58  med  163.10  max  165.41   (CTAs 132)
+   7 comb0     min  162.67  med  164.30  max  165.65   (CTAs 32)
+   8 combined  min  164.21  med  166.14  max  167.54   (CTAs 32)
+  last stamp med 167.54 max 168.35
+  tiles-done p0/p10/p50/p90/max/mean:  145.47  153.97  160.19  162.02  162.93  158.51
+  nseg 1: n   830 tiles mean  159.83 max  163.81
+  nseg 2: n   226 tiles mean  154.31 max  160.38
+  critical CTA (med): start=0.08 prefix=1.10 pt-iss=3.17 row-back=3.66 issued=6.42 q/new=6.78 tile0=7.18 tiles=161.76 mstore=163.74 merged=164.08 segend=164.10 publish=165.41 comb0=165.65 combined=167.54
+  per-SM mean deviation of tiles-done (us): min -12.78 (sm 124) max 1.20 (sm 121) stdev 2.42
+
+[flush] 32,8,full defs=WF_ONLYFLAT,ABL_NOCOMPUTE: (us from first CTA start; median over 8 reps)
+   0 start     min    0.00  med    0.10  max    0.21   (CTAs 132)
+   1 issued    min    3.31  med    4.98  max  161.66   (CTAs 132)
+   2 q/new     min    3.55  med    5.30  max  161.82   (CTAs 132)
+   3 tile0     min    4.03  med    6.06  max  162.58   (CTAs 132)
+   4 tiles     min  143.33  med  162.76  max  165.86   (CTAs 132)
+  11 mstore    min  143.98  med  163.40  max  166.53   (CTAs 132)
+  12 merged    min  144.03  med  163.46  max  166.56   (CTAs 132)
+   5 segend    min  145.14  med  164.58  max  167.70   (CTAs 132)
+   6 publish   min  148.18  med  165.94  max  169.66   (CTAs 132)
+   7 comb0     min  165.49  med  167.60  max  174.80   (CTAs 132)
+   8 combined  min  169.46  med  171.37  max  178.16   (CTAs 132)
+  last stamp med 178.16 max 180.06
+  tiles-done p0/p10/p50/p90/max/mean:  143.33  147.39  162.78  164.19  165.86  159.84
+  nseg 0: n  1056 tiles mean  159.94 max  167.33
+  critical CTA (med): start=0.08 issued=32.11 q/new=32.30 tile0=35.07 tiles=164.98 mstore=165.65 merged=165.68 segend=166.78 publish=169.22 comb0=174.80 combined=178.16
+  per-SM mean deviation of tiles-done (us): min -17.44 (sm 124) max 1.60 (sm 93) stdev 5.96
+
+[flush] 32,1,full defs=WF_ONLYFLAT,ABL_NOCOMPUTE,WF_NOEND: (us from first CTA start; median over 8 reps)
+   0 start     min    0.00  med    0.10  max    0.19   (CTAs 132)
+   9 prefix    min    0.93  med    0.98  max    1.02   (CTAs 132)
+  16 pt-iss    min    2.06  med    3.01  max  148.50   (CTAs 132)
+  17 row-back  min    2.43  med    3.50  max  149.36   (CTAs 132)
+   1 issued    min    3.98  med    6.40  max  150.74   (CTAs 132)
+   2 q/new     min    4.30  med    6.81  max  151.82   (CTAs 132)
+   3 tile0     min    4.45  med    7.09  max  152.06   (CTAs 132)
+   4 tiles     min  143.31  med  157.74  max  160.75   (CTAs 132)
+   6 publish   min  145.02  med  158.59  max  161.22   (CTAs 132)
+  last stamp med 161.22 max 162.27
+  tiles-done p0/p10/p50/p90/max/mean:  143.31  151.49  157.76  159.22  160.75  156.38
+  nseg 0: n  1056 tiles mean  156.42 max  162.18
+  critical CTA (med): start=0.10 prefix=0.99 pt-iss=2.98 row-back=3.41 issued=6.27 q/new=6.86 tile0=6.99 tiles=159.52 publish=161.22
+  per-SM mean deviation of tiles-done (us): min -14.39 (sm 124) max 1.39 (sm 91) stdev 2.17
+
+[flush] 16,1,full defs=WF_ONLYFLAT,ABL_NOCOMPUTE,WF_NOEND: (us from first CTA start; median over 8 reps)
+   0 start     min    0.00  med    0.12  max    0.22   (CTAs 132)
+   9 prefix    min    0.93  med    0.99  max    1.09   (CTAs 132)
+  16 pt-iss    min    2.10  med    2.52  max   67.42   (CTAs 132)
+  17 row-back  min    2.45  med    2.91  max   68.51   (CTAs 132)
+   1 issued    min    3.79  med    5.78  max   71.01   (CTAs 132)
+   2 q/new     min    4.08  med    6.30  max   71.23   (CTAs 132)
+   3 tile0     min    4.19  med    6.64  max   71.47   (CTAs 132)
+   4 tiles     min   68.38  med   79.70  max   81.10   (CTAs 132)
+   6 publish   min   68.96  med   80.14  max   81.36   (CTAs 132)
+  last stamp med 81.36 max 83.23
+  tiles-done p0/p10/p50/p90/max/mean:   68.38   74.24   79.70   80.45   81.10   78.81
+  nseg 0: n  1056 tiles mean   78.80 max   83.10
+  critical CTA (med): start=0.06 prefix=0.99 pt-iss=2.45 row-back=2.93 issued=6.13 q/new=6.45 tile0=6.75 tiles=80.59 publish=81.36
+  per-SM mean deviation of tiles-done (us): min -6.27 (sm 124) max 0.73 (sm 30) stdev 1.19
+
+[warm] 32,1,full defs=WF_ONLYFLAT: (us from first CTA start; median over 8 reps)
+   0 start     min    0.00  med    0.10  max    0.22   (CTAs 132)
+   9 prefix    min    1.02  med    1.07  max    1.12   (CTAs 132)
+  16 pt-iss    min    2.11  med    3.02  max  153.06   (CTAs 132)
+  17 row-back  min    2.46  med    3.41  max  153.70   (CTAs 132)
+   1 issued    min    4.14  med    6.40  max  154.27   (CTAs 132)
+   2 q/new     min    4.38  med    6.92  max  154.50   (CTAs 132)
+   3 tile0     min    4.54  med    7.10  max  155.95   (CTAs 132)
+   4 tiles     min  149.34  med  162.62  max  165.94   (CTAs 132)
+  11 mstore    min  150.61  med  164.22  max  167.23   (CTAs 132)
+  12 merged    min  150.99  med  164.62  max  167.66   (CTAs 132)
+   5 segend    min  151.02  med  164.63  max  167.66   (CTAs 132)
+   6 publish   min  153.34  med  165.98  max  168.94   (CTAs 132)
+   7 comb0     min  165.90  med  167.45  max  169.17   (CTAs 32)
+   8 combined  min  167.66  med  169.34  max  170.96   (CTAs 32)
+  last stamp med 170.96 max 172.06
+  tiles-done p0/p10/p50/p90/max/mean:  149.34  157.30  162.64  164.72  165.94  161.90
+  nseg 1: n   830 tiles mean  162.59 max  167.36
+  nseg 2: n   226 tiles mean  157.67 max  165.57
+  critical CTA (med): start=0.06 prefix=1.09 pt-iss=3.46 row-back=3.87 issued=7.30 q/new=8.11 tile0=8.24 tiles=165.66 mstore=167.02 merged=167.46 segend=167.46 publish=168.90 comb0=169.17 combined=170.96
+  per-SM mean deviation of tiles-done (us): min -12.73 (sm 124) max 1.45 (sm 28) stdev 1.60
+
+[warm] 32,8,full defs=WF_ONLYFLAT: (us from first CTA start; median over 8 reps)
+   0 start     min    0.00  med    0.10  max    0.21   (CTAs 132)
+   1 issued    min    3.87  med    6.31  max  213.07   (CTAs 132)
+   2 q/new     min    4.22  med    6.90  max  213.39   (CTAs 132)
+   3 tile0     min    4.78  med    8.53  max  213.60   (CTAs 132)
+   4 tiles     min  209.17  med  218.11  max  225.41   (CTAs 132)
+  11 mstore    min  210.19  med  219.07  max  226.27   (CTAs 132)
+  12 merged    min  210.27  med  219.22  max  226.53   (CTAs 132)
+   5 segend    min  211.86  med  220.74  max  227.98   (CTAs 132)
+   6 publish   min  213.87  med  222.95  max  230.08   (CTAs 132)
+   7 comb0     min  219.95  med  225.58  max  233.79   (CTAs 132)
+   8 combined  min  223.22  med  228.52  max  237.02   (CTAs 132)
+  last stamp med 237.02 max 238.98
+  tiles-done p0/p10/p50/p90/max/mean:  209.17  214.86  218.13  220.77  225.41  217.88
+  nseg 0: n  1056 tiles mean  217.77 max  226.98
+  critical CTA (med): start=0.06 issued=35.34 q/new=35.73 tile0=36.51 tiles=220.64 mstore=221.57 merged=221.74 segend=223.26 publish=226.45 comb0=233.73 combined=237.02
+  per-SM mean deviation of tiles-done (us): min -4.41 (sm 127) max 3.13 (sm 4) stdev 1.33
+[gpu-after]
+NVIDIA H200, 0 %, 4 MiB, 1980 MHz, 1980 MHz, 167.59 W
+0
+
+[exit 0]
+Stopping app - local entrypoint completed.
+✓ App completed. View run at 
+<modal-run-url>

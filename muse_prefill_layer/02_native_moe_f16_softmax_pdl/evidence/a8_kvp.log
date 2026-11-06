@@ -1,0 +1,81 @@
+✓ Initialized. View run at 
+<modal-run-url>
+✓ Created objects.
+├── 🔨 Created mount 
+│   <scratch>
+│   5-ce57afd4da60/scratchpad/snap.W7NkhY/dev/modal_run.py
+├── 🔨 Created mount 
+│   <scratch>
+│   5-ce57afd4da60/scratchpad/snap.W7NkhY
+└── 🔨 Created function run.
+compiled
+0 {'batch': 1, 'ctx': 80000, 'layer': 'sliding', 'q_len': 753, 'page': 1, 'dist': 'soft'}
+   cache vs sglang: k 1.63e-02 v 0.00e+00;  out vs sglang 6.678e-02
+   vs fp32 ref (fp8 q): mine 6.597e-02 sglang 4.080e-02;  vs bf16-q ref: mine 5.667e-02 sglang 5.759e-02; ref fp8-vs-bf16 5.209e-02
+   time: mine     37.4 us  sglang     48.2 us  x1.291
+   post            7.7 us
+   pack            8.3 us
+   attn_fwd       29.3 us
+1 {'batch': 1, 'ctx': 80000, 'layer': 'full', 'q_len': 753, 'page': 1, 'dist': 'soft'}
+   cache vs sglang: k 1.60e-02 v 0.00e+00;  out vs sglang 5.091e-01
+   vs fp32 ref (fp8 q): mine 5.091e-01 sglang 4.538e-02;  vs bf16-q ref: mine 5.073e-01 sglang 7.130e-02; ref fp8-vs-bf16 6.921e-02
+   time: mine    368.2 us  sglang    438.3 us  x1.190
+   post            7.6 us
+   pack           16.4 us
+   attn_fwd      353.4 us
+3 {'batch': 4, 'ctx': 80000, 'layer': 'full', 'q_len': 753, 'page': 1, 'dist': 'soft', 'spread': 'agentic'}
+   cache vs sglang: k 1.63e-02 v 0.00e+00;  out vs sglang 8.552e-02
+   vs fp32 ref (fp8 q): mine 8.576e-02 sglang 4.621e-02;  vs bf16-q ref: mine 7.254e-02 sglang 7.338e-02; ref fp8-vs-bf16 7.128e-02
+   time: mine   1417.2 us  sglang   1659.7 us  x1.171
+   post            9.1 us
+   pack           53.2 us
+   attn_fwd     1362.0 us
+6 {'batch': 1, 'ctx': 32768, 'layer': 'full', 'q_len': 16384, 'page': 1, 'dist': 'soft'}
+   cache vs sglang: k 1.62e-02 v 0.00e+00;  out vs sglang 7.629e-02
+   vs fp32 ref (fp8 q): mine 7.758e-02 sglang 4.137e-02;  vs bf16-q ref: mine 6.589e-02 sglang 6.481e-02; ref fp8-vs-bf16 6.240e-02
+   time: mine   3532.2 us  sglang   4573.0 us  x1.295
+   post           20.5 us
+   pack           12.3 us
+   attn_fwd     3513.2 us
+11 {'batch': 3, 'ctx': 5000, 'layer': 'full', 'q_len': 200, 'dist': 'outliers'}
+   cache vs sglang: k 1.67e-02 v 0.00e+00;  out vs sglang 9.766e-02
+   vs fp32 ref (fp8 q): mine 9.940e-02 sglang 5.218e-02;  vs bf16-q ref: mine 8.297e-02 sglang 8.386e-02; ref fp8-vs-bf16 8.301e-02
+   time: mine    107.2 us  sglang     75.0 us  x0.699
+   post            7.2 us
+   pack            8.4 us
+   attn_fwd       97.6 us
+13 {'batch': 2, 'ctx': 1000, 'layer': 'full', 'q_len': 200, 'page': 64}
+   cache vs sglang: k 1.59e-02 v 0.00e+00;  out vs sglang 9.208e-02
+   vs fp32 ref (fp8 q): mine 9.396e-02 sglang 4.848e-02;  vs bf16-q ref: mine 7.816e-02 sglang 7.952e-02; ref fp8-vs-bf16 7.800e-02
+   time: mine     51.1 us  sglang     36.4 us  x0.712
+   post            7.1 us
+   pack            7.7 us
+   attn_fwd       44.2 us
+compiled
+0 {'batch': 1, 'ctx': 80000, 'layer': 'sliding', 'q_len': 753, 'page': 1, 'dist': 'soft'}
+   cache vs sglang: k 1.63e-02 v 0.00e+00;  out vs sglang 6.678e-02
+   time: mine     37.4 us  sglang     48.9 us  x1.308
+   post            7.9 us
+   pack            8.5 us
+   attn_fwd       29.5 us
+1 {'batch': 1, 'ctx': 80000, 'layer': 'full', 'q_len': 753, 'page': 1, 'dist': 'soft'}
+   cache vs sglang: k 1.60e-02 v 0.00e+00;  out vs sglang 5.091e-01
+   time: mine    368.4 us  sglang    436.2 us  x1.184
+   post            7.4 us
+   pack           19.0 us
+   attn_fwd      350.2 us
+3 {'batch': 4, 'ctx': 80000, 'layer': 'full', 'q_len': 753, 'page': 1, 'dist': 'soft', 'spread': 'agentic'}
+   cache vs sglang: k 1.63e-02 v 0.00e+00;  out vs sglang 8.552e-02
+   time: mine   1415.8 us  sglang   1651.3 us  x1.166
+   post            9.2 us
+   pack           56.2 us
+   attn_fwd     1356.7 us
+6 {'batch': 1, 'ctx': 32768, 'layer': 'full', 'q_len': 16384, 'page': 1, 'dist': 'soft'}
+   cache vs sglang: k 1.62e-02 v 0.00e+00;  out vs sglang 7.629e-02
+   time: mine   3513.5 us  sglang   4543.0 us  x1.293
+   post           21.4 us
+   pack           14.3 us
+   attn_fwd     3506.9 us
+Stopping app - local entrypoint completed.
+✓ App completed. View run at 
+<modal-run-url>

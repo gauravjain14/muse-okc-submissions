@@ -1,0 +1,19 @@
+test {'bs': 4}: PASS relative L2 error 2.524e-03 (worst row 2.577e-03)
+test {'bs': 33}: PASS relative L2 error 2.550e-03 (worst row 2.777e-03)
+test {'bs': 257}: PASS relative L2 error 2.545e-03 (worst row 2.758e-03)
+test {'bs': 128, 'dist': 'skewed'}: PASS relative L2 error 2.546e-03 (worst row 2.723e-03)
+test {'bs': 1}: PASS relative L2 error 2.472e-03 (worst row 2.472e-03)
+=== bs 1: 5532 events
+  per CTA: item spans (ready->compute end) 18.9, epilogues 3.3, between items 3.9 us over 4.8 gaps (median gap 0.77, max 1.86)
+  last epilogue: min 30.5 med 33.8 max 34.5; combine start med 34.1 max 34.8; end max 38.4 us
+  producer: item start -> claim back median 4.22 max 6.56 us; item start -> first slot median 0.67 us
+=== bs 16: 10140 events
+  per CTA: item spans (ready->compute end) 73.4, epilogues 6.6, between items 3.8 us over 10.6 gaps (median gap 0.29, max 1.50)
+  last epilogue: min 88.0 med 90.9 max 93.3; combine start med 91.2 max 93.6; end max 96.5 us
+  producer: item start -> claim back median 6.02 max 10.46 us; item start -> first slot median 0.58 us
+v58                           : 1:30.2(2.458x) 16:91.1(2.024x) 32:124.5(1.630x) 8:70.8(2.118x) 128:188.8(2.463x) 256:234.6(2.654x) 2.196x
+v61 ahead2                    : 1:31.6(2.410x) 16:91.2(2.023x) 32:127.3(1.624x) 8:70.7(2.108x) 128:192.8(2.445x) 256:234.3(2.646x) 2.182x
+v61 ahead3                    : 1:36.3(2.181x) 16:91.9(1.998x) 32:128.2(1.598x) 8:71.8(2.100x) 128:193.8(2.410x) 256:250.0(2.492x) 2.108x
+v58                           : 1:31.0(2.412x) 16:92.8(2.008x) 32:127.1(1.632x) 8:71.5(2.107x) 128:190.4(2.476x) 256:234.1(2.644x) 2.186x
+v61 ahead2                    : 1:32.0(2.362x) 16:91.2(2.015x) 32:127.4(1.624x) 8:69.9(2.123x) 128:190.7(2.435x) 256:235.4(2.640x) 2.174x
+v61 ahead3                    : 1:36.6(2.166x) 16:91.6(2.007x) 32:127.6(1.598x) 8:72.1(2.074x) 128:194.5(2.415x) 256:249.2(2.502x) 2.105x

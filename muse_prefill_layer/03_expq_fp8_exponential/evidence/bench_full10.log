@@ -1,0 +1,42 @@
+✓ Initialized. View run at 
+<modal-run-url>
+✓ Created objects.
+├── 🔨 Created mount 
+│   <scratch>
+│   5-ce57afd4da60/scratchpad/snap.iQaOz0/dev/modal_run.py
+├── 🔨 Created mount 
+│   <scratch>
+│   5-ce57afd4da60/scratchpad/snap.iQaOz0
+└── 🔨 Created function run.
+router seed 728034927264498030 (3 s)
+prepared full9 (cand_full9.py) in 85.4 s
+prepared full10 (cand_full10.py) in 69.2 s
+  full9 case 0: pass update relative L2 error 5.018e-02 (worst row 9.416e-02) [bound 0.120]; attention input relative L2 error 3.290e-02 (worst row 6.579e-02) [bound 0.079]
+  full10 case 0: pass update relative L2 error 5.018e-02 (worst row 9.416e-02) [bound 0.120]; attention input relative L2 error 3.290e-02 (worst row 6.579e-02) [bound 0.079]
+0 turn 1     b1 ctx80000 sliding q753  sglang    1107.4  full9     599.9 x1.846  full10     599.6 x1.846 (vs full9 x1.0029)
+  full9 case 1: pass update relative L2 error 6.208e-02 (worst row 1.140e-01) [bound 0.150]; attention input relative L2 error 4.062e-02 (worst row 6.850e-02) [bound 0.099]
+  full10 case 1: pass update relative L2 error 6.208e-02 (worst row 1.140e-01) [bound 0.150]; attention input relative L2 error 4.062e-02 (worst row 6.850e-02) [bound 0.099]
+1 turn 1     b1 ctx80000 full    q753  sglang    1537.6  full9     941.7 x1.626  full10     940.9 x1.630 (vs full9 x1.0009)
+  full9 case 2: pass update relative L2 error 5.131e-02 (worst row 1.043e-01) [bound 0.123]; attention input relative L2 error 3.380e-02 (worst row 7.414e-02) [bound 0.081]
+  full10 case 2: pass update relative L2 error 5.131e-02 (worst row 1.043e-01) [bound 0.123]; attention input relative L2 error 3.380e-02 (worst row 7.414e-02) [bound 0.081]
+2 turn 4     b4 ctx80000 sliding q753  sglang    3434.6  full9    1905.2 x1.804  full10    1901.2 x1.808 (vs full9 x1.0019)
+  full9 case 3: pass update relative L2 error 6.291e-02 (worst row 1.108e-01) [bound 0.150]; attention input relative L2 error 4.102e-02 (worst row 8.200e-02) [bound 0.101]
+  full10 case 3: pass update relative L2 error 6.291e-02 (worst row 1.108e-01) [bound 0.150]; attention input relative L2 error 4.102e-02 (worst row 8.200e-02) [bound 0.101]
+3 turn 4     b4 ctx80000 full    q753  sglang    5039.5  full9    3283.4 x1.534  full10    3281.0 x1.534 (vs full9 x1.0016)
+  full9 case 4: pass update relative L2 error 2.119e-02 (worst row 5.986e-02) [bound 0.044]; attention input relative L2 error 1.404e-02 (worst row 3.359e-02) [bound 0.030]
+  full10 case 4: pass update relative L2 error 2.119e-02 (worst row 5.986e-02) [bound 0.044]; attention input relative L2 error 1.404e-02 (worst row 3.359e-02) [bound 0.030]
+4 first turn b1 ctx0 full    q16384  sglang   18986.0  full9   10543.4 x1.800  full10   10315.6 x1.835 (vs full9 x1.0077)
+  full9 case 5: pass update relative L2 error 3.162e-02 (worst row 1.117e-01) [bound 0.069]; attention input relative L2 error 2.088e-02 (worst row 6.683e-02) [bound 0.046]
+  full10 case 5: pass update relative L2 error 3.162e-02 (worst row 1.117e-01) [bound 0.069]; attention input relative L2 error 2.088e-02 (worst row 6.683e-02) [bound 0.046]
+5 first turn b1 ctx32768 sliding q16384  sglang   18229.1  full9    9731.0 x1.847  full10    9623.4 x1.879 (vs full9 x1.0030)
+  full9 case 6: pass update relative L2 error 5.211e-02 (worst row 1.175e-01) [bound 0.123]; attention input relative L2 error 3.396e-02 (worst row 7.836e-02) [bound 0.080]
+  full10 case 6: pass update relative L2 error 5.211e-02 (worst row 1.175e-01) [bound 0.123]; attention input relative L2 error 3.396e-02 (worst row 7.836e-02) [bound 0.080]
+6 first turn b1 ctx32768 full    q16384  sglang   23100.8  full9   13253.5 x1.742  full10   13186.7 x1.749 (vs full9 x1.0034)
+  full9 case 7: pass update relative L2 error 5.954e-02 (worst row 1.134e-01) [bound 0.142]; attention input relative L2 error 3.898e-02 (worst row 8.168e-02) [bound 0.093]
+  full10 case 7: pass update relative L2 error 5.954e-02 (worst row 1.134e-01) [bound 0.142]; attention input relative L2 error 3.898e-02 (worst row 8.168e-02) [bound 0.093]
+7 first turn b1 ctx65536 full    q16384  sglang   27010.0  full9   16125.1 x1.664  full10   15899.8 x1.683 (vs full9 x1.0111)
+full9: turn 1 x1.768  turn 4 x1.703  first turn x1.809  geomean x1.7592
+full10: turn 1 x1.770  turn 4 x1.705  first turn x1.836  geomean x1.7695
+Stopping app - local entrypoint completed.
+✓ App completed. View run at 
+<modal-run-url>

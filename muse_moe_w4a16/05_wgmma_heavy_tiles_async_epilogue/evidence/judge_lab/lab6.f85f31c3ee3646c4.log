@@ -1,0 +1,4 @@
+lab: NVIDIA H200, 132 SMs
+lab env: torch 2.14.1+cu130 (cuda 13.0), cuda-python 13.4.3, nvrtc 13.0, driver api 13000
+lab bs 256: v141 227.1 us (x1.000)  w3 225.2 us (x1.008)  w3k1 224.7 us (x1.016)  w3k1s5 224.2 us (x1.016)  w3k1s4 224.3 us (x1.016)  w3k1b 225.1 us (x1.016)  v141b 227.0 us (x1.000)
+lab: experiment took 16 s

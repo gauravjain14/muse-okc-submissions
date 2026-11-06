@@ -1,0 +1,12 @@
+lab: NVIDIA H200, 132 SMs
+lab env: torch 2.14.1+cu130 (cuda 13.0), cuda-python 13.4.3, nvrtc 13.0, driver api 13000
+lab check ea: bs4:2.80e-03 bs4:2.71e-03 bs8:2.80e-03 bs8:2.74e-03 bs16:2.76e-03 bs16:2.68e-03
+lab: experiment took 2 s
+lab bs   8: v150 73.0 us (x1.000)  ea 73.1 us (x0.987)  eab 73.9 us (x0.983)  nowc 72.8 us (x1.002)  v150b 72.1 us (x1.001)
+lab bs  16: v150 91.3 us (x1.000)  ea 92.0 us (x0.991)  eab 92.6 us (x0.988)  nowc 91.7 us (x1.001)  v150b 91.5 us (x1.000)
+lab: experiment took 4 s
+lab bs  32: v150 117.8 us (x1.000)  nodepi 118.6 us (x0.990)  nowc 117.5 us (x1.002)  v150b 117.9 us (x0.999)
+lab: experiment took 6 s
+lab trace bs 8 seed 9000: first 6.5/6.6 items 49.4 epi 3.9 gaps 2.7 (n 4.8) | last epi min 56.5 med 63.3 max 65.6 | combine end 67.7 us
+lab trace bs 8 seed 9000 bins(4us): 0 49 132 126 82 132 101 123 130 105 132 97 130 105 106 81 2
+lab: experiment took 2 s

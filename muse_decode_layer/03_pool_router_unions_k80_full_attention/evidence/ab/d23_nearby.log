@@ -1,0 +1,24 @@
+PREPARE 16.21s
+DISPATCH {'mm_pick': {(1, 'qkv'): 'bfp', (1, 'o'): 'bfp', (1, 'pr'): 'bfp', (1, 'un'): 'bfp', (2, 'qkv'): 'bfp', (2, 'o'): 'bfp', (2, 'pr'): 'bfp', (2, 'un'): 'bfp', (4, 'qkv'): 'bfp', (4, 'o'): 'bfp', (4, 'pr'): 'bfp', (4, 'un'): 'bfp', (8, 'qkv'): 'bfp', (8, 'o'): 'bfp', (8, 'pr'): 'bfp', (8, 'un'): 'bfp', (16, 'qkv'): 'bfp', (16, 'o'): 'bfp', (16, 'pr'): 'bfp', (16, 'un'): 'bfp', (32, 'qkv'): 'bfp', (32, 'o'): 'bfp', (32, 'pr'): 'bfp', (32, 'un'): 'bfp', (64, 'qkv'): 'bfp', (64, 'o'): 'bfp', (64, 'pr'): 'bfp', (64, 'un'): 'bfp', (128, 'qkv'): 'bfp', (128, 'o'): 'bfp', (128, 'pr'): 'bfp', (128, 'un'): 'bfp', (256, 'qkv'): 'bfp', (256, 'o'): 'bfp', (256, 'pr'): 'bfp', (256, 'un'): 'bfp'}, 'moe_pick': {}, 'gluev2': {}}
+PASS nearby/0 fresh=0: update relative L2 error 4.252e-02 (worst row 4.252e-02) [bound 0.105]; attention input relative L2 error 2.436e-02 (worst row 2.436e-02) [bound 0.060]
+PASS nearby/0 fresh=1: update relative L2 error 7.728e-02 (worst row 7.728e-02) [bound 0.146]; attention input relative L2 error 4.909e-02 (worst row 4.909e-02) [bound 0.093]
+PASS nearby/1 fresh=0: update relative L2 error 5.402e-02 (worst row 7.112e-02) [bound 0.129]; attention input relative L2 error 3.627e-02 (worst row 4.670e-02) [bound 0.088]
+PASS nearby/1 fresh=1: update relative L2 error 4.704e-02 (worst row 6.026e-02) [bound 0.121]; attention input relative L2 error 3.205e-02 (worst row 4.192e-02) [bound 0.082]
+PASS nearby/2 fresh=0: update relative L2 error 6.951e-02 (worst row 9.993e-02) [bound 0.150]; attention input relative L2 error 4.639e-02 (worst row 7.220e-02) [bound 0.113]
+PASS nearby/2 fresh=1: update relative L2 error 6.542e-02 (worst row 8.420e-02) [bound 0.150]; attention input relative L2 error 4.367e-02 (worst row 5.232e-02) [bound 0.116]
+PASS nearby/3 fresh=0: update relative L2 error 5.157e-02 (worst row 7.198e-02) [bound 0.125]; attention input relative L2 error 3.536e-02 (worst row 4.871e-02) [bound 0.086]
+PASS nearby/3 fresh=1: update relative L2 error 5.723e-02 (worst row 8.110e-02) [bound 0.136]; attention input relative L2 error 4.008e-02 (worst row 5.760e-02) [bound 0.095]
+PASS nearby/4 fresh=0: update relative L2 error 6.640e-02 (worst row 9.312e-02) [bound 0.150]; attention input relative L2 error 4.507e-02 (worst row 6.428e-02) [bound 0.111]
+PASS nearby/4 fresh=1: update relative L2 error 6.702e-02 (worst row 8.982e-02) [bound 0.150]; attention input relative L2 error 4.516e-02 (worst row 6.368e-02) [bound 0.106]
+PASS nearby/5 fresh=0: update relative L2 error 7.441e-02 (worst row 1.119e-01) [bound 0.150]; attention input relative L2 error 5.067e-02 (worst row 8.125e-02) [bound 0.124]
+PASS nearby/5 fresh=1: update relative L2 error 7.437e-02 (worst row 1.053e-01) [bound 0.150]; attention input relative L2 error 5.030e-02 (worst row 7.516e-02) [bound 0.125]
+PASS nearby/6 fresh=0: update relative L2 error 7.722e-02 (worst row 1.214e-01) [bound 0.150]; attention input relative L2 error 5.202e-02 (worst row 7.995e-02) [bound 0.129]
+PASS nearby/6 fresh=1: update relative L2 error 7.481e-02 (worst row 1.211e-01) [bound 0.150]; attention input relative L2 error 5.007e-02 (worst row 9.077e-02) [bound 0.124]
+PASS nearby/7 fresh=0: update relative L2 error 7.844e-02 (worst row 1.236e-01) [bound 0.150]; attention input relative L2 error 5.246e-02 (worst row 8.876e-02) [bound 0.129]
+PASS nearby/7 fresh=1: update relative L2 error 7.733e-02 (worst row 1.262e-01) [bound 0.150]; attention input relative L2 error 5.167e-02 (worst row 8.574e-02) [bound 0.128]
+PASS nearby/8 fresh=0: update relative L2 error 7.898e-02 (worst row 1.546e-01) [bound 0.150]; attention input relative L2 error 5.254e-02 (worst row 7.940e-02) [bound 0.130]
+PASS nearby/8 fresh=1: update relative L2 error 7.805e-02 (worst row 1.188e-01) [bound 0.150]; attention input relative L2 error 5.235e-02 (worst row 8.985e-02) [bound 0.130]
+PASS nearby/9 fresh=0: update relative L2 error 5.600e-02 (worst row 9.665e-02) [bound 0.137]; attention input relative L2 error 3.705e-02 (worst row 5.221e-02) [bound 0.091]
+PASS nearby/9 fresh=1: update relative L2 error 5.421e-02 (worst row 7.797e-02) [bound 0.136]; attention input relative L2 error 3.655e-02 (worst row 5.412e-02) [bound 0.092]
+DONE
+REMOTE_EXIT 0

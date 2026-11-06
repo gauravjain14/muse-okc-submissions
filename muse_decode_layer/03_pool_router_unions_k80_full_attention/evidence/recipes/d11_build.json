@@ -1,0 +1,7 @@
+{
+  "base": "muse-opt-codex/muse_decode_layer/variants/d10_pool_router_union.py",
+  "output": "muse-opt-codex/muse_decode_layer/variants/d11_expert_release.py",
+  "sha256": "68f221e888b2b43afc12d31be0635208df0a77b31a8b939a73808fb40ba046e9",
+  "bytes": 988359,
+  "change": "Full phase-A units synchronize their four warpgroups once and publish one release adding four readiness contributions; split-unit handling unchanged."
+}

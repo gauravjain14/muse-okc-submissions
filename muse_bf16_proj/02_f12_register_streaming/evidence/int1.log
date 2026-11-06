@@ -1,0 +1,65 @@
+[gate] slot 0 at 12:24:45 (0 running)
+✓ Initialized. View run at 
+<modal-run-url>
+✓ Created objects.
+├── 🔨 Created mount 
+│   muse-opt-codex/muse_bf16_proj/claude/modal_run.p
+│   y
+├── 🔨 Created mount muse-opt-codex/muse_bf16_proj
+└── 🔨 Created function run.
+[gpu-before]
+NVIDIA H200, 0 %, 4 MiB, 345 MHz, 1980 MHz, 82.65 W
+0
+all ok
+[int] prepare 2.3s
+[cx] prepare 0.1s
+fixed graph cost 5.46 us
+decode 1  m=1    qkv_gate  sglang   12.59 | int    9.68 x1.301 | cx    9.60 x1.312   sol   7.87
+decode 1  m=1    o         sglang    5.36 | int    4.14 x1.294 | cx    4.19 x1.279   sol   3.50
+decode 1  m=1    pooler    sglang   20.03 | int   15.92 x1.258 | cx   15.59 x1.285   sol  13.99
+decode 1  m=1    unpooler  sglang    5.74 | int    2.63 x2.186 | cx    2.63 x2.184   sol   1.75
+decode 1  m=1    router    sglang    9.10 | int    2.61 x3.483 | cx    2.64 x3.444   sol   1.75
+decode 16 m=16   qkv_gate  sglang   12.90 | int   10.95 x1.178 | cx   11.26 x1.146   sol   7.93
+decode 16 m=16   o         sglang    5.41 | int    4.92 x1.099 | cx    4.75 x1.139   sol   3.56
+decode 16 m=16   pooler    sglang   20.13 | int   15.31 x1.315 | cx   17.46 x1.153   sol  14.06
+decode 16 m=16   unpooler  sglang   17.14 | int   14.89 x1.151 | cx   16.78 x1.021   sol  14.06
+decode 16 m=16   router    sglang   14.13 | int    4.11 x3.436 | cx    5.46 x2.586   sol   1.81
+decode 32 m=32   qkv_gate  sglang   13.22 | int   11.75 x1.124 | cx   11.77 x1.123   sol   8.00
+decode 32 m=32   o         sglang    5.46 | int    4.82 x1.131 | cx    4.95 x1.102   sol   3.62
+decode 32 m=32   pooler    sglang   20.69 | int   18.30 x1.131 | cx   18.63 x1.111   sol  14.14
+decode 32 m=32   unpooler  sglang   17.26 | int   16.51 x1.046 | cx   16.59 x1.041   sol  14.14
+decode 32 m=32   router    sglang   14.22 | int    4.38 x3.246 | cx    6.22 x2.288   sol   1.86
+verify 1  m=8    qkv_gate  sglang   13.20 | int   10.77 x1.225 | cx   11.90 x1.109   sol   7.90
+verify 1  m=8    o         sglang    5.36 | int    5.07 x1.057 | cx    4.91 x1.091   sol   3.53
+verify 1  m=8    pooler    sglang   20.27 | int   14.82 x1.368 | cx   17.34 x1.169   sol  14.02
+verify 1  m=8    unpooler  sglang    5.98 | int    3.75 x1.594 | cx    3.78 x1.582   sol   1.76
+verify 1  m=8    router    sglang   25.25 | int    4.21 x5.991 | cx    5.88 x4.292   sol   1.78
+verify 16 m=128  qkv_gate  sglang   16.06 | int   15.22 x1.056 | cx   14.91 x1.077   sol   8.42
+verify 16 m=128  o         sglang    6.40 | int    5.95 x1.075 | cx    5.99 x1.069   sol   3.99
+verify 16 m=128  pooler    sglang   24.83 | int   24.65 x1.007 | cx   25.12 x0.989   sol  14.64
+verify 16 m=128  unpooler  sglang   19.17 | int   17.54 x1.093 | cx   17.29 x1.108   sol  14.64
+verify 16 m=128  router    sglang   15.46 | int    6.73 x2.298 | cx    8.56 x1.805   sol   2.21
+verify 32 m=256  qkv_gate  sglang   18.42 | int   19.50 x0.944 | cx   19.27 x0.956   sol   9.77
+verify 32 m=256  o         sglang    8.27 | int    8.31 x0.995 | cx    7.96 x1.039   sol   4.48
+verify 32 m=256  pooler    sglang   30.86 | int   29.16 x1.059 | cx   28.47 x1.084   sol  17.37
+verify 32 m=256  unpooler  sglang   23.66 | int   23.74 x0.997 | cx   23.34 x1.014   sol  17.37
+verify 32 m=256  router    sglang   16.42 | int    8.93 x1.838 | cx   11.86 x1.384   sol   2.68
+
+per-load speedups:
+  decode 1  sglang   52.83 | int   34.98 x1.510 | cx   34.65 x1.525
+  decode 16 sglang   69.70 | int   50.18 x1.389 | cx   55.71 x1.251
+  decode 32 sglang   70.85 | int   55.77 x1.270 | cx   58.16 x1.218
+  verify 1  sglang   70.06 | int   38.63 x1.814 | cx   43.83 x1.599
+  verify 16 sglang   81.92 | int   70.09 x1.169 | cx   71.87 x1.140
+  verify 32 sglang   97.63 | int   89.65 x1.089 | cx   90.91 x1.074
+GEOMEAN int: x1.3537 over 6 loads   judge-projected (+1.0 us/shape) x1.3195
+GEOMEAN cx: x1.2871 over 6 loads   judge-projected (+1.0 us/shape) x1.2604
+[gpu-after]
+NVIDIA H200, 0 %, 4 MiB, 1980 MHz, 1980 MHz, 132.43 W
+0
+
+fetched into muse-opt-codex/muse_bf16_proj/claude/out/20261027T122657_int1
+[exit 0]
+Stopping app - local entrypoint completed.
+✓ App completed. View run at 
+<modal-run-url>

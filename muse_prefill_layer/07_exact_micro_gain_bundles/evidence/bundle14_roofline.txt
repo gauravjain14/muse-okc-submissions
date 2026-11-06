@@ -1,0 +1,12 @@
+case routes padded measured_us ideal_nominal_us fused_resources_us serial_stages_us
+0 1436 132 560.38 299.44 355.67 355.67
+1 1375 145 757.05 415.31 493.84 493.84
+2 5847 169 1832.53 1208.26 1396.58 1396.58
+3 5672 184 2588.11 1675.1 1948.59 1948.59
+4 30233 223 9672.85 6620.75 6894.37 7497.36
+5 30018 246 10098.89 6390.51 6652.66 7255.65
+6 30093 283 12345.98 7717.68 8071.05 8674.04
+7 29994 222 13896.25 8818.78 9238.58 9841.57
+nominal {'ideal_whole_us': 128.195, 'serial_stages_us': 148.604, 'current_fused_resources_us': 144.577}
+clock_sensitivity {'ideal_whole_us': 140.879, 'serial_stages_us': 165.017, 'current_fused_resources_us': 160.365}
+traced_aggregate_ms 210.85873573714235

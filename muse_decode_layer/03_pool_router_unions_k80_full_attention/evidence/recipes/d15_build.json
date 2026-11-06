@@ -1,0 +1,7 @@
+{
+  "base": "muse-opt-codex/muse_decode_layer/variants/d10_pool_router_union.py",
+  "output": "muse-opt-codex/muse_decode_layer/variants/d15_eight_warp_norms.py",
+  "sha256": "b7311b96dfb69654492426e9526ba1414855860904811fa0233ee7d23d23a9d1",
+  "bytes": 988587,
+  "change": "Load residual coefficients after the first reduction and final norm weights after the second; retain early loads on PDL paths. d15 also uses eight warps at T>32."
+}

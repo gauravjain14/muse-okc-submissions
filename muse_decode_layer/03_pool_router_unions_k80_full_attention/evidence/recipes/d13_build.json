@@ -1,0 +1,7 @@
+{
+  "base": "muse-opt-codex/muse_decode_layer/variants/d10_pool_router_union.py",
+  "output": "muse-opt-codex/muse_decode_layer/variants/d13_eight_pool_router.py",
+  "sha256": "b65057e15eb981e670b02c2cbbc4510e8069e5f26b5e66cebfff323c975476da",
+  "bytes": 990874,
+  "change": "Alternate lossless pooler tile and FP32 router expert in one grid for eight tokens; exact arithmetic and general fallbacks preserved."
+}

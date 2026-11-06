@@ -1,0 +1,62 @@
+✓ Initialized. View run at 
+<modal-run-url>
+✓ Created objects.
+├── 🔨 Created mount 
+│   <scratch>
+│   5-ce57afd4da60/scratchpad/snap.J5GcE0/dev/modal_run.py
+├── 🔨 Created mount 
+│   <scratch>
+│   5-ce57afd4da60/scratchpad/snap.J5GcE0
+└── 🔨 Created function run.
+1 {'batch': 1, 'ctx': 80000, 'layer': 'full', 'q_len': 753, 'page': 1, 'dist': 'soft'}
+   vs fp32 ref (fp8 q): mine 8.578e-02 sglang 4.538e-02;  vs bf16-q ref: mine 7.266e-02 sglang 7.130e-02; ref fp8-vs-bf16 6.921e-02
+   time: mine    265.6 us  sglang    440.6 us  x1.659
+   attn_fwd      248.6 us
+   sk         vs mine 0.00e+00
+   sk            224.5 us
+   nocomb     vs mine 1.17e+00
+   nocomb        221.6 us
+3 {'batch': 4, 'ctx': 80000, 'layer': 'full', 'q_len': 753, 'page': 1, 'dist': 'soft', 'spread': 'agentic'}
+   vs fp32 ref (fp8 q): mine 8.809e-02 sglang 4.621e-02;  vs bf16-q ref: mine 7.542e-02 sglang 7.338e-02; ref fp8-vs-bf16 7.128e-02
+   time: mine   1006.3 us  sglang   1668.0 us  x1.658
+   attn_fwd      951.0 us
+   sk         vs mine 0.00e+00
+   sk            847.6 us
+   nocomb     vs mine 1.14e+00
+   nocomb        846.0 us
+6 {'batch': 1, 'ctx': 32768, 'layer': 'full', 'q_len': 16384, 'page': 1, 'dist': 'soft'}
+   vs fp32 ref (fp8 q): mine 7.896e-02 sglang 4.137e-02;  vs bf16-q ref: mine 6.765e-02 sglang 6.481e-02; ref fp8-vs-bf16 6.240e-02
+   time: mine   2473.5 us  sglang   4578.9 us  x1.851
+   attn_fwd     2448.4 us
+   sk         vs mine 0.00e+00
+   sk           2201.4 us
+   nocomb     vs mine 3.08e-01
+   nocomb       2184.1 us
+7 {'batch': 1, 'ctx': 65536, 'layer': 'full', 'q_len': 16384, 'page': 1, 'dist': 'soft'}
+   vs fp32 ref (fp8 q): mine 8.168e-02 sglang 4.282e-02;  vs bf16-q ref: mine 6.988e-02 sglang 6.737e-02; ref fp8-vs-bf16 6.500e-02
+   time: mine   4320.5 us  sglang   8160.2 us  x1.889
+   attn_fwd     4321.5 us
+   sk         vs mine 0.00e+00
+   sk           3875.0 us
+   nocomb     vs mine 3.22e-01
+   nocomb       3962.2 us
+9 {'batch': 1, 'ctx': 3000, 'layer': 'full', 'q_len': 753, 'page': 1}
+   vs fp32 ref (fp8 q): mine 9.821e-02 sglang 5.050e-02;  vs bf16-q ref: mine 8.214e-02 sglang 8.072e-02; ref fp8-vs-bf16 8.018e-02
+   time: mine     46.2 us  sglang     56.7 us  x1.228
+   attn_fwd       35.5 us
+   sk         vs mine 0.00e+00
+   sk             31.4 us
+   nocomb     vs mine 1.12e+00
+   nocomb         30.0 us
+11 {'batch': 3, 'ctx': 5000, 'layer': 'full', 'q_len': 200, 'dist': 'outliers'}
+   vs fp32 ref (fp8 q): mine 1.003e-01 sglang 5.218e-02;  vs bf16-q ref: mine 8.426e-02 sglang 8.386e-02; ref fp8-vs-bf16 8.301e-02
+   time: mine     87.1 us  sglang     74.4 us  x0.855
+   attn_fwd       76.3 us
+   sk         vs mine 2.67e-06
+   sk             48.0 us
+   nocomb     vs mine 1.34e+00
+   nocomb         53.4 us
+Stopping app - local entrypoint completed.
+✓ App completed. View run at 
+<modal-run-url>
+done

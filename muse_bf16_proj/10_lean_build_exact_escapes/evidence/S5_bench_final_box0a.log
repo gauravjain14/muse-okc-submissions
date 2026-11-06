@@ -1,0 +1,14 @@
+[sbx] box 0
+[lean] prepare 3.7s
+[sm5] prepare 4.0s
+decode 1  m=1    router    sglang    9.41 | lean    2.80 x3.362 | sm5    2.74 x3.435   sol   1.75
+decode 1  m=1    unpooler  sglang    5.98 | lean    2.54 x2.359 | sm5    2.43 x2.462   sol   1.75
+decode 16 m=16   router    sglang   14.24 | lean    3.30 x4.313 | sm5    3.06 x4.649   sol   1.81
+decode 16 m=16   unpooler  sglang   17.39 | lean   12.58 x1.383 | sm5   12.60 x1.381   sol  14.06
+decode 32 m=32   router    sglang   14.69 | lean    3.67 x4.004 | sm5    3.61 x4.066   sol   1.86
+decode 32 m=32   unpooler  sglang   17.57 | lean   13.20 x1.330 | sm5   13.26 x1.325   sol  14.14
+verify 1  m=8    router    sglang   25.58 | lean    3.09 x8.278 | sm5    2.80 x9.126   sol   1.78
+verify 1  m=8    unpooler  sglang    6.26 | lean    2.96 x2.116 | sm5    2.82 x2.221   sol   1.76
+GEOMEAN lean: x2.7579 over 4 loads   judge-projected (+1.0 us/shape) x2.4155
+GEOMEAN sm5: x2.8408 over 4 loads   judge-projected (+1.0 us/shape) x2.4703
+REMOTE_EXIT 0

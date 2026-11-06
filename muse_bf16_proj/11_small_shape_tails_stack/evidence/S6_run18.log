@@ -1,0 +1,31 @@
+[sbx] waited 4s for a GPU
+[sbx] box 0
+decode 1  m=1    router    sglang    9.50 | bo21L    2.71 x3.501 | s6    2.77 x3.436   sol   1.75
+decode 16 m=16   router    sglang   14.27 | bo21L    3.21 x4.451 | s6    3.09 x4.622   sol   1.81
+verify 1  m=8    router    sglang   25.66 | bo21L    2.91 x8.811 | s6    3.01 x8.532   sol   1.78
+GEOMEAN bo21L: x5.1591 over 3 loads   judge-projected (+1.0 us/shape) x4.1206
+GEOMEAN s6: x5.1366 over 3 loads   judge-projected (+1.0 us/shape) x4.1082
+decode 1  m=1    router    sglang    9.31 | s6    2.53 x3.678 | bo21L    2.55 x3.646   sol   1.75
+decode 16 m=16   router    sglang   14.14 | s6    2.88 x4.911 | bo21L    2.99 x4.725   sol   1.81
+verify 1  m=8    router    sglang   25.39 | s6    2.62 x9.702 | bo21L    2.78 x9.148   sol   1.78
+GEOMEAN s6: x5.5961 over 3 loads   judge-projected (+1.0 us/shape) x4.3647
+GEOMEAN bo21L: x5.4014 over 3 loads   judge-projected (+1.0 us/shape) x4.2526
+decode 1  m=1    router    sglang    9.50 | bo21L    2.84 x3.341   sol   1.75
+decode 16 m=16   router    sglang   14.35 | bo21L    3.27 x4.384   sol   1.81
+verify 1  m=8    router    sglang   25.44 | bo21L    2.91 x8.735   sol   1.78
+decode 1  m=1    router    sglang    9.44 | s6    2.71 x3.480   sol   1.75
+decode 16 m=16   router    sglang   14.19 | s6    2.98 x4.757   sol   1.81
+verify 1  m=8    router    sglang   25.36 | s6    2.77 x9.145   sol   1.78
+decode 1  m=1    router    sglang    9.54 | bo21L    2.76 x3.461   sol   1.75
+decode 16 m=16   router    sglang   14.46 | bo21L    3.26 x4.435   sol   1.81
+verify 1  m=8    router    sglang   25.44 | bo21L    2.87 x8.873   sol   1.78
+decode 1  m=1    router    sglang    9.28 | s6    2.52 x3.681   sol   1.75
+decode 16 m=16   router    sglang   14.08 | s6    2.88 x4.891   sol   1.81
+verify 1  m=8    router    sglang   25.23 | s6    2.61 x9.652   sol   1.78
+decode 1  m=1    router    sglang    9.55 | bo21L    2.76 x3.467   sol   1.75
+decode 16 m=16   router    sglang   14.29 | bo21L    3.22 x4.443   sol   1.81
+verify 1  m=8    router    sglang   25.38 | bo21L    2.87 x8.850   sol   1.78
+decode 1  m=1    router    sglang    9.30 | s6    2.47 x3.760   sol   1.75
+decode 16 m=16   router    sglang   14.21 | s6    2.94 x4.834   sol   1.81
+verify 1  m=8    router    sglang   25.25 | s6    2.65 x9.523   sol   1.78
+REMOTE_EXIT 0

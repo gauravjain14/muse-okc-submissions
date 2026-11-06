@@ -1,0 +1,47 @@
+autoresearch-kernels/attn/subs/k72s_submit.py
+    SRC        raw  410339 B md5 d4224ebb | stripped+ws md5 f1fb261c | line-preserving md5 dd932272
+    XE_SRC     raw   83276 B md5 15779607 | stripped+ws md5 8c6d1dcd | line-preserving md5 490cb288
+    _XA_SRC    raw   92828 B md5 7b6e95ed | stripped+ws md5 e3f9f904 | line-preserving md5 16968fb4
+    _XD_SRC    raw   92577 B md5 8cbef875 | stripped+ws md5 f0a2f890 | line-preserving md5 d4f3670c
+    _XB1_SRC   raw   59972 B md5 e764daa3 | stripped+ws md5 1a89307c | line-preserving md5 b70a794b
+    _XG5_SRC   raw   71298 B md5 483972a6 | stripped+ws md5 f535f864 | line-preserving md5 3b7c19d5
+Compilers/opt-muse-decode/runs/k72s.py
+    SRC        raw  459285 B md5 638c430d | stripped+ws md5 f1fb261c | line-preserving md5 dd932272
+    XE_SRC     raw   96823 B md5 dcf948a5 | stripped+ws md5 8c6d1dcd | line-preserving md5 490cb288
+    _XA_SRC    raw  104114 B md5 5b300039 | stripped+ws md5 e3f9f904 | line-preserving md5 16968fb4
+    _XD_SRC    raw  102802 B md5 30c4b859 | stripped+ws md5 f0a2f890 | line-preserving md5 d4f3670c
+    _XB1_SRC   raw   69780 B md5 73602036 | stripped+ws md5 1a89307c | line-preserving md5 b70a794b
+    _XG5_SRC   raw   83172 B md5 766234aa | stripped+ws md5 f535f864 | line-preserving md5 3b7c19d5
+autoresearch-kernels/attn/dev/coord/k72.py
+    SRC        raw  511877 B md5 397cf3ca | stripped+ws md5 f1fb261c | line-preserving md5 dd932272
+    XE_SRC     raw  103562 B md5 f60e89dd | stripped+ws md5 8c6d1dcd | line-preserving md5 490cb288
+    _XA_SRC    raw  115218 B md5 e6988248 | stripped+ws md5 e3f9f904 | line-preserving md5 16968fb4
+    _XD_SRC    raw  111121 B md5 871f456d | stripped+ws md5 f0a2f890 | line-preserving md5 d4f3670c
+    _XB1_SRC   raw   74959 B md5 c66462c8 | stripped+ws md5 1a89307c | line-preserving md5 b70a794b
+    _XG5_SRC   raw   85824 B md5 b0167aab | stripped+ws md5 f535f864 | line-preserving md5 3b7c19d5
+
+autoresearch-kernels/attn/subs/k72s_submit.py vs Compilers/opt-muse-decode/runs/k72s.py: same SRC names in the same order: True
+  SRC        raw equal False | stripped+ws equal True | line-preserving equal True
+  XE_SRC     raw equal False | stripped+ws equal True | line-preserving equal True
+  _XA_SRC    raw equal False | stripped+ws equal True | line-preserving equal True
+  _XD_SRC    raw equal False | stripped+ws equal True | line-preserving equal True
+  _XB1_SRC   raw equal False | stripped+ws equal True | line-preserving equal True
+  _XG5_SRC   raw equal False | stripped+ws equal True | line-preserving equal True
+  python outside SRC identical: True (1099 / 1099 lines)
+
+autoresearch-kernels/attn/subs/k72s_submit.py vs autoresearch-kernels/attn/dev/coord/k72.py: same SRC names in the same order: True
+  SRC        raw equal False | stripped+ws equal True | line-preserving equal True
+  XE_SRC     raw equal False | stripped+ws equal True | line-preserving equal True
+  _XA_SRC    raw equal False | stripped+ws equal True | line-preserving equal True
+  _XD_SRC    raw equal False | stripped+ws equal True | line-preserving equal True
+  _XB1_SRC   raw equal False | stripped+ws equal True | line-preserving equal True
+  _XG5_SRC   raw equal False | stripped+ws equal True | line-preserving equal True
+  python outside SRC identical: True (1099 / 1099 lines)
+
+md5 / size of the three files:
+614bc26689dc205bc3b8f67396f42e41  autoresearch-kernels/attn/subs/k72s_submit.py
+b74b9b668ee92a8c7d9945343746d1a1  Compilers/opt-muse-decode/runs/k72s.py
+b2c5a13f134482a98cdeb70d3a95ca18  autoresearch-kernels/attn/dev/coord/k72.py
+875212 autoresearch-kernels/attn/subs/k72s_submit.py
+976824 Compilers/opt-muse-decode/runs/k72s.py
+1067483 autoresearch-kernels/attn/dev/coord/k72.py

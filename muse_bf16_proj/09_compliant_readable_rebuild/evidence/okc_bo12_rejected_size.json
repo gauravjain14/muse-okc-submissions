@@ -1,0 +1,4 @@
+{
+  "error": "rejected: submission is larger than 1000000 bytes",
+  "status": 422
+}

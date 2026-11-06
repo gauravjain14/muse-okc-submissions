@@ -1,0 +1,67 @@
+[gate] slot 0 at 10:50:05 (0 running)
+✓ Initialized. View run at 
+<modal-run-url>
+✓ Created objects.
+├── 🔨 Created mount 
+│   muse-opt-codex/muse_bf16_proj/claude/modal_run.p
+│   y
+├── 🔨 Created mount muse-opt-codex/muse_bf16_proj
+└── 🔨 Created function run.
+[gpu-before]
+NVIDIA H200, 0 %, 4 MiB, 345 MHz, 1980 MHz, 78.30 W
+0
+2.14.1+cu130 13.0 3.8.0 3.12.3 (main, Aug 31 2026, 10:18:26) [GCC 13.3.0]
+cuda.bindings ok (<nvrtcResult.NVRTC_SUCCESS: 0>, 13, 0)
+/usr/local/cuda/bin/nvcc
+Cuda compilation tools, release 13.0, V13.0.88
+Build cuda_13.0.r13.0/compiler.36424714_0
+[cx] prepare 74.2s
+fixed graph cost 5.25 us
+decode 1  m=1    qkv_gate  sglang   13.39 | cx    9.75 x1.374   sol   7.87
+decode 1  m=1    o         sglang    5.50 | cx    4.49 x1.227   sol   3.50
+decode 1  m=1    pooler    sglang   20.54 | cx   15.85 x1.296   sol  13.99
+decode 1  m=1    unpooler  sglang    6.02 | cx    2.82 x2.136   sol   1.75
+decode 1  m=1    router    sglang    9.18 | cx    2.83 x3.243   sol   1.75
+decode 16 m=16   qkv_gate  sglang   13.23 | cx   11.54 x1.147   sol   7.93
+decode 16 m=16   o         sglang    5.44 | cx    5.07 x1.073   sol   3.56
+decode 16 m=16   pooler    sglang   20.32 | cx   17.90 x1.135   sol  14.06
+decode 16 m=16   unpooler  sglang   17.26 | cx   16.24 x1.063   sol  14.06
+decode 16 m=16   router    sglang   14.05 | cx    5.88 x2.389   sol   1.81
+decode 32 m=32   qkv_gate  sglang   13.54 | cx   11.59 x1.168   sol   8.00
+decode 32 m=32   o         sglang    5.73 | cx    5.11 x1.121   sol   3.62
+decode 32 m=32   pooler    sglang   20.53 | cx   18.66 x1.100   sol  14.14
+decode 32 m=32   unpooler  sglang   17.44 | cx   16.95 x1.029   sol  14.14
+decode 32 m=32   router    sglang   14.50 | cx    6.58 x2.203   sol   1.86
+verify 1  m=8    qkv_gate  sglang   13.71 | cx   12.13 x1.130   sol   7.90
+verify 1  m=8    o         sglang    5.44 | cx    4.95 x1.098   sol   3.53
+verify 1  m=8    pooler    sglang   20.05 | cx   17.28 x1.160   sol  14.02
+verify 1  m=8    unpooler  sglang    6.18 | cx    3.86 x1.600   sol   1.76
+verify 1  m=8    router    sglang   25.09 | cx    5.88 x4.268   sol   1.78
+verify 16 m=128  qkv_gate  sglang   16.32 | cx   15.63 x1.044   sol   8.42
+verify 16 m=128  o         sglang    6.24 | cx    6.19 x1.008   sol   3.99
+verify 16 m=128  pooler    sglang   24.46 | cx   24.44 x1.001   sol  14.64
+verify 16 m=128  unpooler  sglang   19.22 | cx   17.89 x1.074   sol  14.64
+verify 16 m=128  router    sglang   15.28 | cx    8.54 x1.790   sol   2.21
+verify 32 m=256  qkv_gate  sglang   18.62 | cx   19.84 x0.939   sol   9.77
+verify 32 m=256  o         sglang    8.24 | cx    8.33 x0.989   sol   4.48
+verify 32 m=256  pooler    sglang   29.41 | cx   27.98 x1.051   sol  17.37
+verify 32 m=256  unpooler  sglang   23.70 | cx   24.08 x0.984   sol  17.37
+verify 32 m=256  router    sglang   16.22 | cx   11.89 x1.365   sol   2.68
+
+per-load speedups:
+  decode 1  sglang   54.64 | cx   35.73 x1.529
+  decode 16 sglang   70.30 | cx   56.63 x1.241
+  decode 32 sglang   71.73 | cx   58.89 x1.218
+  verify 1  sglang   70.46 | cx   44.11 x1.598
+  verify 16 sglang   81.52 | cx   72.69 x1.121
+  verify 32 sglang   96.19 | cx   92.12 x1.044
+GEOMEAN cx: x1.2765 over 6 loads
+[gpu-after]
+NVIDIA H200, 0 %, 4 MiB, 1980 MHz, 1980 MHz, 119.74 W
+0
+
+fetched into muse-opt-codex/muse_bf16_proj/claude/out/20261027T105157_calib
+[exit 0]
+Stopping app - local entrypoint completed.
+✓ App completed. View run at 
+<modal-run-url>

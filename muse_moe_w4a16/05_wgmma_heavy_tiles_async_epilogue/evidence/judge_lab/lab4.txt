@@ -1,0 +1,3 @@
+[
+    {"bs": [256], "variants": [("v141", [], {}), ("noaepi", ["MOE_NO_AEPI"], {}), ("nowsc", ["MOE_NO_WSC"], {}), ("wg2", ["MOE_WGMIN=2"], {}), ("wg3", ["MOE_WGMIN=3"], {}), ("wg4", ["MOE_WGMIN=4"], {}), ("v141b", [], {})], "seeds": 12, "reps": 3},
+]

@@ -1,0 +1,31 @@
+[sbx] waited 178s for a GPU
+[sbx] box 1
+[import+compile 2.5s]
+PASS batch 1, ctx 10, heads tp8, layer sliding :: relative L2 error 4.970e-02 (worst row 4.970e-02) [bound 0.129: 2.5 x the reference's 0.045 with FP8 E4M3 queries + 0.015]
+PASS batch 3, ctx 2047, heads tp8, layer sliding :: relative L2 error 8.693e-02 (worst row 1.048e-01) [bound 0.150: 2.5 x the reference's 0.088 with FP8 E4M3 queries + 0.015]
+PASS batch 5, ctx 5000, heads tp8, layer sliding, q_len 8, spread mixed, page 1 :: relative L2 error 7.777e-02 (worst row 1.201e-01) [bound 0.150: 2.5 x the reference's 0.077 with FP8 E4M3 queries + 0.015]
+PASS batch 4, ctx 3000, heads tp8, layer full :: relative L2 error 6.882e-02 (worst row 7.612e-02) [bound 0.150: 2.5 x the reference's 0.069 with FP8 E4M3 queries + 0.015]
+PASS batch 8, ctx 8192, heads dp, layer full, spread mixed :: relative L2 error 8.473e-02 (worst row 9.673e-02) [bound 0.150: 2.5 x the reference's 0.085 with FP8 E4M3 queries + 0.015]
+PASS batch 2, ctx 100000, heads tp8, layer full, q_len 8, page 1 :: relative L2 error 8.874e-02 (worst row 1.194e-01) [bound 0.150: 2.5 x the reference's 0.088 with FP8 E4M3 queries + 0.015]
+PASS batch 4, ctx 6000, heads tp8, layer sliding, dist edges, page 1 :: relative L2 error 4.890e-03 (worst row 5.101e-03) [bound 0.150: 2.5 x the reference's 0.081 with FP8 E4M3 queries + 0.015]
+PASS batch 4, ctx 6000, heads tp8, layer full, q_len 8, dist edges :: relative L2 error 7.784e-02 (worst row 1.128e-01) [bound 0.150: 2.5 x the reference's 0.077 with FP8 E4M3 queries + 0.015]
+PASS batch 1, ctx 1048576, heads tp8, layer full, q_len 8 :: relative L2 error 9.474e-02 (worst row 1.166e-01) [bound 0.150: 2.5 x the reference's 0.094 with FP8 E4M3 queries + 0.015]
+PASS batch 3, ctx 4000, heads tp8, layer sliding, q_len 8, page 1, kv_scale 0.015625 :: relative L2 error 8.797e-02 (worst row 1.237e-01) [bound 0.150: 2.5 x the reference's 0.088 with FP8 E4M3 queries + 0.015]
+PASS batch 2, ctx 9000, heads tp8, layer full, kv_scale 0.015625 :: relative L2 error 7.618e-02 (worst row 8.737e-02) [bound 0.150: 2.5 x the reference's 0.076 with FP8 E4M3 queries + 0.015]
+PASS batch 4, ctx 80000, heads tp8, layer full, spread mixed, dist soft :: relative L2 error 8.035e-02 (worst row 8.982e-02) [bound 0.150: 2.5 x the reference's 0.080 with FP8 E4M3 queries + 0.015]
+PASS batch 4, ctx 6000, heads tp8, layer sliding, q_len 8, dist soft, page 1 :: relative L2 error 6.723e-02 (worst row 8.694e-02) [bound 0.150: 2.5 x the reference's 0.066 with FP8 E4M3 queries + 0.015]
+PASS batch 2, ctx 20000, heads dp, layer full, q_len 8, dist soft :: relative L2 error 7.192e-02 (worst row 8.048e-02) [bound 0.150: 2.5 x the reference's 0.071 with FP8 E4M3 queries + 0.015]
+PASS batch 4, ctx 80000, heads tp8, layer full, spread mixed, dist coherent, page 1 :: relative L2 error 5.193e-02 (worst row 7.881e-02) [bound 0.145: 2.5 x the reference's 0.052 with FP8 E4M3 queries + 0.015]
+PASS batch 2, ctx 20000, heads dp, layer full, q_len 8, dist coherent :: relative L2 error 3.832e-02 (worst row 4.163e-02) [bound 0.108: 2.5 x the reference's 0.037 with FP8 E4M3 queries + 0.015]
+tests: 16/16 pass
+d1s       7.26 us   7.20 7.31   relative L2 error 5.215e-03 (worst row 5.215e-03) [bound 0.150: 2.5 x the reference's 0.054 with FP8 E4M3 queries + 0.015]
+nearby: 56/56 pass
+REMOTE_EXIT 0
+PART1 0
+[sbx] waited 86s for a GPU
+[sbx] box 2
+A:k80.py  B:k8x_fr1.py  C:k80.py  D:k8x_fr1.py
+d1s   (6 inst) A 7.149  B 6.997 (d -0.152 +- 0.041)  C 7.120 (d -0.029 +- 0.042)  D 7.055 (d -0.095 +- 0.045)
+v1s   (6 inst) A 7.887  B 7.869 (d -0.017 +- 0.043)  C 7.891 (d +0.004 +- 0.036)  D 7.771 (d -0.116 +- 0.047)
+REMOTE_EXIT 0
+JOBDONE 0

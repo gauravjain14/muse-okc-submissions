@@ -1,0 +1,118 @@
+✓ Initialized. View run at 
+<modal-run-url>
+✓ Created objects.
+├── 🔨 Created mount 
+│   <scratch>
+│   5-ce57afd4da60/scratchpad/snap.IZMIjC/dev/modal_run.py
+├── 🔨 Created mount 
+│   <scratch>
+│   5-ce57afd4da60/scratchpad/snap.IZMIjC
+└── 🔨 Created function run.
+compiled
+1 {'batch': 1, 'ctx': 80000, 'layer': 'full', 'q_len': 753, 'page': 1, 'dist': 'soft'}
+   cache vs sglang: k 1.60e-02 v 0.00e+00;  out vs sglang 8.260e-02
+   vs fp32 ref (fp8 q): mine 8.335e-02 sglang 4.538e-02;  vs bf16-q ref: mine 6.960e-02 sglang 7.130e-02; ref fp8-vs-bf16 6.921e-02
+   time: mine    619.9 us  sglang    440.5 us  x0.711
+   attn_fwd      592.7 us
+   cw3pp1     vs mine 0.00e+00
+   cw3pp1        520.4 us
+   cw2        vs mine 9.67e-03
+   cw2           665.2 us
+   cw2pp1     vs mine 9.67e-03
+   cw2pp1        653.6 us
+   cw3nopoly  vs mine 1.04e-03
+   cw3nopoly     392.5 us
+3 {'batch': 4, 'ctx': 80000, 'layer': 'full', 'q_len': 753, 'page': 1, 'dist': 'soft', 'spread': 'agentic'}
+   cache vs sglang: k 1.63e-02 v 0.00e+00;  out vs sglang 8.547e-02
+   vs fp32 ref (fp8 q): mine 8.571e-02 sglang 4.621e-02;  vs bf16-q ref: mine 7.248e-02 sglang 7.338e-02; ref fp8-vs-bf16 7.128e-02
+   time: mine   2412.8 us  sglang   1661.0 us  x0.688
+   attn_fwd     2336.6 us
+   cw3pp1     vs mine 2.07e-06
+   cw3pp1       2052.2 us
+   cw2        vs mine 9.32e-03
+   cw2          2625.7 us
+   cw2pp1     vs mine 9.32e-03
+   cw2pp1       2584.8 us
+   cw3nopoly  vs mine 9.08e-04
+   cw3nopoly    1637.5 us
+5 {'batch': 1, 'ctx': 32768, 'layer': 'sliding', 'q_len': 16384, 'page': 1, 'dist': 'soft'}
+   cache vs sglang: k 1.63e-02 v 0.00e+00;  out vs sglang 4.470e-02
+   vs fp32 ref (fp8 q): mine 4.306e-02 sglang 3.165e-02;  vs bf16-q ref: mine 3.720e-02 sglang 4.105e-02; ref fp8-vs-bf16 3.327e-02
+   time: mine    514.3 us  sglang    400.4 us  x0.779
+   attn_fwd      443.8 us
+   cw3pp1     vs mine 0.00e+00
+   cw3pp1        412.9 us
+   cw2        vs mine 8.25e-04
+   cw2           529.8 us
+   cw2pp1     vs mine 8.25e-04
+   cw2pp1        519.2 us
+   cw3nopoly  vs mine 3.49e-04
+   cw3nopoly     356.8 us
+6 {'batch': 1, 'ctx': 32768, 'layer': 'full', 'q_len': 16384, 'page': 1, 'dist': 'soft'}
+   cache vs sglang: k 1.62e-02 v 0.00e+00;  out vs sglang 7.624e-02
+   vs fp32 ref (fp8 q): mine 7.753e-02 sglang 4.137e-02;  vs bf16-q ref: mine 6.582e-02 sglang 6.481e-02; ref fp8-vs-bf16 6.240e-02
+   time: mine   6226.4 us  sglang   4575.5 us  x0.735
+   attn_fwd     6158.5 us
+   cw3pp1     vs mine 0.00e+00
+   cw3pp1       5392.9 us
+   cw2        vs mine 3.52e-03
+   cw2          7045.3 us
+   cw2pp1     vs mine 3.52e-03
+   cw2pp1       6930.7 us
+   cw3nopoly  vs mine 9.09e-04
+   cw3nopoly    4328.2 us
+8 {'batch': 1, 'ctx': 0, 'layer': 'sliding', 'q_len': 300, 'page': 1}
+   cache vs sglang: k 1.56e-02 v 0.00e+00;  out vs sglang 4.179e-02
+   vs fp32 ref (fp8 q): mine 4.207e-02 sglang 3.275e-02;  vs bf16-q ref: mine 3.643e-02 sglang 4.045e-02; ref fp8-vs-bf16 3.136e-02
+   time: mine     29.0 us  sglang     29.2 us  x1.007
+   attn_fwd       22.3 us
+   cw3pp1     vs mine 1.31e-05
+   cw3pp1         24.2 us
+   cw2        vs mine 4.94e-05
+   cw2            20.5 us
+   cw2pp1     vs mine 5.11e-05
+   cw2pp1         20.5 us
+   cw3nopoly  vs mine 9.47e-05
+   cw3nopoly      22.6 us
+9 {'batch': 1, 'ctx': 3000, 'layer': 'full', 'q_len': 753, 'page': 1}
+   cache vs sglang: k 1.62e-02 v 0.00e+00;  out vs sglang 9.545e-02
+   vs fp32 ref (fp8 q): mine 9.696e-02 sglang 5.050e-02;  vs bf16-q ref: mine 8.056e-02 sglang 8.072e-02; ref fp8-vs-bf16 8.018e-02
+   time: mine     68.0 us  sglang     55.7 us  x0.819
+   attn_fwd       58.9 us
+   cw3pp1     vs mine 0.00e+00
+   cw3pp1         56.1 us
+   cw2        vs mine 5.79e-03
+   cw2            60.6 us
+   cw2pp1     vs mine 5.79e-03
+   cw2pp1         58.7 us
+   cw3nopoly  vs mine 6.81e-04
+   cw3nopoly      53.4 us
+11 {'batch': 3, 'ctx': 5000, 'layer': 'full', 'q_len': 200, 'dist': 'outliers'}
+   cache vs sglang: k 1.67e-02 v 0.00e+00;  out vs sglang 9.759e-02
+   vs fp32 ref (fp8 q): mine 9.929e-02 sglang 5.218e-02;  vs bf16-q ref: mine 8.286e-02 sglang 8.386e-02; ref fp8-vs-bf16 8.301e-02
+   time: mine    111.6 us  sglang     74.3 us  x0.665
+   attn_fwd       98.5 us
+   cw3pp1     vs mine 9.69e-06
+   cw3pp1         95.0 us
+   cw2        vs mine 4.49e-03
+   cw2            91.1 us
+   cw2pp1     vs mine 4.49e-03
+   cw2pp1         88.7 us
+   cw3nopoly  vs mine 4.82e-04
+   cw3nopoly      94.2 us
+13 {'batch': 2, 'ctx': 1000, 'layer': 'full', 'q_len': 200, 'page': 64}
+   cache vs sglang: k 1.59e-02 v 0.00e+00;  out vs sglang 9.200e-02
+   vs fp32 ref (fp8 q): mine 9.388e-02 sglang 4.848e-02;  vs bf16-q ref: mine 7.813e-02 sglang 7.952e-02; ref fp8-vs-bf16 7.800e-02
+   time: mine     64.2 us  sglang     35.9 us  x0.558
+   attn_fwd       56.4 us
+   cw3pp1     vs mine 1.43e-06
+   cw3pp1         57.2 us
+   cw2        vs mine 3.35e-03
+   cw2            50.2 us
+   cw2pp1     vs mine 3.35e-03
+   cw2pp1         50.0 us
+   cw3nopoly  vs mine 4.72e-04
+   cw3nopoly      59.7 us
+Stopping app - local entrypoint completed.
+✓ App completed. View run at 
+<modal-run-url>

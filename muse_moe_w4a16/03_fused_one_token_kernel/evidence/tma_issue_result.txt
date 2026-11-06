@@ -1,0 +1,24 @@
+NS 4 pieces  1 (36864 B) stream:   4362 GB/s (in-kernel end  117.7 us); issue blocked per stage  0.12 us; issued  0.5  0.7  0.9  1.0  2.7  4.1 | landed  2.3  3.7  5.0  6.0  7.0  8.1
+NS 4 pieces  1 (36864 B) 1 MB  :   3846 GB/s (in-kernel end   30.1 us); issue blocked per stage  0.12 us; issued  0.3  0.5  0.7  0.9  2.6  3.9 | landed  2.3  3.5  5.0  6.3  7.3  8.2
+NS 4 pieces  2 (18432 B) stream:   4394 GB/s (in-kernel end  116.6 us); issue blocked per stage  0.15 us; issued  0.4  0.5  0.8  1.0  2.6  3.9 | landed  2.2  3.5  4.8  6.0  6.8  8.0
+NS 4 pieces  2 (18432 B) 1 MB  :   3822 GB/s (in-kernel end   30.5 us); issue blocked per stage  0.15 us; issued  0.4  0.5  0.8  1.0  2.7  4.0 | landed  2.3  3.6  5.0  6.0  6.8  8.0
+NS 4 pieces  4 ( 9216 B) stream:   4377 GB/s (in-kernel end  116.9 us); issue blocked per stage  0.21 us; issued  0.4  0.7  0.9  1.2  2.7  4.0 | landed  2.2  3.6  4.8  5.9  6.9  8.0
+NS 4 pieces  4 ( 9216 B) 1 MB  :   3775 GB/s (in-kernel end   30.6 us); issue blocked per stage  0.21 us; issued  0.4  0.7  1.0  1.2  2.7  4.1 | landed  2.2  3.7  4.9  6.1  7.2  8.3
+NS 4 pieces  9 ( 4096 B) stream:   4311 GB/s (in-kernel end  119.0 us); issue blocked per stage  0.37 us; issued  0.5  1.0  1.4  1.8  2.8  4.1 | landed  2.3  3.5  4.8  6.0  6.9  8.2
+NS 4 pieces  9 ( 4096 B) 1 MB  :   3829 GB/s (in-kernel end   30.1 us); issue blocked per stage  0.37 us; issued  0.5  1.0  1.4  1.8  2.8  4.0 | landed  2.2  3.4  4.7  5.9  6.8  8.0
+NS 4 pieces 18 ( 2048 B) stream:   4293 GB/s (in-kernel end  119.4 us); issue blocked per stage  0.64 us; issued  0.8  1.5  2.1  2.8  3.5  4.2 | landed  2.3  3.5  4.7  6.0  7.3  8.3
+NS 4 pieces 18 ( 2048 B) 1 MB  :   3812 GB/s (in-kernel end   30.6 us); issue blocked per stage  0.64 us; issued  0.8  1.5  2.1  2.8  3.5  4.1 | landed  2.2  3.4  4.6  5.8  6.9  8.1
+NS 4 pieces 32 ( 1152 B) stream:   4299 GB/s (in-kernel end  119.2 us); issue blocked per stage  1.03 us; issued  1.2  2.2  3.2  4.3  5.3  6.3 | landed  2.2  3.5  4.6  5.8  6.9  8.0
+NS 4 pieces 32 ( 1152 B) 1 MB  :   3815 GB/s (in-kernel end   30.6 us); issue blocked per stage  1.03 us; issued  1.2  2.1  3.2  4.2  5.2  6.2 | landed  2.1  3.3  4.4  5.6  6.7  7.8
+NS 2 pieces  1 (36864 B) stream:   4323 GB/s (in-kernel end  118.7 us); issue blocked per stage  0.12 us; issued  0.5  0.7  2.7  3.8  4.5  5.7 | landed  2.4  3.4  4.2  5.4  6.4  7.6
+NS 2 pieces  1 (36864 B) 1 MB  :   3781 GB/s (in-kernel end   30.7 us); issue blocked per stage  0.12 us; issued  0.4  0.6  2.7  3.6  4.5  5.6 | landed  2.3  3.3  4.2  5.2  6.3  7.5
+NS 2 pieces  9 ( 4096 B) stream:   4303 GB/s (in-kernel end  119.2 us); issue blocked per stage  0.37 us; issued  0.5  1.0  2.8  3.8  4.7  5.8 | landed  2.2  3.2  4.1  5.2  6.3  7.5
+NS 2 pieces  9 ( 4096 B) 1 MB  :   3658 GB/s (in-kernel end   32.0 us); issue blocked per stage  0.37 us; issued  0.5  1.0  2.8  5.2  6.0  7.1 | landed  2.2  4.6  5.5  6.5  7.6  8.7
+NS 3 pieces  1 (36864 B) stream:   4341 GB/s (in-kernel end  118.0 us); issue blocked per stage  0.12 us; issued  0.3  0.5  0.7  2.5  3.8  4.9 | landed  2.1  3.5  4.5  5.3  6.3  7.4
+NS 3 pieces  1 (36864 B) 1 MB  :   3815 GB/s (in-kernel end   30.5 us); issue blocked per stage  0.12 us; issued  0.3  0.5  0.7  2.6  3.9  4.9 | landed  2.2  3.6  4.6  5.3  6.3  7.5
+NS 3 pieces  9 ( 4096 B) stream:   4331 GB/s (in-kernel end  118.1 us); issue blocked per stage  0.37 us; issued  0.5  0.9  1.3  2.8  4.1  5.1 | landed  2.2  3.5  4.5  5.5  6.5  7.6
+NS 3 pieces  9 ( 4096 B) 1 MB  :   3846 GB/s (in-kernel end   30.3 us); issue blocked per stage  0.37 us; issued  0.5  1.0  1.3  2.8  4.0  5.0 | landed  2.2  3.5  4.4  5.4  6.5  7.6
+NS 6 pieces  1 (36864 B) stream:   4363 GB/s (in-kernel end  117.4 us); issue blocked per stage  0.12 us; issued  0.4  0.6  0.8  1.0  1.1  1.3 | landed  2.3  3.6  4.9  6.5  7.9  9.2
+NS 6 pieces  1 (36864 B) 1 MB  :   3843 GB/s (in-kernel end   30.2 us); issue blocked per stage  0.11 us; issued  0.3  0.5  0.7  0.8  1.0  1.2 | landed  2.2  3.6  5.0  6.5  7.8  9.1
+NS 6 pieces  9 ( 4096 B) stream:   4377 GB/s (in-kernel end  117.2 us); issue blocked per stage  0.37 us; issued  0.5  0.9  1.3  1.8  2.2  2.6 | landed  2.2  3.5  4.8  6.0  7.4  8.8
+NS 6 pieces  9 ( 4096 B) 1 MB  :   3812 GB/s (in-kernel end   30.3 us); issue blocked per stage  0.37 us; issued  0.5  1.0  1.3  1.8  2.2  2.6 | landed  2.2  3.5  4.7  6.0  7.2  8.7

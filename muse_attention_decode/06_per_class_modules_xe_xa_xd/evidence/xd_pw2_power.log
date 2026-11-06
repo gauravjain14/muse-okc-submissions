@@ -1,0 +1,42 @@
+[gate] slot 1 at 14:44:02 (1 running)
+✓ Initialized. View run at 
+<modal-run-url>
+✓ Created objects.
+├── 🔨 Created mount 
+│   autoresearch-kernels/attn/tools/modal_run.py
+├── 🔨 Created mount autoresearch-kernels/attn
+└── 🔨 Created function run.
+[gpu-before]
+NVIDIA H200, 0 %, 4 MiB, 345 MHz, 1980 MHz, 78.26 W
+0
+power.limit [W], power.max_limit [W], enforced.power.limit [W], clocks.max.sm [MHz], clocks.max.memory [MHz]
+700.00 W, 700.00 W, 700.00 W, 1980 MHz, 3201 MHz
+SOAK attn_xdmb_2_4_2_0 1793223890.427 1793223893.432 reps 14800 us/rep 203.0
+SOAK attn_xdmb_2_4_2_2 1793223893.934 1793223896.934 reps 22050 us/rep 136.1
+SOAK attn_xdmb_3_5_2_0 1793223897.435 1793223900.436 reps 16400 us/rep 183.0
+SOAK attn_xdmb_3_5_2_2 1793223900.937 1793223903.943 reps 27200 us/rep 110.5
+SOAK attn_xdmb_3_5_0_1 1793223904.444 1793223907.450 reps 18750 us/rep 160.3
+SOAK k34_full 1793223907.950 1793223910.961 reps 14150 us/rep 212.8
+--- B=32 ntok=2512046 (643 MB)
+  attn_xdmb_2_4_2_0        med   166.64  min   165.41  p90   171.84
+  attn_xdmb_2_4_2_2        med   133.84  min   133.47  p90   134.11
+  attn_xdmb_3_5_2_0        med   163.97  min   163.14  p90   164.38
+  attn_xdmb_3_5_2_2        med   110.27  min   109.76  p90   111.20
+  attn_xdmb_3_5_0_1        med   158.59  min   157.09  p90   159.46
+  k34_full                 med   180.08  min   178.69  p90   181.89
+samples 1228
+attn_xdmb_2_4_2_0      power  685.6 W (max 714)  sm   1534 MHz  mem 3201  temp 44  throttle {'0x0000000000000004': 45}  reps 14800 us/rep 203.0
+attn_xdmb_2_4_2_2      power  399.9 W (max 409)  sm   1980 MHz  mem 3201  temp 44  throttle {'0x0000000000000000': 45}  reps 22050 us/rep 136.1
+attn_xdmb_3_5_2_0      power  685.7 W (max 712)  sm   1390 MHz  mem 3201  temp 46  throttle {'0x0000000000000004': 45}  reps 16400 us/rep 183.0
+attn_xdmb_3_5_2_2      power  396.3 W (max 405)  sm   1980 MHz  mem 3201  temp 46  throttle {'0x0000000000000000': 45}  reps 27200 us/rep 110.5
+attn_xdmb_3_5_0_1      power  656.5 W (max 674)  sm   1980 MHz  mem 3201  temp 45  throttle {'0x0000000000000000': 45}  reps 18750 us/rep 160.3
+k34_full               power  685.3 W (max 709)  sm   1583 MHz  mem 3201  temp 49  throttle {'0x0000000000000004': 46}  reps 14150 us/rep 212.8
+[gpu-after]
+NVIDIA H200, 7 %, 4 MiB, 1980 MHz, 1980 MHz, 128.28 W
+0
+
+fetched into autoresearch-kernels/attn/out/20261028T144512_xd_pw2
+[exit 0]
+Stopping app - local entrypoint completed.
+✓ App completed. View run at 
+<modal-run-url>

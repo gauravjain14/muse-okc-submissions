@@ -1,0 +1,59 @@
+[gate] slot 1 at 15:11:04 (2 running)
+✓ Initialized. View run at 
+<modal-run-url>
+✓ Created objects.
+├── 🔨 Created mount 
+│   muse-opt-codex/muse_bf16_proj/claude/modal_run.p
+│   y
+├── 🔨 Created mount muse-opt-codex/muse_bf16_proj
+└── 🔨 Created function run.
+[gpu-before]
+NVIDIA H200, 0 %, 130 MiB, 345 MHz, 1980 MHz, 82.81 W
+0
+all ok
+decode 1  m=1    qkv_gate  sglang   12.64 | v7    7.63 x1.656 | v6    8.17 x1.547   sol   7.87
+decode 1  m=1    o         sglang    5.57 | v7    4.13 x1.349 | v6    4.12 x1.353   sol   3.50
+decode 1  m=1    pooler    sglang   19.17 | v7   12.33 x1.555 | v6   12.39 x1.547   sol  13.99
+decode 1  m=1    unpooler  sglang    5.82 | v7    2.32 x2.505 | v6    2.41 x2.418   sol   1.75
+decode 1  m=1    router    sglang    9.15 | v7    2.66 x3.445 | v6    2.68 x3.412   sol   1.75
+decode 16 m=16   qkv_gate  sglang   12.88 | v7   10.42 x1.236 | v6   10.53 x1.223   sol   7.93
+decode 16 m=16   o         sglang    5.36 | v7    5.09 x1.054 | v6    4.96 x1.080   sol   3.56
+decode 16 m=16   pooler    sglang   19.44 | v7   15.50 x1.254 | v6   15.36 x1.266   sol  14.06
+decode 16 m=16   unpooler  sglang   16.98 | v7   14.94 x1.136 | v6   14.77 x1.149   sol  14.06
+decode 16 m=16   router    sglang   14.18 | v7    4.24 x3.346 | v6    4.18 x3.394   sol   1.81
+decode 32 m=32   qkv_gate  sglang   13.31 | v7   11.79 x1.129 | v6   11.59 x1.149   sol   8.00
+decode 32 m=32   o         sglang    5.66 | v7    4.99 x1.136 | v6    5.20 x1.089   sol   3.62
+decode 32 m=32   pooler    sglang   19.84 | v7   16.97 x1.169 | v6   17.08 x1.162   sol  14.14
+decode 32 m=32   unpooler  sglang   17.17 | v7   16.47 x1.042 | v6   16.32 x1.052   sol  14.14
+decode 32 m=32   router    sglang   14.30 | v7    4.45 x3.214 | v6    4.64 x3.083   sol   1.86
+verify 1  m=8    qkv_gate  sglang   12.94 | v7   10.02 x1.291 | v6   10.23 x1.265   sol   7.90
+verify 1  m=8    o         sglang    5.46 | v7    4.17 x1.309 | v6    4.21 x1.297   sol   3.53
+verify 1  m=8    pooler    sglang   19.54 | v7   14.87 x1.314 | v6   14.73 x1.326   sol  14.02
+verify 1  m=8    unpooler  sglang    5.97 | v7    3.89 x1.535 | v6    3.84 x1.555   sol   1.76
+verify 1  m=8    router    sglang   25.30 | v7    4.44 x5.696 | v6    4.41 x5.735   sol   1.78
+verify 16 m=128  qkv_gate  sglang   16.02 | v7   14.41 x1.112 | v6   14.25 x1.124   sol   8.42
+verify 16 m=128  o         sglang    6.24 | v7    5.95 x1.048 | v6    6.12 x1.020   sol   3.99
+verify 16 m=128  pooler    sglang   25.01 | v7   19.00 x1.316 | v6   18.85 x1.327   sol  14.64
+verify 16 m=128  unpooler  sglang   18.66 | v7   17.59 x1.061 | v6   17.33 x1.076   sol  14.64
+verify 16 m=128  router    sglang   15.49 | v7    6.80 x2.278 | v6    6.63 x2.338   sol   2.21
+verify 32 m=256  qkv_gate  sglang   18.74 | v7   16.44 x1.140 | v6   16.26 x1.153   sol   9.77
+verify 32 m=256  o         sglang    8.26 | v7    7.81 x1.057 | v6    7.81 x1.057   sol   4.48
+verify 32 m=256  pooler    sglang   28.90 | v7   22.69 x1.274 | v6   22.79 x1.268   sol  17.37
+verify 32 m=256  unpooler  sglang   23.31 | v7   22.63 x1.030 | v6   22.50 x1.036   sol  17.37
+verify 32 m=256  router    sglang   16.58 | v7    8.89 x1.864 | v6    8.94 x1.854   sol   2.68
+  decode 1  sglang   52.35 | v7   29.07 x1.801 | v6   29.77 x1.759
+  decode 16 sglang   68.83 | v7   50.18 x1.372 | v6   49.80 x1.382
+  decode 32 sglang   70.29 | v7   54.66 x1.286 | v6   54.82 x1.282
+  verify 1  sglang   69.20 | v7   37.39 x1.851 | v6   37.42 x1.849
+  verify 16 sglang   81.41 | v7   63.75 x1.277 | v6   63.17 x1.289
+  verify 32 sglang   95.78 | v7   78.46 x1.221 | v6   78.29 x1.223
+GEOMEAN v7: x1.4466 over 6 loads   judge-projected (+1.0 us/shape) x1.4007
+GEOMEAN v6: x1.4445 over 6 loads   judge-projected (+1.0 us/shape) x1.3992
+[gpu-after]
+NVIDIA H200, 0 %, 130 MiB, 1980 MHz, 1980 MHz, 130.91 W
+0
+
+[exit 0]
+Stopping app - local entrypoint completed.
+✓ App completed. View run at 
+<modal-run-url>

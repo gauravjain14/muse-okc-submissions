@@ -1,0 +1,7 @@
+{
+  "base": "muse-opt-codex/muse_decode_layer/variants/d09_stack.py",
+  "output": "muse-opt-codex/muse_decode_layer/variants/d10_pool_router_union.py",
+  "sha256": "7d49be915bab838a19823ad1ebe6bddde7915ddfc58c09041c4f5942431209b2",
+  "bytes": 988309,
+  "change": "Union grid interleaves 16 BF16 pooler output rows with one FP32 router row, preserving all arithmetic and weight precision."
+}

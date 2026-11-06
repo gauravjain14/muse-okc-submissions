@@ -1,0 +1,26 @@
+✓ Initialized. View run at 
+<modal-run-url>
+✓ Created objects.
+├── 🔨 Created mount 
+│   <scratch>
+│   5-ce57afd4da60/scratchpad/snap.2UyW0c/dev/modal_run.py
+├── 🔨 Created mount 
+│   <scratch>
+│   5-ce57afd4da60/scratchpad/snap.2UyW0c
+└── 🔨 Created function run.
+router seed 728034927264498030 (2 s)
+prepared codex (codex_best.py) in 84.9 s
+prepared moe (cand_moe.py) in 69.5 s
+0 turn 1     b1 ctx80000 sliding q753  sglang    1107.9  codex     666.3 x1.659  moe     667.9 x1.654 (vs codex x0.9983)
+1 turn 1     b1 ctx80000 full    q753  sglang    1536.6  codex    1057.6 x1.452  moe    1052.1 x1.460 (vs codex x1.0055)
+2 turn 4     b4 ctx80000 sliding q753  sglang    3424.7  codex    2005.1 x1.713  moe    1978.2 x1.740 (vs codex x1.0153)
+3 turn 4     b4 ctx80000 full    q753  sglang    5010.8  codex    3565.3 x1.406  moe    3535.2 x1.419 (vs codex x1.0089)
+4 first turn b1 ctx0 full    q16384  sglang   18442.5  codex   10813.8 x1.715  moe   10425.2 x1.763 (vs codex x1.0383)
+5 first turn b1 ctx32768 sliding q16384  sglang   17877.6  codex   10194.9 x1.734  moe    9853.7 x1.807 (vs codex x1.0417)
+6 first turn b1 ctx32768 full    q16384  sglang   22317.2  codex   14363.6 x1.559  moe   14146.3 x1.586 (vs codex x1.0160)
+7 first turn b1 ctx65536 full    q16384  sglang   26036.9  codex   18003.5 x1.433  moe   17819.1 x1.459 (vs codex x1.0143)
+codex: turn 1 x1.585  turn 4 x1.595  first turn x1.672  geomean x1.6171
+moe: turn 1 x1.586  turn 4 x1.617  first turn x1.730  geomean x1.6431
+Stopping app - local entrypoint completed.
+✓ App completed. View run at 
+<modal-run-url>

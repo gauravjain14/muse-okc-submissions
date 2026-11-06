@@ -1,0 +1,10 @@
+1590 MHz
+ 1 copies/stage, consumers compute:   2921 GB/s, producer issue 0.181 us/stage
+ 1 copies/stage, consumers idle   :   2995 GB/s, producer issue 0.123 us/stage
+ 2 copies/stage, consumers compute:   2870 GB/s, producer issue 0.224 us/stage
+ 3 copies/stage, consumers compute:   2846 GB/s, producer issue 0.269 us/stage
+ 3 copies/stage, consumers idle   :   2998 GB/s, producer issue 0.182 us/stage
+ 9 copies/stage, consumers compute:   2892 GB/s, producer issue 0.541 us/stage
+ 9 copies/stage, consumers idle   :   2987 GB/s, producer issue 0.363 us/stage
+12 copies/stage, consumers compute:   2835 GB/s, producer issue 0.671 us/stage
+12 copies/stage, consumers idle   :   2961 GB/s, producer issue 0.455 us/stage

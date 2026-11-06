@@ -1,0 +1,8 @@
+{
+  "base": "muse-opt-codex/muse_decode_layer/variants/d07_small_dense_pdl.py",
+  "donor": "opt-muse-decode/runs/k80.py",
+  "output": "muse-opt-codex/muse_decode_layer/variants/d08_sliding_attention.py",
+  "sha256": "85d751fec044ead852537e5a6e0ee9ca293347f5c4663bf270dc4d644c62d3c2",
+  "bytes": 985992,
+  "change": "k80 sliding attention for batch one and 2..24 decode requests, with existing full-attention/general fallback. Includes complete runtime sequence-length guards."
+}

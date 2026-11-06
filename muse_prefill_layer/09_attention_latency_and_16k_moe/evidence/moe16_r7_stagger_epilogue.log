@@ -1,0 +1,37 @@
+PREPARE base 2.1s
+PREPARE s1 50.1s
+PREPARE s2 49.9s
+PREPARE d1 49.9s
+PREPARE d2 50.1s
+RESULT draw=11 case=5 T=16384 base=4425.1us(1.0000x) s1=4512.6us(0.9806x) s2=4533.4us(0.9761x) d1=4491.5us(0.9852x) d2=4507.1us(0.9818x) errs={"s1": [0.0, 0.0, true], "s2": [0.0, 0.0, true], "d1": [0.0, 0.0, true], "d2": [0.0, 0.0, true]}
+PROF base: void okc_moe::moe_fused_persistent<1, true, false>(okc_moe:: x1 3910.0us; _pm__combine_kernel x1 133.6us; okc_moe::moe_pg_metadata_kernel(int const*, int const*, int  x1 9.0us; memcpy32_post x4 5.3us; Memset (Device) x1 0.8us
+PROF s1: void okc_moe::moe_fused_persistent<1, true, false, true>(okc x1 3965.8us; _pm__combine_kernel x1 132.9us; okc_moe::moe_pg_metadata_kernel(int const*, int const*, int  x1 9.0us; memcpy32_post x4 5.4us; Memset (Device) x1 0.8us
+PROF s2: void okc_moe::moe_fused_persistent<1, true, false, true>(okc x1 3965.0us; _pm__combine_kernel x1 133.3us; okc_moe::moe_pg_metadata_kernel(int const*, int const*, int  x1 8.9us; memcpy32_post x4 5.6us; Memset (Device) x1 0.8us
+PROF d1: void okc_moe::moe_fused_persistent<1, true, false, true>(okc x1 3939.8us; _pm__combine_kernel x1 133.0us; okc_moe::moe_pg_metadata_kernel(int const*, int const*, int  x1 9.1us; memcpy32_post x4 5.5us; Memset (Device) x1 0.7us
+PROF d2: void okc_moe::moe_fused_persistent<1, true, false, true>(okc x1 4028.3us; _pm__combine_kernel x1 134.1us; okc_moe::moe_pg_metadata_kernel(int const*, int const*, int  x1 9.0us; memcpy32_post x4 5.5us; Memset (Device) x1 0.8us
+RESULT draw=11 case=6 T=16384 base=4380.0us(1.0000x) s1=4463.4us(0.9813x) s2=4485.7us(0.9764x) d1=4444.8us(0.9854x) d2=4456.5us(0.9828x) errs={"s1": [0.0, 0.0, true], "s2": [0.0, 0.0, true], "d1": [0.0, 0.0, true], "d2": [0.0, 0.0, true]}
+PROF base: void okc_moe::moe_fused_persistent<1, true, false>(okc_moe:: x1 4192.3us; _pm__combine_kernel x1 136.9us; okc_moe::moe_pg_metadata_kernel(int const*, int const*, int  x1 10.8us; Memcpy DtoD (Device -> Device) x4 5.7us; Memset (Device) x1 0.8us
+PROF s1: void okc_moe::moe_fused_persistent<1, true, false, true>(okc x1 4046.6us; _pm__combine_kernel x1 134.4us; okc_moe::moe_pg_metadata_kernel(int const*, int const*, int  x1 11.1us; Memcpy DtoD (Device -> Device) x4 5.6us; Memset (Device) x1 0.9us
+PROF s2: void okc_moe::moe_fused_persistent<1, true, false, true>(okc x1 4154.4us; _pm__combine_kernel x1 135.8us; okc_moe::moe_pg_metadata_kernel(int const*, int const*, int  x1 10.6us; Memcpy DtoD (Device -> Device) x4 5.5us; Memset (Device) x1 0.8us
+PROF d1: void okc_moe::moe_fused_persistent<1, true, false, true>(okc x1 4182.6us; _pm__combine_kernel x1 135.8us; okc_moe::moe_pg_metadata_kernel(int const*, int const*, int  x1 10.7us; Memcpy DtoD (Device -> Device) x4 5.8us; Memset (Device) x1 0.7us
+PROF d2: void okc_moe::moe_fused_persistent<1, true, false, true>(okc x1 3996.3us; _pm__combine_kernel x1 133.5us; okc_moe::moe_pg_metadata_kernel(int const*, int const*, int  x1 10.9us; Memcpy DtoD (Device -> Device) x4 5.6us; Memset (Device) x1 0.7us
+PREPARE base 1.0s
+PREPARE s1 1.0s
+PREPARE s2 1.0s
+PREPARE d1 1.0s
+PREPARE d2 1.0s
+RESULT draw=22 case=5 T=16384 base=4341.2us(1.0000x) s1=4433.0us(0.9793x) s2=4456.7us(0.9741x) d1=4418.5us(0.9825x) d2=4432.4us(0.9794x) errs={"s1": [0.0, 0.0, true], "s2": [0.0, 0.0, true], "d1": [0.0, 0.0, true], "d2": [0.0, 0.0, true]}
+PROF base: void okc_moe::moe_fused_persistent<1, true, false>(okc_moe:: x1 4088.2us; _pm__combine_kernel x1 135.1us; okc_moe::moe_pg_metadata_kernel(int const*, int const*, int  x1 9.3us; Memcpy DtoD (Device -> Device) x4 5.4us; Memset (Device) x1 0.8us
+PROF s1: void okc_moe::moe_fused_persistent<1, true, false, true>(okc x1 4141.0us; _pm__combine_kernel x1 134.8us; okc_moe::moe_pg_metadata_kernel(int const*, int const*, int  x1 9.2us; Memcpy DtoD (Device -> Device) x4 5.9us; Memset (Device) x1 0.8us
+PROF s2: void okc_moe::moe_fused_persistent<1, true, false, true>(okc x1 4063.4us; _pm__combine_kernel x1 133.8us; okc_moe::moe_pg_metadata_kernel(int const*, int const*, int  x1 9.0us; Memcpy DtoD (Device -> Device) x4 5.5us; Memset (Device) x1 0.8us
+PROF d1: void okc_moe::moe_fused_persistent<1, true, false, true>(okc x1 3894.9us; _pm__combine_kernel x1 131.9us; okc_moe::moe_pg_metadata_kernel(int const*, int const*, int  x1 9.1us; Memcpy DtoD (Device -> Device) x4 5.3us; Memset (Device) x1 0.7us
+PROF d2: void okc_moe::moe_fused_persistent<1, true, false, true>(okc x1 4118.0us; _pm__combine_kernel x1 134.5us; okc_moe::moe_pg_metadata_kernel(int const*, int const*, int  x1 9.2us; Memcpy DtoD (Device -> Device) x4 5.3us; Memset (Device) x1 0.8us
+RESULT draw=22 case=6 T=16384 base=4842.0us(1.0000x) s1=4934.3us(0.9813x) s2=4964.5us(0.9753x) d1=4921.7us(0.9838x) d2=4934.8us(0.9812x) errs={"s1": [0.0, 0.0, true], "s2": [0.0, 0.0, true], "d1": [0.0, 0.0, true], "d2": [0.0, 0.0, true]}
+PROF base: void okc_moe::moe_fused_persistent<1, true, false>(okc_moe:: x1 4588.5us; _pm__combine_kernel x1 143.8us; okc_moe::moe_pg_metadata_kernel(int const*, int const*, int  x1 11.1us; Memcpy DtoD (Device -> Device) x4 5.7us; Memset (Device) x1 0.7us
+PROF s1: void okc_moe::moe_fused_persistent<1, true, false, true>(okc x1 4594.5us; _pm__combine_kernel x1 142.8us; okc_moe::moe_pg_metadata_kernel(int const*, int const*, int  x1 10.9us; Memcpy DtoD (Device -> Device) x4 5.5us; Memset (Device) x1 0.7us
+PROF s2: void okc_moe::moe_fused_persistent<1, true, false, true>(okc x1 4473.8us; _pm__combine_kernel x1 141.2us; okc_moe::moe_pg_metadata_kernel(int const*, int const*, int  x1 10.9us; Memcpy DtoD (Device -> Device) x4 5.5us; Memset (Device) x1 0.8us
+PROF d1: void okc_moe::moe_fused_persistent<1, true, false, true>(okc x1 4751.2us; _pm__combine_kernel x1 145.0us; okc_moe::moe_pg_metadata_kernel(int const*, int const*, int  x1 11.4us; Memcpy DtoD (Device -> Device) x4 5.7us; Memset (Device) x1 0.8us
+PROF d2: void okc_moe::moe_fused_persistent<1, true, false, true>(okc x1 4696.6us; _pm__combine_kernel x1 144.2us; okc_moe::moe_pg_metadata_kernel(int const*, int const*, int  x1 11.4us; Memcpy DtoD (Device -> Device) x4 5.8us; Memset (Device) x1 0.8us
+DONE
+EXIT 0
+REMOTE_EXIT 0

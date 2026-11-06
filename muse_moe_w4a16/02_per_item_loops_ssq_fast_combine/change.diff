@@ -1,0 +1,593 @@
+--- 01_persistent_fused_kernel_tma_ring/build.py
++++ 02_per_item_loops_ssq_fast_combine/build.py
+@@ -89,7 +89,30 @@
+                : "=r"(ok) : "r"(bar), "r"(parity) : "memory");
+   return ok != 0;
+ }
++// try_wait with a suspend-time hint (ns): the thread sleeps until the phase completes instead of
++// re-polling, so a waiting warp does not take issue slots from the consumers on its scheduler.
++#ifndef MOE_SUSPEND
++#define MOE_SUSPEND 1000000
++#endif
++DEVI bool mbar_try_s(u32 bar, u32 parity) {
++  u32 ok;
++  asm volatile("{ .reg .pred p; mbarrier.try_wait.parity.shared::cta.b64 p, [%1], %2, %3; selp.u32 %0, 1, 0, p; }"
++               : "=r"(ok) : "r"(bar), "r"(parity), "n"(MOE_SUSPEND) : "memory");
++  return ok != 0;
++}
++#ifdef MOE_SUSPEND_ALL
++DEVI void mbar_wait(u32 bar, u32 parity) { while (!mbar_try_s(bar, parity)) {} }
++#else
+ DEVI void mbar_wait(u32 bar, u32 parity) { while (!mbar_try(bar, parity)) {} }
++#endif
++// for the producer and signaler warps, which share schedulers with consumer warps
++DEVI void mbar_sleep(u32 bar, u32 parity) {
++#ifdef MOE_NO_SUSPEND_PS
++  while (!mbar_try(bar, parity)) {}
++#else
++  while (!mbar_try_s(bar, parity)) {}
++#endif
++}
+ DEVI void bulk_g2s(u32 dst, const void* src, u32 bytes, u32 bar, u64 pol) {
+ #ifdef MOE_NO_HINT
+   asm volatile("cp.async.bulk.shared::cluster.global.mbarrier::complete_tx::bytes [%0], [%1], %2, [%3];"
+@@ -111,6 +134,20 @@
+   asm volatile("red.release.gpu.global.add.s32 [%0], %1;" :: "l"(p), "r"(v) : "memory");
+ }
+ DEVI u32 gtimer() { u32 t; asm volatile("mov.u32 %0, %globaltimer_lo;" : "=r"(t)); return t; }
++#ifdef MOE_TRACE
++// event trace: per CTA, consumer thread 0 at [0, 256) and producer lane 0 at [256, 512) words of
++// ctr + 32768; word 0 of each half counts its events, then (code << 24 | item, globaltimer) pairs
++__shared__ int tr_n[2];  // events so far per half (shared memory: no global round trip per event)
++DEVI void trace_ev(int* ctr, int half, int code, int item) {
++  int* b = ctr + 32768 + blockIdx.x * 512 + half * 256;
++  const int n = code == 0 ? 0 : tr_n[half];
++  if (code == 0) tr_n[1] = 0;
++  if (n < 127) { b[1 + 2 * n] = (code << 24) | (item & 0xFFFFFF); b[2 + 2 * n] = (int)gtimer(); b[0] = n + 1; tr_n[half] = n + 1; }
++}
++#define MOE_TR(half, code, item) trace_ev(P.ctr, half, code, item)
++#else
++#define MOE_TR(half, code, item)
++#endif
+ DEVI u32 ctimer() { u64 t; asm volatile("mov.u64 %0, %clock64;" : "=l"(t)); return (u32)(t >> 4); }
+ DEVI void consumer_sync() { asm volatile("bar.sync 1, 256;" ::: "memory"); }
+ DEVI void group_sync(int id, int n) { asm volatile("bar.sync %0, %1;" :: "r"(id), "r"(n) : "memory"); }
+@@ -436,6 +473,7 @@
+   const u32* w2; const unsigned char* s2; const float* gs2; const float* nw1;
+   u16* inter; float* ypart; u16* out; int* ctr; int pmax;
+   u16* xs;  // NT >= 2: the gate/up activations gathered per tile, stage-major like the intermediate
++  float* ssq;  // [pmax][64]: per pair and 64-row slot, the sum of squares of y * (1 + w), full-k items
+ };
+ 
+ // Register split after the role dispatch: the launch gives 168 per thread (384 threads), so the
+@@ -450,6 +488,13 @@
+ #define MOE_STR(x) MOE_STR2(x)
+ #ifndef MOE_WGMIN
+ #define MOE_WGMIN 5
++#endif
++// MOE_NO_COMPUTE: consumers wait for and release every stage without decoding it (timing of the
++// data movement alone; the outputs are garbage)
++#ifdef MOE_NO_COMPUTE
++#define MOE_NOC true
++#else
++#define MOE_NOC false
+ #endif
+ // RW row-warps x KW k-warps = 8 consumer warps, each owning 2 row groups (32 rows) and 256 k of
+ // every stage. A stage: RB = 32*RW rows x KW*256 k of weights (32 KB) + scales (4 KB) + up to
+@@ -468,6 +513,8 @@
+   // their activations are 128B-swizzled K-major; smaller tiles keep mma.sync and row-major rows.
+   constexpr int WGMIN = (KW == 1 && NT >= 8) ? MOE_WGMIN : 99;
+   constexpr bool HASWG = WGMIN < 99;
++  // mma.sync covers at most 4 token groups per call: larger tiles must take the wgmma path
++  static_assert(!HASWG || (WGMIN >= 3 && WGMIN <= 5), "token groups 5..8 need wgmma");
+   constexpr int XB = HASWG ? (T * XP > T * 512 ? T * XP : T * 512) : T * XP;
+   constexpr int STAGE = HASWG ? (WB + SB + XB + 1023) / 1024 * 1024 : (WB + SB + XB + 127) / 128 * 128;
+   constexpr int RED = (KW - 1) * RW * 1024 * NT;
+@@ -485,6 +532,12 @@
+   // KW = 1 configs (many tiles): a token is combined once its own tiles are done; otherwise after
+   // the whole queue (one counter)
+   constexpr bool TILEDONE = KW <= 2;
++  // single-group tiles (small batches): full-k down items leave sums of squares for a fast combine
++#ifndef MOE_NO_SSQ
++  constexpr bool SSQ = NT == 1;
++#else
++  constexpr bool SSQ = false;
++#endif
+ 
+   constexpr int NSIG = 4;
+   extern __shared__ __align__(128) unsigned char smem[];
+@@ -509,6 +562,7 @@
+ 
+   const int tid = threadIdx.x, lane = tid & 31, warp = tid >> 5;
+   const int M = P.M;
++  if (tid == 0) MOE_TR(0, 0, 0);
+ #ifdef MOE_TIMING
+   u32* tdbg = reinterpret_cast<u32*>(P.ctr) + 12288 + blockIdx.x * 16;
+   if (tid == 0) { tdbg[0] = gtimer(); for (int k = 0; k < 8; ++k) tdbg[4 + k] = 0; tdbg[11] = ctimer(); }
+@@ -564,6 +618,7 @@
+     bm[lane * MW + (t0 >> 5)] = mine;
+   }
+   __syncthreads();
++  if (tid == 0) MOE_TR(0, 10, 0);
+ #ifdef MOE_TIMING
+   if (tid == 0) reinterpret_cast<u32*>(P.ctr)[14420 + blockIdx.x * 4 + 2] = gtimer();
+ #endif
+@@ -626,6 +681,7 @@
+     }
+   }
+   __syncthreads();
++  if (tid == 0) MOE_TR(0, 11, 0);
+ #ifdef MOE_TIMING
+   if (tid == 0) reinterpret_cast<u32*>(P.ctr)[14420 + blockIdx.x * 4 + 0] = gtimer();
+ #endif
+@@ -646,6 +702,7 @@
+       }
+     }
+     consumer_sync();
++    if (tid == 0) MOE_TR(0, 12, 0);
+ #ifdef MOE_TIMING
+     if (tid == 0) reinterpret_cast<u32*>(P.ctr)[14420 + blockIdx.x * 4 + 3] = gtimer();
+ #endif
+@@ -740,11 +797,19 @@
+   // two consumer warpgroups. The consumer code is reachable only after the increase.
+   if (warp >= 8) {
+     asm volatile("setmaxnreg.dec.sync.aligned.u32 " MOE_STR(MOE_PREG) ";" ::: "memory");
++#ifdef MOE_TRACE
++    u32 pst[8] = {0, 0, 0, 0, 0, 0, 0, 0};
++    const u32 pgt = gtimer();
++    pst[0] = (u32)clock64();
++#endif
+     if (warp >= 10) return;
+   if (warp == 8) {
+     // ------------------------------ producer ------------------------------
+     const u64 pol_w = policy_evict_first();
+     const u64 pol_x = policy_evict_last();
++#ifdef MOE_TRACE
++    pst[1] = (u32)clock64();
++#endif
+     int it = 0;
+     int item = 0;
+ #ifdef MOE_TIMING
+@@ -782,14 +847,24 @@
+         const int s = it % NS;
+         const u32 ph = (it / NS) & 1;
+         if (lane == 0) {
+-          mbar_wait(smem_addr(&bars[NS + s]), ph ^ 1);
++          mbar_sleep(smem_addr(&bars[NS + s]), ph ^ 1);
+           info[s].item = -1;
+           mbar_arrive(smem_addr(&bars[s]));
+         }
+         break;
+       }
+-      int next = 0;
+-      if (lane == 0) next = (int)gridDim.x + atomicAdd(head, 1);  // claimed ahead, so its latency hides behind this item
++      int next;
++#ifdef MOE_TRACE
++      if (it == 0) pst[2] = (u32)clock64();
++#endif
++      // The next item, claimed ahead so its latency hides behind this item. Inline PTX: a plain
++      // atomicAdd here is warp-aggregated by the compiler, whose shuffle of the result made the
++      // producer wait for the round trip before issuing this item's stages.
++      asm volatile("{ .reg .pred p; setp.eq.u32 p, %1, 0; @p atom.global.add.u32 %0, [%2], 1; }"
++                   : "=r"(next) : "r"(lane), "l"(head) : "memory");
++#ifdef MOE_TRACE
++      if (it == 0) pst[3] = (u32)clock64();
++#endif
+       int phase, tile, rb, ks, kss;
+       if constexpr (KSX == KS2) {
+         int idx;
+@@ -799,6 +874,9 @@
+         decode_item2(item, ntiles, tsplit, NRB1, NRB2, KS2, KSX, phase, tile, rb, ks, kss);
+       }
+       const int nst = phase == 1 ? ST1 : 16 / (KW * kss);
++#ifdef MOE_TRACE
++      if (it == 0) pst[4] = (u32)clock64();
++#endif
+       const int4 tl = tiles[tile];
+       const int e = tl.x, p0 = tl.y, n = tl.z;
+       const int nrg_tot = phase == 1 ? 512 : 256;
+@@ -830,7 +908,7 @@
+             prefetch_stage(wsrc, ssrc, nrg_tot, rb, kc_item + sp * KW);
+           } else {
+             if (!nx_known) {
+-              const int nxt = __shfl_sync(0xffffffffu, next, 0);
++              const int nxt = (int)gridDim.x + __shfl_sync(0xffffffffu, next, 0);
+               nx_known = true;
+               if (nxt < total) item_src(nxt, nw, nsc, nnrg, nrbo, nkc, nns);
+               else nns = 0;
+@@ -843,9 +921,12 @@
+ #ifdef MOE_TIMING
+           const u32 tp0 = ctimer();
+ #endif
+-          mbar_wait(smem_addr(&bars[NS + s]), ph ^ 1);
++          mbar_sleep(smem_addr(&bars[NS + s]), ph ^ 1);
+ #ifdef MOE_TIMING
+           p_empty += ctimer() - tp0;
++#endif
++#ifdef MOE_TRACE
++          if (it == 0) pst[5] = (u32)clock64();
+ #endif
+           StageInfo& f = info[s];
+           f.item = item; f.phase = phase; f.tile = tile; f.rb = rb; f.ks = ks; f.st = st;
+@@ -873,6 +954,9 @@
+           else
+             bulk_g2s(smem_addr(sbase + kw * RGS * 2048), wsrc + blk * 2048, RGS * 2048, full, pol_w);
+         }
++#ifdef MOE_TRACE
++        if (it == 0) pst[6] = (u32)clock64();
++#endif
+         if (phase == 2) {
+           // chunks of the intermediate this stage reads: known ready (rmask) or polled
+           u32 need = ((1u << KW) - 1u) << kc0;
+@@ -891,8 +975,10 @@
+ #ifdef MOE_TIMING
+             const u32 td0 = ctimer();
+ #endif
++            MOE_TR(1, 6, item);
+             for (int kw = 0; kw < KW; ++kw)
+               while (ld_acquire(&cnt1[tile * 16 + kc0 + kw]) < 512 / RB) {}
++            MOE_TR(1, 7, item);
+ #ifdef MOE_TIMING
+             p_dep += ctimer() - td0;
+ #endif
+@@ -922,7 +1008,7 @@
+         } else {
+           if (st == 0) {
+             if (!routed) {
+-              if (lane == 0) mbar_wait(smem_addr(rdy), 0);
++              if (lane == 0) mbar_sleep(smem_addr(rdy), 0);
+               __syncwarp();
+               routed = true;
+             }
+@@ -937,11 +1023,18 @@
+ #ifdef MOE_TIMING
+       const u32 tn0 = ctimer();
+ #endif
+-      item = __shfl_sync(0xffffffffu, next, 0);
++      item = (int)gridDim.x + __shfl_sync(0xffffffffu, next, 0);
+ #ifdef MOE_TIMING
+       if (item >= 0) p_claim += ctimer() - tn0;
+ #endif
+     }
++#ifdef MOE_TRACE
++    if (lane == 0) {
++      int* b = P.ctr + 32768 + blockIdx.x * 512 + 256 + 192;
++      b[0] = (int)pgt;
++      for (int k = 1; k < 7; ++k) b[k] = (int)(pst[k] - pst[0]);
++    }
++#endif
+ #ifdef MOE_TIMING
+     if (lane == 0) {
+       tdbg[7] = p_empty; tdbg[8] = p_dep;
+@@ -959,7 +1052,7 @@
+     if (lane == 0) {
+       for (int q = 0;; ++q) {
+         const int j = q % NSIG;
+-        mbar_wait(smem_addr(&epi[j]), (q / NSIG) & 1);
++        mbar_sleep(smem_addr(&epi[j]), (q / NSIG) & 1);
+         const int2 si = sinfo[j];
+         mbar_arrive(smem_addr(&sfree[j]));
+         if (si.x < 0) break;
+@@ -976,6 +1069,7 @@
+   return;
+   }
+   asm volatile("setmaxnreg.inc.sync.aligned.u32 " MOE_STR(MOE_CREG) ";" ::: "memory");
++  if (tid == 0) MOE_TR(0, 15, 0);
+ 
+   // ------------------------------ consumers ------------------------------
+   const int kw = warp % KW, rw = warp / KW;
+@@ -1011,7 +1105,8 @@
+ #endif
+     // Stage info read and dispatched once per item, except for KW = 1 with a k split, where the
+     // per-stage loop measures faster.
+-    if constexpr (KW > 1 || KS2 == 1) {
++    // Stage info read and dispatched once per item (every config)
++    if constexpr (true) {
+     s = it % NS;
+     ph = (it / NS) & 1;
+ #ifdef MOE_TIMING
+@@ -1027,6 +1122,7 @@
+       post_signal(-1, 0, 0);
+       break;
+     }
++    if (tid == 0) MOE_TR(0, 1, f.item);
+     ntl = (f.n + 7) >> 3;
+     const int nst = f.phase == 1 ? ST1 : 16 / (KW * (f.tile >= tsplit ? KSX : KS2));
+ #ifdef MOE_PI_MARK
+@@ -1040,13 +1136,19 @@
+     // All of the item's stages with the token-group count fixed at compile time: the stage info
+     // is read and dispatched once per item. K = NTL for mma.sync, 100 + NTL for wgmma. The
+     // item's last slot stays held for the epilogue's staging.
++// Multi-group tiles: the loop waits at its top, so the (fully unrolled) stage body is emitted once
++// (the bottom-tested form below is inverted by the compiler, which duplicates the body). Single-
++// group tiles keep the bottom-tested form, which measures faster there.
+ #define MOE_RUN_ITEM(K)                                                                                  \
++    if constexpr (NT == 1) { MOE_RUN_ITEM_BOT(K) } else { MOE_RUN_ITEM_TOP(K) }
++#define MOE_RUN_ITEM_BOT(K)                                                                              \
+     for (int st = 0;;) {                                                                                 \
+       MOE_T(const u32 tc0 = ctimer();)                                                                   \
+       const unsigned char* sbase = stages + s * STAGE;                                                   \
+       const unsigned char* wbase = sbase + (kw * RGS + rw * 2) * 2048 + lane * 16;                       \
+       const unsigned char* sclb = sbase + WB + (kw * RGS + rw * 2) * 256 + lane * 8;                     \
+-      if constexpr ((K) >= 100) {                                                                        \
++      if constexpr (MOE_NOC) {                                                                           \
++      } else if constexpr ((K) >= 100) {                                                                 \
+         if constexpr (HASWG) stage_compute_wg<NT, (K) - 100>(acc, wbase, sclb, smem_addr(sbase + WB + SB), T); \
+       } else {                                                                                           \
+         stage_compute<NT, (K)>(acc, acc2, wbase, sclb, sbase + WB + SB + g * XP + kw * 512 + tig * 32, XP); \
+@@ -1060,6 +1162,28 @@
+       mbar_wait(smem_addr(&bars[s]), ph);                                                                \
+       MOE_T(c_wait += ctimer() - tw0;)                                                                   \
+     }
++#define MOE_RUN_ITEM_TOP(K)                                                                              \
++    for (int st = 0; st < nst; ++st) {                                                                   \
++      if (st > 0) {  /* the previous stage's release and this stage's wait */                           \
++        if (lane == 0) mbar_arrive(smem_addr(&bars[NS + s]));                                            \
++        if (++s == NS) { s = 0; ph ^= 1; }                                                               \
++        MOE_T(tw0 = ctimer();)                                                                           \
++        mbar_wait(smem_addr(&bars[s]), ph);                                                              \
++        MOE_T(c_wait += ctimer() - tw0;)                                                                 \
++      }                                                                                                  \
++      MOE_T(const u32 tc0 = ctimer();)                                                                   \
++      const unsigned char* sbase = stages + s * STAGE;                                                   \
++      const unsigned char* wbase = sbase + (kw * RGS + rw * 2) * 2048 + lane * 16;                       \
++      const unsigned char* sclb = sbase + WB + (kw * RGS + rw * 2) * 256 + lane * 8;                     \
++      if constexpr (MOE_NOC) {                                                                           \
++      } else if constexpr ((K) >= 100) {                                                                 \
++        if constexpr (HASWG) stage_compute_wg<NT, (K) - 100>(acc, wbase, sclb, smem_addr(sbase + WB + SB), T); \
++      } else {                                                                                           \
++        stage_compute<NT, (K)>(acc, acc2, wbase, sclb, sbase + WB + SB + g * XP + kw * 512 + tig * 32, XP); \
++      }                                                                                                  \
++      __syncwarp();                                                                                      \
++      MOE_T(c_comp += ctimer() - tc0; c_stages += 1; if (lane == 0) wcomp += ctimer() - tc0;)            \
++    }
+     if (HASWG && ntl >= WGMIN) {
+       if constexpr (HASWG) {
+         switch (ntl) {
+@@ -1080,6 +1204,8 @@
+       }
+     }
+ #undef MOE_RUN_ITEM
++#undef MOE_RUN_ITEM_BOT
++#undef MOE_RUN_ITEM_TOP
+     it += nst;
+     } else {
+     s = it % NS;
+@@ -1097,6 +1223,7 @@
+       post_signal(-1, 0, 0);
+       break;
+     }
++    if (tid == 0 && f.st == 0) MOE_TR(0, 1, f.item);
+     ntl = (f.n + 7) >> 3;
+ #ifdef MOE_TIMING
+     const u32 tc0 = ctimer();
+@@ -1105,7 +1232,8 @@
+     const unsigned char* wbase = sbase + (kw * RGS + rw * 2) * 2048 + lane * 16;
+     const unsigned char* sclb = sbase + WB + (kw * RGS + rw * 2) * 256 + lane * 8;
+     const unsigned char* xbase = sbase + WB + SB + g * XP + kw * 512 + tig * 32;
+-    if (HASWG && ntl >= WGMIN) {
++    if (MOE_NOC) {
++    } else if (HASWG && ntl >= WGMIN) {
+       if constexpr (HASWG) {
+         const u32 xaddr = smem_addr(sbase + WB + SB);
+         switch (ntl) {
+@@ -1150,6 +1278,7 @@
+ #ifdef MOE_TIMING
+     const u32 te0 = ctimer();
+ #endif
++    if (tid == 0) MOE_TR(0, 2, f.item);
+     {
+       constexpr int SP = RB + 4;  // floats per staged token row; the +4 keeps fragment stores conflict-free
+       static_assert(KW * T * SP * 4 <= STAGE, "epilogue staging must fit in one stage slot");
+@@ -1215,6 +1344,39 @@
+       } else {
+         const float gsc = gsm[32 + f.e];
+         float* yb = P.ypart + (size_t)f.ks * P.pmax * 4096 + (size_t)f.p0 * 4096 + f.rb * RB;
++if constexpr (SSQ) {
++        // An item over the whole k range holds its rows' final y: it also leaves, per token and
++        // 64-row slot, the sum of squares of y * (1 + w), so the combine needs no row reduction.
++        // A half-warp covers one slot (RB / 4 is a multiple of 16), reduced by shuffles.
++        const bool full_k = (f.tile >= tsplit ? KSX : KS2) == 1;
++        const int lim = nn * (RB / 4);
++        for (int o0 = 0; o0 < lim; o0 += 256) {
++          const int o = o0 + tid;
++          const bool live = o < lim;
++          const int tok = o / (RB / 4), r4 = o - tok * (RB / 4);
++          float sq = 0.f;
++          if (live) {
++            float4 v = *reinterpret_cast<const float4*>(stg + tok * SP + 4 * r4);
++#pragma unroll
++            for (int k2 = 1; k2 < KW; ++k2) {
++              const float4 w = *reinterpret_cast<const float4*>(stg + (k2 * T + tok) * SP + 4 * r4);
++              v.x += w.x; v.y += w.y; v.z += w.z; v.w += w.w;
++            }
++            v.x *= gsc; v.y *= gsc; v.z *= gsc; v.w *= gsc;
++            *reinterpret_cast<float4*>(yb + (size_t)tok * 4096 + 4 * r4) = v;
++            if (full_k) {
++              const float4 w = *reinterpret_cast<const float4*>(P.nw1 + f.rb * RB + 4 * r4);
++              const float a = v.x * w.x, b = v.y * w.y, c = v.z * w.z, d = v.w * w.w;
++              sq = a * a + b * b + c * c + d * d;
++            }
++          }
++          if (full_k) {
++#pragma unroll
++            for (int s2 = 8; s2 > 0; s2 >>= 1) sq += __shfl_xor_sync(0xffffffffu, sq, s2);
++            if (live && (lane & 15) == 0) P.ssq[(size_t)(f.p0 + tok) * 64 + (f.rb * RB + 4 * r4) / 64] = sq;
++          }
++        }
++} else {
+         for (int o = tid; o < nn * (RB / 4); o += 256) {
+           const int tok = o / (RB / 4), r4 = o - tok * (RB / 4);
+           float4 v = *reinterpret_cast<const float4*>(stg + tok * SP + 4 * r4);
+@@ -1226,6 +1388,7 @@
+           v.x *= gsc; v.y *= gsc; v.z *= gsc; v.w *= gsc;
+           *reinterpret_cast<float4*>(yb + (size_t)tok * 4096 + 4 * r4) = v;
+         }
++}
+       }
+ #ifdef MOE_TIMING
+       c_store += ctimer() - te2;
+@@ -1249,6 +1412,7 @@
+ #ifdef MOE_TIMING
+     c_epi += ctimer() - te0; c_items += 1;
+ #endif
++    if (tid == 0) MOE_TR(0, 3, f.item);
+   }
+ 
+ #ifdef MOE_TIMING
+@@ -1269,6 +1433,7 @@
+   // A token is combined as soon as the down items of its tiles are done, not after the last
+   // item of the whole queue: most of the combine overlaps the other CTAs' remaining work.
+   float* rbuf = reinterpret_cast<float*>(stages);  // [2][4][8] partial sums
++  if (tid == 0) MOE_TR(0, 8, 0);
+   if constexpr (!TILEDONE) {
+ #ifndef MOE_NO_WORK
+     if (tid == 0) {
+@@ -1276,8 +1441,25 @@
+     }
+ #endif
+     consumer_sync();
+-  }
++    if (tid == 0) MOE_TR(0, 20, 0);
++  }
++  // a token whose pairs all come from full-k items has its sums of squares ready (fast path)
++  auto token_fast = [&](int t) -> bool {
++    bool fast = true;
++#pragma unroll
++    for (int sl = 0; sl < 8; ++sl) {
++      const int e = lid[t * 8 + sl];
++      if (e >= 0) {
++        const u32 word = bm[e * MW + (t >> 5)];
++        const int pr = wpre[e * MW + (t >> 5)] + __popc(word & ((1u << (t & 31)) - 1u));
++        const int tl = ftile[e] + pr / T;
++        fast = fast && (tl >= tsplit ? KSX : KS2) == 1;
++      }
++    }
++    return fast;
++  };
+   for (int t = blockIdx.x; t < M; t += gridDim.x) {
++    if constexpr (SSQ) { if (token_fast(t)) continue; }
+     int plist[8];
+     float wl[8];
+     int np = 0;
+@@ -1417,25 +1599,84 @@
+       *reinterpret_cast<uint2*>(P.out + (size_t)t * 4096 + n) = make_uint2(lo, hi);
+     }
+   }
++  if constexpr (SSQ) {
++  // Fast tokens: an elementwise pass in (token, 1024-column) units spread over every CTA. Each
++  // warp sums a pair's 64 slot sums itself, so no barrier is needed beyond the tiles' polls.
++  for (int u = blockIdx.x; u < M * 4; u += gridDim.x) {
++    const int t = u >> 2, c = u & 3;
++    if (!token_fast(t)) continue;
++    int plist[8];
++    float wl[8];
++    int np = 0;
++#pragma unroll
++    for (int sl = 0; sl < 8; ++sl) {
++      const int e = lid[t * 8 + sl];
++      plist[sl] = 0;
++      wl[sl] = 0.f;
++      if (e >= 0) {
++        const u32 word = bm[e * MW + (t >> 5)];
++        const int pr = wpre[e * MW + (t >> 5)] + __popc(word & ((1u << (t & 31)) - 1u));
++        plist[np] = off[e] + pr;
++        wl[np] = P.topk_w[t * 8 + sl];
++        if (TILEDONE && tid == np * 32) {
++          const int tl = ftile[e] + pr / T;
++          const int want = NRB2 * (tl >= tsplit ? KSX : KS2);
++#ifndef MOE_NO_WORK
++          while (ld_acquire(&cnt2[tl]) < want) {}
++#endif
++        }
++        ++np;
++      }
++    }
++    if constexpr (TILEDONE) consumer_sync();
++    const int n = c * 1024 + tid * 4;
++    float4 yv[8];
++    float sv[8][2];
++#pragma unroll
++    for (int q = 0; q < 8; ++q) {
++      if (q < np) {
++        yv[q] = __ldcg(reinterpret_cast<const float4*>(P.ypart + (size_t)plist[q] * 4096 + n));
++        sv[q][0] = __ldcg(P.ssq + (size_t)plist[q] * 64 + lane);
++        sv[q][1] = __ldcg(P.ssq + (size_t)plist[q] * 64 + 32 + lane);
++      }
++    }
++    const float4 w = *reinterpret_cast<const float4*>(P.nw1 + n);
++    float4 a = make_float4(0.f, 0.f, 0.f, 0.f);
++#pragma unroll
++    for (int q = 0; q < 8; ++q) {
++      if (q < np) {
++        float ss = sv[q][0] + sv[q][1];
++#pragma unroll
++        for (int s2 = 16; s2 > 0; s2 >>= 1) ss += __shfl_xor_sync(0xffffffffu, ss, s2);
++        const float r = rsqrtf(ss * (1.f / 4096.f) + 1e-8f) * wl[q];
++        a.x += r * (yv[q].x * w.x); a.y += r * (yv[q].y * w.y); a.z += r * (yv[q].z * w.z); a.w += r * (yv[q].w * w.w);
++      }
++    }
++    const u32 lo = (u32)f2bf(a.x) | ((u32)f2bf(a.y) << 16);
++    const u32 hi = (u32)f2bf(a.z) | ((u32)f2bf(a.w) << 16);
++    *reinterpret_cast<uint2*>(P.out + (size_t)t * 4096 + n) = make_uint2(lo, hi);
++  }
++  }
+   }
+ #ifdef MOE_NO_COMBINE
+ done_combine:
+ #endif
++  if (tid == 0) MOE_TR(0, 9, 0);
+ #ifdef MOE_TIMING
+   if (tid == 0) tdbg[3] = gtimer();
+ #endif
+   // ------------------------------ reset for the next call ------------------------------
+   if (tid == 0) {
+-    __threadfence();
+-    const int prev = atomicAdd(P.ctr + 2, 1);
++    // One acquire-release arrival: this CTA's uses of the counters happen before it, and the last
++    // CTA's resets happen after everyone's; kernel completion publishes the resets to the next call.
++    int prev;
++    asm volatile("atom.acq_rel.gpu.global.add.s32 %0, [%1], 1;" : "=r"(prev) : "l"(P.ctr + 2) : "memory");
+     if (prev == (int)gridDim.x - 1) {
+-      __threadfence();
+       P.ctr[0] = 0;
+       P.ctr[1] = 0;
+       P.ctr[3] = 0;
+       for (int i = 0; i < ntiles * 16; ++i) cnt1[i] = 0;
+       for (int i = 0; i < ntiles; ++i) cnt2[i] = 0;
+-      __threadfence();
+       P.ctr[2] = 0;
+     }
+   }
+@@ -1474,8 +1715,8 @@
+ 
+ # (largest M, (RW, NT, KS2)) per batch-size bucket; stages are as many as shared memory holds (<= 4).
+ BUCKETS = [
+-    (1, (2, 1, 2)),
+-    (16, (4, 1, 2)),
++    (1, (2, 1, 1)),
++    (16, (4, 1, 1)),
+     (32, (8, 4, 2)),
+     (128, (8, 4, 1)),
+     (MAX_M, (8, 8, 1)),
+@@ -1563,6 +1804,7 @@
+         ("w2", ctypes.c_void_p), ("s2", ctypes.c_void_p), ("gs2", ctypes.c_void_p), ("nw1", ctypes.c_void_p),
+         ("inter", ctypes.c_void_p), ("ypart", ctypes.c_void_p), ("out", ctypes.c_void_p),
+         ("ctr", ctypes.c_void_p), ("pmax", ctypes.c_int), ("xs", ctypes.c_void_p),
++        ("ssq", ctypes.c_void_p),
+     ]
+ 
+ 
+@@ -1700,9 +1942,11 @@
+     xs = torch.empty_like(inter) if nt >= 4 else inter
+     ypart = torch.empty((max(ks2, 4 if rw == 8 else ks2), pmax, H), dtype=torch.float32, device=dev)
+     out = torch.empty((M, H), dtype=torch.bfloat16, device=dev)
++    ssq = torch.empty(pmax * 64, dtype=torch.float32, device=dev)
+     p = _ParamsC(x.data_ptr(), ids.data_ptr(), tw.data_ptr(), M, state["start"],
+                  state["w13"].data_ptr(), state["s13"].data_ptr(), state["gs13"].data_ptr(),
+                  state["w2"].data_ptr(), state["s2"].data_ptr(), state["gs2"].data_ptr(), state["nw1"].data_ptr(),
+-                 inter.data_ptr(), ypart.data_ptr(), out.data_ptr(), state["ctr"].data_ptr(), pmax, xs.data_ptr())
++                 inter.data_ptr(), ypart.data_ptr(), out.data_ptr(), state["ctr"].data_ptr(), pmax, xs.data_ptr(),
++                 ssq.data_ptr())
+     _module().launch(_name(kc), state["sms"], 384, _smem_bytes(rw, nt, ns, mw), p)
+     return out

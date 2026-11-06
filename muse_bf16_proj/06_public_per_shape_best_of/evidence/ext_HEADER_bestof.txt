@@ -1,0 +1,6 @@
+# This submission combines:
+#  * our own kernels (team gauravjain14: M=1 GEMVs with an exact 11-bit/12-bit lossless weight format, the
+#    M<=8 unpooler-slice tile kernel, the M=128 unpooler cluster-pair GEMM), and
+#  * alygg77's OKC submission (Apache License 2.0, https://github.com/alygg77/okc-muse-spark-kernels), which itself
+#    builds on vjeux/okc-2026 (Apache License 2.0), Nathen Fernandes' muse-bf16-proj routes (MIT License, notice
+#    reproduced below) and code posted by Matsvei (Apache License 2.0). All original notices are retained below.

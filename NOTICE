@@ -1,0 +1,125 @@
+okc-kernels: third-party notices
+================================
+
+The code in this repository was written for the Open Kernel Challenge (OKC) 2026, except for the segments
+listed below, which were copied or adapted from other projects. Each such segment is marked in place in the
+source with SPDX-SnippetBegin / SPDX-SnippetEnd comments giving its source, copyright, license and our
+changes. Full license texts are in LICENSES/. Diff files (change.diff, and diffs under evidence/) show code
+from the builds and so also contain these segments; their attribution is the one marked in the builds.
+Each problem's tools/ folder, and copies of its files elsewhere, come from the OKC problem starter.
+
+1. vjeux/okc-2026 (https://github.com/vjeux/okc-2026, commit f35a41e)
+
+Copyright vjeux. Licensed under the Apache License, Version 2.0 (LICENSES/Apache-2.0.txt).
+The repository has no NOTICE file.
+
+Used in (milestones): muse_bf16_proj 06-11; muse_decode_layer 01-03; muse_prefill_layer 06-10
+
+----------------------------------------------------------------------------------------------------
+
+2. alygg77/okc-muse-spark-kernels (https://github.com/alygg77/okc-muse-spark-kernels)
+
+Copyright 2026 alygg77. Licensed under the Apache License, Version 2.0 (LICENSES/Apache-2.0.txt).
+Its NOTICE file, reproduced as Apache-2.0 section 4(d) requires:
+
+    Muse Spark Open Kernel Challenge (OKC) kernels - team alygg77
+    Copyright 2026 alygg77
+
+    This repository is licensed under the Apache License, Version 2.0 (see LICENSE).
+    Every kernel file here was submitted to the challenge, and by the challenge terms every
+    submission is licensed under the Apache License 2.0.
+
+    This product includes work from the following projects. Their notices are kept in the
+    headers of the kernel files that use them.
+
+    1. vjeux/okc-2026 - https://github.com/vjeux/okc-2026 (commit f35a41e)
+       Copyright vjeux. Licensed under the Apache License, Version 2.0.
+       It is the base of all five kernel files. kernels/muse_prefill_layer.py and
+       kernels/muse_attention_decode.py are vjeux's files, submitted unchanged with an
+       attribution header added.
+
+    2. NathenFernandes/muse-bf16-proj - https://github.com/NathenFernandes/muse-bf16-proj
+       Copyright (c) 2026 Nathen Fernandes. Licensed under the MIT License.
+       kernels/muse_bf16_proj.py uses his small-M routes (O at m=8, pooler at m=8 and m=16).
+       The full MIT text is in the file header and in
+       licenses/LICENSE_NathenFernandes_muse-bf16-proj.txt.
+
+    3. Matsvei (kernarc user 'matvey') - code posted on https://agents.kernarc.com
+       The per-thread CUDA-context bind helper and the cuBLASLt plan pins in
+       kernels/muse_decode_layer.py, kernels/muse_moe_w4a16.py and kernels/muse_bf16_proj.py
+       follow his posted code (licensed under Apache-2.0 as challenge submissions).
+       He also found the __deepcopy__ state-sharing pattern that we fixed in
+       kernels/muse_bf16_proj.py.
+
+Used in (milestones): muse_bf16_proj 06-09; muse_decode_layer 02-03
+
+----------------------------------------------------------------------------------------------------
+
+3. Nathen Fernandes, muse-bf16-proj (https://github.com/NathenFernandes/muse-bf16-proj), received via alygg77
+
+MIT License
+
+Copyright (c) 2026 Nathen Fernandes
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+Used in (milestones): muse_bf16_proj 06-11; muse_decode_layer 01-03
+
+----------------------------------------------------------------------------------------------------
+
+4. Matsvei (kernarc user 'matvey'), code posted on https://agents.kernarc.com, received via alygg77
+
+Licensed under the Apache License, Version 2.0, as an Open Kernel Challenge submission (LICENSES/Apache-2.0.txt).
+
+Used in (milestones): muse_bf16_proj 06-08
+
+----------------------------------------------------------------------------------------------------
+
+5. NVIDIA TensorRT-LLM, tinygemm2 kernel (https://github.com/NVIDIA/TensorRT-LLM)
+
+Copyright (c) 2025-2025, NVIDIA CORPORATION.  All rights reserved.
+Licensed under the Apache License, Version 2.0 (LICENSES/Apache-2.0.txt).
+
+Used in (milestones): muse_bf16_proj 01-05
+
+----------------------------------------------------------------------------------------------------
+
+6. NVIDIA CUTLASS (https://github.com/NVIDIA/cutlass), received via vjeux and alygg77
+
+Copyright (c) 2017 - 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+Licensed under the BSD 3-Clause License (LICENSES/BSD-3-Clause.txt), with this copyright line.
+
+Used in (milestones): muse_bf16_proj 06-08
+
+----------------------------------------------------------------------------------------------------
+
+7. SGLang (https://github.com/sgl-project/sglang), received through the OKC problem starter tools/baseline.py
+
+Copyright the SGLang contributors. Licensed under the Apache License, Version 2.0 (LICENSES/Apache-2.0.txt).
+The starter's baseline.py transcribes SGLang's Muse Spark decoder layer (sgl-project/sglang @ a55ab7d).
+
+Used in (milestones): muse_decode_layer 01-03; muse_prefill_layer 01-10
+
+----------------------------------------------------------------------------------------------------
+
+Design credits (no code copied) and reference implementations
+
+Some code follows a design from the projects above, a Triton tutorial (triton-lang/triton, MIT), or the
+OKC problem's own reference implementation (tools/reference.py), without copying code. Those places carry
+a one-line comment saying so. Used in (milestones): muse_bf16_proj 01-05, 07-11; muse_decode_layer 01-03; muse_moe_w4a16 01-11; muse_prefill_layer 01-10

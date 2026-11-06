@@ -1,0 +1,28 @@
+[gate] slot 0 at 02:46:47 (2 running)
+<modal-run-url>
+│   autoresearch-kernels/attn/tools/modal_run.py
+0 failures
+decode 1  sliding w46 sglang    19.07 | k10     6.04 x3.159 | k11     5.51 x3.461   sol    0.11
+decode 1  full    w16 sglang    30.29 | k10    14.53 x2.084 | k11    13.98 x2.166   sol    4.27
+decode 16 sliding w46 sglang    25.25 | k10     9.04 x2.792 | k11     8.66 x2.915   sol    1.65
+decode 16 full    w16 sglang   198.90 | k10    89.89 x2.213 | k11    87.88 x2.263   sol   63.18
+decode 32 sliding w46 sglang    29.90 | k10    10.84 x2.760 | k11    10.47 x2.855   sol    3.29
+decode 32 full    w16 sglang   380.98 | k10   169.08 x2.253 | k11   165.73 x2.299   sol  126.35
+verify 1  sliding w46 sglang    21.73 | k10     9.89 x2.196 | k11     9.85 x2.207   sol    0.12
+verify 1  full    w16 sglang    34.61 | k10    19.15 x1.807 | k11    19.26 x1.797   sol    4.28
+verify 16 sliding w46 sglang    27.76 | k10    12.52 x2.218 | k11    12.47 x2.226   sol    1.86
+verify 16 full    w16 sglang   201.23 | k10   119.60 x1.683 | k11   119.24 x1.688   sol   63.39
+verify 32 sliding w46 sglang    32.86 | k10    15.42 x2.132 | k11    15.55 x2.114   sol    3.72
+verify 32 full    w16 sglang   386.46 | k10   218.41 x1.769 | k11   219.13 x1.764   sol  126.78
+per-load (weighted sums, us):
+  decode 1  sglang    1361.9 | k10     510.3 x2.669 | k11     477.2 x2.854
+  decode 16 sglang    4343.7 | k10    1854.3 x2.343 | k11    1804.6 x2.407
+  decode 32 sglang    7471.2 | k10    3203.7 x2.332 | k11    3133.4 x2.384
+  verify 1  sglang    1553.2 | k10     761.5 x2.040 | k11     761.0 x2.041
+  verify 16 sglang    4496.7 | k10    2489.4 x1.806 | k11    2481.4 x1.812
+  verify 32 sglang    7695.2 | k10    4203.6 x1.831 | k11    4221.3 x1.823
+GEOMEAN k10: x2.1484 (board time 1700.2 us)   judge-projected (+1.0 us/call) x2.0400 (board 1829.2 us)
+GEOMEAN k11: x2.1904 (board time 1667.6 us)   judge-projected (+1.0 us/call) x2.0767 (board 1796.8 us)
+fetched into autoresearch-kernels/attn/out/20261028T024852_verify_k11
+[exit 0]
+<modal-run-url>

@@ -1,0 +1,47 @@
+total stall samples 19324, lines 207
+by stall type: not_selected 16.3%, wait 14.9%, selected 14.4%, barrier 13.8%, short_scoreboard 10.5%, math_pipe_throttle 10.0%, long_scoreboard 8.0%, dispatch_stall 7.1%, branch_resolving 2.1%, mio_throttle 1.1%, misc 1.0%, no_instructions 0.6%, membar 0.1%, lg_throttle 0.0%, sleeping 0.0%
+  8.6% L2522 cp16p(v, (sb + 128 * j) ^ (16 * j), (const void*)(cbase64 + (unsigned long long)row * (u32 | barrier 421, not_selected 238, long_scoreboard 234
+  6.5% L 470 wg_wait<0>();                                                                              | barrier 1217, wait 21, not_selected 8
+  6.5% L 473 for (int i = 0; i < 36; ++i) w.o[i] = fmaf(w.o[i], alpha[(i >> 1) & 1], t[i]);             | not_selected 388, dispatch_stall 337, selected 315
+  4.8% L  64 __device__ __forceinline__ u32 prmt(u32 a, u32 b, u32 s) { u32 d; asm("prmt.b32 %0, %1, %2 | short_scoreboard 696, math_pipe_throttle 66, wait 47
+  4.0% L 331 __device__ __forceinline__ u32 wh_cvt(float hi, float lo) { u32 d; asm("cvt.rn.f16x2.f32 % | not_selected 245, math_pipe_throttle 231, selected 147
+  3.8% L 332 __device__ __forceinline__ u32 wh_max(u32 a, u32 b) { u32 d; asm("max.f16x2 %0, %1, %2;" : | not_selected 243, math_pipe_throttle 176, selected 167
+  2.9% L 444 const float mnew = fmaxf(w.m[rh], ceilf(mt[rh] * sc * 8.f) * 0.125f);                      | wait 219, not_selected 105, short_scoreboard 91
+  2.8% L2689 for (int it = 0; it < my_n; ++it) {                                                        | wait 163, not_selected 125, selected 83
+  2.7% L 438 mm = wh_max(mm, __shfl_xor_sync(0xffffffffu, mm, 2));                                      | short_scoreboard 408, wait 53, not_selected 35
+  2.7% L 437 mm = wh_max(mm, __shfl_xor_sync(0xffffffffu, mm, 1));                                      | short_scoreboard 388, wait 50, not_selected 30
+  2.7% L 446 alpha[rh] = ex2(w.m[rh] - ms);                                                             | barrier 385, selected 44, not_selected 43
+  2.5% L2501 cp4(ptq_s + ((it2 & (PFS - 1)) * TT + wl * TPW + lane) * 4, ok ? (const void*)src : (const | selected 144, wait 90, not_selected 77
+  2.2% L 462 if (K8_FENCE_VT && FVL) fence_async();                                                     | long_scoreboard 248, wait 60, selected 57
+  2.1% L2496 const int ub = pt_ub0 + it2 * (NL * TT);                                                   | long_scoreboard 301, wait 43, branch_resolving 26
+  2.0% L2706 const u32 st_off = isnew ? (u32)(NL * DST * STG) : (u32)((li * DST + it % DST) * STG);     | branch_resolving 160, wait 129, selected 44
+  2.0% L 460 pa[nb][3] = prmt(yb[8 * nb + 5], yb[8 * nb + 7], 0x6420);                                  | not_selected 114, math_pipe_throttle 103, wait 82
+  2.0% L 380 stsm4(c.stsm + vt + nb * WG_VTB, prmt(x[nb][0], x[nb][1], 0x6420), prmt(x[nb][0], x[nb][1] | short_scoreboard 239, wait 61, not_selected 25
+  2.0% L2693 if (K8_FENCE_CP || (QSM && it == 0)) fence_async();   // this thread's landed cp.async dat | long_scoreboard 161, wait 91, selected 60
+  1.9% L 436 u32 mm = wh_max(prmt(m0[0], m1[0], 0x5410), prmt(m0[0], m1[0], 0x7632));                   | wait 132, math_pipe_throttle 101, not_selected 80
+  1.7% L 371 wg_n64<1>(*(float(*)[32])s, qa[1], dk + 2);                                                | wait 125, selected 65, not_selected 63
+  1.6% L 333 __device__ __forceinline__ u32 wh_fma(u32 a, u32 b, u32 c) { u32 d; asm("fma.rn.f16x2 %0,  | selected 135, math_pipe_throttle 65, not_selected 54
+  1.4% L 208 : "r"(a[0]), "r"(a[1]), "r"(a[2]), "r"(a[3]), "l"(desc));                                  | not_selected 115, math_pipe_throttle 85, selected 38
+  1.4% L2507 : "r"(ptq_s + ((it2 & (PFS - 1)) * TT + ctok) * 4) : "memory");                            | selected 107, not_selected 71, wait 47
+  1.4% L 448 bias[rh] = wh_cvt(W9H_REF - 8.f * ms, W9H_REF - 8.f * ms);                                 | not_selected 83, selected 57, math_pipe_throttle 51
+  1.4% L2698 __syncwarp();                                                                              | long_scoreboard 237, not_selected 16, selected 8
+  1.3% L2499 if (PAGE1) src = pt_src0 + it2 * (NL * TT);                                                | not_selected 83, math_pipe_throttle 72, selected 47
+  1.3% L2702 issue_rows(it + DST - 1, (FD && W9F_RL) ? rnx : rows_smem(it + DST - 1), it + 2 * (DST - 1 | wait 88, not_selected 68, math_pipe_throttle 36
+  1.3% L 458 pa[nb][1] = prmt(yb[8 * nb + 1], yb[8 * nb + 3], 0x6420);                                  | not_selected 112, math_pipe_throttle 104, wait 10
+  1.3% L 431 m1[0] = wh_max(wh_max(m1[0], m1[1]), wh_max(m1[2], m1[3]));                                | not_selected 85, math_pipe_throttle 70, wait 40
+  1.0% L3210 for (int i0 = 0; i0 < items; i0 += blockDim.x) {                                           | barrier 193, wait 3, not_selected 3
+  1.0% L2708 const bool need_mask = isnew || (tok0 + TT > npast) ||                                     | not_selected 54, math_pipe_throttle 53, wait 50
+  1.0% L 359 const u64 dk = c.kd + (st >> 4);                                                           | not_selected 62, math_pipe_throttle 43, selected 34
+  0.9% L 423 for (int j = 0; j < NW; ++j) sh[j] = wh_cvt(s[2 * j + 1], s[2 * j]);                       | branch_resolving 85, wait 47, math_pipe_throttle 19
+  0.8% L 377 for (int nb = 0; nb < NB; ++nb) ldsm4t(c.ldsm + st + nb * 4096, x[nb][0], x[nb][1], x[nb][ | selected 51, wait 34, dispatch_stall 24
+  0.8% L 156 template <int N> __device__ __forceinline__ void wg_wait() { asm volatile("wgmma.wait_grou | barrier 129, selected 8, dispatch_stall 7
+  0.7% L 445 const float ms = mnew == NEG_INF ? 0.f : mnew;                                             | selected 43, wait 42, not_selected 20
+  0.7% L 428 for (int j = 0; j < 2 * NB; ++j) { m0[j] = wh_max(sh[4 * j], sh[4 * j + 2]); m1[j] = wh_ma | wait 46, selected 42, not_selected 14
+  0.6% L2746 if (WB_RMERGE && !complete) {                                                              | barrier 125
+  0.6% L 360 wg_fence();                                                                                | long_scoreboard 91, not_selected 13, wait 10
+  0.6% L2523 j < lim ? 16 : 0);                                                                         | selected 37, not_selected 28, math_pipe_throttle 25
+  0.6% L 439 const float mt[2] = {wh_lo(mm), wh_hi(mm)};                                                | wait 52, not_selected 26, math_pipe_throttle 18
+  0.6% L2286 if (c0 < c1) { while (b_begin + 1 < B && pre[b_begin + 1] <= c0) ++b_begin; }              | wait 58, short_scoreboard 21, selected 12
+  0.5% L 247 asm volatile("stmatrix.sync.aligned.m8n8.x4.shared.b16 [%0], {%1,%2,%3,%4};\n" :: "r"(addr | wait 53, not_selected 21, dispatch_stall 12
+  0.5% L 453 for (int j = 0; j < NW; ++j) yb[j] = wh_max(wh_fma(sh[j], sc8, bias[j & 1]), 0x64006400u); | selected 28, wait 27, math_pipe_throttle 21
+  0.5% L2273 c0 = (long long)c * NU / G; c1 = (long long)(c + 1) * NU / G;                              | barrier 54, wait 16, short_scoreboard 12

@@ -1,0 +1,420 @@
+==== [2026-10-24T08:39:32.806Z] Test v114 and A/B it against v112 on the H200
+CMD: M=<scratch>/modal-venv/bin/modal && timeout 3500 $M run dev/modal_run.py --cmd "sh dev/setv.sh moe_v114 >/dev/null; timeout 400 python3 dev/kern_sass.py /tmp/k 2>&1 | grep -a -E 'C75|spill|rror' | grep -v ' 0 bytes spill'; timeout 400 python3 dev/bench.py dev/abl.py --tests-only --no-base 2>&1 | grep -a -E 
+     ptxas: ptxas         .     96 bytes stack frame, 40 bytes spill stores, 128 bytes spill loads
+     ptxas: ptxas         .     96 bytes stack frame, 40 bytes spill stores, 128 bytes spill loads
+   test {'bs': 4}: PASS relative L2 error 3.273e-03 (worst row 3.311e-03)
+   test {'bs': 33}: PASS relative L2 error 3.026e-03 (worst row 3.560e-03)
+   test {'bs': 257}: PASS relative L2 error 3.195e-03 (worst row 3.491e-03)
+   test {'bs': 128, 'dist': 'skewed'}: PASS relative L2 error 2.647e-03 (worst row 3.400e-03)
+   test {'bs': 1}: PASS relative L2 error 2.472e-03 (worst row 2.472e-03)
+   decode 16  bs  16 experts 12.05 (|11..13|) max_tok med 6.0
+      v112                86.8 us  x2.095 vs v112: x1.0000
+      v114                95.9 us  x1.892 vs v112: x0.9007
+      v114b               96.0 us  x1.895 vs v112: x0.9013
+      v112b               86.2 us  x2.106 vs v112: x1.0023
+   decode 32  bs  32 experts 16.66 (|16..18|) max_tok med 10.0
+      v112               125.2 us  x1.691 vs v112: x1.0000
+      v114               134.5 us  x1.571 vs v112: x0.9287
+      v114b              134.6 us  x1.571 vs v112: x0.9299
+      v112b              125.5 us  x1.686 vs v112: x0.9979
+   verify 1   bs   8 experts  8.37 (|8..9|) max_tok med 4.0
+      v112                61.2 us  x2.193 vs v112: x1.0000
+      v114                67.5 us  x1.960 vs v112: x0.8985
+      v114b               67.6 us  x1.965 vs v112: x0.8993
+      v112b               61.3 us  x2.200 vs v112: x1.0039
+   verify 16  bs 128 experts 22.29 (|21..24|) max_tok med 55.0
+      v112               182.7 us  x2.513 vs v112: x1.0000
+      v114               193.1 us  x2.382 vs v112: x0.9457
+      v114b              193.1 us  x2.388 vs v112: x0.9475
+      v112b              182.2 us  x2.516 vs v112: x0.9993
+   verify 32  bs 256 experts 24.82 (|24..26|) max_tok med 97.0
+      v112               228.3 us  x2.709 vs v112: x1.0000
+      v114               238.3 us  x2.588 vs v112: x0.9577
+      v114b              238.0 us  x2.593 vs v112: x0.9588
+      v112b              228.1 us  x2.702 vs v112: x1.0001
+   geomean v112: x2.2114 over 5 shapes
+   geomean v114: x2.0466 over 5 shapes
+   geomean v114b: x2.0500 over 5 shapes
+   geomean v112b: x2.2131 over 5 shapes
+
+==== [2026-10-24T08:44:49.465Z] Rebuild v114 branch-free, test and A/B against v112
+CMD: python3 - <<'EOF'
+p = "dev/moe_v114.py"
+s = open(p).read()
+def rep(a, b, cnt=1):
+    global s
+    assert s.count(a) == cnt, (s.count(a), a[:120])
+    s = s.replace(a, b)
+rep("""DEVI bool mbar_test(u32 bar, u32 parity) {
+  u32 ok;
+  asm volatile("{ .reg .pred p; mbarrier.test_wait.parity.shared::cta.b64 p, [%1], %2; selp.u32 %0, 1, 0, p; }"
+               : "=r"(ok) : "r"(bar), "r"(parity) : "memor
+     ptxas: ptxas         .     96 bytes stack frame, 40 bytes spill stores, 128 bytes spill loads
+     ptxas: ptxas         .     96 bytes stack frame, 40 bytes spill stores, 128 bytes spill loads
+   test {'bs': 4}: PASS relative L2 error 3.273e-03 (worst row 3.311e-03)
+   test {'bs': 33}: PASS relative L2 error 3.026e-03 (worst row 3.560e-03)
+   test {'bs': 257}: PASS relative L2 error 3.195e-03 (worst row 3.491e-03)
+   test {'bs': 128, 'dist': 'skewed'}: PASS relative L2 error 2.647e-03 (worst row 3.400e-03)
+   test {'bs': 1}: PASS relative L2 error 2.472e-03 (worst row 2.472e-03)
+   decode 16  bs  16 experts 12.12 (|11..13|) max_tok med 6.0
+      v112                86.8 us  x2.110 vs v112: x1.0000
+      v114                97.3 us  x1.875 vs v112: x0.8911
+      v112b               86.8 us  x2.110 vs v112: x1.0021
+   decode 32  bs  32 experts 16.79 (|16..18|) max_tok med 10.0
+      v112               124.8 us  x1.711 vs v112: x1.0000
+      v114               135.5 us  x1.576 vs v112: x0.9219
+      v112b              124.8 us  x1.707 vs v112: x0.9983
+   verify 1   bs   8 experts  8.53 (|8..9|) max_tok med 3.0
+      v112                67.3 us  x2.198 vs v112: x1.0000
+      v114                75.9 us  x1.948 vs v112: x0.8923
+      v112b               67.1 us  x2.207 vs v112: x1.0048
+   verify 16  bs 128 experts 22.37 (|21..24|) max_tok med 54.5
+      v112               184.0 us  x2.532 vs v112: x1.0000
+      v114               196.4 us  x2.369 vs v112: x0.9366
+      v112b              183.4 us  x2.520 vs v112: x0.9965
+   verify 32  bs 256 experts 24.84 (|24..26|) max_tok med 105.0
+      v112               227.7 us  x2.718 vs v112: x1.0000
+      v114               238.7 us  x2.610 vs v112: x0.9567
+      v112b              227.7 us  x2.721 vs v112: x0.9995
+   geomean v112: x2.2256 over 5 shapes
+   geomean v114: x2.0430 over 5 shapes
+   geomean v112b: x2.2250 over 5 shapes
+
+==== [2026-10-24T09:01:27.125Z] Build, test and A/B v115 against v112 at bs8/16/32
+CMD: python3 - <<'EOF'
+p = "dev/moe_v115.py"
+s = open(p).read()
+a = """#ifndef MOE_PD
+#define MOE_PD 0
+#endif
+#ifndef MOE_GSTAR_ALL
+#define MOE_GSTAR_ALL 0
+#endif"""
+assert s.count(a) == 1
+s = s.replace(a, """#ifndef MOE_PD
+#define MOE_PD 0
+#endif""")
+a = """#ifndef MOE_NO_GSTAR
+  constexpr bool GSTAR = NT == 1 || (MOE_GSTAR_ALL + 0);"""
+assert s.count(a) == 1
+s = s.replace(a, """#ifndef MOE_GSTAR_ALL
+
+   test {'bs': 4}: PASS relative L2 error 3.273e-03 (worst row 3.311e-03)
+   test {'bs': 33}: PASS relative L2 error 3.026e-03 (worst row 3.560e-03)
+   test {'bs': 257}: PASS relative L2 error 3.195e-03 (worst row 3.491e-03)
+   test {'bs': 128, 'dist': 'skewed'}: PASS relative L2 error 2.647e-03 (worst row 3.400e-03)
+   test {'bs': 1}: PASS relative L2 error 2.472e-03 (worst row 2.472e-03)
+   decode 16  bs  16 experts 12.05 (|11..13|) max_tok med 6.0
+      v112                86.5 us  x2.107 vs v112: x1.0000
+      v115                86.7 us  x2.096 vs v112: x0.9975
+      v115all             86.6 us  x2.102 vs v112: x0.9985
+      v115b               86.5 us  x2.103 vs v112: x0.9983
+      v112b               86.4 us  x2.103 vs v112: x1.0004
+   decode 32  bs  32 experts 16.54 (|15..18|) max_tok med 10.0
+      v112               124.4 us  x1.700 vs v112: x1.0000
+      v115               124.2 us  x1.698 vs v112: x0.9996
+      v115all            127.6 us  x1.674 vs v112: x0.9814
+      v115b              124.6 us  x1.697 vs v112: x0.9986
+      v112b              124.3 us  x1.700 vs v112: x1.0011
+   verify 1   bs   8 experts  8.28 (|7..9|) max_tok med 3.0
+      v112                61.4 us  x2.207  e=4:x2.523(2)  e=5:x2.437(12)  e=6:x2.321(22)  e=7:x2.225(31)  e=8:x2.286(42)  e=9:x2.170(42)  e=10:x2.081(24)  e=11:x2.147(19)  e=12:x2.093(3)  e=13:x2.003(3)  vs v112: x1.0000
+      v115                60.6 us  x2.233  e=4:x2.627(2)  e=5:x2.472(12)  e=6:x2.340(22)  e=7:x2.226(31)  e=8:x2.309(42)  e=9:x2.206(42)  e=10:x2.096(24)  e=11:x2.126(19)  e=12:x2.074(3)  e=13:x2.018(3)  vs v112: x1.0086
+      v115all             60.4 us  x2.231  e=4:x2.544(2)  e=5:x2.468(12)  e=6:x2.358(22)  e=7:x2.228(31)  e=8:x2.318(42)  e=9:x2.207(42)  e=10:x2.096(24)  e=11:x2.129(19)  e=12:x2.092(3)  e=13:x2.016(3)  vs v112: x1.0055
+      v115b               60.6 us  x2.239  e=4:x2.646(2)  e=5:x2.451(12)  e=6:x2.356(22)  e=7:x2.241(31)  e=8:x2.324(42)  e=9:x2.210(42)  e=10:x2.093(24)  e=11:x2.135(19)  e=12:x2.069(3)  e=13:x2.008(3)  vs v112: x1.0109
+      v112b               60.6 us  x2.223  e=4:x2.557(2)  e=5:x2.453(12)  e=6:x2.358(22)  e=7:x2.231(31)  e=8:x2.308(42)  e=9:x2.185(42)  e=10:x2.088(24)  e=11:x2.138(19)  e=12:x2.096(3)  e=13:x2.014(3)  vs v112: x1.0037
+   geomean v112: x1.9919 over 3 shapes
+   geomean v115: x1.9957 over 3 shapes
+   geomean v115all: x1.9876 over 3 shapes
+   geomean v115b: x1.9991 over 3 shapes
+   geomean v112b: x1.9955 over 3 shapes
+
+==== [2026-10-24T09:10:00.751Z] Test v116 and A/B it against v112 on the H200
+CMD: M=<scratch>/modal-venv/bin/modal && timeout 3500 $M run dev/modal_run.py --cmd "sh dev/setv.sh moe_v116 >/dev/null; timeout 400 python3 dev/kern_sass.py /tmp/k 2>&1 | grep -a -E 'C75|spill|rror' | grep -v ' 0 bytes spill'; timeout 400 python3 dev/bench.py dev/abl.py --tests-only --no-base 2>&1 | grep -a -E 
+     ptxas: ptxas         .     96 bytes stack frame, 40 bytes spill stores, 128 bytes spill loads
+     ptxas: ptxas         .     96 bytes stack frame, 40 bytes spill stores, 128 bytes spill loads
+   test {'bs': 4}: PASS relative L2 error 3.273e-03 (worst row 3.311e-03)
+   test {'bs': 33}: PASS relative L2 error 3.026e-03 (worst row 3.560e-03)
+   test {'bs': 257}: PASS relative L2 error 3.195e-03 (worst row 3.491e-03)
+   test {'bs': 128, 'dist': 'skewed'}: PASS relative L2 error 2.647e-03 (worst row 3.400e-03)
+   test {'bs': 1}: PASS relative L2 error 2.472e-03 (worst row 2.472e-03)
+   decode 16  bs  16 experts 12.05 (|11..13|) max_tok med 6.0
+      v112                84.9 us  x2.149 vs v112: x1.0000
+      v116                94.3 us  x1.940 vs v112: x0.8997
+      v116b               94.2 us  x1.939 vs v112: x0.8993
+      v112b               85.3 us  x2.150 vs v112: x1.0000
+   decode 32  bs  32 experts 16.66 (|16..18|) max_tok med 10.0
+      v112               122.8 us  x1.729 vs v112: x1.0000
+      v116               125.9 us  x1.685 vs v112: x0.9759
+      v116b              125.6 us  x1.687 vs v112: x0.9765
+      v112b              122.7 us  x1.723 vs v112: x0.9975
+   verify 1   bs   8 experts  8.37 (|8..9|) max_tok med 4.0
+      v112                60.9 us  x2.233 vs v112: x1.0000
+      v116                67.0 us  x1.997 vs v112: x0.8958
+      v116b               67.1 us  x1.997 vs v112: x0.8971
+      v112b               60.6 us  x2.247 vs v112: x1.0043
+   verify 16  bs 128 experts 22.29 (|21..24|) max_tok med 55.0
+      v112               180.4 us  x2.560 vs v112: x1.0000
+      v116               185.3 us  x2.481 vs v112: x0.9676
+      v116b              185.8 us  x2.486 vs v112: x0.9680
+      v112b              179.8 us  x2.566 vs v112: x0.9975
+   verify 32  bs 256 experts 24.82 (|24..26|) max_tok med 97.0
+      v112               225.5 us  x2.744 vs v112: x1.0000
+      v116               233.3 us  x2.654 vs v112: x0.9678
+      v116b              233.4 us  x2.654 vs v112: x0.9677
+      v112b              226.3 us  x2.741 vs v112: x0.9994
+   geomean v112: x2.2549 over 5 shapes
+   geomean v116: x2.1217 over 5 shapes
+   geomean v116b: x2.1228 over 5 shapes
+   geomean v112b: x2.2569 over 5 shapes
+
+==== [2026-10-24T09:17:48.016Z] Build v117 with 2x-unrolled stage loops and A/B at bs32/128/256
+CMD: cp dev/moe_v112.py dev/moe_v117.py && python3 - <<'EOF'
+p = "dev/moe_v117.py"
+s = open(p).read()
+def rep(a, b, cnt=1):
+    global s
+    assert s.count(a) == cnt, (s.count(a), a[:120])
+    s = s.replace(a, b)
+old_top = """#define MOE_RUN_ITEM_TOP(K)                                                                              \\
+    for (int st = 0; st < nst; ++st) {                                 
+   test {'bs': 4}: PASS relative L2 error 3.273e-03 (worst row 3.311e-03)
+   test {'bs': 33}: PASS relative L2 error 3.026e-03 (worst row 3.560e-03)
+   test {'bs': 257}: PASS relative L2 error 3.195e-03 (worst row 3.491e-03)
+   test {'bs': 128, 'dist': 'skewed'}: PASS relative L2 error 2.647e-03 (worst row 3.400e-03)
+   test {'bs': 1}: PASS relative L2 error 2.472e-03 (worst row 2.472e-03)
+   decode 32  bs  32 experts 16.66 (|16..18|) max_tok med 10.0
+      v112               124.5 us  x1.700 vs v112: x1.0000
+      u1                 126.3 us  x1.672 vs v112: x0.9823
+      u2                 128.9 us  x1.637 vs v112: x0.9621
+      u1b                126.3 us  x1.673 vs v112: x0.9853
+      v112b              124.2 us  x1.704 vs v112: x1.0007
+   verify 16  bs 128 experts 22.29 (|21..24|) max_tok med 55.0
+      v112               182.0 us  x2.518 vs v112: x1.0000
+      u1                 182.2 us  x2.515 vs v112: x0.9995
+      u2                 182.3 us  x2.517 vs v112: x0.9967
+      u1b                182.2 us  x2.525 vs v112: x1.0002
+      v112b              182.0 us  x2.522 vs v112: x1.0001
+   verify 32  bs 256 experts 24.82 (|24..26|) max_tok med 97.0
+      v112               226.4 us  x2.722 vs v112: x1.0000
+      u1                 228.3 us  x2.700 vs v112: x0.9932
+      u2                 228.4 us  x2.701 vs v112: x0.9916
+      u1b                228.3 us  x2.707 vs v112: x0.9942
+      v112b              226.4 us  x2.714 vs v112: x1.0001
+   geomean v112: x2.2669 over 3 shapes
+   geomean u1: x2.2478 over 3 shapes
+   geomean u2: x2.2330 over 3 shapes
+   geomean u1b: x2.2531 over 3 shapes
+   geomean v112b: x2.2680 over 3 shapes
+
+==== [2026-10-24T09:26:03.345Z] Re-sweep the bs8/16 and bs32 tile configs on shared weights
+CMD: M=<scratch>/modal-venv/bin/modal && B='[[1,[2,1,1]],[16,[X]],[32,[8,4,2]],[128,[8,4,1]],[512,[8,8,1]]]' && V=""; for c in "4,1,1" "8,1,1" "2,1,1" "8,1,2" "4,1,2"; do b=$(echo $B | sed "s/X/$c/"); V="$V;b$c|dev/moe_v112.py||{\"BUCKETS\": $b}"; done; V="${V#;}"; echo "$V" | head -c 300; echo; (timeout 3500 $M
+   decode 32  bs  32 experts 16.66 (|16..18|) max_tok med 10.0
+   geomean b8,4,2: x1.6912 over 1 shapes
+   geomean b8,4,1: x1.6840 over 1 shapes
+   geomean b8,2,2: x1.7099 over 1 shapes
+   geomean b8,2,1: x1.7167 over 1 shapes
+   geomean b8,1,2: x1.6593 over 1 shapes
+   geomean b8,4,2r: x1.6914 over 1 shapes
+   [1]+  Done                    ( timeout 3500 $M run dev/modal_run.py --cmd "python3 dev/bench2.py - --variants '$V;b4,1,1r|dev/moe_v112.py|' --reps 150 --shapes 8,16" 2>&1 | grep -a -E "^(geomean|decode|verify| )|rror|FAIL" | sed 's/  e<=.*vs b4,1,1/ vs b4,1,1
+   decode 16  bs  16 experts 12.05 (|11..13|) max_tok med 6.0
+   verify 1   bs   8 experts  8.37 (|8..9|) max_tok med 4.0
+   geomean b4,1,1: x2.1666 over 2 shapes
+   geomean b8,1,1: x2.0532 over 2 shapes
+   geomean b2,1,1: x2.0267 over 2 shapes
+   geomean b8,1,2: x2.0444 over 2 shapes
+   geomean b4,1,2: x2.0938 over 2 shapes
+   geomean b4,1,1r: x2.1653 over 2 shapes
+
+==== [2026-10-24T09:32:29.414Z] Sweep bs128/256 configs and confirm the bs32 config on nearby sizes
+CMD: grep -n "^SHAPES\|shapes" dev/bench2.py | head -5; python3 - <<'EOF'
+# allow arbitrary batch sizes in bench2 (nearby shapes): unknown sizes get the label "bs N"
+p = "muse-opt/muse_moe_w4a16/dev/bench2.py"
+s = open(p).read()
+a = """    for bs, name in SHAPES:
+        if want and bs not in want:
+            continue"""
+assert s.count(a) == 1
+s = s.replace(a, """    extra 
+   decode 32  bs  32 experts 13.01 (|13..17|) max_tok med 13.0
+   geomean b8,4,2: x1.9952 over 4 shapes
+   geomean b8,2,1: x2.0023 over 4 shapes
+   geomean b8,2,2: x2.0091 over 4 shapes
+   geomean b8,4,2r: x1.9974 over 4 shapes
+   [1]+  Done                    ( timeout 3500 $M run dev/modal_run.py --cmd "timeout 3300 python3 dev/bench2.py - --variants '$V;c8,4,1/8,8,1r|dev/moe_v112.py|' --reps 120 --shapes 128,256" 2>&1 | grep -a -E "^(geomean|decode|verify| )|rror|FAIL" | sed 's/  e<=
+   verify 16  bs 128 experts 22.37 (|21..24|) max_tok med 54.5
+      c8,4,1/8,8,1       180.6 us  x2.546 vs base: x1.0000
+      c8,8,1/8,8,1       181.4 us  x2.574 vs base: x1.0031
+      c8,4,2/8,8,2       182.6 us  x2.514 vs base: x0.9867
+      c8,2,1/8,4,1       194.9 us  x2.360 vs base: x0.9192
+      c8,4,1/8,4,1       180.5 us  x2.546 vs base: x0.9980
+      c8,4,1/8,8,1r      180.5 us  x2.542 vs base: x0.9987
+   verify 32  bs 256 experts 24.84 (|24..26|) max_tok med 105.0
+      c8,4,1/8,8,1       224.7 us  x2.756 vs base: x1.0000
+      c8,8,1/8,8,1       225.4 us  x2.748 vs base: x0.9970
+      c8,4,2/8,8,2       234.0 us  x2.648 vs base: x0.9621
+      c8,2,1/8,4,1       240.0 us  x2.598 vs base: x0.9411
+      c8,4,1/8,4,1       240.3 us  x2.600 vs base: x0.9428
+      c8,4,1/8,8,1r      225.1 us  x2.749 vs base: x1.0008
+   geomean c8,4,1/8,8,1: x2.6493 over 2 shapes
+   geomean c8,8,1/8,8,1: x2.6598 over 2 shapes
+   geomean c8,4,2/8,8,2: x2.5801 over 2 shapes
+   geomean c8,2,1/8,4,1: x2.4758 over 2 shapes
+   geomean c8,4,1/8,4,1: x2.5729 over 2 shapes
+   geomean c8,4,1/8,8,1r: x2.6438 over 2 shapes
+
+==== [2026-10-24T09:37:39.742Z] Sweep the wgmma threshold and tail-split weight on shared weights
+CMD: M=<scratch>/modal-venv/bin/modal && (timeout 3500 $M run dev/modal_run.py --cmd "timeout 3300 python3 dev/bench2.py - --variants 'w5|dev/moe_v118.py|;w4|dev/moe_v118.py|MOE_WGMIN=4;w3|dev/moe_v118.py|MOE_WGMIN=3;w5r|dev/moe_v118.py|' --reps 150 --shapes 256" 2>&1 | grep -a -E "^(geomean|decode|verify| )|rro
+   [1]+  Done                    M=<scratch>/modal-venv/bin/modal && ( timeout 3500 $M run dev/modal_run.py --cmd "timeout 3300 python3 dev/bench2.py - --variants 'w5|dev/
+   verify 32  bs 256 experts 24.82 (|24..26|) max_tok med 97.0
+      w5                 225.6 us  x2.742 vs w5: x1.0000
+      w4                 225.8 us  x2.730 vs w5: x0.9991
+      w3                 227.4 us  x2.727 vs w5: x0.9951
+      w5r                226.1 us  x2.737 vs w5: x1.0009
+   geomean w5: x2.7419 over 1 shapes
+   geomean w4: x2.7303 over 1 shapes
+   geomean w3: x2.7268 over 1 shapes
+   geomean w5r: x2.7367 over 1 shapes
+
+==== [2026-10-24T09:42:17.711Z] Sweep the tail-split weight at bs32/128/256
+CMD: M=<scratch>/modal-venv/bin/modal && timeout 3500 $M run dev/modal_run.py --cmd "timeout 3300 python3 dev/bench2.py - --variants 's1|dev/moe_v118.py|;s05|dev/moe_v118.py|MOE_SPLW=0.5f;s15|dev/moe_v118.py|MOE_SPLW=1.5f;s2|dev/moe_v118.py|MOE_SPLW=2.0f;s1r|dev/moe_v118.py|' --reps 120 --shapes 32,128,256" 2>&1
+      s1                 121.7 us  x1.736 vs s1: x1.0000
+      s05                122.3 us  x1.718 vs s1: x0.9910
+      s15                122.8 us  x1.722 vs s1: x0.9890
+      s2                 123.7 us  x1.710 vs s1: x0.9833
+      s1r                121.7 us  x1.737 vs s1: x0.9971
+   verify 16  bs 128 experts 22.37 (|21..24|) max_tok med 54.5
+      s1                 182.0 us  x2.533 vs s1: x1.0000
+      s05                183.5 us  x2.531 vs s1: x0.9997
+      s15                184.8 us  x2.514 vs s1: x0.9910
+      s2                 184.8 us  x2.493 vs s1: x0.9824
+      s1r                182.6 us  x2.536 vs s1: x0.9995
+   verify 32  bs 256 experts 24.84 (|24..26|) max_tok med 105.0
+      s1                 227.0 us  x2.737 vs s1: x1.0000
+      s05                226.8 us  x2.740 vs s1: x1.0024
+      s15                229.2 us  x2.721 vs s1: x0.9932
+      s2                 230.3 us  x2.696 vs s1: x0.9843
+      s1r                226.8 us  x2.740 vs s1: x1.0001
+   geomean s1: x2.2919 over 3 shapes
+   geomean s05: x2.2837 over 3 shapes
+   geomean s15: x2.2754 over 3 shapes
+   geomean s2: x2.2570 over 3 shapes
+   geomean s1r: x2.2936 over 3 shapes
+
+==== [2026-10-24T09:48:42.955Z] Validate v118 against v112 on all six shapes
+CMD: M=<scratch>/modal-venv/bin/modal && timeout 3500 $M run dev/modal_run.py --cmd "sh dev/setv.sh moe_v118 >/dev/null; timeout 400 python3 dev/kern_sass.py /tmp/k 2>&1 | grep -a -E 'C75|rror'; timeout 400 python3 dev/bench.py dev/abl.py --tests-only --no-base 2>&1 | grep -a -E 'test|rror' | cut -c1-120; B2_SHA
+   test {'bs': 4}: PASS relative L2 error 3.273e-03 (worst row 3.311e-03)
+   test {'bs': 33}: PASS relative L2 error 3.026e-03 (worst row 3.560e-03)
+   test {'bs': 257}: PASS relative L2 error 3.195e-03 (worst row 3.491e-03)
+   test {'bs': 128, 'dist': 'skewed'}: PASS relative L2 error 2.647e-03 (worst row 3.400e-03)
+   test {'bs': 1}: PASS relative L2 error 2.472e-03 (worst row 2.472e-03)
+   decode 1   bs   1 experts  2.52 (|2..3|) max_tok med 1.0
+      v112                22.9 us  x3.273 vs v112: x1.0000
+      v118                22.3 us  x3.358 vs v112: x1.0349
+      v118b               22.0 us  x3.385 vs v112: x1.0292
+      v112b               22.3 us  x3.374 vs v112: x1.0267
+   decode 16  bs  16 experts 12.05 (|11..13|) max_tok med 6.0
+      v112                86.4 us  x2.104 vs v112: x1.0000
+      v118                86.5 us  x2.097 vs v112: x1.0007
+      v118b               86.6 us  x2.097 vs v112: x1.0004
+      v112b               86.6 us  x2.095 vs v112: x1.0000
+   decode 32  bs  32 experts 16.54 (|15..18|) max_tok med 10.0
+      v112               124.7 us  x1.693 vs v112: x1.0000
+      v118               123.1 us  x1.716 vs v112: x1.0164
+      v118b              123.2 us  x1.713 vs v112: x1.0163
+      v112b              124.7 us  x1.692 vs v112: x0.9985
+   verify 1   bs   8 experts  8.28 (|7..9|) max_tok med 3.0
+      v112                60.8 us  x2.201 vs v112: x1.0000
+      v118                60.9 us  x2.207 vs v112: x1.0000
+      v118b               61.3 us  x2.211 vs v112: x0.9998
+      v112b               61.1 us  x2.215 vs v112: x1.0030
+   verify 16  bs 128 experts 22.43 (|21..24|) max_tok med 52.5
+      v112               184.0 us  x2.516 vs v112: x1.0000
+      v118               185.3 us  x2.509 vs v112: x0.9965
+      v118b              184.5 us  x2.507 vs v112: x0.9971
+      v112b              185.2 us  x2.507 vs v112: x0.9965
+   verify 32  bs 256 experts 24.70 (|24..26|) max_tok med 97.0
+      v112               227.4 us  x2.702 vs v112: x1.0000
+      v118               228.2 us  x2.696 vs v112: x0.9977
+      v118b              228.4 us  x2.690 vs v112: x0.9966
+      v112b              227.6 us  x2.700 vs v112: x0.9994
+   geomean v112: x2.3637 over 6 shapes
+   geomean v118: x2.3771 over 6 shapes
+   geomean v118b: x2.3792 over 6 shapes
+   geomean v112b: x2.3744 over 6 shapes
+
+==== [2026-10-24T09:54:02.677Z] Sweep the bs1 fused kernel ring depth and accumulator replicas
+CMD: grep -n "^NS1\|NS1 =" dev/moe_v118.py | head -3; M=<scratch>/modal-venv/bin/modal && timeout 3500 $M run dev/modal_run.py --cmd "timeout 3300 python3 dev/bench2.py - --variants 'warm|dev/moe_v118.py|;n5|dev/moe_v118.py|;n4|dev/moe_v118.py||{\"NS1\": 4};n3|dev/moe_v118.py||{\"NS1\": 3};yr2|dev/moe_v118.py|MO
+   decode 1   bs   1 experts  2.57 (|2..3|) max_tok med 1.0
+      warm                22.8 us  x3.297 vs warm: x1.0000
+      n5                  22.7 us  x3.299 vs warm: x0.9985
+      n4                  22.4 us  x3.314 vs warm: x1.0120
+      n3                  22.5 us  x3.302 vs warm: x1.0076
+      yr2                 24.7 us  x3.033 vs warm: x0.9293
+      n5b                 23.1 us  x3.255 vs warm: x0.9947
+   geomean warm: x3.2974 over 1 shapes
+   geomean n5: x3.2985 over 1 shapes
+   geomean n4: x3.3135 over 1 shapes
+   geomean n3: x3.3022 over 1 shapes
+   geomean yr2: x3.0331 over 1 shapes
+   geomean n5b: x3.2552 over 1 shapes
+
+==== [2026-10-24T09:59:25.414Z] Confirm the bs1 ring depth with three interleaved copies
+CMD: M=<scratch>/modal-venv/bin/modal && timeout 3500 $M run dev/modal_run.py --cmd "timeout 3300 python3 dev/bench2.py - --variants 'warm|dev/moe_v118.py|;n5a|dev/moe_v118.py|;n4a|dev/moe_v118.py||{\"NS1\": 4};n5b|dev/moe_v118.py|;n4b|dev/moe_v118.py||{\"NS1\": 4};n5c|dev/moe_v118.py|;n4c|dev/moe_v118.py||{\"NS
+   decode 1   bs   1 experts  2.57 (|2..3|) max_tok med 1.0
+      warm                22.5 us  x3.310  e=2:x3.503(158)  e=3:x2.646(118)  e=4:x2.368(20)  e=5:x2.162(4)  vs warm: x1.0000
+      n5a                 22.7 us  x3.293  e=2:x3.497(158)  e=3:x2.632(118)  e=4:x2.333(20)  e=5:x2.161(4)  vs warm: x0.9970
+      n4a                 22.3 us  x3.365  e=2:x3.562(158)  e=3:x2.688(118)  e=4:x2.339(20)  e=5:x2.146(4)  vs warm: x1.0150
+      n5b                 22.9 us  x3.271  e=2:x3.503(158)  e=3:x2.657(118)  e=4:x2.360(20)  e=5:x2.145(4)  vs warm: x0.9981
+      n4b                 22.0 us  x3.371  e=2:x3.595(158)  e=3:x2.701(118)  e=4:x2.353(20)  e=5:x2.100(4)  vs warm: x1.0229
+      n5c                 22.7 us  x3.309  e=2:x3.487(158)  e=3:x2.625(118)  e=4:x2.337(20)  e=5:x2.090(4)  vs warm: x0.9962
+      n4c                 22.1 us  x3.394  e=2:x3.571(158)  e=3:x2.695(118)  e=4:x2.342(20)  e=5:x2.153(4)  vs warm: x1.0184
+   geomean warm: x3.3095 over 1 shapes
+   geomean n5a: x3.2927 over 1 shapes
+   geomean n4a: x3.3653 over 1 shapes
+   geomean n5b: x3.2707 over 1 shapes
+   geomean n4b: x3.3713 over 1 shapes
+   geomean n5c: x3.3095 over 1 shapes
+   geomean n4c: x3.3942 over 1 shapes
+
+==== [2026-10-24T10:03:57.487Z] Test v119 and sweep a 3-stage main-kernel ring
+CMD: cp dev/moe_v118.py dev/moe_v119.py && python3 - <<'EOF'
+p = "muse-opt/muse_moe_w4a16/dev/moe_v119.py"
+s = open(p).read()
+a = "NS1 = 5"
+assert s.count(a) == 1
+i = s.index(a); j = s.index("\n", i)
+print("line:", s[i:j])
+s = s[:i] + "NS1 = 4   # one-token kernel ring stages (re-swept on shared weights: 4 is ~2% faster than 5)" + s[j:]
+open(p, "w").write(s)
+EOF
+M=/tmp/claud
+   test {'bs': 4}: PASS relative L2 error 3.273e-03 (worst row 3.311e-03)
+   test {'bs': 33}: PASS relative L2 error 3.026e-03 (worst row 3.560e-03)
+   test {'bs': 257}: PASS relative L2 error 3.195e-03 (worst row 3.491e-03)
+   test {'bs': 128, 'dist': 'skewed'}: PASS relative L2 error 2.647e-03 (worst row 3.400e-03)
+   test {'bs': 1}: PASS relative L2 error 2.473e-03 (worst row 2.473e-03)
+   decode 16  bs  16 experts 12.05 (|11..13|) max_tok med 6.0
+      v119                84.8 us  x2.149 vs v119: x1.0000
+      ns3                 88.7 us  x2.051 vs v119: x0.9566
+      v119b               85.1 us  x2.145 vs v119: x0.9990
+      ns3b                88.2 us  x2.048 vs v119: x0.9562
+   decode 32  bs  32 experts 16.66 (|16..18|) max_tok med 10.0
+      v119               120.3 us  x1.759 vs v119: x1.0000
+      ns3                120.8 us  x1.748 vs v119: x0.9958
+      v119b              121.0 us  x1.751 vs v119: x0.9969
+      ns3b               121.1 us  x1.749 vs v119: x0.9947
+   verify 1   bs   8 experts  8.37 (|8..9|) max_tok med 4.0
+      v119                60.1 us  x2.226 vs v119: x1.0000
+      ns3                 62.9 us  x2.110 vs v119: x0.9523
+      v119b               60.2 us  x2.232 vs v119: x0.9991
+      ns3b                63.0 us  x2.109 vs v119: x0.9500
+   verify 16  bs 128 experts 22.29 (|21..24|) max_tok med 55.0
+      v119               178.8 us  x2.541 vs v119: x1.0000
+      ns3                180.4 us  x2.526 vs v119: x0.9906
+      v119b              178.9 us  x2.538 vs v119: x0.9963
+      ns3b               180.7 us  x2.521 vs v119: x0.9905
+   geomean v119: x2.1503 over 4 shapes
+   geomean ns3: x2.0906 over 4 shapes
+   geomean v119b: x2.1476 over 4 shapes
+   geomean ns3b: x2.0890 over 4 shapes
+

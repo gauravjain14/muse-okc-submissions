@@ -1,0 +1,84 @@
+[gate] slot 2 at 08:28:49 (2 running)
+✓ Initialized. View run at 
+<modal-run-url>
+✓ Created objects.
+├── 🔨 Created mount 
+│   autoresearch-kernels/attn/tools/modal_run.py
+├── 🔨 Created mount autoresearch-kernels/attn
+└── 🔨 Created function run.
+[gpu-before]
+NVIDIA H200, 0 %, 4 MiB, 345 MHz, 1980 MHz, 79.99 W
+0
+attn_8_0_0_0     k29.py     regs 128 spill st112/ld120         loop 586 instr MUFU 39 F2FP 16 PRMT 8 LDL 0 STL 0
+attn_8_0_0_0     k30h.py    regs 128 spill st116/ld164         loop 550 instr MUFU 7 F2FP 18 PRMT 18 LDL 0 STL 0
+attn_8_0_0_1     k29.py     regs 128 spill st0/ld0             loop 565 instr MUFU 7 F2FP 0 PRMT 32 LDL 0 STL 0
+attn_8_0_0_1     k30h.py    regs 128 spill st0/ld0             loop 517 instr MUFU 7 F2FP 18 PRMT 18 LDL 0 STL 0
+attn_8_0_1_0     k29.py     regs 128 spill st0/ld0             loop 398 instr MUFU 34 F2FP 16 PRMT 8 LDL 0 STL 0
+attn_8_0_1_0     k30h.py    regs 128 spill st4/ld8             loop 362 instr MUFU 2 F2FP 18 PRMT 18 LDL 0 STL 0
+attn_8_0_1_1     k29.py     regs 126 spill st0/ld0             loop 405 instr MUFU 2 F2FP 0 PRMT 32 LDL 0 STL 0
+attn_8_0_1_1     k30h.py    regs 126 spill st0/ld0             loop 356 instr MUFU 2 F2FP 18 PRMT 18 LDL 0 STL 0
+attn_8_1_0_0     k29.py     regs 128 spill st132/ld180         loop 675 instr MUFU 7 F2FP 0 PRMT 32 LDL 0 STL 0
+attn_8_1_0_0     k30h.py    regs 128 spill st132/ld180         loop 626 instr MUFU 7 F2FP 18 PRMT 18 LDL 0 STL 0
+attn_8_1_0_1     k29.py     regs 128 spill st12/ld16           loop 637 instr MUFU 7 F2FP 0 PRMT 32 LDL 0 STL 0
+attn_8_1_0_1     k30h.py    regs 128 spill st12/ld16           loop 592 instr MUFU 7 F2FP 18 PRMT 18 LDL 0 STL 0
+attn_8_1_0_1c    k29.py     regs 126 spill st0/ld0             loop 641 instr MUFU 7 F2FP 0 PRMT 32 LDL 0 STL 0
+attn_8_1_0_1c    k30h.py    regs 125 spill st0/ld0             loop 593 instr MUFU 7 F2FP 18 PRMT 18 LDL 0 STL 0
+attn_8_1_0_1h    k29.py     regs  79 spill st0/ld0             loop 1816 instr MUFU 61 F2FP 51 PRMT 23 LDL 0 STL 0
+attn_8_1_0_1h    k30h.py    regs  79 spill st0/ld0             loop 1816 instr MUFU 61 F2FP 51 PRMT 23 LDL 0 STL 0
+attn_8_1_0_1p2   k29.py     regs 126 spill st0/ld0             loop 1092 instr MUFU 23 F2FP 6 PRMT 55 LDL 0 STL 0
+attn_8_1_0_1p2   k30h.py    regs 126 spill st0/ld0             loop 1092 instr MUFU 23 F2FP 6 PRMT 55 LDL 0 STL 0
+attn_8_1_0_1p3   k29.py     regs 126 spill st0/ld0             loop 1122 instr MUFU 25 F2FP 6 PRMT 55 LDL 0 STL 0
+attn_8_1_0_1p3   k30h.py    regs 126 spill st0/ld0             loop 1122 instr MUFU 25 F2FP 6 PRMT 55 LDL 0 STL 0
+attn_8_1_0_1q    k29.py     regs 128 spill st0/ld0             loop 663 instr MUFU 7 F2FP 0 PRMT 32 LDL 0 STL 0
+attn_8_1_0_1q    k30h.py    regs 128 spill st0/ld0             loop 614 instr MUFU 7 F2FP 18 PRMT 18 LDL 0 STL 0
+attn_8_1_0_1r    k29.py     regs 128 spill st0/ld0             loop 663 instr MUFU 7 F2FP 0 PRMT 32 LDL 0 STL 0
+attn_8_1_0_1r    k30h.py    regs 128 spill st0/ld0             loop 614 instr MUFU 7 F2FP 18 PRMT 18 LDL 0 STL 0
+attn_8_1_0_1w4   k29.py     regs 128 spill st0/ld0             loop 1654 instr MUFU 51 F2FP 12 PRMT 48 LDL 0 STL 0
+attn_8_1_0_1w4   k30h.py    regs 128 spill st0/ld0             loop 1595 instr MUFU 51 F2FP 37 PRMT 32 LDL 0 STL 0
+attn_8_1_0_1w8   k29.py     regs 128 spill st0/ld0             loop 1643 instr MUFU 51 F2FP 12 PRMT 48 LDL 0 STL 0
+attn_8_1_0_1w8   k30h.py    regs 128 spill st0/ld0             loop 1585 instr MUFU 51 F2FP 37 PRMT 32 LDL 0 STL 0
+attn_8_1_0_1x6   k29.py     regs 128 spill st0/ld0             loop 1116 instr MUFU 25 F2FP 6 PRMT 55 LDL 0 STL 0
+attn_8_1_0_1x6   k30h.py    regs 128 spill st0/ld0             loop 1060 instr MUFU 25 F2FP 31 PRMT 39 LDL 0 STL 0
+attn_8_1_1_0     k29.py     regs 128 spill st0/ld0             loop 491 instr MUFU 2 F2FP 0 PRMT 32 LDL 0 STL 0
+attn_8_1_1_0     k30h.py    regs 128 spill st0/ld0             loop 442 instr MUFU 2 F2FP 18 PRMT 18 LDL 0 STL 0
+attn_8_1_1_1     k29.py     regs 128 spill st4/ld4             loop 471 instr MUFU 2 F2FP 0 PRMT 32 LDL 0 STL 0
+attn_8_1_1_1     k30h.py    regs 128 spill st4/ld4             loop 423 instr MUFU 2 F2FP 18 PRMT 18 LDL 0 STL 0
+attn_8_1_1_1c    k29.py     regs 128 spill st0/ld0             loop 474 instr MUFU 2 F2FP 0 PRMT 32 LDL 0 STL 0
+attn_8_1_1_1c    k30h.py    regs 128 spill st0/ld0             loop 425 instr MUFU 2 F2FP 18 PRMT 18 LDL 0 STL 0
+attn_8_1_1_1h    k29.py     regs  80 spill st0/ld0             loop 1758 instr MUFU 60 F2FP 51 PRMT 23 LDL 0 STL 0
+attn_8_1_1_1h    k30h.py    regs  80 spill st0/ld0             loop 1758 instr MUFU 60 F2FP 51 PRMT 23 LDL 0 STL 0
+attn_8_1_1_1p2   k29.py     regs 124 spill st0/ld0             loop 1088 instr MUFU 23 F2FP 6 PRMT 55 LDL 0 STL 0
+attn_8_1_1_1p2   k30h.py    regs 124 spill st0/ld0             loop 1088 instr MUFU 23 F2FP 6 PRMT 55 LDL 0 STL 0
+attn_8_1_1_1p3   k29.py     regs 125 spill st0/ld0             loop 1110 instr MUFU 25 F2FP 6 PRMT 55 LDL 0 STL 0
+attn_8_1_1_1p3   k30h.py    regs 125 spill st0/ld0             loop 1110 instr MUFU 25 F2FP 6 PRMT 55 LDL 0 STL 0
+attn_8_1_1_1q    k29.py     regs 128 spill st0/ld0             loop 498 instr MUFU 2 F2FP 0 PRMT 32 LDL 0 STL 0
+attn_8_1_1_1q    k30h.py    regs 128 spill st0/ld0             loop 450 instr MUFU 2 F2FP 18 PRMT 18 LDL 0 STL 0
+attn_8_1_1_1r    k29.py     regs 128 spill st0/ld0             loop 498 instr MUFU 2 F2FP 0 PRMT 32 LDL 0 STL 0
+attn_8_1_1_1r    k30h.py    regs 128 spill st0/ld0             loop 451 instr MUFU 2 F2FP 18 PRMT 18 LDL 0 STL 0
+attn_8_1_1_1w4   k29.py     regs 128 spill st0/ld0             loop 1654 instr MUFU 51 F2FP 12 PRMT 48 LDL 0 STL 0
+attn_8_1_1_1w4   k30h.py    regs 128 spill st0/ld0             loop 1594 instr MUFU 51 F2FP 37 PRMT 32 LDL 0 STL 0
+attn_8_1_1_1w8   k29.py     regs 128 spill st0/ld0             loop 1643 instr MUFU 51 F2FP 12 PRMT 48 LDL 0 STL 0
+attn_8_1_1_1w8   k30h.py    regs 128 spill st0/ld0             loop 1584 instr MUFU 51 F2FP 37 PRMT 32 LDL 0 STL 0
+attn_8_1_1_1x6   k29.py     regs 128 spill st0/ld0             loop 1115 instr MUFU 25 F2FP 6 PRMT 55 LDL 0 STL 0
+attn_8_1_1_1x6   k30h.py    regs 128 spill st0/ld0             loop 1059 instr MUFU 25 F2FP 31 PRMT 39 LDL 0 STL 0
+[k29a] import 31.6s
+[h] import 31.5s
+[hsl0] import 31.1s
+[k29b] import 0.9s
+[hb] import 1.0s
+fixed graph cost 5.09 us
+verify 1  sliding w46 | k29a     5.12 (min 4.77) | h     5.15 (min 4.93) | hsl0     5.04 (min 4.86) | k29b     4.99 (min 4.67) | hb     4.96 (min 4.64)   sol    0.12
+verify 1  full    w16 | k29a    17.02 (min 16.45) | h    16.21 (min 15.74) | hsl0    16.37 (min 16.00) | k29b    16.94 (min 16.48) | hb    16.32 (min 15.68)   sol    4.28
+verify 16 sliding w46 | k29a    10.40 (min 10.05) | h     9.97 (min 9.47) | hsl0    10.42 (min 10.02) | k29b    10.56 (min 10.27) | hb     9.92 (min 9.44)   sol    1.86
+verify 16 full    w16 | k29a   106.22 (min 100.03) | h   100.21 (min 95.90) | hsl0   100.11 (min 96.80) | k29b   106.30 (min 101.31) | hb   100.24 (min 96.64)   sol   63.39
+verify 32 sliding w46 | k29a    13.66 (min 13.28) | h    13.22 (min 12.80) | hsl0    13.82 (min 13.25) | k29b    13.79 (min 13.47) | hb    13.18 (min 12.83)   sol    3.72
+verify 32 full    w16 | k29a   195.84 (min 192.54) | h   183.36 (min 180.58) | hsl0   183.47 (min 178.72) | k29b   195.52 (min 191.17) | hb   183.49 (min 180.64)   sol  126.78
+[gpu-after]
+NVIDIA H200, 0 %, 4 MiB, 1980 MHz, 1980 MHz, 293.32 W
+0
+
+[exit 0]
+Stopping app - local entrypoint completed.
+Runner terminated.
+✓ App completed. View run at 
+<modal-run-url>

@@ -1,0 +1,65 @@
+✓ Initialized. View run at 
+<modal-run-url>
+✓ Created objects.
+├── ✓ Uploaded 
+│   muse-opt/muse_moe_w4a16/dev/modal_run.py
+├── ✓ Uploaded muse-opt/muse_moe_w4a16
+└── ✓ Created Function run.
+        effective SM clock 1.787 GHz
+bs   1: start    0.0-   0.2  routed by    2.8  work end    28.5 .. median    30.7 ..    32.3  combine end    35.9 us
+        compute per stage (warp 0): 977 ns over 2304 stages; per CTA compute 17.3 us
+        per CTA (median): consumer wait    3.8  epilogue    3.0  items    6  producer empty-wait    3.1  dep-wait    0.0 us
+        epilogue split (median per CTA): k-reduction   0.2  stores   1.6  signal   0.9 us
+        per-warp compute (median over CTAs, us): w0:17.6 w1:17.8 w2:17.8 w3:17.7 w4:17.7 w5:17.9 w6:17.6 w7:17.6
+        consumer accounted (wait+epi+compute) median   24.1 us vs work end   30.7
+        producer (median): claim-wait 17498232.0  dep-polls   0.9 us
+        routing: bitmaps done   1.7/  1.8  ranked   2.4/  2.4  pair list done   2.7/  2.7  routed   2.8/  2.8 us
+        effective SM clock 1.778 GHz
+bs   8: start    0.0-   0.1  routed by    2.6  work end    68.8 .. median    73.5 ..    74.4  combine end    77.2 us
+        compute per stage (warp 0): 816 ns over 7680 stages; per CTA compute 48.2 us
+        per CTA (median): consumer wait    6.9  epilogue    4.8  items   10  producer empty-wait    8.8  dep-wait    0.0 us
+        epilogue split (median per CTA): k-reduction   0.6  stores   2.3  signal   1.5 us
+        per-warp compute (median over CTAs, us): w0:49.5 w1:50.2 w2:50.3 w3:50.3 w4:48.9 w5:49.6 w6:49.8 w7:49.9
+        consumer accounted (wait+epi+compute) median   60.0 us vs work end   73.5
+        producer (median): claim-wait 17642648.0  dep-polls   2.1 us
+        routing: bitmaps done   1.5/  1.5  ranked   2.1/  2.2  pair list done   2.4/  2.4  routed   2.4/  2.6 us
+        effective SM clock 1.761 GHz
+bs  16: start    0.0-   0.2  routed by    2.8  work end    82.4 .. median    85.8 ..    87.8  combine end    90.9 us
+        compute per stage (warp 0): 814 ns over 9216 stages; per CTA compute 57.3 us
+        per CTA (median): consumer wait    7.5  epilogue    5.8  items   12  producer empty-wait    9.7  dep-wait    0.0 us
+        epilogue split (median per CTA): k-reduction   0.7  stores   2.7  signal   1.8 us
+        per-warp compute (median over CTAs, us): w0:58.7 w1:58.8 w2:58.6 w3:58.6 w4:58.1 w5:58.3 w6:58.2 w7:58.2
+        consumer accounted (wait+epi+compute) median   71.1 us vs work end   85.8
+        producer (median): claim-wait 17832250.0  dep-polls   1.8 us
+        routing: bitmaps done   1.8/  1.8  ranked   2.4/  2.5  pair list done   2.6/  2.7  routed   2.7/  2.8 us
+        effective SM clock 1.763 GHz
+bs  32: start    0.0-   0.3  routed by    4.4  work end   101.2 .. median   104.9 ..   106.3  combine end   111.0 us
+        compute per stage (warp 0): 888 ns over 10752 stages; per CTA compute 72.4 us
+        per CTA (median): consumer wait    8.6  epilogue    4.4  items    8  producer empty-wait   16.8  dep-wait    0.0 us
+        epilogue split (median per CTA): k-reduction   1.5  stores   1.7  signal   1.0 us
+        per-warp compute (median over CTAs, us): w0:73.7 w1:71.7 w2:72.0 w3:72.1 w4:74.6 w5:72.0 w6:72.1 w7:72.1
+        consumer accounted (wait+epi+compute) median   85.3 us vs work end  104.9
+        producer (median): claim-wait 17829008.0  dep-polls   1.3 us
+        routing: bitmaps done   1.6/  1.7  ranked   2.2/  2.3  pair list done   2.4/  2.5  routed   3.2/  4.4 us
+        effective SM clock 1.745 GHz
+bs 128: start    0.0-   0.4  routed by    5.4  work end   171.9 .. median   174.9 ..   176.8  combine end   182.0 us
+        compute per stage (warp 0): 935 ns over 18432 stages; per CTA compute 130.6 us
+        per CTA (median): consumer wait   10.2  epilogue    7.5  items   12  producer empty-wait   38.4  dep-wait    0.0 us
+        epilogue split (median per CTA): k-reduction   2.0  stores   3.5  signal   1.3 us
+        per-warp compute (median over CTAs, us): w0:133.6 w1:125.2 w2:125.8 w3:126.3 w4:131.5 w5:122.3 w6:121.8 w7:122.3
+        consumer accounted (wait+epi+compute) median  148.4 us vs work end  174.9
+        producer (median): claim-wait 18040462.0  dep-polls   1.7 us
+        routing: bitmaps done   1.7/  1.7  ranked   2.5/  2.6  pair list done   3.0/  3.1  routed   4.6/  5.4 us
+        effective SM clock 1.762 GHz
+bs 256: start    0.0-   0.2  routed by    8.7  work end   211.0 .. median   214.3 ..   216.2  combine end   228.0 us
+        compute per stage (warp 0): 1060 ns over 19200 stages; per CTA compute 153.9 us
+        per CTA (median): consumer wait   11.2  epilogue   11.8  items   12  producer empty-wait   46.8  dep-wait    0.0 us
+        epilogue split (median per CTA): k-reduction   4.1  stores   5.8  signal   1.3 us
+        per-warp compute (median over CTAs, us): w0:158.8 w1:154.0 w2:154.3 w3:154.2 w4:157.5 w5:152.2 w6:152.0 w7:152.1
+        consumer accounted (wait+epi+compute) median  177.0 us vs work end  214.3
+        producer (median): claim-wait 17885416.0  dep-polls   1.9 us
+        routing: bitmaps done   1.8/  1.8  ranked   2.8/  2.9  pair list done   3.6/  3.7  routed   7.3/  8.7 us
+
+Stopping app - local entrypoint completed.
+✓ App completed. View run at 
+<modal-run-url>

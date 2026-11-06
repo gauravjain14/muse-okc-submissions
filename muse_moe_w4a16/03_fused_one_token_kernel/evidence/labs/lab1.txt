@@ -1,0 +1,6 @@
+[
+    {"bs": [8, 16], "variants": [("bulk", [], {}), ("tmap", ["MOE_TMAP_MAIN"], {})], "seeds": 16, "reps": 3},
+    {"bs": [1], "variants": [("fused5", [], {}), ("fused4", [], {"NS1": 4}), ("old", [], {"ONE_TOKEN": False})], "seeds": 24, "reps": 3},
+    {"trace1": [9000, 9001, 9002, 9003], "variants": [("fused5", [], {})]},
+    {"bs": [32, 128, 256], "variants": [("bulk", [], {}), ("tmap", ["MOE_TMAP_MAIN"], {})], "seeds": 8, "reps": 2},
+]

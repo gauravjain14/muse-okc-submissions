@@ -1,0 +1,17 @@
+test {'bs': 4}: PASS relative L2 error 2.524e-03 (worst row 2.577e-03)
+test {'bs': 33}: PASS relative L2 error 2.550e-03 (worst row 2.777e-03)
+test {'bs': 257}: PASS relative L2 error 2.545e-03 (worst row 2.758e-03)
+test {'bs': 128, 'dist': 'skewed'}: PASS relative L2 error 2.546e-03 (worst row 2.723e-03)
+test {'bs': 1}: PASS relative L2 error 2.472e-03 (worst row 2.472e-03)
+test {'bs': 4}: PASS relative L2 error 2.524e-03 (worst row 2.577e-03)
+test {'bs': 33}: PASS relative L2 error 2.550e-03 (worst row 2.777e-03)
+test {'bs': 257}: PASS relative L2 error 2.545e-03 (worst row 2.758e-03)
+test {'bs': 128, 'dist': 'skewed'}: PASS relative L2 error 2.546e-03 (worst row 2.723e-03)
+test {'bs': 1}: PASS relative L2 error 2.472e-03 (worst row 2.472e-03)
+v51                           : 1:33.9(2.358x) 16:91.0(2.003x) 32:128.9(1.644x) 8:70.0(2.112x) 128:189.2(2.470x) 256:229.8(2.673x) 2.183x
+v54 ssq                       : 1:35.2(2.256x) 16:92.6(1.961x) 32:127.9(1.647x) 8:72.8(2.039x) 128:197.8(2.361x) 256:247.0(2.499x) 2.108x
+v54 ssq ks1 small             : 1:33.3(2.402x) 16:87.4(2.078x) 32:128.8(1.650x) 8:69.0(2.153x) 128:197.3(2.369x) 256:246.6(2.503x) 2.172x
+v51 ks1 small                 : 1:33.2(2.404x) 16:88.4(2.033x) 32:128.9(1.648x) 8:70.3(2.113x) 128:188.6(2.474x) 256:230.1(2.672x) 2.197x
+v54 ssq ks1 all               : 1:33.4(2.377x) 16:87.2(2.067x) 32:135.7(1.541x) 8:68.7(2.169x) 128:196.4(2.375x) 256:247.4(2.501x) 2.146x
+v51                           : 1:33.5(2.380x) 16:89.8(2.016x) 32:128.6(1.645x) 8:70.0(2.116x) 128:189.0(2.475x) 256:229.5(2.688x) 2.192x
+v54 ssq ks1 small             : 1:33.2(2.386x) 16:87.9(2.063x) 32:127.8(1.640x) 8:68.8(2.149x) 128:197.5(2.362x) 256:247.0(2.506x) 2.164x

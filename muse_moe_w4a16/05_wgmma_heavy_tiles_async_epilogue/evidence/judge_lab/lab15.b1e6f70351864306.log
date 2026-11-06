@@ -1,0 +1,23 @@
+lab: NVIDIA H200, 132 SMs
+lab env: torch 2.14.1+cu130 (cuda 13.0), cuda-python 13.4.3, nvrtc 13.0, driver api 13000
+lab trace bs 8 seed 9000: first 5.5/5.9 items 48.6 epi 4.5 gaps 1.6 (n 4.8) | last epi min 54.1 med 60.8 max 63.2 | combine end 65.2 us
+lab trace bs 8 seed 9000 bins(4us): 0 83 132 103 123 132 100 132 100 130 114 115 120 95 106 22 0
+lab trace bs 8 seed 9001: first 5.1/5.8 items 43.0 epi 3.9 gaps 1.9 (n 4.1) | last epi min 51.6 med 53.8 max 60.4 | combine end 62.5 us
+lab trace bs 8 seed 9001 bins(4us): 0 95 132 99 128 117 104 132 91 131 115 109 121 35 10 0
+lab trace bs 16 seed 9000: first 5.3/6.0 items 77.7 epi 7.5 gaps 2.6 (n 8.5) | last epi min 88.9 med 91.3 max 98.1 | combine end 100.5 us
+lab trace bs 16 seed 9000 bins(4us): 0 88 132 99 128 121 109 132 101 132 119 113 124 104 132 100 132 96 125 112 110 122 73 58 5 0
+lab trace bs 16 seed 9001: first 5.3/5.8 items 66.2 epi 6.3 gaps 3.0 (n 7.0) | last epi min 78.8 med 80.6 max 83.6 | combine end 85.8 us
+lab trace bs 16 seed 9001 bins(4us): 0 88 132 101 125 124 103 132 97 129 107 109 131 101 132 92 128 101 121 118 13 0
+lab trace bs 32 seed 9000: first 6.4/6.6 items 99.8 epi 5.0 gaps 5.1 (n 8.1) | last epi min 114.1 med 116.3 max 119.6 | combine end 123.6 us
+lab trace bs 32 seed 9000 bins(4us): 0 53 132 132 132 132 91 116 131 132 118 116 123 132 128 111 124 132 132 111 125 128 123 108 105 98 108 103 101 18 0
+lab trace bs 32 seed 9001: first 7.0/7.3 items 83.3 epi 4.4 gaps 4.2 (n 7.0) | last epi min 96.0 med 99.4 max 101.3 | combine end 104.0 us
+lab trace bs 32 seed 9001 bins(4us): 0 32 132 132 132 132 94 127 117 132 125 112 124 131 132 111 126 121 121 117 111 99 100 109 75 5 0
+lab trace bs 128 seed 9000: first 8.7/11.1 items 161.7 epi 4.6 gaps 5.6 (n 11.0) | last epi min 178.4 med 182.2 max 184.0 | combine end 188.8 us
+lab trace bs 128 seed 9000 bins(4us): 0 0 67 132 132 132 132 129 97 132 132 132 131 120 124 132 132 126 114 132 132 130 116 128 132 131 122 120 132 131 126 120 132 126 128 132 116 123 126 122 107 105 111 107 98 56 0 0
+lab trace bs 128 seed 9001: first 8.4/10.4 items 164.3 epi 4.7 gaps 6.1 (n 11.4) | last epi min 182.1 med 184.5 max 187.3 | combine end 192.0 us
+lab trace bs 128 seed 9001 bins(4us): 0 0 81 132 132 132 126 131 98 132 132 127 131 125 122 127 131 130 115 128 130 132 118 129 127 131 126 121 125 131 130 117 131 132 130 122 119 122 128 126 117 113 99 101 102 107 22 0 0
+lab trace bs 256 seed 9000: first 10.2/15.2 items 209.4 epi 5.5 gaps 3.2 (n 9.2) | last epi min 225.7 med 227.8 max 242.9 | combine end 246.1 us
+lab trace bs 256 seed 9000 bins(4us): 0 0 14 68 132 132 124 132 132 132 123 117 132 124 132 132 132 126 119 122 132 132 132 127 118 122 132 131 122 119 128 131 125 118 123 132 130 119 120 129 131 123 127 129 132 125 128 125 123 132 131 129 108 128 131 131 98 51 38 35 11 0
+lab trace bs 256 seed 9001: first 10.5/14.8 items 196.9 epi 5.0 gaps 3.1 (n 8.5) | last epi min 210.9 med 218.8 max 226.9 | combine end 229.3 us
+lab trace bs 256 seed 9001 bins(4us): 0 0 23 89 132 132 132 132 114 128 125 128 132 132 130 117 120 130 128 132 132 118 126 126 131 132 128 111 130 125 132 120 124 125 132 128 114 126 131 131 124 132 127 121 129 127 129 132 118 131 125 128 120 81 64 25 9 0
+lab: experiment took 6 s

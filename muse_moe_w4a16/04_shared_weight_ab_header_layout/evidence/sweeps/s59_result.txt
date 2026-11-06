@@ -1,0 +1,24 @@
+  ptxas: ptxas         .     112 bytes stack frame, 92 bytes spill stores, 184 bytes spill loads
+  ptxas: ptxas         .     112 bytes stack frame, 92 bytes spill stores, 184 bytes spill loads
+  ptxas: ptxas         .     144 bytes stack frame, 80 bytes spill stores, 204 bytes spill loads
+  ptxas: ptxas         .     144 bytes stack frame, 80 bytes spill stores, 204 bytes spill loads
+test {'bs': 4}: PASS relative L2 error 3.273e-03 (worst row 3.311e-03)
+test {'bs': 33}: PASS relative L2 error 3.026e-03 (worst row 3.560e-03)
+test {'bs': 257}: PASS relative L2 error 3.195e-03 (worst row 3.491e-03)
+test {'bs': 128, 'dist': 'skewed'}: PASS relative L2 error 2.647e-03 (worst row 3.400e-03)
+test {'bs': 1}: PASS relative L2 error 2.472e-03 (worst row 2.472e-03)
+test {'bs': 4}: PASS relative L2 error 3.273e-03 (worst row 3.311e-03)
+test {'bs': 33}: PASS relative L2 error 3.026e-03 (worst row 3.560e-03)
+test {'bs': 257}: PASS relative L2 error 3.195e-03 (worst row 3.491e-03)
+test {'bs': 128, 'dist': 'skewed'}: PASS relative L2 error 2.647e-03 (worst row 3.400e-03)
+test {'bs': 1}: PASS relative L2 error 2.472e-03 (worst row 2.472e-03)
+v90                           : 32:119.5(1.714x) 128:186.7(2.489x) 256:223.1(2.748x) 2.272x
+v91 cg4                       : 32:120.5(1.685x) 128:188.1(2.476x) 256:228.0(2.686x) 2.238x
+v91 cg8                       : 32:127.4(1.623x) 128:190.8(2.447x) 256:236.7(2.625x) 2.185x
+v91 cg2                       : 32:120.2(1.706x) 128:183.8(2.551x) 256:220.3(2.784x) 2.297x
+v90                           : 32:119.4(1.711x) 128:186.0(2.516x) 256:222.7(2.750x) 2.279x
+v91 cg4                       : 32:120.5(1.695x) 128:187.9(2.491x) 256:227.6(2.699x) 2.251x
+v91 cg8                       : 32:127.1(1.626x) 128:190.4(2.446x) 256:235.4(2.612x) 2.182x
+v91 cg2                       : 32:120.2(1.716x) 128:182.8(2.541x) 256:220.6(2.787x) 2.299x
+v90                           : 32:119.3(1.710x) 128:186.8(2.510x) 256:223.9(2.745x) 2.275x
+v91 cg4                       : 32:121.6(1.690x) 128:188.1(2.471x) 256:228.0(2.694x) 2.241x

@@ -1,0 +1,75 @@
+✓ Initialized. View run at 
+<modal-run-url>
+✓ Created objects.
+├── 🔨 Created mount 
+│   <scratch>
+│   5-ce57afd4da60/scratchpad/snap.6axU24/dev/modal_run.py
+├── 🔨 Created mount 
+│   <scratch>
+│   5-ce57afd4da60/scratchpad/snap.6axU24
+└── 🔨 Created function run.
+compiled
+0 {'batch': 1, 'ctx': 80000, 'layer': 'sliding', 'q_len': 753, 'page': 1, 'dist': 'soft'}
+   cache vs sglang: k 1.63e-02 v 0.00e+00;  out vs sglang 6.671e-02
+   time: mine     56.4 us  sglang     48.5 us  x0.859
+   attn_fwd       46.3 us
+   pp1        vs mine 0.00e+00
+   pp1            45.9 us
+   poly2      vs mine 3.30e-04
+   poly2          51.0 us
+   poly2pp1   vs mine 3.30e-04
+   poly2pp1       46.6 us
+   ns12       vs mine 0.00e+00
+   ns12           47.0 us
+1 {'batch': 1, 'ctx': 80000, 'layer': 'full', 'q_len': 753, 'page': 1, 'dist': 'soft'}
+   cache vs sglang: k 1.60e-02 v 0.00e+00;  out vs sglang 8.260e-02
+   time: mine    418.1 us  sglang    440.3 us  x1.053
+   attn_fwd      407.7 us
+   pp1        vs mine 0.00e+00
+   pp1           394.8 us
+   poly2      vs mine 7.95e-04
+   poly2         565.5 us
+   poly2pp1   vs mine 7.95e-04
+   poly2pp1      466.8 us
+   ns12       vs mine 0.00e+00
+   ns12          399.9 us
+3 {'batch': 4, 'ctx': 80000, 'layer': 'full', 'q_len': 753, 'page': 1, 'dist': 'soft', 'spread': 'agentic'}
+   cache vs sglang: k 1.63e-02 v 0.00e+00;  out vs sglang 8.547e-02
+   time: mine   1705.6 us  sglang   1663.5 us  x0.975
+   attn_fwd     1621.2 us
+   pp1        vs mine 4.14e-06
+   pp1          1553.0 us
+   poly2      vs mine 6.53e-04
+   poly2        2240.4 us
+   poly2pp1   vs mine 6.53e-04
+   poly2pp1     1840.6 us
+   ns12       vs mine 5.07e-06
+   ns12         1637.0 us
+5 {'batch': 1, 'ctx': 32768, 'layer': 'sliding', 'q_len': 16384, 'page': 1, 'dist': 'soft'}
+   cache vs sglang: k 1.63e-02 v 0.00e+00;  out vs sglang 4.470e-02
+   time: mine    422.0 us  sglang    399.1 us  x0.946
+   attn_fwd      355.1 us
+   pp1        vs mine 0.00e+00
+   pp1           353.8 us
+   poly2      vs mine 2.43e-04
+   poly2         422.7 us
+   poly2pp1   vs mine 2.43e-04
+   poly2pp1      387.0 us
+   ns12       vs mine 0.00e+00
+   ns12          375.3 us
+6 {'batch': 1, 'ctx': 32768, 'layer': 'full', 'q_len': 16384, 'page': 1, 'dist': 'soft'}
+   cache vs sglang: k 1.62e-02 v 0.00e+00;  out vs sglang 7.624e-02
+   time: mine   4353.0 us  sglang   4574.5 us  x1.051
+   attn_fwd     4263.9 us
+   pp1        vs mine 0.00e+00
+   pp1          4020.9 us
+   poly2      vs mine 6.78e-04
+   poly2        6035.2 us
+   poly2pp1   vs mine 6.78e-04
+   poly2pp1     4805.0 us
+   ns12       vs mine 0.00e+00
+   ns12         4323.9 us
+Stopping app - local entrypoint completed.
+Runner terminated.
+✓ App completed. View run at 
+<modal-run-url>

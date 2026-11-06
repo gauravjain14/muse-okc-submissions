@@ -1,0 +1,22 @@
+fixed graph cost 5.31 us
+decode 1  sliding w46 sglang    19.26 | k2    10.57 x1.822 | nc     8.88 x2.169   sol    0.11
+decode 1  full    w16 sglang    30.14 | k2    17.73 x1.700 | nc    14.15 x2.130   sol    4.27
+decode 16 sliding w46 sglang    25.41 | k2    13.18 x1.928 | nc    10.58 x2.402   sol    1.65
+decode 16 full    w16 sglang   197.90 | k2   108.15 x1.830 | nc    94.10 x2.103   sol   63.18
+decode 32 sliding w46 sglang    30.00 | k2    16.97 x1.768 | nc    12.79 x2.345   sol    3.29
+decode 32 full    w16 sglang   383.17 | k2   189.95 x2.017 | nc   173.81 x2.205   sol  126.35
+verify 1  sliding w46 sglang    21.82 | k2    18.79 x1.161 | nc    11.78 x1.853   sol    0.12
+verify 1  full    w16 sglang    35.22 | k2    30.60 x1.151 | nc    16.66 x2.114   sol    4.28
+verify 16 sliding w46 sglang    27.74 | k2    22.12 x1.254 | nc    13.74 x2.020   sol    1.86
+verify 16 full    w16 sglang   202.10 | k2   330.09 x0.612 | nc   124.44 x1.624   sol   63.39
+verify 32 sliding w46 sglang    33.33 | k2    29.95 x1.113 | nc    16.92 x1.970   sol    3.72
+verify 32 full    w16 sglang   385.66 | k2   638.60 x0.604 | nc   231.65 x1.665   sol  126.78
+per-load (weighted sums, us):
+  decode 1  sglang    1368.4 | k2     770.0 x1.777 | nc     634.9 x2.155
+  decode 16 sglang    4335.2 | k2    2336.5 x1.855 | nc    1992.0 x2.176
+  decode 32 sglang    7510.7 | k2    3819.9 x1.966 | nc    3369.5 x2.229
+  verify 1  sglang    1567.4 | k2    1354.0 x1.158 | nc     808.4 x1.939
+  verify 16 sglang    4509.8 | k2    6298.8 x0.716 | nc    2622.8 x1.719
+  verify 32 sglang    7703.7 | k2   11595.4 x0.664 | nc    4484.7 x1.718
+GEOMEAN k2: x1.2362 (board time 2965.2 us)   judge-projected (+1.0 us/call) x1.2255 (board 3055.3 us)
+GEOMEAN nc: x1.9779 (board time 1853.3 us)   judge-projected (+1.0 us/call) x1.9369 (board 1933.1 us)

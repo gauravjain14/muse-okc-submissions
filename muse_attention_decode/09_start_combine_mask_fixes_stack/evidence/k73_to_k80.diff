@@ -1,0 +1,502 @@
+--- runs/k73.py	2026-10-30 21:21:34.441509957 -0700
++++ runs/k80.py	2026-10-31 00:57:10.417195652 -0700
+@@ -7684,6 +7684,21 @@
+                  "=r"(d[8]), "=r"(d[9]), "=r"(d[10]), "=r"(d[11]), "=r"(d[12]), "=r"(d[13]), "=r"(d[14]), "=r"(d[15])
+                : "r"(a[0]), "r"(a[1]), "r"(a[2]), "r"(a[3]), "l"(desc));
+ }
++#ifndef BZ_PP
++#define BZ_PP 1          // BZ: run8w global combine (v32s): two staggered full-row poll batches, sigmoids during the wait, resets first
++#endif
++#ifndef BZ_PPD
++#define BZ_PPD 160       // BZ PP: stagger (ns) between the two poll batches
++#endif
++#ifndef W8_HM
++#define W8_HM 1          // xbg r5: A16 boundary-tile mask with f16x2 compares: masked halves OR'ed to NaN (0xffff), which
++#endif                   // max.f16x2 ignores in the row max and the clamp at 1024 turns into P = 0
++__device__ __forceinline__ u32 w8_hlt(u32 a, u32 b) { u32 d; asm("set.lt.u32.f16x2 %0, %1, %2;" : "=r"(d) : "r"(a), "r"(b)); return d; }
++__device__ __forceinline__ u32 w8_hge(u32 a, u32 b) { u32 d; asm("set.ge.u32.f16x2 %0, %1, %2;" : "=r"(d) : "r"(a), "r"(b)); return d; }
++__device__ __forceinline__ u32 w8_hadd(u32 a, u32 b) { u32 d; asm("add.rn.f16x2 %0, %1, %2;" : "=r"(d) : "r"(a), "r"(b)); return d; }
++#ifndef BZ_FL
++#define BZ_FL 1          // BZ: w8_tile (run8w: v16s / v32s) fences the V^T stores right before the PV barrier (was: before the QK wait)
++#endif
+ template <int NB, bool A16>
+ __device__ __forceinline__ void w8_tile(WGS& w, const WGC& c, const QAT& qa, u32 st, u32 vt, int q, int barid,
+                                         bool need_mask, const int (&lo)[2], const int (&hi)[2], float sc) {
+@@ -7710,12 +7725,27 @@
+     ldsm4t(c.ldsm + st + nb * 4096, x0, x1, x2, x3);
+     stsm4(c.stsm + vt + nb * WG_VTB, prmt(x0, x1, 0x6420), prmt(x0, x1, 0x7531), prmt(x2, x3, 0x6420), prmt(x2, x3, 0x7531));
+   }
+-  if (K8_FENCE_VT) fence_async();
++  if (K8_FENCE_VT && !BZ_FL) fence_async();
+   wg_wait<0>();
+   if constexpr (A16) {
+ #pragma unroll
+     for (int j = 0; j < NW; ++j) asm volatile("" : "+r"(sh[j]) :: "memory");
+-    if (need_mask) {
++    if (W8_HM && need_mask) {
++      const u32 tq = wh_cvt((float)(2 * q + 1), (float)(2 * q));   // (token 2q, 2q + 1) of word i = 0
++      u32 lh[2], hh[2];
++#pragma unroll
++      for (int rh = 0; rh < 2; ++rh) {   // lo in [-1, ..), hi > 0; clamped so f16 holds them exactly
++        const float l = (float)min(lo[rh], 1024), u = (float)min(hi[rh], 1024);
++        lh[rh] = wh_cvt(l, l);
++        hh[rh] = wh_cvt(u, u);
++      }
++#pragma unroll
++      for (int i = 0; i < 4 * NB; ++i) {
++        const u32 tk = i ? w8_hadd(tq, wh_cvt(8.f * i, 8.f * i)) : tq;
++#pragma unroll
++        for (int rh = 0; rh < 2; ++rh) sh[2 * i + rh] |= w8_hlt(tk, lh[rh]) | w8_hge(tk, hh[rh]);
++      }
++    } else if (need_mask) {
+ #pragma unroll
+       for (int i = 0; i < 4 * NB; ++i)
+ #pragma unroll
+@@ -7785,6 +7815,7 @@
+     pa[nb][2] = prmt(yb[8 * nb + 4], yb[8 * nb + 6], 0x6420);
+     pa[nb][3] = prmt(yb[8 * nb + 5], yb[8 * nb + 7], 0x6420);
+   }
++  if (K8_FENCE_VT && BZ_FL) fence_async();   // BZ: V^T stores -> async proxy right before the PV barrier (they completed long ago)
+   bar_sync(barid, 128);
+   wg_fence();
+   {
+@@ -8638,6 +8669,93 @@
+                                           bf16x2(A[k].z * rsn * sg[4 * k + 2], A[k].w * rsn * sg[4 * k + 3]));
+   }
+ #else
++#if BZ_PP
++  if constexpr (P == 4) {   // BZ PP: two staggered full-row poll batches in flight; sigmoids + slot resets off the tail
++    constexpr int NS = P - 1;
++    int qs[NS];
++#pragma unroll
++    for (int i = 0; i < NS; ++i) qs[i] = i < part ? i : i + 1;
++    float4 xa0[NS], xa1[NS], xb0[NS], xb1[NS];
++    float2 mla[NS], mlb[NS];
++    auto issue = [&](float4 (&x0)[NS], float4 (&x1)[NS], float2 (&ml)[NS]) {
++#pragma unroll
++      for (int i = 0; i < NS; ++i) {
++        x0[i] = x1[i] = make_float4(SENT, SENT, SENT, SENT);
++        ml[i] = make_float2(SENT, SENT);
++        if ((pend >> qs[i]) & 1u) {
++          const float* q = sb + qs[i] * (RPO * 32);
++          x0[i] = wh_ldr4(q); x1[i] = wh_ldr4(q + 16);
++          ml[i] = wh_ldr2(rgo + 4096 + (qs[i] * RPO + rr) * 2);
++        }
++      }
++    };
++    auto consume = [&](float4 (&x0)[NS], float4 (&x1)[NS], float2 (&ml)[NS]) {
++#pragma unroll
++      for (int i = 0; i < NS; ++i) {
++        if (((pend >> qs[i]) & 1u) && wh_ok(ml[i].x) && wh_ok(ml[i].y) && wh_ok4(x0[i]) && wh_ok4(x1[i])) {
++          const float mn = fmaxf(M, ml[i].x);
++          const float ms = mn == NEG_INF ? 0.f : mn;
++          const float a = ex2(M - ms), bb = ex2(ml[i].x - ms);
++          const float bl = bb * ml[i].y;   // x = float(O / l) l_q
++          const u32 wv[8] = {__float_as_uint(x0[i].x), __float_as_uint(x0[i].y), __float_as_uint(x0[i].z), __float_as_uint(x0[i].w),
++                             __float_as_uint(x1[i].x), __float_as_uint(x1[i].y), __float_as_uint(x1[i].z), __float_as_uint(x1[i].w)};
++#pragma unroll
++          for (int k = 0; k < 4; ++k) {
++            const float2 f0 = wb_f2(wv[2 * k]), f1 = wb_f2(wv[2 * k + 1]);
++            A[k] = make_float4(A[k].x * a + f0.x * bl, A[k].y * a + f0.y * bl, A[k].z * a + f1.x * bl, A[k].w * a + f1.y * bl);
++          }
++          Ls = Ls * a + ml[i].y * bb;
++          M = mn;
++          pend &= ~(1u << qs[i]);
++        }
++      }
++    };
++    issue(xa0, xa1, mla);
++    float sg[16];   // gate sigmoids while the first batch is in flight
++#pragma unroll
++    for (int k = 0; k < 4; ++k) {
++      sg[4 * k] = __fdividef(1.f, 1.f + __expf(-bf2f(gr[k].x & 0xffff)));
++      sg[4 * k + 1] = __fdividef(1.f, 1.f + __expf(-bf2f(gr[k].x >> 16)));
++      sg[4 * k + 2] = __fdividef(1.f, 1.f + __expf(-bf2f(gr[k].y & 0xffff)));
++      sg[4 * k + 3] = __fdividef(1.f, 1.f + __expf(-bf2f(gr[k].y >> 16)));
++    }
++    if (BZ_PPD) __nanosleep(BZ_PPD);   // stagger the second batch by ~half a round trip
++    issue(xb0, xb1, mlb);
++#pragma unroll 1
++    while (true) {
++      consume(xa0, xa1, mla);
++      if (!__any_sync(0xffffffffu, pend != 0u)) break;
++      issue(xa0, xa1, mla);
++      consume(xb0, xb1, mlb);
++      if (!__any_sync(0xffffffffu, pend != 0u)) break;
++      issue(xb0, xb1, mlb);
++    }
++    __syncwarp();
++    {   // my source slot rows -> sentinel (before the output: the stores drain under the epilogue)
++      const uint4 S4 = make_uint4(0xffffffffu, 0xffffffffu, 0xffffffffu, 0xffffffffu);
++#pragma unroll
++      for (int i = 0; i < NS; ++i) {
++        float* d = (float*)sb + qs[i] * (RPO * 32);
++        *(uint4*)d = S4;
++        *(uint4*)(d + 16) = S4;
++        if (tig == 0) *(uint2*)((float*)rgo + 4096 + (qs[i] * RPO + rr) * 2) = make_uint2(0xffffffffu, 0xffffffffu);
++      }
++    }
++    float ss = 0.f;
++#pragma unroll
++    for (int k = 0; k < 4; ++k) ss += A[k].x * A[k].x + A[k].y * A[k].y + A[k].z * A[k].z + A[k].w * A[k].w;
++    ss += __shfl_xor_sync(0xffffffffu, ss, 1);
++    ss += __shfl_xor_sync(0xffffffffu, ss, 2);
++    const float cl_ = __fdividef(Ls, vsc);
++    const float rsn = rsqrtf(ss * (1.0f / HD) + 1e-5f * cl_ * cl_);
++    u16* op = p.out + (tokb + j) * (long long)(hq * HD) + (long long)qh * HD + 4 * tig;
++#pragma unroll
++    for (int k = 0; k < 4; ++k)
++      *(uint2*)(op + 16 * k) = make_uint2(bf16x2(A[k].x * rsn * sg[4 * k], A[k].y * rsn * sg[4 * k + 1]),
++                                          bf16x2(A[k].z * rsn * sg[4 * k + 2], A[k].w * rsn * sg[4 * k + 3]));
++    return;
++  }
++#endif
+   bool first = true;
+ #pragma unroll 1
+   while (__any_sync(0xffffffffu, pend != 0u)) {
+@@ -10622,6 +10740,9 @@
+ #ifndef XE_QBF
+ #define XE_QBF 0         // 1: Q fragments = f16(bf16(qk_scale * q)), the reference's own query rounding (job8: rel-L2
+ #endif
++#ifndef XE_OLP
++#define XE_OLP 1         // q_len 1 owner merge: one ex2 per source (lane-parallel, shuffled), FFMA accumulation (xe job: -0.05 us d1s)
++#endif
+ #ifndef XE_DIAG
+ #define XE_DIAG 0        // diagnostic: run the push reader and the owner merge twice (pass 0 without side effects)
+ #endif   // 16-B units per pushed row: O (16 float4 or 8 x 8 halves) | (m, l, 0, 0)
+@@ -10834,12 +10955,25 @@
+     XC(dp ? 46 : 42, lane == 0 && pw == 0 && o0[15] != 1.2345f && o1[0] != 1.2345f && Ms[15] != 1.2345f);
+     const float Mx = fmaxf(XT2<16>::max(Ms), mn);
+     const float wn = ex2(mn - Mx);
++    float Ls, y0, y1;
++    if (XE_OLP) {   // lane s (mod 16) computes source s's weight; shuffled to every lane; FFMA accumulation (2 chains)
++      const float wme = ex2(sm.recv[lane & 15][0][XE_RS - 1].x - Mx);
++      float a0 = wn * on0, a1 = wn * on1, al = wn * ln, b0 = 0.f, b1 = 0.f, bl = 0.f;
++#pragma unroll
++      for (int src = 0; src < 16; src += 2) {
++        const float wa = __shfl_sync(0xffffffffu, wme, src), wb = __shfl_sync(0xffffffffu, wme, src + 1);
++        a0 = fmaf(wa, o0[src], a0); a1 = fmaf(wa, o1[src], a1); al = fmaf(wa, ls[src], al);
++        b0 = fmaf(wb, o0[src + 1], b0); b1 = fmaf(wb, o1[src + 1], b1); bl = fmaf(wb, ls[src + 1], bl);
++      }
++      Ls = al + bl; y0 = a0 + b0; y1 = a1 + b1;
++    } else {
+ #pragma unroll
+     for (int src = 0; src < 16; ++src) {
+       const float ww = ex2(Ms[src] - Mx);
+       ls[src] *= ww; o0[src] *= ww; o1[src] *= ww;
+     }
+-    const float Ls = fmaf(wn, ln, XT2<16>::sum(ls)), y0 = fmaf(wn, on0, XT2<16>::sum(o0)), y1 = fmaf(wn, on1, XT2<16>::sum(o1));
++    Ls = fmaf(wn, ln, XT2<16>::sum(ls)); y0 = fmaf(wn, on0, XT2<16>::sum(o0)); y1 = fmaf(wn, on1, XT2<16>::sum(o1));
++    }
+     XT(dp ? 18 : 24, lane == 0 && pw == 0 && y0 != 1.2345f);
+     XC(dp ? 47 : 43, lane == 0 && pw == 0 && y0 != 1.2345f && y1 != 1.2345f && Ls != 1.2345f);
+     float s2 = y0 * y0 + y1 * y1;
+@@ -11283,6 +11417,17 @@
+ #ifndef XE_C8
+ #define XE_C8 1          // q_len 8: clusters of 8 CTAs (256 keys each, 8 compute warps) x 4 row groups of 2 tokens
+ #endif
++#ifndef XE_CPA
++#define XE_CPA 1         // K / V staged by cp.async (4 lanes x 16 B per key row, one shuffle per 8 keys; K group then V group),
++#endif                   // fragments by LDS (xe job: v1s -0.09 us: ptxas otherwise spends ~200 instructions per lane on the issue)
++__device__ __forceinline__ void cpx16(u32 dst, const void* src, bool v) {
++  asm volatile("cp.async.cg.shared.global [%0], [%1], 16, %2;\n" :: "r"(dst), "l"(src), "r"(v ? 16 : 0) : "memory");
++}
++__device__ __forceinline__ void cpx_commit() { asm volatile("cp.async.commit_group;\n" ::: "memory"); }
++template <int N> __device__ __forceinline__ void cpx_wait() { asm volatile("cp.async.wait_group %0;\n" :: "n"(N) : "memory"); }
++#if XE_CPA && (XE_DPT || !XE_KVS)
++#error "XE_CPA needs XE_KVS (and not XE_DPT)"
++#endif
+ #ifndef XE_TW
+ #define XE_TW 0          // owner: spin on mbarrier.test_wait instead of try_wait
+ #endif
+@@ -11324,6 +11469,8 @@
+   float cks;                                    // softmax scale x k scale (for the compute warps)
+   __align__(16) float nrm[2][32];              // W9 NS: per owner warp
+   unsigned long long mbar;
++  __align__(16) unsigned char sk[XE_CPA ? XC<L, CL>::NCW : 1][XE_CPA ? 16 * XC<L, CL>::NBW : 1][64];   // XE_CPA: [warp][key][K half-row]
++  __align__(16) unsigned char sv[XE_CPA ? XC<L, CL>::NCW : 1][XE_CPA ? 16 * XC<L, CL>::NBW : 1][80];   // [warp][key][V half-row | pad]
+ };
+ template <int N> struct XT2 {   // pairwise (depth ceil(log2 N)) sum / max of a register array (any N >= 1)
+   static constexpr int H = (N + 1) / 2;   // (N even: N / 2, the original pairing)
+@@ -11641,6 +11788,27 @@
+       for (int b = 0; b < NBW; ++b) { issueK(b); issueV(b); }
+     }
+   };
++  auto issue_cpa = [&]() {   // lane (kq, c): 16-B chunk c of key 8 j + kq (zero-filled when masked)
++    const int kq = lane >> 2, c4 = lane & 3;
++    const unsigned char* kbase = p.kc + 64 * h + 16 * c4;
++    const unsigned char* vbase = p.vc + 64 * h + 16 * c4;
++    const u32 skb = smem_u32(&sm.sk[w][kq][16 * c4]);
++    const u32 svb = smem_u32(&sm.sv[w][kq][16 * c4]);
++    unsigned rrs[KPW / 8];
++    bool vs[KPW / 8];
++#pragma unroll
++    for (int j = 0; j < KPW / 8; ++j) {
++      const int t = 8 * j + kq;
++      const unsigned rr = (unsigned)((KPW > 32 && 8 * j >= 32) ? __shfl_sync(0xffffffffu, rx, t - 32) : __shfl_sync(0xffffffffu, r, t));
++      vs[j] = kw0 + t < cnt && rr < rows32;
++      rrs[j] = vs[j] ? rr : 0u;
++      cpx16(skb + j * 8 * 64, kbase + (unsigned long long)rrs[j] * 128, vs[j]);
++    }
++    cpx_commit();
++#pragma unroll
++    for (int j = 0; j < KPW / 8; ++j) cpx16(svb + j * 8 * 80, vbase + (unsigned long long)rrs[j] * 128, vs[j]);
++    cpx_commit();
++  };
+   auto retarget = [&]() {   // the true range for the length s and its page-table entries
+     lo = max(0, s - p.window + 1);
+     n = s - lo;
+@@ -11650,9 +11818,10 @@
+   if (XE_KVS) {
+ #pragma unroll 1
+     for (int pass = 0; pass < 2; ++pass) {
+-      issue();
++      if (XE_CPA) issue_cpa(); else issue();
+       XT(2, tid == 0);
+       if (s == p.gseq) break;            // guess confirmed (also the second pass: the true range)
++      if (XE_CPA) cpx_wait<0>();         // (miss) the guessed copies landed before their slots are reused
+       retarget();
+       if (pass == 1) break;
+     }
+@@ -11674,6 +11843,14 @@
+   bar_sync(3, NB3);     // Q fragments ready
+   XT(4, tid == 0);
+   if (XE_LATEARV == 3) cl_arrive();
++  if (XE_CPA) {   // my warp's K rows landed (V may still be in flight)
++    cpx_wait<1>();
++    __syncwarp();
++#pragma unroll
++    for (int b = 0; b < NBW; ++b)
++#pragma unroll
++      for (int i = 0; i < 2; ++i) K[b][i] = *(const uint4*)&sm.sk[w][16 * b + g + 8 * i][16 * q];
++  }
+   const float c = sm.cks;
+   float S[NBW][NTW][4];
+   if constexpr (QGX_) {   // W21 QG: S^T = K Q^T by FP8 wgmma m64n16k32, one per 8 keys of a warp (a warpgroup's 4 warps = 32 keys)
+@@ -11777,6 +11954,14 @@
+ #pragma unroll
+     for (int e = 0; e < 4; ++e) Lt[nt][e] = 0.f;
+   const u32 one = 0x3c003c00u;
++  if (XE_CPA) {
++    cpx_wait<0>();
++    __syncwarp();
++#pragma unroll
++    for (int b = 0; b < NBW; ++b)
++#pragma unroll
++      for (int i = 0; i < 4; ++i) V[b][i] = *(const uint2*)&sm.sv[w][16 * b + 2 * q + (i & 1) + 8 * (i >> 1)][8 * g];
++  }
+ #pragma unroll
+   for (int b = 0; b < NBW; ++b) {
+     u32 va[4][4];   // [m-tile][R0..R3]: m-tile mt row g = d 8g + mt, row g + 8 = d 8g + 4 + mt
+@@ -11929,6 +12114,7 @@
+ extern "C" __global__ void __launch_bounds__(XC<8, 16>::NTH, 1) xe_b1s_8(const XP p) { xe_b1s<8, 16>(p); }
+ extern "C" __global__ void __launch_bounds__(XC<8, 8>::NTH, 1) xe_b1s_8c8(const XP p) { xe_b1s<8, 8>(p); }
+ extern "C" __global__ void __cluster_dims__(6, 1, 1) __launch_bounds__(XC<8, 6>::NTH, 1) xe_b1s_8c6(const XP p) { xe_b1s<8, 6>(p); }
++static_assert(sizeof(XS<1, 16>) <= 65536 && sizeof(XS<8, 16>) <= 65536 + 32768 && sizeof(XS<8, 8>) <= 98304 && sizeof(XS<8, 6>) <= 98304, "XS fits the 120000-B dynamic smem");
+ }  // namespace xer2
+ 
+ namespace xem {   // decode sliding, batch > 1: one cluster of CL CTAs per (request, KV head) or per request; round-3 part B
+@@ -13269,6 +13455,12 @@
+ #define XTR(k, c_) do {} while (0)
+ #define XTRV(k, v) do {} while (0)
+ #endif
++#ifdef XD_PTRACE   // per-pair landing stamps: tr[32768 + ((y * 1024 + x) * 2 + li) * 128 + n]
++#define XPT() do { if ((threadIdx.x & 255) == 0) { unsigned long long t_; asm volatile("mov.u64 %0, %%globaltimer;" : "=l"(t_)); \
++    p.tr[32768 + ((blockIdx.y * 1024 + blockIdx.x) * 2 + li) * 128 + (xpt_n < 127 ? xpt_n : 127)] = t_; } ++xpt_n; } while (0)
++#else
++#define XPT() do {} while (0)
++#endif
+ 
+ #ifdef XD_W2TR
+ __device__ __forceinline__ unsigned long long w2_gt() { unsigned long long t; asm volatile("mov.u64 %0, %%globaltimer;" : "=l"(t)); return t; }
+@@ -13358,6 +13550,12 @@
+       make_uint2((u32)f2bf(y0) | ((u32)f2bf(y1) << 16), (u32)f2bf(y2) | ((u32)f2bf(y3) << 16));
+ }
+ 
++#ifndef XD_AR
++#define XD_AR 0     // 1: publish with atom.add.acq_rel.gpu (no separate fences)
++#endif
++#ifndef XD_CMB2
++#define XD_CMB2 1   // XD build combine: lane-split (m, l) loads + weight shuffles (2 + P loads per thread, not 3 P)
++#endif
+ #ifndef W10_XQ
+ #define W10_XQ 0   // W10: 1 = K/V prologue right after the Q / new-token / gate loads (before their compute)
+ #endif
+@@ -13567,6 +13765,9 @@
+   int tr_nseg = 0, tr_nnew = 0;
+   int sidx = 0;
+ #endif
++#ifdef XD_PTRACE
++  int xpt_n = 0;
++#endif
+ #if XC_END
+   constexpr int SSZ = R * HD * 2 + 2 * R * 4;            // fp16 normalized partial: O / l [R][HD] f16, m [R], l [R] f32
+   constexpr int NSL = (2 * DST * STG - 12 * R * 4) / SSZ;  // ring staging slots (other partials); own partial: V^T blocks
+@@ -13913,6 +14114,7 @@
+       cp_wait<DST - 4>();
+       fence_async();
+       bar_sync(1 + li, 256);
++      XPT();
+       XTR(3, tid == 0 && pp == 0 && first_seg);
+       W2T(8, tid == 0 && pp == 0 && first_seg);
+ #ifdef XD_W2TR
+@@ -13953,6 +14155,7 @@
+       if (2 * pp + 1 < my_n) cp_wait<2>(); else cp_wait<0>();   // W2 LT: tile A landed
+       fence_async();
+       bar_sync(1 + li, 256);
++      XPT();
+       XTR(3, tid == 0 && pp == 0 && first_seg);
+       W2T(8, tid == 0 && pp == 0 && first_seg);
+ #ifdef XD_W2TR
+@@ -14659,17 +14862,26 @@
+   if (partial_cnt == 0) return;
+   int* cnt = p.counters + hp * 2048;   // [B] arrivals, [1024 + B] combiners done
+   if (tid == 0) {
++#if !XD_AR
+     xd_fence_acqrel();
++#endif
+     int old[2];
+ #pragma unroll
+ #if XD_W2PL
+     for (int q = 0; q < 2; ++q) old[q] = q < partial_cnt ? xd_atom_relaxed(cnt + misc[24 + q], (misc[16 + 4 * (q)] <= 16 && misc[16 + 4 * (q)] >= (R + misc[19 + 4 * (q)] - 1) / misc[19 + 4 * (q)] + 1 && misc[19 + 4 * (q)] <= 32) ? 1 << (c - misc[17 + 4 * q]) : 1) : 0;
++#elif XD_W2PB && XD_AR
++    for (int q = 0; q < 2; ++q) {   // XD_AR: one acq_rel atomic per partial instead of fence + relaxed atomic + fence
++      if (q < partial_cnt) asm volatile("atom.add.acq_rel.gpu.global.s32 %0, [%1], 1;" : "=r"(old[q]) : "l"(cnt + misc[24 + q]) : "memory");
++      else old[q] = 0;
++    }
+ #elif XD_W2PB
+     for (int q = 0; q < 2; ++q) old[q] = q < partial_cnt ? xd_atom_relaxed(cnt + misc[24 + q], 1) : 0;
+ #else
+     for (int q = 0; q < 2; ++q) old[q] = q < partial_cnt ? xd_atom_relaxed(cnt + pb[q], 1) : 0;
+ #endif
++#if !XD_AR
+     xd_fence_acqrel();
++#endif
+ #pragma unroll
+     for (int q = 0; q < 2; ++q)
+       if (q < partial_cnt) {
+@@ -14777,7 +14989,56 @@
+         continue;
+       }
+ #endif
+-#if XC_XDF
++#if XC_XDF && XD_CMB2
++      {   // XD_CMB2: lane u of a row's 16 lanes loads partial u's (m, l) and computes its weight once (row max / sum by
++          // shuffles); every lane then loads only the O chunks (one per partial) and takes the weights by shuffles:
++          // 2 + P loads and 1 ex2 per thread instead of 3 P loads and P ex2 (P <= 16 per round)
++        float wsum = 0.f, Mx = NEG_INF;
++        float4 a4 = make_float4(0.f, 0.f, 0.f, 0.f);
++        const bool act = tid < nitem;
++        const int lr = lane & 16;
++        if (tid < ((nitem + 31) & ~31)) {
++#pragma unroll 1
++          for (int q0 = 0; q0 < P; q0 += 16) {
++            const int pu = q0 + c4;
++            float mu = NEG_INF, lu = 0.f;
++            if (act && pu < P) {
++              const float* wml = (const float*)((const unsigned char*)(p.ws + (((long long)hp * G + cf + pu) * 2 + (pu == 0 ? sl0 : 0)) * SLOT) + R * HD * 2);
++              mu = __ldcg(wml + r); lu = __ldcg(wml + R + r);
++            }
++            uint2 o16[16];
++#pragma unroll
++            for (int u = 0; u < 16; ++u) {
++              const int pq = q0 + u;
++              o16[u] = make_uint2(0, 0);
++              if (act && pq < P)
++                o16[u] = __ldcg((const uint2*)((const unsigned char*)(p.ws + (((long long)hp * G + cf + pq) * 2 + (pq == 0 ? sl0 : 0)) * SLOT) + (r * HD + c4 * 4) * 2));
++            }
++            float mx = mu;
++#pragma unroll
++            for (int off = 1; off < 16; off <<= 1) mx = fmaxf(mx, __shfl_xor_sync(0xffffffffu, mx, off));
++            const float Mn = fmaxf(Mx, mx);
++            const float ms = Mn == NEG_INF ? 0.f : Mn;
++            const float sc0 = ex2(Mx - ms);
++            const float wt = lu * ex2(mu - ms);
++            float wsl = wt;
++#pragma unroll
++            for (int off = 1; off < 16; off <<= 1) wsl += __shfl_xor_sync(0xffffffffu, wsl, off);
++            wsum = wsum * sc0 + wsl;
++            a4.x *= sc0; a4.y *= sc0; a4.z *= sc0; a4.w *= sc0;
++#pragma unroll
++            for (int u = 0; u < 16; ++u) {
++              const float w = __shfl_sync(0xffffffffu, wt, lr + u);
++              a4.x += w * wh_lo(o16[u].x); a4.y += w * wh_hi(o16[u].x); a4.z += w * wh_lo(o16[u].y); a4.w += w * wh_hi(o16[u].y);
++            }
++            Mx = Mn;
++          }
++          xc_epi16(p, hp, bb, r, c4, a4, act ? vsc / wsum : 0.f, gr, act);
++        }
++        __syncthreads();
++        continue;
++      }
++#elif XC_XDF
+       {   // fp16 partials: one thread per item, up to 16 partials' (m, l, O / l) loads in flight, one weighted sum
+         float wsum = 0.f;
+         float4 a4 = make_float4(0.f, 0.f, 0.f, 0.f);
+@@ -14935,8 +15196,9 @@
+ 
+ 
+ _XC_HYB = next((d.split("=")[1] for d in _XD_ENV if d.startswith("XC_HYB=")), "auto")
++_XC_OVH = 256   # xd: start units per request in the XC build (B >= 22); the XD build keeps 1024 (A/B: v32f -0.8, B24 -0.8, B64 -1.4)
+ _XD_MOD = None if _XD_OFF else _XDMod(["XC_END=0"])
+-_XC_MOD = None if _XD_OFF else _XDMod(["XC_END=1"])
++_XC_MOD = None if _XD_OFF else _XDMod(["XC_END=1"] + ([] if any(d.startswith("XD_OVH=") for d in _XD_ENV) else [f"XD_OVH={_XC_OVH}"]))
+ _XD_NSM = torch.cuda.get_device_properties(0).multi_processor_count
+ _XD_DST = int(next((d.split("=")[1] for d in _XD_ENV if d.startswith("XD_DST=")), "5"))
+ _XD_SMEM = 1024 + 2 * _XD_DST * 16384 + 4 * 4 * 2304 + 2 * 8 * 80 * 4 + 2048 + 257 * 8 + 256 * 4 + 64 * 4 + 512 * 4
+@@ -15088,7 +15350,7 @@
+ #define XB1_FORCEWO 0   // S1 test only: CTAs with c % N == 1 take the exact list path
+ #endif
+ #ifndef XB1_GCONST
+-#define XB1_GCONST 0   // S1: G (grid size) compile-time constant, XB1_GC from the host
++#define XB1_GCONST 1   // S1: G (grid size) compile-time constant, XB1_GC from the host (xbg: on: no runtime division before the page-table loads, d1f -0.16 us)
+ #endif
+ #ifndef XB1_GC
+ #define XB1_GC 0
+@@ -16618,7 +16880,7 @@
+ #define XG_WS 0           // 1: kernel = 2-pass loop: pass 0 runs the combine body dry (no loads / stores) while the
+ #endif                    //    prologue's page-table / Q loads are in flight; pass 1 = the real kernel (combine code warm)
+ #ifndef XG_CLE
+-#define XG_CLE 0          // 1: the new block's cache_loc row index is loaded in the prologue (was a cold load after Q)
++#define XG_CLE 1          // 1: the new block's cache_loc row index is loaded in the prologue (was a cold load after Q; xbg: on, v1f -0.2 us: that load sat behind the whole K/V burst and made CTA 131 the last publisher)
+ #endif
+ #ifndef XG_GSM
+ #define XG_GSM 1          // 1: combiner row c's gate line (128 B) cp.async'ed into smem with Q at the kernel start
+@@ -16815,6 +17077,11 @@
+ __device__ __forceinline__ u32 xg_e2h(u16 a) { u32 d; asm("cvt.rn.f16x2.e4m3x2 %0, %1;" : "=r"(d) : "h"(a)); return d; }
+ __device__ __forceinline__ u32 xg_wh_cvt(float hi, float lo) { u32 d; asm("cvt.rn.f16x2.f32 %0, %1, %2;" : "=r"(d) : "f"(hi), "f"(lo)); return d; }
+ __device__ __forceinline__ u32 xg_wh_max(u32 a, u32 b) { u32 d; asm("max.f16x2 %0, %1, %2;" : "=r"(d) : "r"(a), "r"(b)); return d; }
++#ifndef XG_HM
++#define XG_HM 1           // xbg r5: masked step: f16x2 compares, masked halves OR'ed to NaN (max.f16x2 / the clamp drop them)
++#endif
++__device__ __forceinline__ u32 xg_hge(u32 a, u32 b) { u32 d; asm("set.ge.u32.f16x2 %0, %1, %2;" : "=r"(d) : "r"(a), "r"(b)); return d; }
++__device__ __forceinline__ u32 xg_hadd(u32 a, u32 b) { u32 d; asm("add.rn.f16x2 %0, %1, %2;" : "=r"(d) : "r"(a), "r"(b)); return d; }
+ __device__ __forceinline__ u32 xg_wh_fma(u32 a, u32 b, u32 c) { u32 d; asm("fma.rn.f16x2 %0, %1, %2, %3;" : "=r"(d) : "r"(a), "r"(b), "r"(c)); return d; }
+ __device__ __forceinline__ float xg_wh_lo(u32 h) { float f; asm("{\n.reg .f16 t0, t1;\nmov.b32 {t0, t1}, %1;\ncvt.f32.f16 %0, t0;\n}" : "=f"(f) : "r"(h)); return f; }
+ __device__ __forceinline__ float xg_wh_hi(u32 h) { float f; asm("{\n.reg .f16 t0, t1;\nmov.b32 {t0, t1}, %1;\ncvt.f32.f16 %0, t1;\n}" : "=f"(f) : "r"(h)); return f; }
+@@ -17318,6 +17585,17 @@
+ #if XG_MFREE
+     if constexpr (masked) {   // S2 XG_MFREE: only the masked instance carries the mask; it masks its 2nd tile (the owner's last tile)
+       const int lo_ = 64 * iB, h0 = hi0 - lo_, h1 = hi1 - lo_;
++#if XG_HM
++      const u32 tq = xg_wh_cvt((float)(2 * t + 1), (float)(2 * t));
++      const float u0 = (float)min(max(h0, -1024), 1024), u1 = (float)min(max(h1, -1024), 1024);
++      const u32 hh[2] = {xg_wh_cvt(u0, u0), xg_wh_cvt(u1, u1)};
++#pragma unroll
++      for (int kk = 0; kk < 8; ++kk) {
++        const u32 tk = kk ? xg_hadd(tq, xg_wh_cvt(8.f * kk, 8.f * kk)) : tq;
++#pragma unroll
++        for (int rh = 0; rh < 2; ++rh) sh[16 + 2 * kk + rh] |= xg_hge(tk, hh[rh]);
++      }
++#else
+ #pragma unroll
+       for (int kk = 0; kk < 8; ++kk)
+ #pragma unroll
+@@ -17328,6 +17606,7 @@
+           if (tt + 1 >= hh_) v = (v & 0x0000ffffu) | 0xfc000000u;
+           sh[16 + 2 * kk + rh] = v;
+         }
++#endif
+     }
+ #else
+ #if XG_MM

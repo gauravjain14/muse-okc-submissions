@@ -1,0 +1,45 @@
+[gate] slot 0 at 13:20:11 (1 running)
+✓ Initialized. View run at 
+<modal-run-url>
+✓ Created objects.
+├── 🔨 Created mount 
+│   muse-opt-codex/muse_bf16_proj/claude/modal_run.p
+│   y
+├── 🔨 Created mount muse-opt-codex/muse_bf16_proj
+└── 🔨 Created function run.
+[gpu-before]
+NVIDIA H200, 0 %, 4 MiB, 345 MHz, 1980 MHz, 79.63 W
+0
+m=128 qkv_gate tn: 44199 valid configs (1.2s)
+m=128 qkv_gate nn: 44199 valid configs (1.1s)
+== m=128 qkv_gate: torch.mm 15.74 us; best lt 13.76 tn [66, 92, 1, 0, 0, 0, 35, 0, 5]; 13.79 tn [66, 104, 1, 0, 0, 0, 35, 0, 5]; 13.92 tn [66, 92, 1, 0, 0, 0, 35, 0, 2]; 13.95 tn [66, 80, 1, 0, 0, 0, 35, 0, 5]
+m=128 o tn: 44199 valid configs (1.2s)
+m=128 o nn: 44199 valid configs (1.1s)
+== m=128 o: torch.mm 6.05 us; best lt 5.76 tn [66, 18, 1, 0, 0, 0, 35, 0, 5]; 5.86 tn [66, 17, 1, 0, 0, 0, 35, 0, 2]; 5.89 tn [66, 18, 1, 0, 0, 0, 35, 0, 3]; 5.89 tn [66, 18, 1, 0, 0, 1, 35, 0, 2]
+m=128 pooler tn: 44199 valid configs (1.1s)
+m=128 pooler nn: 44199 valid configs (1.1s)
+== m=128 pooler: torch.mm 24.67 us; best lt 18.50 nn [66, 16, 1, 0, 0, 1, 35, 0, 2]; 18.94 nn [66, 16, 1, 0, 0, 1, 35, 0, 3]; 19.23 nn [66, 15, 1, 0, 0, 0, 35, 0, 5]; 19.23 nn [66, 15, 1, 0, 0, 1, 35, 0, 5]
+m=128 unpooler tn: 44199 valid configs (1.1s)
+m=128 unpooler nn: 44199 valid configs (1.0s)
+== m=128 unpooler: torch.mm 18.72 us; best lt 17.54 nn [66, 18, 1, 0, 0, 0, 35, 0, 5]; 17.57 nn [66, 18, 1, 0, 0, 1, 35, 0, 2]; 17.60 nn [66, 18, 1, 0, 0, 0, 35, 0, 2]; 17.76 nn [66, 18, 1, 0, 0, 1, 35, 0, 5]
+m=256 qkv_gate tn: 44199 valid configs (1.1s)
+m=256 qkv_gate nn: 44199 valid configs (1.0s)
+== m=256 qkv_gate: torch.mm 17.92 us; best lt 16.26 tn [66, 124, 1, 0, 0, 0, 35, 0, 2]; 16.54 tn [66, 134, 1, 0, 0, 0, 35, 0, 9]; 16.58 tn [66, 134, 1, 0, 0, 0, 35, 0, 2]; 16.93 tn [66, 134, 1, 0, 0, 0, 35, 0, 8]
+m=256 o tn: 44199 valid configs (1.1s)
+m=256 o nn: 44199 valid configs (1.0s)
+== m=256 o: torch.mm 7.87 us; best lt 7.55 nn [66, 21, 1, 0, 0, 0, 35, 0, 5]; 7.58 tn [66, 17, 1, 0, 0, 0, 35, 0, 2]; 7.78 tn [66, 18, 1, 0, 0, 0, 35, 0, 2]; 7.78 tn [66, 17, 1, 0, 0, 0, 35, 0, 5]
+m=256 pooler tn: 44199 valid configs (1.1s)
+m=256 pooler nn: 44199 valid configs (1.0s)
+== m=256 pooler: torch.mm 28.51 us; best lt 22.34 nn [66, 18, 1, 0, 0, 0, 35, 0, 2]; 22.72 nn [66, 18, 1, 0, 0, 0, 35, 0, 3]; 23.07 nn [66, 18, 1, 0, 0, 1, 35, 0, 2]; 23.46 nn [66, 18, 1, 0, 0, 1, 35, 0, 3]
+m=256 unpooler tn: 44199 valid configs (1.1s)
+m=256 unpooler nn: 44199 valid configs (1.0s)
+== m=256 unpooler: torch.mm 23.17 us; best lt 22.34 nn [66, 21, 1, 0, 0, 0, 35, 0, 2]; 22.46 nn [66, 20, 1, 0, 0, 0, 35, 0, 5]; 22.50 nn [66, 20, 1, 0, 0, 0, 35, 0, 2]; 22.56 tn [66, 20, 1, 0, 0, 0, 35, 0, 2]
+[gpu-after]
+NVIDIA H200, 0 %, 4 MiB, 1980 MHz, 1980 MHz, 131.54 W
+0
+
+fetched into muse-opt-codex/muse_bf16_proj/claude/out/20261027T133533_lt2
+[exit 0]
+Stopping app - local entrypoint completed.
+✓ App completed. View run at 
+<modal-run-url>

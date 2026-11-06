@@ -1,0 +1,38 @@
+✓ Initialized. View run at 
+<modal-run-url>
+✓ Created objects.
+├── 🔨 Created mount 
+│   <scratch>
+│   5-ce57afd4da60/scratchpad/snap.5ppBL6/dev/modal_run.py
+├── 🔨 Created mount 
+│   <scratch>
+│   5-ce57afd4da60/scratchpad/snap.5ppBL6
+└── 🔨 Created function run.
+prepared v24b in 46.2 s
+prepared v28 in 49.7 s
+prepared v28il in 49.8 s
+M   753 seed 0: routes 1393 distinct 14 top [578, 235, 150, 150, 133, 49, 30, 24, 18, 16, 3, 3, 2, 2, 0, 0]
+    v24b: rel err 2.869e-03
+    v28: rel err 2.869e-03
+    v28il: rel err 2.869e-03
+    v24b              311.2 us  vs v24b x1.000
+    v28               307.6 us  vs v24b x1.012
+    v28il             307.8 us  vs v24b x1.011
+M  3012 seed 0: routes 5701 distinct 19 top [2355, 1097, 714, 658, 340, 170, 149, 82, 65, 27, 11, 11, 6, 6, 3, 3]
+    v24b: rel err 2.871e-03
+    v28: rel err 2.871e-03
+    v28il: rel err 2.871e-03
+    v24b              916.6 us  vs v24b x1.000
+    v28               916.2 us  vs v24b x1.002
+    v28il             914.8 us  vs v24b x1.003
+M 16384 seed 0: routes 29865 distinct 20 top [13019, 4806, 4141, 3294, 1799, 1269, 532, 431, 329, 85, 43, 40, 28, 14, 13, 11]
+    v24b: rel err 2.871e-03
+    v28: rel err 2.871e-03
+    v28il: rel err 2.871e-03
+    v24b             4666.7 us  vs v24b x1.000
+    v28              4504.3 us  vs v24b x0.999
+    v28il            4505.9 us  vs v24b x0.998
+Stopping app - local entrypoint completed.
+✓ App completed. View run at 
+<modal-run-url>
+done

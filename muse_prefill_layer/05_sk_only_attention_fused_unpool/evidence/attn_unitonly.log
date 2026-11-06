@@ -1,0 +1,26 @@
+✓ Initialized. View run at 
+<modal-run-url>
+✓ Created objects.
+├── 🔨 Created mount 
+│   <scratch>
+│   5-ce57afd4da60/scratchpad/snap.0JteKq/dev/modal_run.py
+├── 🔨 Created mount 
+│   <scratch>
+│   5-ce57afd4da60/scratchpad/snap.0JteKq
+└── 🔨 Created function run.
+0 {'batch': 1, 'ctx': 80000, 'layer': 'sliding', 'q_len': 753, 'page': 1, 'dist': 'soft'}
+   attn_fwd       23.7 us
+   uo         vs mine 0.00e+00
+   uo             23.4 us
+8 {'batch': 1, 'ctx': 0, 'layer': 'sliding', 'q_len': 300, 'page': 1}
+   attn_fwd       16.4 us
+   uo         vs mine 0.00e+00
+   uo             16.4 us
+10 {'batch': 2, 'ctx': 2500, 'layer': 'sliding', 'q_len': 753, 'page': 1}
+   attn_fwd       29.2 us
+   uo         vs mine 0.00e+00
+   uo             29.3 us
+Stopping app - local entrypoint completed.
+✓ App completed. View run at 
+<modal-run-url>
+done

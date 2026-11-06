@@ -1,0 +1,18 @@
+DIAG gpu NVIDIA H200 sms 132
+DIAG bs   1 clk 1.82: routed 1.9/2.0/2.1 work-end 27.5/29.7/32.4 combine-end 36.3 us | per CTA: compute 15.8 (per stage 891 ns) cons-wait 5.5 epi 3.5 prod-empty 1.9 dep 0.0
+DIAG bs   8 clk 1.81: routed 1.9/2.0/2.1 work-end 55.3/56.8/60.4 combine-end 65.0 us | per CTA: compute 36.6 (per stage 912 ns) cons-wait 8.2 epi 4.0 prod-empty 12.5 dep 0.0
+DIAG bs  16 clk 1.80: routed 3.2/3.3/3.5 work-end 71.0/72.3/76.6 combine-end 80.9 us | per CTA: compute 46.6 (per stage 895 ns) cons-wait 9.1 epi 5.6 prod-empty 16.3 dep 0.0
+DIAG bs  32 clk 1.79: routed 2.6/4.2/4.7 work-end 87.3/90.0/98.4 combine-end 103.6 us | per CTA: compute 65.9 (per stage 1036 ns) cons-wait 7.8 epi 4.0 prod-empty 30.4 dep 0.0
+DIAG bs 128 clk 1.77: routed 4.3/4.7/6.3 work-end 173.1/183.9/191.8 combine-end 195.7 us | per CTA: compute 136.9 (per stage 1015 ns) cons-wait 12.8 epi 8.1 prod-empty 60.5 dep 0.0
+DIAG bs 256 clk 1.79: routed 5.9/6.9/8.4 work-end 229.0/239.2/249.9 combine-end 257.0 us | per CTA: compute 178.0 (per stage 1171 ns) cons-wait 14.0 epi 17.9 prod-empty 95.6 dep 0.0
+DIAG total 16s
+Traceback (most recent call last):
+  File "/tmp/muse_moe_w4a16-1bm51w2a/run/worker.py", line 423, in child_main
+    send(_setup_op(msg, module, state, sync, perf))
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/tmp/muse_moe_w4a16-1bm51w2a/run/worker.py", line 322, in _setup_op
+    state["prep"] = prepare(weights)
+                    ^^^^^^^^^^^^^^^^
+  File "/tmp/muse_moe_w4a16-1bm51w2a/run/submission.py", line 1533, in prepare
+    raise RuntimeError("diagnostic build: prepare() measured and printed, nothing to score")
+RuntimeError: diagnostic build: prepare() measured and printed, nothing to score

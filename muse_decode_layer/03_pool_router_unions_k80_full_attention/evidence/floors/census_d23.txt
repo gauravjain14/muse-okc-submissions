@@ -1,0 +1,141 @@
+=== d1s: 9 nodes (7 PDL launches), span 65.01 us = sum dur 74.03 + exposed gaps 0.70 (at PDL boundaries 0.10) - overlap 10.10; head 1.74 us; reps 16
+   #    start      dur     gap  pdl strm  name   (gap = start - max end of all earlier nodes; <0 = overlap)
+   0     0.00     8.45            -    7  n2_qkv_gate
+   1     9.12     3.36    0.61    -    7  xe_r1_1
+   2    12.62     4.78    0.10   P1    7  nk_o1_16_1_1_1_2_2_0_1
+   3    16.50     3.87   -1.02   P1    7  _boundary1_vector
+   4    17.65    17.79   -2.70   P1    7  n2_pool_router
+   5    33.97     2.91   -1.52   P1    7  _dl_tile_route
+   6    36.24    22.80   -0.77   P1    7  void okc::moe_fused<(bool)0>(okc::Params)
+   7    57.57     5.15   -1.49   P1    7  sm5_cgemv
+   8    60.10     4.91   -2.59   P1    7  _boundary2_vector
+=== d1f: 9 nodes (7 PDL launches), span 78.35 us = sum dur 87.46 + exposed gaps 0.77 (at PDL boundaries 0.16) - overlap 10.29; head 1.82 us; reps 16
+   #    start      dur     gap  pdl strm  name   (gap = start - max end of all earlier nodes; <0 = overlap)
+   0     0.00     8.37            -    7  n2_qkv_gate
+   1     8.98     9.89    0.61    -    7  xb_d1f
+   2    19.07     4.86    0.16   P1    7  nk_o1_16_1_1_1_2_2_0_1
+   3    22.86     3.87   -1.06   P1    7  _boundary1_vector
+   4    24.16    17.73   -2.69   P1    7  n2_pool_router
+   5    40.34     2.88   -1.46   P1    7  _dl_tile_route
+   6    42.51    29.58   -0.83   P1    7  void okc::moe_fused<(bool)0>(okc::Params)
+   7    70.61     5.25   -1.58   P1    7  sm5_cgemv
+   8    73.28     5.02   -2.67   P1    7  _boundary2_vector
+=== d16s: 10 nodes (4 PDL launches), span 131.97 us = sum dur 128.54 + exposed gaps 3.04 (at PDL boundaries 0.80) - overlap 0.13; head 3.1 us; reps 16
+   #    start      dur     gap  pdl strm  name   (gap = start - max end of all earlier nodes; <0 = overlap)
+   0     0.00     8.88            -    7  qkvb_qkv_gate_16
+   1     9.39     6.03    0.43    -    7  xe_dm_8_4_2
+   2    15.97     5.12    0.45    -    7  sk11_o_16
+   3    21.74     3.39    0.64   P1    7  _boundary1_vector
+   4    25.60    14.50    0.45    -    7  pu5_pooler_16
+   5    40.46     4.13    0.27    -    7  ya_1_8_2_17_0
+   6    44.77     2.21    0.16   P1    7  _dl_tile_route
+   7    46.88    66.46   -0.13   P1    7  void okc::moe_fused<(bool)0>(okc::Params)
+   8   114.13    14.03    0.64    -    7  pu5_unpooler_16
+   9   128.18     3.79    0.00   P1    7  _boundary2_vector
+=== d16f: 10 nodes (5 PDL launches), span 214.08 us = sum dur 208.67 + exposed gaps 3.42 (at PDL boundaries 1.47) - overlap 0.13; head 1.57 us; reps 16
+   #    start      dur     gap  pdl strm  name   (gap = start - max end of all earlier nodes; <0 = overlap)
+   0     0.00     8.77            -    7  qkvb_qkv_gate_16
+   1     9.58    87.12    0.67   P1    7  void <unnamed>::attn_kernel<(int)1, (bool)1, (int)0>(<unnamed>::Params)
+   2    97.36     5.23    0.54    -    7  sk11_o_16
+   3   103.25     3.49    0.61   P1    7  _boundary1_vector
+   4   107.18    14.46    0.48    -    7  pu5_pooler_16
+   5   122.00     4.10    0.26    -    7  ya_1_8_2_17_0
+   6   126.24     2.13    0.16   P1    7  _dl_tile_route
+   7   128.51    65.60   -0.13   P1    7  void okc::moe_fused<(bool)0>(okc::Params)
+   8   195.90    14.02    0.67    -    7  pu5_unpooler_16
+   9   210.08     3.76    0.03   P1    7  _boundary2_vector
+=== d32s: 10 nodes (5 PDL launches), span 155.58 us = sum dur 152.18 + exposed gaps 3.31 (at PDL boundaries 1.49) - overlap 0.14; head 1.7 us; reps 16
+   #    start      dur     gap  pdl strm  name   (gap = start - max end of all earlier nodes; <0 = overlap)
+   0     0.00     9.52            -    7  sk11_qkv_gate_32
+   1    10.21     9.81    0.69   P1    7  void <unnamed>::attn_kernel<(int)1, (bool)0, (int)1>(<unnamed>::Params)
+   2    20.53     5.84    0.42    -    7  o3_o_32
+   3    27.12     3.46    0.64   P1    7  _boundary1_vector
+   4    31.06    15.20    0.45    -    7  pu5_pooler_32
+   5    46.64     4.48    0.26    -    7  ya_1_8_4_17_0
+   6    51.34     2.13    0.16   P1    7  _dl_tile_route
+   7    53.44    82.08   -0.14   P1    7  void okc::moe_fused<(bool)0>(okc::Params)
+   8   135.86    15.74    0.70    -    7  skh_unpooler_32
+   9   151.68     3.92    0.00   P1    7  _boundary2_vector
+=== d32f: 10 nodes (5 PDL launches), span 310.10 us = sum dur 305.25 + exposed gaps 3.71 (at PDL boundaries 1.73) - overlap 0.16; head 1.73 us; reps 16
+   #    start      dur     gap  pdl strm  name   (gap = start - max end of all earlier nodes; <0 = overlap)
+   0     0.00     9.62            -    7  sk11_qkv_gate_32
+   1    10.48   166.59    0.80   P1    7  void <unnamed>::attn_kernel<(int)1, (bool)1, (int)0>(<unnamed>::Params)
+   2   177.74     5.63    0.58    -    7  o3_o_32
+   3   183.97     3.47    0.70   P1    7  _boundary1_vector
+   4   187.94    15.14    0.45    -    7  pu5_pooler_32
+   5   203.52     4.45    0.26    -    7  ya_1_8_4_17_0
+   6   208.08     2.26    0.16   P1    7  _dl_tile_route
+   7   210.16    78.70   -0.16   P1    7  void okc::moe_fused<(bool)0>(okc::Params)
+   8   290.54    15.52    0.70    -    7  skh_unpooler_32
+   9   306.21     3.87    0.06   P1    7  _boundary2_vector
+=== v1s: 9 nodes (4 PDL launches), span 110.16 us = sum dur 107.57 + exposed gaps 2.75 (at PDL boundaries 0.86) - overlap 0.13; head 3.14 us; reps 16
+   #    start      dur     gap  pdl strm  name   (gap = start - max end of all earlier nodes; <0 = overlap)
+   0     0.00     8.85            -    7  qkvb_qkv_gate_8
+   1     9.28     3.94    0.42    -    7  xe_b1s_8c6
+   2    13.62     5.02    0.38    -    7  nk_o8_16_1_1_0_2_2_0_8
+   3    19.31     3.82    0.64   P1    7  _boundary1_vector
+   4    23.52    19.02    0.38    -    7  m8_pool_router
+   5    42.67     2.26    0.10   P1    7  _dl_tile_route
+   6    44.88    57.06   -0.13   P1    7  void okc::moe_fused<(bool)0>(okc::Params)
+   7   102.42     3.87    0.70    -    7  unps_8_1_32_1
+   8   106.42     3.73    0.13   P1    7  _boundary2_vector
+=== v1f: 9 nodes (4 PDL launches), span 117.49 us = sum dur 114.94 + exposed gaps 2.93 (at PDL boundaries 0.88) - overlap 0.14; head 3.09 us; reps 16
+   #    start      dur     gap  pdl strm  name   (gap = start - max end of all earlier nodes; <0 = overlap)
+   0     0.00     8.86            -    7  qkvb_qkv_gate_8
+   1     9.25    11.68    0.38    -    7  xg_v8f
+   2    21.70     4.99    0.74    -    7  nk_o8_16_1_1_0_2_2_0_8
+   3    27.44     3.84    0.62   P1    7  _boundary1_vector
+   4    31.66    18.96    0.38    -    7  m8_pool_router
+   5    50.83     2.14    0.13   P1    7  _dl_tile_route
+   6    52.83    56.82   -0.14   P1    7  void okc::moe_fused<(bool)0>(okc::Params)
+   7   109.78     3.94    0.54    -    7  unps_8_1_32_1
+   8   113.84     3.71    0.13   P1    7  _boundary2_vector
+=== v16s: 10 nodes (1 PDL launches), span 247.12 us = sum dur 242.61 + exposed gaps 3.97 (at PDL boundaries 0.58) - overlap 0.00; head 3.14 us; reps 16
+   #    start      dur     gap  pdl strm  name   (gap = start - max end of all earlier nodes; <0 = overlap)
+   0     0.00    12.64            -    7  kg_qkv_gate_64_72_2_2_12_0_9_0_1_0_0_2_1_0_0_2_0_0_0
+   1    13.15    11.33    0.45    -    7  void <unnamed>::attn_kernel<(int)8, (bool)0, (int)3>(<unnamed>::Params)
+   2    24.96     6.53    0.42    -    7  q5_o
+   3    31.98     4.13    0.42    -    7  _boundary1_vector
+   4    36.59    20.64    0.42    -    7  kg_pooler_64_64_2_1_14_0_0_0_0_0_0_2_1_0_0_2_0_0_0
+   5    57.41     5.33    0.26    -    7  r5_32_8_2_5
+   6    63.39     2.43    0.58   P1    7  _dl_tile_route
+   7    66.24   156.51    0.42    -    7  void okc::moe_fused<(bool)1>(okc::Params)
+   8   223.54    18.74    0.70    -    7  u128_unpooler
+   9   242.74     4.34    0.32    -    7  _boundary2_vector
+=== v16f: 10 nodes (1 PDL launches), span 329.12 us = sum dur 323.54 + exposed gaps 4.29 (at PDL boundaries 0.64) - overlap 0.00; head 3.38 us; reps 16
+   #    start      dur     gap  pdl strm  name   (gap = start - max end of all earlier nodes; <0 = overlap)
+   0     0.00    12.74            -    7  kg_qkv_gate_64_72_2_2_12_0_9_0_1_0_0_2_1_0_0_2_0_0_0
+   1    13.17    92.19    0.38    -    7  attn_xd_v8f
+   2   106.18     6.48    0.70    -    7  q5_o
+   3   113.12     4.22    0.43    -    7  _boundary1_vector
+   4   117.97    20.90    0.46    -    7  kg_pooler_64_64_2_1_14_0_0_0_0_0_0_2_1_0_0_2_0_0_0
+   5   139.25     5.39    0.26    -    7  r5_32_8_2_5
+   6   145.33     2.42    0.64   P1    7  _dl_tile_route
+   7   148.38   156.24    0.42    -    7  void okc::moe_fused<(bool)1>(okc::Params)
+   8   305.97    18.61    0.70    -    7  u128_unpooler
+   9   324.77     4.35    0.29    -    7  _boundary2_vector
+=== v32s: 10 nodes (1 PDL launches), span 309.02 us = sum dur 304.14 + exposed gaps 3.73 (at PDL boundaries 0.45) - overlap 0.00; head 3.3 us; reps 16
+   #    start      dur     gap  pdl strm  name   (gap = start - max end of all earlier nodes; <0 = overlap)
+   0     0.00    15.87            -    7  ph_qkv_9_64_1_0_0_0_0_0_0_0_1_0_0_0_0_0_6
+   1    16.35    14.67    0.42    -    7  void <unnamed>::attn_kernel<(int)8, (bool)0, (int)3>(<unnamed>::Params)
+   2    31.47     8.46    0.42    -    7  kg_o_128_128_0_1_6_0_0_0_0_0_0_2_1_0_3_2_0_0_0
+   3    40.32     6.86    0.40    -    7  _boundary1_vector
+   4    47.78    26.30    0.42    -    7  kg_pooler_64_128_1_1_9_0_0_0_0_0_0_2_1_0_0_2_0_0_0
+   5    74.59     6.43    0.26    -    7  r4_64_1_8_8_1_4_1_0_0_1_0_0_3
+   6    81.89     3.12    0.45   P1    7  _dl_tile_route
+   7    85.42   190.94    0.42    -    7  void okc::moe_fused<(bool)1>(okc::Params)
+   8   276.93    24.53    0.70    -    7  kg_unpooler_128_128_0_1_6_0_0_0_0_0_0_2_1_0_3_2_0_0_0
+   9   302.05     6.94    0.26    -    7  _boundary2_vector
+=== v32f: 10 nodes (1 PDL launches), span 473.66 us = sum dur 468.18 + exposed gaps 3.89 (at PDL boundaries 0.43) - overlap 0.00; head 3.26 us; reps 16
+   #    start      dur     gap  pdl strm  name   (gap = start - max end of all earlier nodes; <0 = overlap)
+   0     0.00    16.06            -    7  ph_qkv_9_64_1_0_0_0_0_0_0_0_1_0_0_0_0_0_6
+   1    16.40   171.74    0.32    -    7  attn_xd_v8f
+   2   188.90     8.38    0.66    -    7  kg_o_128_128_0_1_6_0_0_0_0_0_0_2_1_0_3_2_0_0_0
+   3   197.87     6.86    0.40    -    7  _boundary1_vector
+   4   205.02    26.24    0.42    -    7  kg_pooler_64_128_1_1_9_0_0_0_0_0_0_2_1_0_0_2_0_0_0
+   5   231.89     6.43    0.26    -    7  r4_64_1_8_8_1_4_1_0_0_1_0_0_3
+   6   238.78     2.98    0.43   P1    7  _dl_tile_route
+   7   242.29   197.86    0.38    -    7  void okc::moe_fused<(bool)1>(okc::Params)
+   8   441.50    24.61    0.70    -    7  kg_unpooler_128_128_0_1_6_0_0_0_0_0_0_2_1_0_3_2_0_0_0
+   9   466.74     7.01    0.32    -    7  _boundary2_vector
+pdl column: P = PDL launch (programmatic edge from the predecessor; port 1 = early trigger griddepcontrol.launch_dependents, 2 = launch completion), - = normal launch (waits for full completion)

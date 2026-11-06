@@ -1,0 +1,4 @@
+[
+    {"check": [129, 200, 256], "variants": [("pair", [], {}), ("nopair", [], {"PAIR": False})], "seeds": 3},
+    {"bs": [256], "variants": [("nopair", [], {"PAIR": False}), ("pair", [], {}), ("pairb", [], {}), ("nopairb", [], {"PAIR": False})], "seeds": 16, "reps": 3},
+]

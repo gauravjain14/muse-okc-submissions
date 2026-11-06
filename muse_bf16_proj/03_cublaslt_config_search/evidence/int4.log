@@ -1,0 +1,36 @@
+[gate] slot 1 at 13:36:13 (1 running)
+✓ Initialized. View run at 
+<modal-run-url>
+✓ Created objects.
+├── 🔨 Created mount 
+│   muse-opt-codex/muse_bf16_proj/claude/modal_run.p
+│   y
+├── 🔨 Created mount muse-opt-codex/muse_bf16_proj
+└── 🔨 Created function run.
+[gpu-before]
+NVIDIA H200, 0 %, 4 MiB, 345 MHz, 1980 MHz, 77.06 W
+0
+all ok
+verify 32 m=256  o         sglang    8.58 | int4    8.61 x0.996 | int1    8.35 x1.027   sol   4.48
+verify 32 m=256  pooler    sglang   29.34 | int4   23.74 x1.236 | int1   28.28 x1.038   sol  17.37
+verify 32 m=256  unpooler  sglang   24.02 | int4   23.43 x1.025 | int1   23.99 x1.001   sol  17.37
+verify 32 m=256  router    sglang   16.74 | int4    9.01 x1.858 | int1    8.91 x1.879   sol   2.68
+
+per-load speedups:
+  decode 1  sglang   53.50 | int4   36.51 x1.465 | int1   36.44 x1.468
+  decode 16 sglang   70.61 | int4   52.00 x1.358 | int1   51.11 x1.382
+  decode 32 sglang   71.97 | int4   56.64 x1.271 | int1   58.15 x1.238
+  verify 1  sglang   70.21 | int4   40.19 x1.747 | int1   40.29 x1.743
+  verify 16 sglang   83.57 | int4   66.23 x1.262 | int1   72.53 x1.152
+  verify 32 sglang   97.46 | int4   81.88 x1.190 | int1   89.31 x1.091
+GEOMEAN int4: x1.3707 over 6 loads   judge-projected (+1.0 us/shape) x1.3364
+GEOMEAN int1: x1.3287 over 6 loads   judge-projected (+1.0 us/shape) x1.2979
+[gpu-after]
+NVIDIA H200, 0 %, 4 MiB, 1980 MHz, 1980 MHz, 128.02 W
+0
+
+fetched into muse-opt-codex/muse_bf16_proj/claude/out/20261027T133827_int4
+[exit 0]
+Stopping app - local entrypoint completed.
+✓ App completed. View run at 
+<modal-run-url>

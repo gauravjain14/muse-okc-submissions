@@ -1,0 +1,8 @@
+{
+  "base": "muse-opt-codex/muse_decode_layer/variants/d16_stack.py",
+  "donor": "opt-muse-decode/runs/k80.py",
+  "output": "muse-opt-codex/muse_decode_layer/variants/d21_single_decode.py",
+  "bytes": 981240,
+  "sha256": "2e5212e09cfdc1505df6c641a64fbf8fde8c681e62b6584cb4b5c947e5cd0a4d",
+  "change": "k80 XB1 full decode B1; offline production-branch pruning of XD with exact preprocessor equality for both modes."
+}

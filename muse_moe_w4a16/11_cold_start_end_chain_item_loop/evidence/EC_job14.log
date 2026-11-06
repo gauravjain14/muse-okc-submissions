@@ -1,0 +1,78 @@
+[sbx] box 0
+GPU_BEFORE NVIDIA H200, 345 MHz, 3201 MHz, 76.13 W, 26, 0 %, 78 MiB 19:50:41
+== hang1 t3/EC/moe_ec_13.py
+bs 1: ok relative L2 error 2.515e-03 (worst row 2.515e-03)
+bs 2: ok relative L2 error 3.200e-03 (worst row 3.201e-03)
+bs 4: ok relative L2 error 3.228e-03 (worst row 3.270e-03)
+bs 8: ok relative L2 error 3.204e-03 (worst row 3.398e-03)
+bs 9: ok relative L2 error 3.212e-03 (worst row 3.398e-03)
+bs 16: ok relative L2 error 3.206e-03 (worst row 3.398e-03)
+bs 17: ok relative L2 error 2.856e-03 (worst row 3.321e-03)
+bs 32: ok relative L2 error 3.077e-03 (worst row 3.399e-03)
+bs 33: ok relative L2 error 3.095e-03 (worst row 3.312e-03)
+bs 64: ok relative L2 error 3.097e-03 (worst row 3.398e-03)
+bs 65: ok relative L2 error 3.175e-03 (worst row 3.398e-03)
+bs 128: ok relative L2 error 3.206e-03 (worst row 3.398e-03)
+bs 129: ok relative L2 error 3.206e-03 (worst row 3.398e-03)
+bs 256: ok relative L2 error 3.217e-03 (worst row 3.427e-03)
+bs 257: ok relative L2 error 3.217e-03 (worst row 3.427e-03)
+bs 512: ok relative L2 error 3.224e-03 (worst row 3.477e-03)
+== bitcmp vs moe_i1 (bs1, 60 routings)
+t3/EC/moe_ec_13.py|: bit-equal 60/60, max|diff| 0, check failures 0
+t3/EC/moe_ec_13.py|EC_NO_B1END: bit-equal 60/60, max|diff| 0, check failures 0
+geomean fA: x2.6193 over 6 shapes
+geomean a0: x2.5897 over 6 shapes
+geomean a1: x2.6151 over 6 shapes
+geomean m1: x2.6286 over 6 shapes
+geomean n1: x2.6168 over 6 shapes
+geomean a2: x2.6127 over 6 shapes
+geomean m2: x2.6276 over 6 shapes
+geomean n2: x2.6200 over 6 shapes
+geomean v1: x2.6108 over 6 shapes
+geomean a3: x2.6190 over 6 shapes
+geomean m3: x2.6256 over 6 shapes
+geomean fB: x2.6262 over 6 shapes
+bs1 m1+m2+m3 vs a1+a2+a3: ratio-of-means +1.96%  pairs min +1.73 max +2.63  every-new>every-base True | a1:23.57 a2:23.66 a3:23.60 m1:23.04 m2:23.12 m3:23.14
+bs8 m1+m2+m3 vs a1+a2+a3: ratio-of-means +0.15%  pairs min -0.34 max +0.94  every-new>every-base False | a1:62.22 a2:62.56 a3:62.32 m1:62.43 m2:62.32 m3:62.32
+bs16 m1+m2+m3 vs a1+a2+a3: ratio-of-means +0.06%  pairs min -0.31 max +0.21  every-new>every-base False | a1:83.63 a2:84.02 a3:83.95 m1:83.47 m2:83.33 m3:84.18
+bs32 m1+m2+m3 vs a1+a2+a3: ratio-of-means +0.03%  pairs min -0.14 max +0.20  every-new>every-base False | a1:110.80 a2:110.86 a3:110.51 m1:110.35 m2:111.23 m3:110.75
+bs128 m1+m2+m3 vs a1+a2+a3: ratio-of-means -0.13%  pairs min -0.35 max +0.29  every-new>every-base False | a1:160.98 a2:161.50 a3:161.55 m1:160.96 m2:161.57 m3:160.38
+bs256 m1+m2+m3 vs a1+a2+a3: ratio-of-means +0.08%  pairs min -0.16 max +0.34  every-new>every-base False | a1:196.80 a2:196.64 a3:196.66 m1:196.61 m2:196.93 m3:195.87
+bs1 n1+n2 vs a1+a2+a3: ratio-of-means +1.60%  pairs min +1.02 max +2.14  every-new>every-base True | a1:23.57 a2:23.66 a3:23.60 n1:23.31 n2:23.20
+bs8 n1+n2 vs a1+a2+a3: ratio-of-means +0.08%  pairs min -0.76 max +0.51  every-new>every-base False | a1:62.22 a2:62.56 a3:62.32 n1:62.34 n2:62.34
+bs16 n1+n2 vs a1+a2+a3: ratio-of-means -0.07%  pairs min -0.23 max -0.04  every-new>every-base False | a1:83.63 a2:84.02 a3:83.95 n1:84.13 n2:84.26
+bs32 n1+n2 vs a1+a2+a3: ratio-of-means -0.11%  pairs min -0.23 max +0.03  every-new>every-base False | a1:110.80 a2:110.86 a3:110.51 n1:110.99 n2:111.02
+bs128 n1+n2 vs a1+a2+a3: ratio-of-means -0.20%  pairs min -0.40 max -0.03  every-new>every-base False | a1:160.98 a2:161.50 a3:161.55 n1:161.62 n2:161.34
+bs256 n1+n2 vs a1+a2+a3: ratio-of-means -0.06%  pairs min -0.15 max +0.03  every-new>every-base False | a1:196.80 a2:196.64 a3:196.66 n1:197.09 n2:196.45
+bs1 v1 vs a1+a2+a3: ratio-of-means -0.12%  pairs min -0.85 max -0.24  every-new>every-base False | a1:23.57 a2:23.66 a3:23.60 v1:23.68
+bs8 v1 vs a1+a2+a3: ratio-of-means -0.19%  pairs min -0.48 max +0.13  every-new>every-base False | a1:62.22 a2:62.56 a3:62.32 v1:62.58
+bs16 v1 vs a1+a2+a3: ratio-of-means -0.16%  pairs min -0.23 max -0.15  every-new>every-base False | a1:83.63 a2:84.02 a3:83.95 v1:84.19
+bs32 v1 vs a1+a2+a3: ratio-of-means -0.14%  pairs min -0.26 max -0.18  every-new>every-base False | a1:110.80 a2:110.86 a3:110.51 v1:110.96
+bs128 v1 vs a1+a2+a3: ratio-of-means -0.18%  pairs min -0.17 max +0.02  every-new>every-base False | a1:160.98 a2:161.50 a3:161.55 v1:160.98
+bs256 v1 vs a1+a2+a3: ratio-of-means +0.06%  pairs min -0.09 max +0.13  every-new>every-base False | a1:196.80 a2:196.64 a3:196.66 v1:196.27
+bs1 m1+m2+m3 vs n1+n2: ratio-of-means +0.97%  pairs min +0.39 max +0.95  every-new>every-base True | n1:23.31 n2:23.20 m1:23.04 m2:23.12 m3:23.14
+bs1 m1+m2+m3 vs v1: ratio-of-means +1.93%  pairs min +2.22 max +2.71  every-new>every-base True | v1:23.68 m1:23.04 m2:23.12 m3:23.14
+bs8 m1+m2+m3 vs v1: ratio-of-means +0.27%  pairs min +0.05 max +0.35  every-new>every-base True | v1:62.58 m1:62.43 m2:62.32 m3:62.32
+bs16 m1+m2+m3 vs v1: ratio-of-means +0.26%  pairs min -0.02 max +0.22  every-new>every-base False | v1:84.19 m1:83.47 m2:83.33 m3:84.18
+bs32 m1+m2+m3 vs v1: ratio-of-means +0.16%  pairs min +0.05 max +0.36  every-new>every-base True | v1:110.96 m1:110.35 m2:111.23 m3:110.75
+bs128 m1+m2+m3 vs v1: ratio-of-means +0.01%  pairs min -0.08 max +0.29  every-new>every-base False | v1:160.98 m1:160.96 m2:161.57 m3:160.38
+bs256 m1+m2+m3 vs v1: ratio-of-means +0.04%  pairs min -0.04 max +0.16  every-new>every-base False | v1:196.27 m1:196.61 m2:196.93 m3:195.87
+anchor a0 = v1504 scored: 5157.1 us   (c = 0.0 us)
+  fA               projected  5093.8 us  rank ~ 5  (bs1:1.0110 bs8:1.0154 bs16:1.0112 bs32:1.0097 bs128:1.0130 bs256:1.0143)
+  a0               projected  5157.1 us  rank ~ 6  (bs1:1.0000 bs8:1.0000 bs16:1.0000 bs32:1.0000 bs128:1.0000 bs256:1.0000)
+  a1               projected  5098.3 us  rank ~ 6  (bs1:1.0155 bs8:1.0160 bs16:1.0089 bs32:1.0089 bs128:1.0104 bs256:1.0095)
+  m1               projected  5084.2 us  rank ~ 5  (bs1:1.0355 bs8:1.0134 bs16:1.0116 bs32:1.0095 bs128:1.0067 bs256:1.0096)
+  n1               projected  5092.1 us  rank ~ 5  (bs1:1.0281 bs8:1.0117 bs16:1.0100 bs32:1.0068 bs128:1.0099 bs256:1.0102)
+  a2               projected  5105.4 us  rank ~ 6  (bs1:1.0124 bs8:1.0130 bs16:1.0089 bs32:1.0087 bs128:1.0084 bs256:1.0094)
+  m2               projected  5080.4 us  rank ~ 5  (bs1:1.0347 bs8:1.0180 bs16:1.0112 bs32:1.0100 bs128:1.0078 bs256:1.0091)
+  n2               projected  5087.7 us  rank ~ 5  (bs1:1.0308 bs8:1.0139 bs16:1.0126 bs32:1.0071 bs128:1.0080 bs256:1.0096)
+  v1               projected  5108.2 us  rank ~ 6  (bs1:1.0109 bs8:1.0114 bs16:1.0108 bs32:1.0053 bs128:1.0085 bs256:1.0106)
+  a3               projected  5099.5 us  rank ~ 6  (bs1:1.0162 bs8:1.0127 bs16:1.0108 bs32:1.0069 bs128:1.0109 bs256:1.0103)
+  m3               projected  5086.8 us  rank ~ 5  (bs1:1.0354 bs8:1.0097 bs16:1.0069 bs32:1.0066 bs128:1.0126 bs256:1.0120)
+  fB               projected  5089.6 us  rank ~ 5  (bs1:1.0141 bs8:1.0144 bs16:1.0160 bs32:1.0074 bs128:1.0123 bs256:1.0155)
+== check_mt t3/EC/moe_ec_13.py 19:52:05
+M 512 skewed seed 3 call 0: ok  relative L2 error 3.095e-03 (worst row 3.461e-03)
+M 512 skewed seed 3 call 1: ok  relative L2 error 3.095e-03 (worst row 3.461e-03)
+FAILURES 0
+GPU_AFTER NVIDIA H200, 1980 MHz, 3201 MHz, 251.40 W, 33, 0 %, 78 MiB 19:52:12
+REMOTE_EXIT 0

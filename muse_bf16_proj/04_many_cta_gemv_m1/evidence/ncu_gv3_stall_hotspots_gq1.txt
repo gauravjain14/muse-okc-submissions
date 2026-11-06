@@ -1,0 +1,128 @@
+===== Stall hotspots for gq1 =====
+Total distinct (file, line) entries: 29
+
+Rank      Total File                            Line  Breakdown (stall: count)
+------------------------------------------------------------------------------------------------------------------------------------------------------
+   0        351 gv3.cu                            28  long_scoreboard: 310, not_selected: 24, math_pipe_throttle: 10, wait: 5, dispatch_stall: 2
+   1        186 gv3.cu                           109  barrier: 183, wait: 2, selected: 1
+   2        101 gv3.cu                            31  long_scoreboard: 92, not_selected: 7, math_pipe_throttle: 1, selected: 1
+   3         55 gv3.cu                           100  short_scoreboard: 30, selected: 10, not_selected: 8, wait: 6, dispatch_stall: 1
+   4         45 gv3.cu                           224  no_instructions: 41, mio_throttle: 2, not_selected: 1, selected: 1
+   5         34 gv3.cu                            47  not_selected: 15, math_pipe_throttle: 13, wait: 3, short_scoreboard: 2, no_instructions: 1
+   6         23 gv3.cu                            83  wait: 9, not_selected: 7, math_pipe_throttle: 3, selected: 3, dispatch_stall: 1
+   7         22 gv3.cu                           112  wait: 12, selected: 4, drain: 3, short_scoreboard: 1, dispatch_stall: 1, branch_resolving: 1
+   8         14 gv3.cu                            68  wait: 4, not_selected: 3, math_pipe_throttle: 3, branch_resolving: 2, dispatch_stall: 2
+   9         13 gv3.cu                            29  not_selected: 6, wait: 5, math_pipe_throttle: 1, selected: 1
+  10         11 gv3.cu                            59  mio_throttle: 6, short_scoreboard: 5
+  11         11 gv3.cu                            84  not_selected: 4, wait: 3, selected: 3, dispatch_stall: 1
+  12         10 gv3.cu                           104  short_scoreboard: 6, wait: 2, not_selected: 1, selected: 1
+  13          9 gv3.cu                            85  wait: 3, not_selected: 2, selected: 2, math_pipe_throttle: 1, dispatch_stall: 1
+  14          8 gv3.cu                            61  selected: 3, math_pipe_throttle: 2, short_scoreboard: 1, wait: 1, not_selected: 1
+  15          8 gv3.cu                            55  not_selected: 4, math_pipe_throttle: 2, wait: 1, dispatch_stall: 1
+  16          5 gv3.cu                            32  wait: 3, not_selected: 2
+  17          4 gv3.cu                            94  not_selected: 2, wait: 1, selected: 1
+  18          4 gv3.cu                            45  not_selected: 2, wait: 1, selected: 1
+  19          4 gv3.cu                            86  not_selected: 2, selected: 2
+  20          3 gv3.cu                            63  wait: 1, branch_resolving: 1, math_pipe_throttle: 1
+  21          3 gv3.cu                            77  selected: 2, dispatch_stall: 1
+  22          2 gv3.cu                            76  long_scoreboard: 1, selected: 1
+  23          2 gv3.cu                            56  wait: 1, not_selected: 1
+  24          2 gv3.cu                            69  wait: 2
+  25          2 gv3.cu                            26  wait: 1, math_pipe_throttle: 1
+  26          2 gv3.cu                            81  math_pipe_throttle: 1, selected: 1
+  27          1 gv3.cu                            92  selected: 1
+  28          1 gv3.cu                           108  selected: 1
+
+
+===== Per-stall-type top lines =====
+
+--- long_scoreboard ---
+       310  gv3.cu:28
+        92  gv3.cu:31
+         1  gv3.cu:76
+
+--- short_scoreboard ---
+        30  gv3.cu:100
+         6  gv3.cu:104
+         5  gv3.cu:59
+         2  gv3.cu:47
+         1  gv3.cu:61
+         1  gv3.cu:112
+
+--- wait ---
+        12  gv3.cu:112
+         9  gv3.cu:83
+         6  gv3.cu:100
+         5  gv3.cu:28
+         5  gv3.cu:29
+         4  gv3.cu:68
+         3  gv3.cu:47
+         3  gv3.cu:84
+         3  gv3.cu:32
+         3  gv3.cu:85
+
+--- math_pipe_throttle ---
+        13  gv3.cu:47
+        10  gv3.cu:28
+         3  gv3.cu:68
+         3  gv3.cu:83
+         2  gv3.cu:61
+         2  gv3.cu:55
+         1  gv3.cu:31
+         1  gv3.cu:63
+         1  gv3.cu:29
+         1  gv3.cu:26
+
+--- mio_throttle ---
+         6  gv3.cu:59
+         2  gv3.cu:224
+
+--- not_selected ---
+        24  gv3.cu:28
+        15  gv3.cu:47
+         8  gv3.cu:100
+         7  gv3.cu:31
+         7  gv3.cu:83
+         6  gv3.cu:29
+         4  gv3.cu:55
+         4  gv3.cu:84
+         3  gv3.cu:68
+         2  gv3.cu:32
+
+--- dispatch_stall ---
+         2  gv3.cu:28
+         2  gv3.cu:68
+         1  gv3.cu:100
+         1  gv3.cu:112
+         1  gv3.cu:55
+         1  gv3.cu:83
+         1  gv3.cu:84
+         1  gv3.cu:85
+         1  gv3.cu:77
+
+--- drain ---
+         3  gv3.cu:112
+
+--- no_instructions ---
+        41  gv3.cu:224
+         1  gv3.cu:47
+
+--- selected ---
+        10  gv3.cu:100
+         4  gv3.cu:112
+         3  gv3.cu:61
+         3  gv3.cu:83
+         3  gv3.cu:84
+         2  gv3.cu:85
+         2  gv3.cu:86
+         2  gv3.cu:77
+         1  gv3.cu:31
+         1  gv3.cu:76
+
+--- branch_resolving ---
+         2  gv3.cu:68
+         1  gv3.cu:112
+         1  gv3.cu:63
+
+--- barrier ---
+       183  gv3.cu:109

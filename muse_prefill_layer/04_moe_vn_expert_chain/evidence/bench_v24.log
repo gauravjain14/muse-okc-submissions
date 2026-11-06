@@ -1,0 +1,52 @@
+✓ Initialized. View run at 
+<modal-run-url>
+✓ Created objects.
+├── 🔨 Created mount 
+│   <scratch>
+│   5-ce57afd4da60/scratchpad/snap.JpDq5B/dev/modal_run.py
+├── 🔨 Created mount 
+│   <scratch>
+│   5-ce57afd4da60/scratchpad/snap.JpDq5B
+└── 🔨 Created function run.
+router seed 728034927264498030 (2 s)
+prepared v23 (cand_dense2_moe_v23.py) in 62.7 s
+prepared v24b (cand_dense2_moe_v24b.py) in 50.4 s
+test 0 {'batch': 1, 'ctx': 0, 'layer': 'sliding', 'q_len': 300, 'page': 1, 'seed': 2000} v23: pass update relative L2 error 3.589e-02 (worst row 8.093e-02) [bound 0.068]; attention input relative L2 error 2.361e-02 (worst row 5.599e-02) [bound 0.045]
+test 0 {'batch': 1, 'ctx': 0, 'layer': 'sliding', 'q_len': 300, 'page': 1, 'seed': 2000} v24b: pass update relative L2 error 3.589e-02 (worst row 8.093e-02) [bound 0.068]; attention input relative L2 error 2.361e-02 (worst row 5.599e-02) [bound 0.045]
+test 1 {'batch': 1, 'ctx': 3000, 'layer': 'full', 'q_len': 753, 'page': 1, 'seed': 106729} v23: pass update relative L2 error 6.832e-02 (worst row 1.328e-01) [bound 0.150]; attention input relative L2 error 4.491e-02 (worst row 8.044e-02) [bound 0.112]
+test 1 {'batch': 1, 'ctx': 3000, 'layer': 'full', 'q_len': 753, 'page': 1, 'seed': 106729} v24b: pass update relative L2 error 6.832e-02 (worst row 1.328e-01) [bound 0.150]; attention input relative L2 error 4.491e-02 (worst row 8.044e-02) [bound 0.112]
+test 2 {'batch': 2, 'ctx': 2500, 'layer': 'sliding', 'q_len': 753, 'page': 1, 'seed': 211458} v23: pass update relative L2 error 6.747e-02 (worst row 1.260e-01) [bound 0.150]; attention input relative L2 error 4.416e-02 (worst row 9.419e-02) [bound 0.109]
+test 2 {'batch': 2, 'ctx': 2500, 'layer': 'sliding', 'q_len': 753, 'page': 1, 'seed': 211458} v24b: pass update relative L2 error 6.747e-02 (worst row 1.260e-01) [bound 0.150]; attention input relative L2 error 4.416e-02 (worst row 9.419e-02) [bound 0.109]
+test 3 {'batch': 3, 'ctx': 5000, 'layer': 'full', 'q_len': 200, 'dist': 'outliers', 'seed': 316187} v23: pass update relative L2 error 6.468e-02 (worst row 1.198e-01) [bound 0.150]; attention input relative L2 error 3.397e-02 (worst row 6.380e-02) [bound 0.084]
+test 3 {'batch': 3, 'ctx': 5000, 'layer': 'full', 'q_len': 200, 'dist': 'outliers', 'seed': 316187} v24b: pass update relative L2 error 6.468e-02 (worst row 1.198e-01) [bound 0.150]; attention input relative L2 error 3.397e-02 (worst row 6.380e-02) [bound 0.084]
+test 4 {'batch': 1, 'ctx': 4096, 'layer': 'sliding', 'q_len': 4096, 'page': 1, 'seed': 420916} v23: pass update relative L2 error 4.936e-02 (worst row 1.163e-01) [bound 0.114]; attention input relative L2 error 3.252e-02 (worst row 8.469e-02) [bound 0.075]
+test 4 {'batch': 1, 'ctx': 4096, 'layer': 'sliding', 'q_len': 4096, 'page': 1, 'seed': 420916} v24b: pass update relative L2 error 4.936e-02 (worst row 1.163e-01) [bound 0.114]; attention input relative L2 error 3.252e-02 (worst row 8.469e-02) [bound 0.075]
+  v23 case 0: pass update relative L2 error 5.212e-02 (worst row 8.588e-02) [bound 0.120]; attention input relative L2 error 3.417e-02 (worst row 6.538e-02) [bound 0.079]
+  v24b case 0: pass update relative L2 error 5.212e-02 (worst row 8.588e-02) [bound 0.120]; attention input relative L2 error 3.417e-02 (worst row 6.538e-02) [bound 0.079]
+0 turn 1     b1 ctx80000 sliding q753  sglang    1095.4  v23     598.0 x1.835  v24b     593.7 x1.859 (vs v23 x1.0076)
+  v23 case 1: pass update relative L2 error 6.229e-02 (worst row 9.628e-02) [bound 0.150]; attention input relative L2 error 4.076e-02 (worst row 6.827e-02) [bound 0.099]
+  v24b case 1: pass update relative L2 error 6.229e-02 (worst row 9.628e-02) [bound 0.150]; attention input relative L2 error 4.076e-02 (worst row 6.827e-02) [bound 0.099]
+1 turn 1     b1 ctx80000 full    q753  sglang    1519.7  v23     979.0 x1.548  v24b     974.9 x1.559 (vs v23 x1.0057)
+  v23 case 2: pass update relative L2 error 5.274e-02 (worst row 1.130e-01) [bound 0.123]; attention input relative L2 error 3.469e-02 (worst row 7.525e-02) [bound 0.081]
+  v24b case 2: pass update relative L2 error 5.274e-02 (worst row 1.130e-01) [bound 0.123]; attention input relative L2 error 3.469e-02 (worst row 7.525e-02) [bound 0.081]
+2 turn 4     b4 ctx80000 sliding q753  sglang    3450.8  v23    1892.9 x1.820  v24b    1884.4 x1.827 (vs v23 x1.0037)
+  v23 case 3: pass update relative L2 error 6.339e-02 (worst row 1.155e-01) [bound 0.150]; attention input relative L2 error 4.132e-02 (worst row 8.223e-02) [bound 0.101]
+  v24b case 3: pass update relative L2 error 6.339e-02 (worst row 1.155e-01) [bound 0.150]; attention input relative L2 error 4.132e-02 (worst row 8.223e-02) [bound 0.101]
+3 turn 4     b4 ctx80000 full    q753  sglang    5037.6  v23    3458.3 x1.463  v24b    3450.0 x1.467 (vs v23 x1.0021)
+  v23 case 4: pass update relative L2 error 2.169e-02 (worst row 5.045e-02) [bound 0.044]; attention input relative L2 error 1.435e-02 (worst row 3.543e-02) [bound 0.030]
+  v24b case 4: pass update relative L2 error 2.169e-02 (worst row 5.045e-02) [bound 0.044]; attention input relative L2 error 1.435e-02 (worst row 3.543e-02) [bound 0.030]
+4 first turn b1 ctx0 full    q16384  sglang   19301.2  v23   10304.0 x1.875  v24b   10299.6 x1.874 (vs v23 x1.0010)
+  v23 case 5: pass update relative L2 error 3.437e-02 (worst row 1.099e-01) [bound 0.069]; attention input relative L2 error 2.267e-02 (worst row 7.965e-02) [bound 0.046]
+  v24b case 5: pass update relative L2 error 3.437e-02 (worst row 1.099e-01) [bound 0.069]; attention input relative L2 error 2.267e-02 (worst row 7.965e-02) [bound 0.046]
+5 first turn b1 ctx32768 sliding q16384  sglang   18214.4  v23    9735.3 x1.873  v24b    9659.7 x1.882 (vs v23 x0.9980)
+  v23 case 6: pass update relative L2 error 5.120e-02 (worst row 1.117e-01) [bound 0.123]; attention input relative L2 error 3.337e-02 (worst row 7.677e-02) [bound 0.080]
+  v24b case 6: pass update relative L2 error 5.120e-02 (worst row 1.117e-01) [bound 0.123]; attention input relative L2 error 3.337e-02 (worst row 7.677e-02) [bound 0.080]
+6 first turn b1 ctx32768 full    q16384  sglang   22921.8  v23   14201.6 x1.626  v24b   14059.1 x1.630 (vs v23 x1.0030)
+  v23 case 7: pass update relative L2 error 5.850e-02 (worst row 1.137e-01) [bound 0.142]; attention input relative L2 error 3.829e-02 (worst row 8.143e-02) [bound 0.093]
+  v24b case 7: pass update relative L2 error 5.850e-02 (worst row 1.137e-01) [bound 0.142]; attention input relative L2 error 3.829e-02 (worst row 8.143e-02) [bound 0.093]
+7 first turn b1 ctx65536 full    q16384  sglang   26588.6  v23   18189.2 x1.486  v24b   17958.7 x1.498 (vs v23 x1.0077)
+v23: turn 1 x1.730  turn 4 x1.682  first turn x1.791  geomean x1.7336
+v24b: turn 1 x1.750  turn 4 x1.687  first turn x1.798  geomean x1.7446
+Stopping app - local entrypoint completed.
+✓ App completed. View run at 
+<modal-run-url>

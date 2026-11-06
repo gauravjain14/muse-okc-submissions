@@ -1,0 +1,33 @@
+prepared ours in 1.1 s
+prepared public in 48.7 s
+M   753 seed 0: routes 1393 distinct 14 top [578, 235, 150, 150, 133, 49, 30, 24, 18, 16, 3, 3, 2, 2, 0, 0]
+    ours: rel err 2.869e-03
+    public: rel err 2.869e-03
+    ours              302.8 us  vs ours x1.000
+    public            301.3 us  vs ours x1.005
+M   753 seed 1: routes 1445 distinct 15 top [566, 213, 196, 168, 150, 67, 37, 13, 11, 9, 6, 3, 3, 2, 1, 0]
+    ours: rel err 2.877e-03
+    public: rel err 2.878e-03
+    ours              306.0 us  vs ours x1.000
+    public            318.2 us  vs ours x0.963
+M  3012 seed 0: routes 5701 distinct 19 top [2355, 1097, 714, 658, 340, 170, 149, 82, 65, 27, 11, 11, 6, 6, 3, 3]
+    ours: rel err 2.871e-03
+    public: rel err 2.871e-03
+    ours              904.4 us  vs ours x1.000
+    public            877.4 us  vs ours x1.029
+M  3012 seed 1: routes 5713 distinct 18 top [2268, 1169, 754, 728, 282, 162, 137, 91, 61, 20, 10, 9, 6, 5, 4, 3]
+    ours: rel err 2.870e-03
+    public: rel err 2.870e-03
+    ours              896.8 us  vs ours x1.000
+    public            856.8 us  vs ours x1.046
+M 16384 seed 0: routes 29865 distinct 20 top [13019, 4806, 4141, 3294, 1799, 1269, 532, 431, 329, 85, 43, 40, 28, 14, 13, 11]
+    ours: rel err 2.871e-03
+    public: rel err 2.871e-03
+    ours             4696.2 us  vs ours x1.000
+    public           4461.3 us  vs ours x1.054
+M 16384 seed 1: routes 29686 distinct 18 top [12988, 4840, 3918, 3129, 1939, 1229, 540, 518, 335, 99, 56, 36, 24, 13, 9, 7]
+    ours: rel err 2.871e-03
+    public: rel err 2.871e-03
+    ours             4540.3 us  vs ours x1.000
+    public           4296.3 us  vs ours x1.057
+REMOTE_EXIT 0

@@ -1,0 +1,33 @@
+fixed graph cost 5.41 us
+  check k1 decode 1 sliding: relative L2 error 6.822e-02 (worst row 6.822e-02) [bound 0.150: 2.5 x the reference's 0.068 with FP8 E4M3 queries + 0.015]
+decode 1  sliding w46 sglang    19.57 | k1    17.81 x1.098   sol    0.11
+  check k1 decode 1 full: relative L2 error 2.730e-02 (worst row 2.730e-02) [bound 0.081: 2.5 x the reference's 0.027 with FP8 E4M3 queries + 0.015]
+decode 1  full    w16 sglang    30.53 | k1    92.68 x0.329   sol    4.27
+  check k1 decode 16 sliding: relative L2 error 7.198e-02 (worst row 8.838e-02) [bound 0.150: 2.5 x the reference's 0.072 with FP8 E4M3 queries + 0.015]
+decode 16 sliding w46 sglang    25.30 | k1    30.52 x0.829   sol    1.65
+  check k1 decode 16 full: relative L2 error 4.820e-02 (worst row 5.802e-02) [bound 0.125: 2.5 x the reference's 0.044 with FP8 E4M3 queries + 0.015]
+decode 16 full    w16 sglang   198.11 | k1   115.78 x1.711   sol   63.18
+  check k1 decode 32 sliding: relative L2 error 7.088e-02 (worst row 1.027e-01) [bound 0.150: 2.5 x the reference's 0.071 with FP8 E4M3 queries + 0.015]
+decode 32 sliding w46 sglang    30.30 | k1    29.36 x1.032   sol    3.29
+  check k1 decode 32 full: relative L2 error 5.657e-02 (worst row 7.579e-02) [bound 0.130: 2.5 x the reference's 0.046 with FP8 E4M3 queries + 0.015]
+decode 32 full    w16 sglang   382.37 | k1   192.65 x1.985   sol  126.35
+  check k1 verify 1 sliding: relative L2 error 6.108e-02 (worst row 8.054e-02) [bound 0.150: 2.5 x the reference's 0.061 with FP8 E4M3 queries + 0.015]
+verify 1  sliding w46 sglang    21.47 | k1    64.12 x0.335   sol    0.12
+  check k1 verify 1 full: relative L2 error 2.553e-02 (worst row 3.800e-02) [bound 0.079: 2.5 x the reference's 0.025 with FP8 E4M3 queries + 0.015]
+verify 1  full    w16 sglang    35.50 | k1   376.51 x0.094   sol    4.28
+  check k1 verify 16 sliding: relative L2 error 6.495e-02 (worst row 9.224e-02) [bound 0.150: 2.5 x the reference's 0.065 with FP8 E4M3 queries + 0.015]
+verify 16 sliding w46 sglang    28.18 | k1   111.41 x0.253   sol    1.86
+  check k1 verify 16 full: relative L2 error 3.105e-02 (worst row 6.267e-02) [bound 0.086: 2.5 x the reference's 0.029 with FP8 E4M3 queries + 0.015]
+verify 16 full    w16 sglang   202.58 | k1   486.40 x0.416   sol   63.39
+  check k1 verify 32 sliding: relative L2 error 7.014e-02 (worst row 1.129e-01) [bound 0.150: 2.5 x the reference's 0.070 with FP8 E4M3 queries + 0.015]
+verify 32 sliding w46 sglang    33.25 | k1   102.16 x0.325   sol    3.72
+  check k1 verify 32 full: relative L2 error 3.708e-02 (worst row 7.867e-02) [bound 0.095: 2.5 x the reference's 0.032 with FP8 E4M3 queries + 0.015]
+verify 32 full    w16 sglang   388.59 | k1   887.73 x0.438   sol  126.78
+per-load (weighted sums, us):
+  decode 1  sglang    1388.6 | k1    2302.4 x0.603
+  decode 16 sglang    4333.4 | k1    3256.5 x1.331
+  decode 32 sglang    7511.9 | k1    4433.0 x1.695
+  verify 1  sglang    1555.8 | k1    8973.9 x0.173
+  verify 16 sglang    4537.3 | k1   12907.1 x0.352
+  verify 32 sglang    7746.9 | k1   18903.1 x0.410
+GEOMEAN k1: x0.5691 (board time 6461.4 us)   judge-projected (+1.0 us/call) x0.5741 (board 6541.9 us)

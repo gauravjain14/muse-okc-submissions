@@ -1,0 +1,75 @@
+===== [2026-10-24T16:04:54.388Z UTC] Make the header layout configurable and define candidate layouts
+$ cp dev/moe_v130.py dev/moe_v132.py && python3 - <<'EOF'
+p = "muse-opt/muse_moe_w4a16/dev/moe_v132.py"
+s = open(p).read()
+old = """  static_assert(NS <= 4, "the header holds at most 4 ring stages");
+  u64* bars = reinterpret_cast<u64*>(smem);                     // full[NS], empty[NS]
+  u64* epi = reinterpret_cast<u64*>(smem + 64);                 // [NSIG] item outputs stored
+  u64* sfree = reinterpret_cast<u64*>(smem + 96);               // [NSIG] signal slot free
+  StageInfo* info = reinterpret_cast<StageInfo*>(smem + 128);   // [NS]
+  int2* sinfo = reinterpret_cast<int2*>(smem + 320);            // [NSIG] (phase, tile)
+  int* scal = reinterpret_cast<int*>(smem + 352);               // [16] ntiles, n1, total, P
+  int* ftile = reinterpret_cast<int*>(smem + 416);              // [32] first tile of each expert
+  int* off = reinterpret_cast<int*>(smem + 544);                // [32]
+  u64* rdy = reinterpret_cast<u64*>(smem + 672);                // pair list (and gather) done
+  u64* rtd = reinterpret_cast<u64*>(smem + 688);                // routing tables (tiles, scal) done
+  u64* eis = reinterpret_cast<u64*>(smem + 696);                // early start: the first stages issued
+  float* gsm = reinterpret_cast<float*>(smem + 768);            // [64] gate/up then down global scales x 2^8"""
+new = """  static_assert(NS <= 4, "the header holds at most 4 ring stages");
+  // (offsets selectable for layout experiments: HL_* defines; defaults = v83's layout)
+#ifndef HL_BARS
+#define HL_BARS 0
+#define HL_EPI 64
+#define HL_SFREE 96
+#define HL_INFO 128
+#define HL_SINFO 320
+#define HL_SCAL 352
+#define HL_FTILE 416
+#define HL_OFF 544
+#define HL_RDY 672
+#define HL_RTD 688
+#define HL_EIS 696
+#define HL_GSM 768
+#endif
+  u64* bars = reinterpret_cast<u64*>(smem + HL_BARS);           // full[NS], empty[NS]
+  u64* epi = reinterpret_cast<u64*>(smem + HL_EPI);             // [NSIG] item outputs stored
+  u64* sfree = reinterpret_cast<u64*>(smem + HL_SFREE);         // [NSIG] signal slot free
+  StageInfo* info = reinterpret_cast<StageInfo*>(smem + HL_INFO);  // [NS]
+  int2* sinfo = reinterpret_cast<int2*>(smem + HL_SINFO);       // [NSIG] (phase, tile)
+  int* scal = reinterpret_cast<int*>(smem + HL_SCAL);           // [16] ntiles, n1, total, P
+  int* ftile = reinterpret_cast<int*>(smem + HL_FTILE);         // [32] first tile of each expert
+  int* off = reinterpret_cast<int*>(smem + HL_OFF);             // [32]
+  u64* rdy = reinterpret_cast<u64*>(smem + HL_RDY);             // pair list (and gather) done
+  u64* rtd = reinterpret_cast<u64*>(smem + HL_RTD);             // routing tables (tiles, scal) done
+  u64* eis = reinterpret_cast<u64*>(smem + HL_EIS);             // early start: the first stages issued
+  float* gsm = reinterpret_cast<float*>(smem + HL_GSM);         // [64] gate/up then down global scales x 2^8"""
+assert s.count(old) == 1
+s = s.replace(old, new)
+open(p, "w").write(s)
+print("ok")
+EOF
+python3 - <<'EOF'
+# layout candidates: (name, dict) ; sizes: bars 64, epi 32, sfree 32, info 192, sinfo 32, scal 64, ftile 128, off 128, rdy 8, rtd 8, eis 8, gsm 256
+sizes = dict(BARS=64, EPI=32, SFREE=32, INFO=192, SINFO=32, SCAL=64, FTILE=128, OFF=128, RDY=8, RTD=8, EIS=8, GSM=256)
+L = {
+ "L1": dict(BARS=0, INFO=64, EPI=256, SFREE=288, SINFO=320, SCAL=352, FTILE=416, OFF=544, RDY=672, RTD=688, EIS=696, GSM=768),
+ "L2": dict(INFO=0, BARS=192, EPI=256, SFREE=288, SINFO=320, SCAL=352, FTILE=416, OFF=544, RDY=672, RTD=688, EIS=696, GSM=768),
+ "L3": dict(BARS=0, EPI=128, SFREE=160, INFO=192, SINFO=384, SCAL=416, FTILE=480, OFF=608, RDY=736, RTD=744, EIS=752, GSM=768),
+ "L4": dict(GSM=0, BARS=256, EPI=320, SFREE=352, INFO=384, SINFO=576, SCAL=608, FTILE=672, OFF=800, RDY=928, RTD=936, EIS=944),
+ "L5": dict(BARS=0, INFO=128, EPI=320, SFREE=352, SINFO=384, SCAL=416, FTILE=480, OFF=608, RDY=736, RTD=744, EIS=752, GSM=768),
+}
+for name, d in L.items():
+    iv = sorted((d[k], d[k] + sizes[k], k) for k in d)
+    for (a0, a1, ka), (b0, b1, kb) in zip(iv, iv[1:]):
+        assert a1 <= b0, (name, ka, kb)
+    assert iv[-1][1] <= 1024, name
+    print(name, ",".join(f"HL_{k}={v}" for k, v in d.items()))
+EOF
+----- output
+ok
+L1 HL_BARS=0,HL_INFO=64,HL_EPI=256,HL_SFREE=288,HL_SINFO=320,HL_SCAL=352,HL_FTILE=416,HL_OFF=544,HL_RDY=672,HL_RTD=688,HL_EIS=696,HL_GSM=768
+L2 HL_INFO=0,HL_BARS=192,HL_EPI=256,HL_SFREE=288,HL_SINFO=320,HL_SCAL=352,HL_FTILE=416,HL_OFF=544,HL_RDY=672,HL_RTD=688,HL_EIS=696,HL_GSM=768
+L3 HL_BARS=0,HL_EPI=128,HL_SFREE=160,HL_INFO=192,HL_SINFO=384,HL_SCAL=416,HL_FTILE=480,HL_OFF=608,HL_RDY=736,HL_RTD=744,HL_EIS=752,HL_GSM=768
+L4 HL_GSM=0,HL_BARS=256,HL_EPI=320,HL_SFREE=352,HL_INFO=384,HL_SINFO=576,HL_SCAL=608,HL_FTILE=672,HL_OFF=800,HL_RDY=928,HL_RTD=936,HL_EIS=944
+L5 HL_BARS=0,HL_INFO=128,HL_EPI=320,HL_SFREE=352,HL_SINFO=384,HL_SCAL=416,HL_FTILE=480,HL_OFF=608,HL_RDY=736,HL_RTD=744,HL_EIS=752,HL_GSM=768
+

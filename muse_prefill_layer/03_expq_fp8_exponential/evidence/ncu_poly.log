@@ -1,0 +1,58 @@
+✓ Initialized. View run at 
+<modal-run-url>
+✓ Created objects.
+├── 🔨 Created mount 
+│   <scratch>
+│   5-ce57afd4da60/scratchpad/snap.3YD07h/dev/modal_run.py
+├── 🔨 Created mount 
+│   <scratch>
+│   5-ce57afd4da60/scratchpad/snap.3YD07h
+└── 🔨 Created function run.
+POLY 0
+    gpu__time_duration.sum                                                     us       378.66
+    sm__inst_executed.avg.per_cycle_active                             inst/cycle         1.95
+    sm__inst_executed_pipe_xu.avg.pct_of_peak_sustained_active                  %        72.97
+    sm__pipe_alu_cycles_active.avg.pct_of_peak_sustained_active                 %        42.44
+    sm__pipe_fma_cycles_active.avg.pct_of_peak_sustained_active                 %        13.83
+    sm__pipe_fmaheavy_cycles_active.avg.pct_of_peak_sustained_active            %        16.63
+    sm__warps_active.avg.per_cycle_active                                    warp        12.93
+    smsp__average_warp_latency_issue_stalled_barrier.ratio              inst/warp    27,315.45
+    smsp__average_warp_latency_issue_stalled_long_scoreboard.ratio      inst/warp    51,262.82
+    smsp__average_warp_latency_issue_stalled_math_pipe_throttle.ratio   inst/warp    26,638.37
+    smsp__average_warp_latency_issue_stalled_short_scoreboard.ratio     inst/warp    13,153.00
+    smsp__average_warp_latency_issue_stalled_wait.ratio                 inst/warp   196,795.58
+    smsp__inst_executed.sum                                                  inst  166,339,380
+    smsp__issue_active.avg.pct_of_peak_sustained_active                         %        48.82
+POLY 1
+    gpu__time_duration.sum                                                     us       475.04
+    sm__inst_executed.avg.per_cycle_active                             inst/cycle         2.10
+    sm__inst_executed_pipe_xu.avg.pct_of_peak_sustained_active                  %        43.34
+    sm__pipe_alu_cycles_active.avg.pct_of_peak_sustained_active                 %        38.26
+    sm__pipe_fma_cycles_active.avg.pct_of_peak_sustained_active                 %        23.00
+    sm__pipe_fmaheavy_cycles_active.avg.pct_of_peak_sustained_active            %        22.86
+    sm__warps_active.avg.per_cycle_active                                    warp        12.94
+    smsp__average_warp_latency_issue_stalled_barrier.ratio              inst/warp   130,430.09
+    smsp__average_warp_latency_issue_stalled_long_scoreboard.ratio      inst/warp    63,258.54
+    smsp__average_warp_latency_issue_stalled_math_pipe_throttle.ratio   inst/warp    26,865.52
+    smsp__average_warp_latency_issue_stalled_short_scoreboard.ratio     inst/warp    12,912.45
+    smsp__average_warp_latency_issue_stalled_wait.ratio                 inst/warp   164,363.75
+    smsp__inst_executed.sum                                                  inst  227,129,595
+    smsp__issue_active.avg.pct_of_peak_sustained_active                         %        52.64
+POLY 2
+    gpu__time_duration.sum                                                     us       430.98
+    sm__inst_executed.avg.per_cycle_active                             inst/cycle         2.05
+    sm__inst_executed_pipe_xu.avg.pct_of_peak_sustained_active                  %        56.06
+    sm__pipe_alu_cycles_active.avg.pct_of_peak_sustained_active                 %        39.70
+    sm__pipe_fma_cycles_active.avg.pct_of_peak_sustained_active                 %        19.04
+Stopping app - local entrypoint completed.
+    sm__pipe_fmaheavy_cycles_active.avg.pct_of_peak_sustained_active            %        20.91
+    sm__warps_active.avg.per_cycle_active                                    warp        12.94
+    smsp__average_warp_latency_issue_stalled_barrier.ratio              inst/warp   116,417.42
+    smsp__average_warp_latency_issue_stalled_long_scoreboard.ratio      inst/warp    58,323.08
+    smsp__average_warp_latency_issue_stalled_math_pipe_throttle.ratio   inst/warp    16,054.72
+    smsp__average_warp_latency_issue_stalled_short_scoreboard.ratio     inst/warp    14,274.13
+    smsp__average_warp_latency_issue_stalled_wait.ratio                 inst/warp   184,078.74
+    smsp__inst_executed.sum                                                  inst  200,083,800
+    smsp__issue_active.avg.pct_of_peak_sustained_active                         %        51.50
+✓ App completed. View run at 
+<modal-run-url>

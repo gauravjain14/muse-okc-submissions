@@ -1,0 +1,27 @@
+✓ Initialized. View run at 
+<modal-run-url>
+✓ Created objects.
+├── 🔨 Created mount 
+│   <scratch>
+│   5-ce57afd4da60/scratchpad/snap.U9XJA3/dev/modal_run.py
+├── 🔨 Created mount 
+│   <scratch>
+│   5-ce57afd4da60/scratchpad/snap.U9XJA3
+└── 🔨 Created function run.
+router seed 728034927264498030 (2 s)
+prepared att8d (cand_att8d.py) in 73.8 s
+prepared moe8d (cand_moe_on_att8d.py) in 58.0 s
+0 turn 1     b1 ctx80000 sliding q753  sglang    1093.8  att8d     640.5 x1.706  moe8d     642.3 x1.703 (vs att8d x0.9971)
+1 turn 1     b1 ctx80000 full    q753  sglang    1536.1  att8d    1020.0 x1.502  moe8d    1018.8 x1.509 (vs att8d x1.0038)
+2 turn 4     b4 ctx80000 sliding q753  sglang    3427.9  att8d    1993.8 x1.724  moe8d    1967.4 x1.747 (vs att8d x1.0137)
+3 turn 4     b4 ctx80000 full    q753  sglang    5023.6  att8d    3508.8 x1.436  moe8d    3486.0 x1.449 (vs att8d x1.0089)
+4 first turn b1 ctx0 full    q16384  sglang   18810.4  att8d   10795.9 x1.739  moe8d   10541.8 x1.784 (vs att8d x1.0239)
+5 first turn b1 ctx32768 sliding q16384  sglang   18103.0  att8d   10234.2 x1.770  moe8d    9910.4 x1.820 (vs att8d x1.0296)
+6 first turn b1 ctx32768 full    q16384  sglang   22802.1  att8d   14053.5 x1.637  moe8d   13805.0 x1.676 (vs att8d x1.0196)
+7 first turn b1 ctx65536 full    q16384  sglang   26289.6  att8d   17263.1 x1.535  moe8d   16889.1 x1.584 (vs att8d x1.0277)
+att8d: turn 1 x1.633  turn 4 x1.614  first turn x1.722  geomean x1.6558
+moe8d: turn 1 x1.634  turn 4 x1.633  first turn x1.771  geomean x1.6781
+Stopping app - local entrypoint completed.
+✓ App completed. View run at 
+<modal-run-url>
+dev/mrun.sh: line 10: --fetch: command not found

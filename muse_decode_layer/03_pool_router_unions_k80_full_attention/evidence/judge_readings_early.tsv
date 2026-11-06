@@ -1,0 +1,4 @@
+when_PT	mode	job	build	md5	judge	recomputed	fixed_sglang	ours_load_geo_us	json
+~2026-11-02 22:51	?	499a15f417bd4de4		None	2.0568	2.0568	2.0606	10953.7	muse-opt-codex/profiles/499a15f417bd4de4.json
+~2026-11-02 23:17	?	f9a581c0ca2346a5		None	2.1817	2.1817	2.1517	10489.9	muse-opt-codex/profiles/f9a581c0ca2346a5.json
+~2026-11-03 01:42	?	fe345625a1ca47fa		None	2.2074	2.2074	2.1829	10340.2	muse-opt-codex/profiles/fe345625a1ca47fa.json

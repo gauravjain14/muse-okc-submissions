@@ -1,0 +1,19 @@
+==== [2026-10-23T15:26:06.023Z] Build v50 fence-free reset, test and compare
+CMD: cp dev/moe_v40.py dev/moe_v50.py && python3 - <<'EOF'
+p = "muse-opt/muse_moe_w4a16/dev/moe_v50.py"
+s = open(p).read()
+old = """  if (tid == 0) {
+    __threadfence();
+    const int prev = atomicAdd(P.ctr + 2, 1);
+    if (prev == (int)gridDim.x - 1) {
+      __threadfence();
+   test {'bs': 4}: PASS relative L2 error 2.524e-03 (worst row 2.577e-03)
+   test {'bs': 33}: PASS relative L2 error 2.550e-03 (worst row 2.777e-03)
+   test {'bs': 257}: PASS relative L2 error 2.545e-03 (worst row 2.758e-03)
+   test {'bs': 128, 'dist': 'skewed'}: PASS relative L2 error 2.546e-03 (worst row 2.723e-03)
+   test {'bs': 1}: PASS relative L2 error 2.472e-03 (worst row 2.472e-03)
+   moe_v50 : 1:41.1 16:118.7 32:162.9 8:92.7 128:242.6 256:286.8 geomean speedup 2.067x over 6 loads
+   moe_v40 : 1:42.2 16:120.4 32:163.2 8:93.0 128:242.9 256:286.4 geomean speedup 2.049x over 6 loads
+   moe_v50 : 1:41.3 16:119.9 32:163.4 8:91.5 128:242.1 256:286.5 geomean speedup 2.068x over 6 loads
+   moe_v40 : 1:41.4 16:120.0 32:163.6 8:92.6 128:243.4 256:286.7 geomean speedup 2.058x over 6 loads
+

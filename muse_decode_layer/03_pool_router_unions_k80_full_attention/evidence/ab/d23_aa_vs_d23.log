@@ -1,0 +1,40 @@
+PREPARE control 16.16
+PREPARE candidate 6.12
+CASE 0 fresh=0 A=67.856 B=67.856 saving=+0.080 us positive=6/12
+CASE 0 fresh=1 A=74.880 B=73.840 saving=+0.760 us positive=10/12
+CASE 0 fresh=2 A=74.832 B=74.096 saving=+0.240 us positive=9/12
+CASE 1 fresh=0 A=74.272 B=74.544 saving=-0.184 us positive=4/12
+CASE 1 fresh=1 A=74.320 B=74.272 saving=-0.088 us positive=5/12
+CASE 1 fresh=2 A=81.456 B=81.136 saving=+0.416 us positive=9/12
+CASE 2 fresh=0 A=109.824 B=110.768 saving=-0.624 us positive=2/12
+CASE 2 fresh=1 A=136.576 B=136.640 saving=-0.216 us positive=4/12
+CASE 2 fresh=2 A=124.192 B=124.256 saving=+0.208 us positive=7/12
+CASE 3 fresh=0 A=209.936 B=209.824 saving=+0.360 us positive=7/12
+CASE 3 fresh=1 A=210.416 B=210.592 saving=+0.504 us positive=8/12
+CASE 3 fresh=2 A=209.184 B=209.008 saving=+0.192 us positive=8/12
+CASE 4 fresh=0 A=139.872 B=140.016 saving=-0.128 us positive=6/12
+CASE 4 fresh=1 A=151.888 B=152.112 saving=-0.376 us positive=4/12
+CASE 4 fresh=2 A=165.280 B=165.616 saving=+0.000 us positive=6/12
+CASE 5 fresh=0 A=308.624 B=309.008 saving=-0.512 us positive=1/12
+CASE 5 fresh=1 A=320.096 B=321.152 saving=-1.040 us positive=2/12
+CASE 5 fresh=2 A=327.200 B=326.528 saving=+0.864 us positive=8/12
+CASE 6 fresh=0 A=114.800 B=115.360 saving=-0.424 us positive=4/12
+CASE 6 fresh=1 A=95.808 B=96.048 saving=-0.264 us positive=5/12
+CASE 6 fresh=2 A=108.288 B=108.800 saving=-0.392 us positive=4/12
+CASE 7 fresh=0 A=110.448 B=110.320 saving=+0.120 us positive=10/12
+CASE 7 fresh=1 A=123.008 B=122.992 saving=-0.168 us positive=3/12
+CASE 7 fresh=2 A=96.656 B=96.960 saving=-0.488 us positive=2/12
+CASE 8 fresh=0 A=215.328 B=214.944 saving=-0.104 us positive=6/12
+CASE 8 fresh=1 A=252.400 B=251.552 saving=+0.696 us positive=9/12
+CASE 8 fresh=2 A=239.488 B=239.008 saving=+0.512 us positive=9/12
+CASE 9 fresh=0 A=323.872 B=324.032 saving=+0.144 us positive=6/12
+CASE 9 fresh=1 A=311.904 B=311.264 saving=+0.512 us positive=7/12
+CASE 9 fresh=2 A=316.336 B=315.648 saving=+0.232 us positive=8/12
+CASE 10 fresh=0 A=296.672 B=297.008 saving=-0.040 us positive=6/12
+CASE 10 fresh=1 A=289.328 B=289.856 saving=+0.112 us positive=6/12
+CASE 10 fresh=2 A=306.192 B=306.464 saving=+0.760 us positive=7/12
+CASE 11 fresh=0 A=474.400 B=474.480 saving=-0.176 us positive=6/12
+CASE 11 fresh=1 A=464.112 B=464.576 saving=-0.840 us positive=3/12
+CASE 11 fresh=2 A=471.296 B=471.920 saving=+0.552 us positive=7/12
+DONE
+REMOTE_EXIT 0

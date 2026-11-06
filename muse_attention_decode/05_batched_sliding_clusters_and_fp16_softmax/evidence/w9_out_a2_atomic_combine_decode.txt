@@ -1,0 +1,29 @@
+[gate] slot 1 at 06:12:43 (2 running)
+✓ Initialized. View run at 
+<modal-run-url>
+✓ Created objects.
+├── 🔨 Created mount 
+│   autoresearch-kernels/attn/tools/modal_run.py
+├── 🔨 Created mount autoresearch-kernels/attn
+└── 🔨 Created function run.
+[gpu-before]
+NVIDIA H200, 0 %, 4 MiB, 345 MHz, 1980 MHz, 78.11 W
+0
+56
+0 failures
+0 failures
+[k22a] import 24.2s
+[da] import 1.0s
+[k22b] import 0.8s
+[db] import 0.8s
+fixed graph cost 4.96 us
+decode 16 full    w16 | k22a    84.85 (min 82.66) | da    84.46 (min 82.50) | k22b    84.67 (min 82.78) | db    84.22 (min 81.60)   sol   63.18
+decode 32 full    w16 | k22a   160.02 (min 155.81) | da   159.78 (min 156.64) | k22b   159.73 (min 156.19) | db   159.33 (min 155.90)   sol  126.35
+[gpu-after]
+NVIDIA H200, 0 %, 4 MiB, 1980 MHz, 1980 MHz, 215.99 W
+0
+
+[exit 0]
+Stopping app - local entrypoint completed.
+✓ App completed. View run at 
+<modal-run-url>

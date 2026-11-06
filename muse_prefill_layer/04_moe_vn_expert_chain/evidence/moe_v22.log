@@ -1,0 +1,32 @@
+prepared v21 in 44.2 s
+prepared v22 in 46.0 s
+M   753 seed 0: routes 1462 distinct 14 top [501, 364, 154, 109, 107, 71]
+    v21: rel err 2.871e-03
+    v22: rel err 2.871e-03
+    v21               304.1 us  vs v21 x1.000
+    v22               301.4 us  vs v21 x1.011
+M   753 seed 1: routes 1449 distinct 12 top [519, 359, 160, 114, 108, 64]
+    v21: rel err 2.874e-03
+    v22: rel err 2.874e-03
+    v21               294.3 us  vs v21 x1.000
+    v22               290.0 us  vs v21 x1.015
+M  3012 seed 0: routes 5747 distinct 14 top [2025, 1371, 610, 468, 411, 303]
+    v21: rel err 2.871e-03
+    v22: rel err 2.871e-03
+    v21               882.7 us  vs v21 x1.000
+    v22               927.5 us  vs v21 x0.952
+M  3012 seed 1: routes 5776 distinct 14 top [1980, 1366, 577, 481, 455, 327]
+    v21: rel err 2.870e-03
+    v22: rel err 2.870e-03
+    v21               884.0 us  vs v21 x1.000
+    v22               927.7 us  vs v21 x0.953
+M 16384 seed 0: routes 31687 distinct 15 top [11050, 7419, 3364, 2539, 2499, 1767]
+    v21: rel err 2.870e-03
+    v22: rel err 2.870e-03
+    v21              4663.4 us  vs v21 x1.000
+    v22              5018.1 us  vs v21 x0.930
+M 16384 seed 1: routes 31377 distinct 15 top [10949, 7438, 3345, 2472, 2427, 1674]
+    v21: rel err 2.870e-03
+    v22: rel err 2.870e-03
+    v21              4689.2 us  vs v21 x1.000
+    v22              5038.4 us  vs v21 x0.931

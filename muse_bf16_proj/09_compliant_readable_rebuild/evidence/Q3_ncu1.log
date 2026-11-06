@@ -1,0 +1,12 @@
+[sbx] box 1
+[q3ship]   dramRd=41.985280Mbyte  dur=16.896000us  block=384  grid=128  occRegLim=1.000000block  regs=168register/thread  dsmem=232.448000Kbyte/block  clk=1.651453Ghz  hmma%=4.313506  sm%=64.055778  occ%=14.071667  issue%=30.035479  elig/clk=0.369002warp
+[q3ship]   stalls: barrier 23%, wait 21%, long_scoreboard 16%, selected 14%, warpgroup_arrive 9%, mio_throttle 4%, drain 3%
+[v256]   dramRd=41.960704Mbyte  dur=18.880000us  block=384  grid=128  occRegLim=1.000000block  regs=168register/thread  dsmem=232.448000Kbyte/block  clk=1.612254Ghz  hmma%=4.164973  sm%=58.718227  occ%=13.994315  issue%=26.813952  elig/clk=0.328935warp
+[v256]   stalls: wait 23%, barrier 21%, long_scoreboard 20%, selected 11%, warpgroup_arrive 6%, mio_throttle 4%, membar 3%
+REMOTE_EXIT 0
+[sbx] box 1
+q3ship.ncu-rep dur=16.896000us dram%=56.066603 dramRd=41.985280Mbyte L2%=65.285200 SM%=64.055778 issue%=30.035479 tensor%el=64.055778 tensor%act=77.643105 gmma%el=? ([]) gmma%act=? ([]) xbar2l1=215.613440Mbyte L2rdSect=2720688.000000sector inst=3607040.000000inst occ%=14.071667 elig=0.369002warp dramBW=2.484924Tbyte/s clk=1.651453Ghz regs=168register/thread
+   stalls: barrier 23%, wait 21%, long_scoreboard 16%, selected 14%, warpgroup_arrive 9%
+v256.ncu-rep dur=18.880000us dram%=49.721485 dramRd=41.960704Mbyte L2%=66.180881 SM%=58.718227 issue%=26.813952 tensor%el=58.718227 tensor%act=74.969519 gmma%el=? ([]) gmma%act=? ([]) xbar2l1=212.081088Mbyte L2rdSect=3064990.000000sector inst=3287609.000000inst occ%=13.994315 elig=0.328935warp dramBW=2.222495Tbyte/s clk=1.612254Ghz regs=168register/thread
+   stalls: wait 23%, barrier 21%, long_scoreboard 20%, selected 11%, warpgroup_arrive 6%
+REMOTE_EXIT 0

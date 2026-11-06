@@ -1,0 +1,195 @@
+# Readable form of change.diff for 08 (s1). change.diff is against research/integrated/bundle23_gate_queue.py (b23);
+# s1 was built on research/claude/b23_compact.py = b23 shrunk by research/claude/compact.py (the two cached-EXPQ
+# attention sources re-expressed as line edits of ATT_CUDA_SRC, verified byte-identical at import), so the real edits
+# are b23_compact -> s1 below. Long string constants are diffed with their newlines expanded (generated with an
+# AST-based string splitter; no source was modified).
+# readable diff: b23_compact.py -> s1.py
+# part 1: Python skeleton (long string literals replaced by placeholders)
+--- b23_compact.py
++++ s1.py
+@@ -2655,7 +2655,7 @@
+ 
+ def prepare(weights):
+     state = _d6_prior_prepare(weights)
+-    state['d6_plans'] = {16384: D6Plan(16384, bk=4, G=4, R=16, bcap=32)}
++    state['d6_plans'] = {16384: D6Plan(16384, bk=4, G=2, R=16, bcap=32, tail=(2, 1, 1))}
+     state['d6_dummy'] = torch.empty((1, HIDDEN), dtype=torch.float32, device=weights['o'].device)
+     state['d6_plans'][16384]._one_plus(state['bnd']['wpre'])
+     return state
+@@ -2861,3 +2861,176 @@
+     out = torch.empty_like(x)
+     _pm__combine_kernel[M,](ex['y'], ex['rrow'], lid, topk_weights, ps['ones32'], ps['g_post_expert_norm'], out, counts, nx['tslot'], nx['nslot'], ps['moe_zero_scratch'], H=4096, PGK=PG_KMAX if pg_xs is not None else 0, num_warps=8, ZERO_SIZE=ps['moe_zero_scratch'].numel(), ZERO_BLOCK=triton.next_power_of_2(ps['moe_zero_scratch'].numel()), CACHE_HINT=2048 <= M < 8192)
+     return out
++# Variable-size boundary items for the last-completing m-tiles (BN_TAILR rows each, the last BN_TAILK m-tiles), as
++# a text patch of the incumbent _UB_BODY / _D6_BODY: the rows' math is untouched (outputs bit-identical).
++_TP_FETCH_OLD = '''template <int BM>
++DEVI int ub_fetch(const UParams& p) {
++  constexpr int IPM = BM / UB_R;
++  for (;;) {'''
++_TP_FETCH_NEW = '''#ifndef BN_TAILK
++#define BN_TAILK 1
++#endif
++// BN_TAILR: the last BN_TAILK m-tiles to complete come as finer items of BN_TAILR rows (the boundary left after the
++// last GEMM tile spreads over more CTAs). An item is UB_BND | row0 | rows << 16.
++template <int BM>
++DEVI int bn_ipm(const UParams& p, int slot) {
++#ifdef BN_TAILR
++  return slot >= p.nta - BN_TAILK ? BM / BN_TAILR : BM / UB_R;
++#else
++  (void)p; (void)slot;
++  return BM / UB_R;
++#endif
++}
++template <int BM>
++DEVI int ub_fetch(const UParams& p) {
++  constexpr int IPM = BM / UB_R;
++#ifdef BN_TAILR
++  constexpr int IPM2 = BM / BN_TAILR;
++  const int ke = p.nta > BN_TAILK ? p.nta - BN_TAILK : 0, nb = ke * IPM, ntot = nb + (p.nta - ke) * IPM2;
++#else
++  const int ntot = p.nta * IPM;
++#endif
++  for (;;) {'''
++_TP_CLAIM_OLD = '''        int ta1;
++        while ((ta1 = ld_acquire(p.rq + t / IPM)) == 0) { }
++        const int row0 = (ta1 - 1) * BM + (t % IPM) * UB_R;
++        if (row0 < p.M) return UB_BND | row0;'''
++_TP_CLAIM_NEW = '''#ifdef BN_TAILR
++        const bool late = t >= nb;
++        const int slot = late ? ke + (t - nb) / IPM2 : t / IPM, sub = late ? (t - nb) % IPM2 : t % IPM;
++        const int rr = late ? BN_TAILR : UB_R;
++#else
++        const int slot = t / IPM, sub = t % IPM, rr = UB_R;
++#endif
++        int ta1;
++        while ((ta1 = ld_acquire(p.rq + slot)) == 0) { }
++        const int row0 = (ta1 - 1) * BM + sub * rr;
++        if (row0 < p.M) return UB_BND | row0 | (rr << 16);'''
++_TP_REPS = [
++    (_TP_FETCH_OLD, _TP_FETCH_NEW, 1),
++    (_TP_CLAIM_OLD, _TP_CLAIM_NEW, 1),
++    ('''    if (ld_relaxed(p.ctr + 1) >= p.nta * IPM) return -1;''', '''    if (ld_relaxed(p.ctr + 1) >= ntot) return -1;''', 1),
++    ('''          red_release_add(p.ctr + 3, IPM);''', '''          red_release_add(p.ctr + 3, bn_ipm<BM>(p, slot));''', 1),
++    ('''const int row0 = item & (UB_BND - 1), nr = min(UB_R, p.M - row0);''',
++     '''const int row0 = item & 0xffff, nr = min((item >> 16) & 63, p.M - row0);''', 2),
++]
++
++
++def patch_tail(body, tailr, tailk):
++    for old, new, n in _TP_REPS:
++        assert body.count(old) == n, old[:80]
++        body = body.replace(old, new)
++    return f'#ifndef BN_TAILR\n#define BN_TAILR {tailr}\n#endif\n#ifndef BN_TAILK\n#define BN_TAILK {tailk}\n#endif\n' + body
++
++_UB_BODY = patch_tail(_UB_BODY, 4, 1)
++_D6_BODY = patch_tail(_D6_BODY, 4, 2)
++'Explicit cuBLASLt algorithm configs for the dense GEMMs, from an exhaustive AlgoCheck-validated search (algo id x tile x\nstages x cluster x split-K x swizzle x custom option) timed as CUDA-graph replays after a cold L2\n(research/claude/lt/lt_prefill.py). Each config is rebuilt from its attributes in the loaded library and checked with\ncublasLtMatmulAlgoCheck; if that fails the measured heuristic plan stays.'
++LT_X_ALGOS = {(16384, 'pooler'): ('tn', (66, 29, 1, 0, 0, 1, 35, 0, 3), True), (16384, 'qkv_gate'): ('tn', (66, 409, 1, 0, 0, 1, 35, 0, 3), True), (16384, 'router512'): ('tn', (66, 408, 1, 0, 0, 3, 35, 0, 5), True), (3012, 'fused'): ('nn', (66, 408, 1, 0, 0, 3, 35, 0, 5), True), (3012, 'o'): ('tn', (66, 408, 1, 0, 0, 3, 35, 0, 5), True), (3012, 'qkv_gate'): ('tn', (66, 496, 1, 0, 0, 5, 35, 0, 2), True), (3012, 'qkv_smt'): ('tn', (66, 408, 1, 0, 0, 1, 35, 0, 6), True), (3012, 'unpooler'): ('tn', (66, 408, 1, 0, 0, 1, 35, 0, 3), True), (753, 'fused'): ('tn', (66, 185, 1, 0, 0, 4, 35, 0, 2), True), (753, 'unpooler'): ('nn', (66, 31, 1, 0, 0, 4, 35, 0, 5), True)}
++
++class DenseLtX:
++    """out[m, n] = x[m, k] @ W^T (W [n, k] BF16), FP32 accumulation, BF16 or FP32 output, one explicit algorithm."""
++
++    def __init__(self, library, m, n, k, workspace, settings, out32=False, sm_count=0, wt=None, ws0=False, src_ptr=0):
++        lib = library.lib
++        v, i_, s_ = (_ct.c_void_p, _ct.c_int, _ct.c_size_t)
++        lib.cublasLtMatmulAlgoInit.argtypes = [v, i_, i_, i_, i_, i_, i_, i_, v]
++        lib.cublasLtMatmulAlgoInit.restype = i_
++        lib.cublasLtMatmulAlgoConfigSetAttribute.argtypes = [v, i_, v, s_]
++        lib.cublasLtMatmulAlgoConfigSetAttribute.restype = i_
++        lib.cublasLtMatmulAlgoCheck.argtypes = [v] * 8
++        lib.cublasLtMatmulAlgoCheck.restype = i_
++        self.library, self.m, self.n, self.k, self.out32 = (library, m, n, k, out32)
++        self.desc, self.a, self.b, self.c = [_ct.c_void_p() for _ in range(4)]
++        library.check(lib.cublasLtMatmulDescCreate(_ct.byref(self.desc), 68, 0), 'descriptor')
++        if sm_count:
++            smc = _ct.c_int(sm_count)
++            library.check(lib.cublasLtMatmulDescSetAttribute(self.desc, 15, _ct.byref(smc), _ct.sizeof(smc)), 'sm count')
++        self.wt = wt
++        self.src_ptr = src_ptr
++        ta = _ct.c_int(0 if wt is not None else 1)
++        library.check(lib.cublasLtMatmulDescSetAttribute(self.desc, 3, _ct.byref(ta), _ct.sizeof(ta)), 'transpose A')
++        otype = 0 if out32 else 14
++        if wt is not None:
++            library.check(lib.cublasLtMatrixLayoutCreate(_ct.byref(self.a), 14, n, k, n), 'A layout')
++        else:
++            library.check(lib.cublasLtMatrixLayoutCreate(_ct.byref(self.a), 14, k, n, k), 'A layout')
++        library.check(lib.cublasLtMatrixLayoutCreate(_ct.byref(self.b), 14, k, m, k), 'B layout')
++        library.check(lib.cublasLtMatrixLayoutCreate(_ct.byref(self.c), otype, n, m, n), 'C layout')
++        self.algo = _DAlgo()
++        library.check(lib.cublasLtMatmulAlgoInit(library.handle, 68, 0, 14, 14, otype, otype, int(settings[0]), _ct.byref(self.algo)), 'algo init')
++        for attr in range(1, 9):
++            val = _ct.c_uint16(int(settings[attr])) if attr >= 7 else _ct.c_uint32(int(settings[attr]))
++            library.check(lib.cublasLtMatmulAlgoConfigSetAttribute(_ct.byref(self.algo), attr, _ct.byref(val), _ct.sizeof(val)), 'algo attribute')
++        res = _DHeur()
++        library.check(lib.cublasLtMatmulAlgoCheck(library.handle, self.desc, self.a, self.b, self.c, self.c, _ct.byref(self.algo), _ct.byref(res)), 'algo check')
++        library.check(res.state, 'algo state')
++        # ws0: run without a workspace (nvjet then uses its memset-free scheduler; no memset node in the graph)
++        self.ws_bytes = 0 if ws0 else res.ws
++        if self.ws_bytes > workspace.numel():
++            raise RuntimeError('cuBLASLt config needs a larger workspace')
++        self.ws = workspace
++        self.algorithms = [self.algo]
++        self.alpha, self.beta = (_ct.c_float(1.0), _ct.c_float(0.0))
++
++    def run(self, x, weight, index=0, out=None):
++        if out is None:
++            out = torch.empty((self.m, self.n), device=x.device, dtype=torch.float32 if self.out32 else torch.bfloat16)
++        if self.wt is not None:
++            if weight.data_ptr() != self.src_ptr:
++                raise RuntimeError('cuBLASLt nn plan called with a weight other than the one it transposed')
++            weight = self.wt
++        st = self.library.lib.cublasLtMatmul(self.library.handle, self.desc, _ct.byref(self.alpha), weight.data_ptr(), self.a, x.data_ptr(), self.b, _ct.byref(self.beta), out.data_ptr(), self.c, out.data_ptr(), self.c, _ct.byref(self.algo), self.ws.data_ptr() if self.ws_bytes else None, self.ws_bytes, torch.cuda.current_stream(x.device).cuda_stream)
++        self.library.check(st, 'matmul')
++        return out
++
++def _ltx(state, m, n, k, key, w, out32=False, sm_count=0):
++    """LT_X_ALGOS[key] = (layout, settings, ws0): 'tn' uses W [n, k] as given, 'nn' a transposed copy W^T [k, n];
++    ws0 runs the algorithm without a workspace."""
++    spec = LT_X_ALGOS.get(key)
++    if spec is None:
++        return None
++    layout, settings, ws0 = (tuple(spec) + (False,))[:3]
++    try:
++        wt = None
++        if layout == 'nn':
++            cache = state.setdefault('ltx_wt', {})
++            if w.data_ptr() not in cache:
++                cache[w.data_ptr()] = w.t().contiguous()
++            wt = cache[w.data_ptr()]
++        return DenseLtX(state['prefill_lt_library'], m, n, k, state['prefill_lt_workspace'], settings, out32=out32, sm_count=sm_count, wt=wt, ws0=ws0, src_ptr=w.data_ptr())
++    except (RuntimeError, AttributeError, OSError):
++        return None
++_ltx_base_prepare = prepare
++
++def prepare(weights):
++    state = _ltx_base_prepare(weights)
++    dense = state['dense']
++    for (m, name), _ in list(LT_X_ALGOS.items()):
++        if not isinstance(name, str) or name not in dense:
++            continue
++        w = dense[name]
++        n, k = w.shape
++        plan = _ltx(state, m, n, k, (m, name), w)
++        if plan is not None:
++            for key in [kk for kk in SK2_LT0_PLANS if kk[:3] == (m, n, k) and not kk[3]]:
++                SK2_LT0_PLANS[key] = (plan, 0)
++            _PREFILL_LT_PLANS[m, n, k, w.data_ptr()] = (plan, 0)
++            for key in [kk for kk in SK2_ROUTE if kk[:3] == (m, n, k) and not kk[3]]:
++                del SK2_ROUTE[key]  # this o_proj shape now runs the measured cuBLASLt config instead of sk2
++    for m in list(state.get('qkv_smt', {})):
++        w = dense['qkv_gate']
++        plan = _ltx(state, m, w.shape[0], w.shape[1], (m, 'qkv_smt'), w, sm_count=QKV_SMT[m])
++        if plan is not None:
++            state['qkv_smt'][m] = (plan, 0)
++    for m in FUSED_ALGOS:
++        plan = _ltx(state, m, D_EXPERT + 512, HIDDEN, (m, 'fused'), state['pool_route_w'], out32=True)
++        if plan is not None:
++            state['fused_plans'][m] = (plan, 0)
++            if (m, D_EXPERT + 512, HIDDEN, True) in SK2_LT0_PLANS:
++                SK2_LT0_PLANS[m, D_EXPERT + 512, HIDDEN, True] = (plan, 0)
++    for m in list(state.get('router512_plans', {})):
++        plan = _ltx(state, m, 512, HIDDEN, (m, 'router512'), state['router_hilo'], out32=True)
++        if plan is not None:
++            state['router512_plans'][m] = (plan, 0)
++    torch.cuda.synchronize()
++    return state

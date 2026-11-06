@@ -1,0 +1,101 @@
+[gate] slot 0 at 02:35:26 (1 running)
+✓ Initialized. View run at 
+<modal-run-url>
+✓ Created objects.
+├── 🔨 Created mount 
+│   autoresearch-kernels/attn/tools/modal_run.py
+├── 🔨 Created mount autoresearch-kernels/attn
+└── 🔨 Created function run.
+[gpu-before]
+NVIDIA H200, 0 %, 4 MiB, 345 MHz, 1980 MHz, 80.60 W
+0
+=== regs (image NVRTC)
+[defaults] attn_1_0_1_1c: regs 122 stack 0 spill st/ld 0/0 | attn_1_0_1_1a: regs 120 stack 0 spill st/ld 0/0 | attn_1_0_1_1: regs 128 stack 24 spill st/ld 0/0 | attn_1_0_1_0: regs 124 stack 0 spill st/ld 0/0
+    attn_1_0_1_0: tile loop 601 instrs, LDL 0 STL 0 QGMMA 8 LDSM 4 LDGSTS 16 LDG 1 BAR 4 SHFL 28 MEMBAR 2 | kernel: QGMMA 16 HMMA 0 F2FP.F16 0
+=== check (all)
+rc=0
+0 failures
+0 failures
+=== bench all loads (40 reps, two controls)
+[k10a] import 18.7s
+[k10b] import 0.5s
+[f7a] import 0.5s
+[f7b] import 0.4s
+fixed graph cost 4.96 us
+decode 1  sliding w46 sglang    19.49 | k10a     6.30 x3.093 | k10b     6.34 x3.075 | f7a     6.32 x3.084 | f7b     6.23 x3.128   sol    0.11
+decode 1  full    w16 sglang    30.90 | k10a    14.75 x2.094 | k10b    14.47 x2.136 | f7a    14.47 x2.135 | f7b    14.48 x2.134   sol    4.27
+decode 16 sliding w46 sglang    25.86 | k10a     9.28 x2.787 | k10b     9.34 x2.769 | f7a     9.43 x2.743 | f7b     9.40 x2.750   sol    1.65
+decode 16 full    w16 sglang   200.26 | k10a    87.00 x2.302 | k10b    86.87 x2.305 | f7a    85.37 x2.346 | f7b    85.52 x2.342   sol   63.18
+decode 32 sliding w46 sglang    30.58 | k10a    11.18 x2.736 | k10b    11.27 x2.712 | f7a    11.15 x2.743 | f7b    11.09 x2.757   sol    3.29
+decode 32 full    w16 sglang   385.55 | k10a   162.61 x2.371 | k10b   162.63 x2.371 | f7a   159.38 x2.419 | f7b   159.70 x2.414   sol  126.35
+verify 1  sliding w46 sglang    21.89 | k10a    10.20 x2.146 | k10b    10.04 x2.180 | f7a     9.99 x2.192 | f7b    10.04 x2.181   sol    0.12
+verify 1  full    w16 sglang    35.18 | k10a    18.87 x1.865 | k10b    18.94 x1.858 | f7a    18.94 x1.857 | f7b    18.77 x1.875   sol    4.28
+verify 16 sliding w46 sglang    28.64 | k10a    12.72 x2.251 | k10b    12.68 x2.258 | f7a    12.63 x2.268 | f7b    12.78 x2.242   sol    1.86
+verify 16 full    w16 sglang   204.14 | k10a   119.17 x1.713 | k10b   118.99 x1.716 | f7a   119.14 x1.713 | f7b   119.16 x1.713   sol   63.39
+verify 32 sliding w46 sglang    33.47 | k10a    15.81 x2.117 | k10b    15.82 x2.115 | f7a    15.86 x2.110 | f7b    15.98 x2.094   sol    3.72
+verify 32 full    w16 sglang   390.22 | k10a   219.38 x1.779 | k10b   218.70 x1.784 | f7a   218.52 x1.786 | f7b   218.98 x1.782   sol  126.78
+
+per-load (weighted sums, us):
+  decode 1  sglang    1390.8 | k10a     525.9 x2.645 | k10b     523.0 x2.659 | f7a     522.2 x2.663 | f7b     518.3 x2.684
+  decode 16 sglang    4393.5 | k10a    1818.7 x2.416 | k10b    1819.5 x2.415 | f7a    1799.5 x2.442 | f7b    1800.8 x2.440
+  decode 32 sglang    7575.3 | k10a    3116.0 x2.431 | k10b    3120.6 x2.427 | f7a    3063.0 x2.473 | f7b    3065.2 x2.471
+  verify 1  sglang    1569.8 | k10a     771.1 x2.036 | k10b     764.9 x2.052 | f7a     762.4 x2.059 | f7b     762.0 x2.060
+  verify 16 sglang    4583.7 | k10a    2491.9 x1.839 | k10b    2487.2 x1.843 | f7a    2487.1 x1.843 | f7b    2494.2 x1.838
+  verify 32 sglang    7783.3 | k10a    4237.2 x1.837 | k10b    4227.1 x1.841 | f7a    4225.9 x1.842 | f7b    4238.8 x1.836
+GEOMEAN k10a: x2.1783 (board time 1701.5 us)   judge-projected (+1.0 us/call) x2.0692 (board 1829.2 us)
+GEOMEAN k10b: x2.1841 (board time 1697.0 us)   judge-projected (+1.0 us/call) x2.0743 (board 1824.7 us)
+GEOMEAN f7a: x2.1968 (board time 1687.1 us)   judge-projected (+1.0 us/call) x2.0861 (board 1814.4 us)
+GEOMEAN f7b: x2.1971 (board time 1686.9 us)   judge-projected (+1.0 us/call) x2.0861 (board 1814.3 us)
+=== trace b16 / b32
+
+[flush] 16,1,full defs=: (us from first CTA start; median over 10 reps)
+   0 start     min    0.00  med    0.12  max    0.21   (CTAs 132)
+   9 prefix    min    0.67  med    0.75  max    0.86   (CTAs 132)
+  16 pt-iss    min    1.65  med    1.73  max   62.70   (CTAs 132)
+  17 row-back  min    2.14  med    2.34  max   63.70   (CTAs 132)
+   1 issued    min    4.14  med    5.65  max   66.56   (CTAs 132)
+   2 q/new     min    5.06  med    6.38  max   67.09   (CTAs 132)
+   3 tile0     min    5.30  med    6.64  max   67.28   (CTAs 132)
+   4 tiles     min   69.30  med   78.96  max   81.02   (CTAs 132)
+  11 mstore    min   69.95  med   79.60  max   81.66   (CTAs 132)
+  12 merged    min   70.32  med   79.97  max   82.05   (CTAs 132)
+   5 segend    min   70.42  med   80.05  max   82.14   (CTAs 132)
+   6 publish   min   72.56  med   81.30  max   83.26   (CTAs 132)
+   7 comb0     min   81.70  med   82.59  max   83.50   (CTAs 16)
+   8 combined  min   84.03  med   84.94  max   85.76   (CTAs 16)
+  last stamp med 85.76 max 86.62
+  tiles-done p0/p10/p50/p90/max/mean:   69.30   74.40   78.96   79.90   81.02   78.26
+  nseg 1: n  1199 tiles mean   78.66 max   81.86
+  nseg 2: n   121 tiles mean   73.35 max   76.96
+  critical CTA (med): start=0.14 prefix=0.78 pt-iss=1.78 row-back=2.42 issued=6.02 q/new=6.80 tile0=7.01 tiles=80.86 mstore=81.50 merged=81.89 segend=81.98 publish=83.14 comb0=83.36 combined=85.76
+  per-SM mean deviation of tiles-done (us): min -7.74 (sm 124) max 0.98 (sm 1) stdev 1.14
+
+[flush] 32,1,full defs=: (us from first CTA start; median over 10 reps)
+   0 start     min    0.00  med    0.14  max    0.21   (CTAs 132)
+   9 prefix    min    0.70  med    0.77  max    0.86   (CTAs 132)
+  16 pt-iss    min    1.73  med    1.82  max  141.10   (CTAs 132)
+  17 row-back  min    2.24  med    2.43  max  142.50   (CTAs 132)
+   1 issued    min    4.50  med    6.10  max  144.66   (CTAs 132)
+   2 q/new     min    5.20  med    6.59  max  144.91   (CTAs 132)
+   3 tile0     min    5.41  med    6.82  max  145.60   (CTAs 132)
+   4 tiles     min  144.22  med  152.80  max  156.14   (CTAs 132)
+  11 mstore    min  144.88  med  153.43  max  156.75   (CTAs 132)
+  12 merged    min  145.25  med  153.78  max  157.17   (CTAs 132)
+   5 segend    min  145.31  med  153.87  max  157.23   (CTAs 132)
+   6 publish   min  147.26  med  155.11  max  158.42   (CTAs 132)
+   7 comb0     min  155.06  med  156.62  max  158.64   (CTAs 32)
+   8 combined  min  156.53  med  158.15  max  160.26   (CTAs 32)
+  last stamp med 160.26 max 162.85
+  tiles-done p0/p10/p50/p90/max/mean:  144.22  148.35  152.80  154.34  156.14  152.08
+  nseg 1: n  1039 tiles mean  153.20 max  158.66
+  nseg 2: n   281 tiles mean  149.19 max  155.36
+  critical CTA (med): start=0.11 prefix=0.78 pt-iss=1.81 row-back=2.40 issued=5.87 q/new=6.56 tile0=6.80 tiles=156.14 mstore=156.75 merged=157.17 segend=157.23 publish=158.42 comb0=158.64 combined=160.26
+  per-SM mean deviation of tiles-done (us): min -6.42 (sm 124) max 1.43 (sm 22) stdev 1.22
+[gpu-after]
+NVIDIA H200, 0 %, 4 MiB, 1980 MHz, 1980 MHz, 183.49 W
+0
+
+[exit 0]
+Stopping app - local entrypoint completed.
+✓ App completed. View run at 
+<modal-run-url>

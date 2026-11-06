@@ -1,0 +1,35 @@
+okc run 13ed784f60514698 on muse_attention_decode: speedup 2.4136
+okc run afe9b7c2e4334b01 on muse_attention_decode: speedup 2.4347
+okc run 446324a044bc4189 on muse_attention_decode: speedup 2.5175
+okc run 820fe9121d5f4e8b on muse_attention_decode: speedup 2.5543
+
+first -> last, SGLang times of the first run held fixed: 2.4136 -> 2.5704 (+6.50 %)
+shape    13ed784f   afe9b7c2   446324a0   820fe912   delta    alone
+d1s          4.37       4.97       4.51       4.17    -0.20   +0.34 %
+d1f         15.80      14.70      14.69      14.11    -1.69   +1.03 %
+d16s         9.61       8.51       8.61       8.66    -0.95   +0.40 %
+d16f        89.09      87.75      84.43      87.76    -1.33   +0.19 %
+d32s        11.89      10.37      10.19      10.34    -1.55   +0.42 %
+d32f       146.17     166.47     159.58     165.47   +19.30   -1.68 %
+v1s          5.51       6.57       6.28       5.55    +0.04   -0.05 %
+v1f         19.06      18.51      17.65      17.57    -1.49   +0.73 %
+v16s        13.45      11.85      11.71      10.36    -3.09   +0.97 %
+v16f       119.38     112.10     110.38     104.99   -14.39   +1.60 %
+v32s        15.73      14.94      15.08      14.48    -1.25   +0.23 %
+v32f       219.29     201.62     200.08     188.63   -30.66   +2.07 %
+
+judge_before_k19_check_13ed784f.json: job 13ed784f60514698  speedup 2.4136
+shape   raw med   judged  raw-judged  paired   of-medians  SGLang slow reps
+d1s        8.38     4.37      4.01    4.818      4.842    0 / 60
+d1f       19.94    15.80      4.14    1.967      1.950    0 / 60
+d16s      14.18     9.61      4.56    2.763      2.739    0 / 60
+d16f      93.28    89.09      4.19    2.247      2.248    0 / 60
+d32s      16.34    11.89      4.44    2.644      2.610    0 / 60
+d32f     171.68   146.17     25.51    2.643      2.312   16 / 60
+v1s       10.05     5.51      4.54    4.109      4.113    0 / 60
+v1f       23.01    19.06      3.95    1.880      1.891    0 / 60
+v16s      17.52    13.45      4.07    2.174      2.167    0 / 60
+v16f     123.38   119.38      3.99    1.720      1.721    0 / 60
+v32s      20.11    15.73      4.38    2.179      2.157    0 / 60
+v32f     222.94   219.29      3.66    1.777      1.780    0 / 58
+median raw-judged offset 4.19 us; score as read 2.4136, with outlier cases set to raw - offset 2.3691

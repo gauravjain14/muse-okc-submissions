@@ -1,0 +1,22 @@
+✓ Initialized. View run at 
+<modal-run-url>
+✓ Created objects.
+├── 🔨 Created mount 
+│   <scratch>
+│   5-ce57afd4da60/scratchpad/snap.X6stqL/dev/modal_run.py
+├── 🔨 Created mount 
+│   <scratch>
+│   5-ce57afd4da60/scratchpad/snap.X6stqL
+└── 🔨 Created function run.
+[gpu before]
+0 %, 130 MiB, 345 MHz, 77.06 W, 33
+compute procs: 0
+M 753: gemm     90.8 us  gemm+lane    100.1 us (+10.2%)  copy alone     45.0 us  (lane moved 86 MB, >= 0.86 TB/s; sequential would be 135.8 us)
+M 3012: gemm    259.7 us  gemm+lane    294.0 us (+13.2%)  copy alone    166.0 us  (lane moved 345 MB, >= 1.18 TB/s; sequential would be 425.6 us)
+M 16384: gemm   1541.8 us  gemm+lane   1899.1 us (+23.2%)  copy alone    882.8 us  (lane moved 1879 MB, >= 0.99 TB/s; sequential would be 2424.6 us)
+[gpu after]
+0 %, 130 MiB, 1980 MHz, 178.52 W, 35
+compute procs: 0
+Stopping app - local entrypoint completed.
+✓ App completed. View run at 
+<modal-run-url>

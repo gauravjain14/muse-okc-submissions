@@ -1,0 +1,56 @@
+[modal_gate] slot 0 acquired at 16:15:48 (0 okc containers running)
+✓ Initialized. View run at 
+<modal-run-url>
+✓ Created objects.
+├── 🔨 Created mount 
+│   muse-opt/muse_moe_w4a16/dev/modal_run.py
+├── 🔨 Created mount muse-opt/muse_moe_w4a16
+└── 🔨 Created function run.
+GPU_BEFORE NVIDIA H200, 345 MHz, 3201 MHz, 82.31 W, 34, 0 %, 120 MiB
+STEP smoke v4111
+ok=16 of 16
+STEP check_mt v4111
+FAILURES 0
+STEP smoke v4110
+ok=16 of 16
+STEP check_mt v4110
+FAILURES 0
+IDLE bench: [0 0 0 0 0 0 0 0 0 0 0 0 ]
+STEP bench all shapes, 100 reps: fA|dev/moe_v4111.py|;fA2|dev/moe_v1504.py|;a1|dev/moe_v1504.py|;b1|dev/moe_v4111.py|;c1|dev/moe_v4110.py|;a2|dev/moe_v1504.py|;b2|dev/moe_v4111.py|;c2|dev/moe_v4110.py|;a3|dev/moe_v1504.py|;b3|dev/moe_v4111.py|;c3|dev/moe_v4110.py|;a4|dev/moe_v1504.py|;b4|dev/moe_v4111.py|;c4|dev/moe_v4110.py|;fB2|dev/moe_v4110.py|;fB|dev/moe_v1504.py|
+geomean fA: x2.6026 over 6 shapes
+geomean fA2: x2.5752 over 6 shapes
+geomean a1: x2.5762 over 6 shapes
+geomean b1: x2.6088 over 6 shapes
+geomean c1: x2.6004 over 6 shapes
+geomean a2: x2.5805 over 6 shapes
+geomean b2: x2.5961 over 6 shapes
+geomean c2: x2.5997 over 6 shapes
+geomean a3: x2.5790 over 6 shapes
+geomean b3: x2.6027 over 6 shapes
+geomean c3: x2.6000 over 6 shapes
+geomean a4: x2.5785 over 6 shapes
+geomean b4: x2.5997 over 6 shapes
+geomean c4: x2.6003 over 6 shapes
+geomean fB2: x2.6053 over 6 shapes
+geomean fB: x2.5814 over 6 shapes
+v4111 bs1: vs v1504 -0.43%  copies +0.83 +0.31 +0.45 +0.70 | v1504 controls +0.45 +0.49 +0.62 +0.72
+v4111 bs8: vs v1504 +1.53%  copies +1.32 +0.94 +1.69 +1.36 | v1504 controls +0.09 +0.11 +0.02 -0.11
+v4111 bs16: vs v1504 +1.18%  copies +1.28 +0.92 +1.28 +1.13 | v1504 controls +0.16 -0.06 -0.14 +0.02
+v4111 bs32: vs v1504 +0.94%  copies +0.84 +1.13 +0.87 +1.00 | v1504 controls -0.07 +0.13 +0.01 +0.02
+v4111 bs128: vs v1504 +1.10%  copies +1.01 +1.10 +1.02 +1.18 | v1504 controls +0.16 -0.10 -0.02 -0.03
+v4111 bs256: vs v1504 +0.80%  copies +1.01 +0.77 +0.83 +0.87 | v1504 controls -0.09 +0.08 +0.06 -0.03
+v4111 geomean vs v1504: +0.85%
+v4110 bs1: vs v1504 -0.28%  copies +0.90 +0.60 +0.75 +0.55 | v1504 controls +0.45 +0.49 +0.62 +0.72
+v4110 bs8: vs v1504 +1.18%  copies +1.40 +0.87 +1.06 +0.96 | v1504 controls +0.09 +0.11 +0.02 -0.11
+v4110 bs16: vs v1504 +1.16%  copies +1.21 +1.16 +1.30 +1.57 | v1504 controls +0.16 -0.06 -0.14 +0.02
+v4110 bs32: vs v1504 +0.86%  copies +1.05 +0.84 +0.88 +0.91 | v1504 controls -0.07 +0.13 +0.01 +0.02
+v4110 bs128: vs v1504 +1.01%  copies +0.80 +1.01 +0.98 +1.21 | v1504 controls +0.16 -0.10 -0.02 -0.03
+v4110 bs256: vs v1504 +0.77%  copies +0.77 +0.90 +0.80 +0.79 | v1504 controls -0.09 +0.08 +0.06 -0.03
+v4110 geomean vs v1504: +0.78%
+GPU_AFTER NVIDIA H200, 1980 MHz, 3201 MHz, 146.13 W, 40, 100 %, 120 MiB
+STEP done
+
+fetched into muse-opt/muse_moe_w4a16/dev/remote_out: 79612 bytes
+Stopping app - local entrypoint completed.
+✓ App completed. View run at 
+<modal-run-url>

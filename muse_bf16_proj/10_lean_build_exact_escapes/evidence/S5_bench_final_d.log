@@ -1,0 +1,11 @@
+[sbx] waited 14s for a GPU
+[sbx] box 0
+decode 1  m=1    router    sglang    9.41 | lean    2.84 x3.312 | sm5    2.72 x3.460   sol   1.75
+decode 1  m=1    unpooler  sglang    5.98 | lean    2.54 x2.353 | sm5    2.39 x2.506   sol   1.75
+decode 16 m=16   router    sglang   14.26 | lean    3.33 x4.279 | sm5    3.07 x4.648   sol   1.81
+decode 16 m=16   unpooler  sglang   17.33 | lean   12.56 x1.380 | sm5   12.56 x1.380   sol  14.06
+verify 1  m=8    router    sglang   25.47 | lean    3.10 x8.223 | sm5    2.81 x9.067   sol   1.78
+verify 1  m=8    unpooler  sglang    6.21 | lean    2.90 x2.138 | sm5    2.91 x2.130   sol   1.76
+GEOMEAN lean: x3.1069 over 3 loads   judge-projected (+1.0 us/shape) x2.6500
+GEOMEAN sm5: x3.2308 over 3 loads   judge-projected (+1.0 us/shape) x2.7295
+REMOTE_EXIT 0

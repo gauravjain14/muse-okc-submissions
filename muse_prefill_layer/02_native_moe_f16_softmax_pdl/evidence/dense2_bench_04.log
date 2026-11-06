@@ -1,0 +1,24 @@
+✓ Initialized. View run at 
+<modal-run-url>
+✓ Created objects.
+├── 🔨 Created mount 
+│   <scratch>
+│   5-ce57afd4da60/scratchpad/snap.b6b335/dev/modal_run.py
+├── 🔨 Created mount 
+│   <scratch>
+│   5-ce57afd4da60/scratchpad/snap.b6b335
+└── 🔨 Created function run.
+prepared dense (cand_dense.py) in 89.7 s
+prepared nopdl (dense_cand2_nopdl.py) in 1.4 s
+prepared dense2 (cand_dense2.py) in 1.4 s
+0 turn 1     b1 ctx80000 sliding q753  dense     648.9  nopdl     637.8 (vs dense x1.0144)  dense2     639.8 (vs dense x1.0138)
+1 turn 1     b1 ctx80000 full    q753  dense    1037.6  nopdl    1026.9 (vs dense x1.0083)  dense2    1025.4 (vs dense x1.0086)
+2 turn 4     b4 ctx80000 sliding q753  dense    2020.7  nopdl    2007.7 (vs dense x1.0076)  dense2    2004.9 (vs dense x1.0080)
+3 turn 4     b4 ctx80000 full    q753  dense    3585.1  nopdl    3575.3 (vs dense x1.0043)  dense2    3576.0 (vs dense x1.0040)
+4 first turn b1 ctx0 full    q16384  dense   11297.4  nopdl   11219.8 (vs dense x1.0078)  dense2   11203.2 (vs dense x1.0092)
+5 first turn b1 ctx32768 sliding q16384  dense   10789.0  nopdl   10648.8 (vs dense x1.0040)  dense2   10644.2 (vs dense x1.0030)
+6 first turn b1 ctx32768 full    q16384  dense   15095.3  nopdl   15011.2 (vs dense x1.0043)  dense2   15239.9 (vs dense x0.9976)
+7 first turn b1 ctx65536 full    q16384  dense   18797.2  nopdl   18529.0 (vs dense x1.0112)  dense2   18778.6 (vs dense x0.9929)
+Stopping app - local entrypoint completed.
+✓ App completed. View run at 
+<modal-run-url>

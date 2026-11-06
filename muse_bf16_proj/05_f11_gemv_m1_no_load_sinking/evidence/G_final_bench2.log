@@ -1,0 +1,14 @@
+round trip ALL BIT-EXACT (0.3s)
+checked 64 cases x 2 seeds + graph: ALL OK
+checked 207 cases x 2 seeds + graph: ALL OK
+decode 1  m=1    qkv_gate  sglang   13.42 | v7    7.81 x1.719 | g1    7.19 x1.867   sol   7.87
+decode 1  m=1    o         sglang    5.81 | v7    4.36 x1.333 | g1    3.89 x1.494   sol   3.50
+decode 1  m=1    pooler    sglang   20.35 | v7   12.69 x1.603 | g1   11.73 x1.735   sol  13.99
+decode 1  m=1    unpooler  sglang    6.11 | v7    2.56 x2.385 | g1    2.60 x2.347   sol   1.75
+verify 1  m=8    qkv_gate  sglang   13.41 | v7   10.46 x1.282 | g1   13.52 x0.992   sol   7.90
+verify 1  m=8    o         sglang    5.38 | v7    4.32 x1.245 | g1    5.37 x1.002   sol   3.53
+verify 1  m=8    pooler    sglang   20.02 | v7   15.19 x1.318 | g1   20.09 x0.997   sol  14.02
+verify 1  m=8    unpooler  sglang    6.18 | v7    4.04 x1.529 | g1    2.91 x2.121   sol   1.76
+[sbx] waited 6s for GPU lock
+[g1m8]   dramRd=6.380800Mbyte  dur=4.704000us  block=1,024  grid=64  occRegLim=1.000000block  regs=56register/thread  dsmem=17.920000Kbyte/block  clk=1.869695Ghz  hmma%=2.342171  sm%=11.240488  occ%=47.365558  issue%=33.701451  elig/clk=0.927359warp
+[g1m8]   stalls: long_scoreboard 32%, lg_throttle 14%, selected 10%, not_selected 10%, wait 9%, math_pipe_throttle 8%, barrier 5%

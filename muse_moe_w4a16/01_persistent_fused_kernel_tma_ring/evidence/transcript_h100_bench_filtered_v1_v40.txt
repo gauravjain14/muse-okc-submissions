@@ -1,0 +1,1321 @@
+==== [2026-10-23T07:30:06.455Z] Time the CUDA kernel against SGLang on H100
+CMD: cd muse-opt/muse_moe_w4a16 && timeout 900 dev/remote.sh "timeout 800 python3 dev/bench.py dev/moe_v1.py --reps 30 --no-tests 2>&1 | tail -12"
+   fixed replay cost 5.65 us
+   decode 1   bs   1  experts   2.5 pairs    2.5  sub     55.4 us (  1278 GB/s)  base     91.2 us  speedup 1.622x
+   decode 16  bs  16  experts  11.9 pairs   24.8  sub    200.8 us (  1673 GB/s)  base    228.8 us  speedup 1.122x
+   decode 32  bs  32  experts  16.1 pairs   49.7  sub    258.1 us (  1762 GB/s)  base    259.4 us  speedup 0.978x
+   verify 1   bs   8  experts   9.1 pairs   13.8  sub    145.9 us (  1766 GB/s)  base    180.0 us  speedup 1.223x
+   verify 16  bs 128  experts  23.0 pairs  204.4  sub   1424.0 us (   458 GB/s)  base    583.7 us  speedup 0.405x
+   verify 32  bs 256  experts  25.2 pairs  380.6  sub   1636.7 us (   435 GB/s)  base    755.7 us  speedup 0.464x
+   geomean speedup 0.862x over 6 loads
+
+==== [2026-10-23T07:49:59.432Z] Rename the shadowing helper and rerun timing
+CMD: cd muse-opt/muse_moe_w4a16 && mv dev/attrs.py dev/kattrs.py && autor run okc-sglang -- rm -f /root/okc/dev/attrs.py 2>&1 | grep -v "This node"; dev/sync.sh dev/kattrs.py >/dev/null; timeout 900 dev/remote.sh "timeout 800 python3 dev/bench.py dev/moe_v2.py --reps 30 --no-t
+   fixed replay cost 5.58 us
+   decode 1   bs   1  experts   2.5 pairs    2.5  sub     43.8 us (  1616 GB/s)  base     92.0 us  speedup 2.039x
+   decode 16  bs  16  experts  11.9 pairs   24.8  sub    159.4 us (  2108 GB/s)  base    228.7 us  speedup 1.305x
+   decode 32  bs  32  experts  16.1 pairs   49.7  sub    234.9 us (  1936 GB/s)  base    259.3 us  speedup 1.067x
+   verify 1   bs   8  experts   9.1 pairs   13.8  sub    146.2 us (  1762 GB/s)  base    182.6 us  speedup 1.237x
+   verify 16  bs 128  experts  23.0 pairs  204.4  sub    362.5 us (  1799 GB/s)  base    583.1 us  speedup 1.585x
+   verify 32  bs 256  experts  25.2 pairs  380.6  sub    460.8 us (  1546 GB/s)  base    756.0 us  speedup 1.649x
+   geomean speedup 1.447x over 6 loads
+
+==== [2026-10-23T07:55:36.297Z] Build v3 (tile-major, pipelined combine) and benchmark
+CMD: cp dev/moe_v2.py dev/moe_v3.py && python3 - <<'EOF'
+p = "dev/moe_v3.py"
+s = open(p).read()
+
+# 1. tile-major item order
+old = """      if (item < n1) {
+        phase = 1; rb = item / ntiles; tile = item - rb * ntiles; ks = 0; nst = ST1;
+      } else {
+        const int j = item - n1;
+        const in
+   test {'bs': 4}: PASS relative L2 error 2.523e-03 (worst row 2.577e-03)
+   test {'bs': 33}: PASS relative L2 error 2.550e-03 (worst row 2.776e-03)
+   test {'bs': 257}: PASS relative L2 error 2.545e-03 (worst row 2.759e-03)
+   test {'bs': 128, 'dist': 'skewed'}: PASS relative L2 error 2.546e-03 (worst row 2.723e-03)
+   test {'bs': 1}: PASS relative L2 error 2.473e-03 (worst row 2.473e-03)
+   decode 1   bs   1  experts   2.6 pairs    2.6  sub     55.4 us (  1328 GB/s)  base     95.4 us  speedup 1.877x
+   decode 16  bs  16  experts  11.8 pairs   25.2  sub    167.1 us (  2008 GB/s)  base    222.4 us  speedup 1.447x
+   decode 32  bs  32  experts  16.2 pairs   50.1  sub    233.9 us (  1961 GB/s)  base    261.5 us  speedup 1.099x
+   verify 1   bs   8  experts   9.1 pairs   13.8  sub    140.1 us (  1839 GB/s)  base    187.8 us  speedup 1.291x
+   verify 16  bs 128  experts  22.9 pairs  206.7  sub    359.9 us (  1805 GB/s)  base    584.6 us  speedup 1.610x
+   verify 32  bs 256  experts  24.9 pairs  383.6  sub    455.8 us (  1547 GB/s)  base    756.6 us  speedup 1.651x
+   geomean speedup 1.474x over 6 loads
+
+==== [2026-10-23T07:58:06.990Z] Show the H200 check results for v2
+CMD: cd muse-opt/muse_moe_w4a16 && cat <scratch>/tasks/b0sr89au3.output | tail -30; python3 -c "
+import json; d=json.load(open('dev/check_v2.json')); r=d['result']
+print('passed', r.get('passed'),
+   status done passed True speedup 1.4752555467320987 [1.4531267135311172, 1.49738437993308] score_us 9116.04774494178 flags [] {'flagged': [], 'ok': True, 'rejected': []}
+   {'event': 'test', 'case': {'bs': 4, 'seed': 8604389873016439300, 'sharding': 'ep8'}, 'status': 'pass', 'message': 'relative L2 error 2.476e-03 (worst row 2.562e-03)'}
+   {'event': 'test', 'case': {'bs': 33, 'seed': 8604407902237849272, 'sharding': 'ep8'}, 'status': 'pass', 'message': 'relative L2 error 2.555e-03 (worst row 2.734e-03)'}
+   {'event': 'test', 'case': {'bs': 257, 'seed': 8604443960680669219, 'sharding': 'ep8'}, 'status': 'pass', 'message': 'relative L2 error 2.555e-03 (worst row 2.825e-03)'}
+   {'event': 'test', 'case': {'bs': 128, 'dist': 'skewed', 'seed': 8604461989902079194, 'sharding': 'ep8'}, 'status': 'pass', 'message': 'relative L2 error 2.548e-03 (worst row 2.733e-03)'}
+   {'event': 'test', 'case': {'bs': 1, 'seed': 8604480019123489170, 'sharding': 'ep8'}, 'status': 'pass', 'message': 'relative L2 error 2.514e-03 (worst row 2.514e-03)'}
+   {'event': 'benchmark', 'case': {'bs': 1, 'load': 'decode 1', 'seed': 8606192795157441450, 'sharding': 'ep8', 'weight': 60}, 'status': 'pass', 'speedup': 1.959142497315401}
+   {'event': 'benchmark', 'case': {'bs': 16, 'load': 'decode 16', 'seed': 8606210824378851522, 'sharding': 'ep8', 'weight': 60}, 'status': 'pass', 'speedup': 1.366760230912274}
+   {'event': 'benchmark', 'case': {'bs': 32, 'load': 'decode 32', 'seed': 8606228853600261595, 'sharding': 'ep8', 'weight': 60}, 'status': 'pass', 'speedup': 1.0890006120677351}
+   {'event': 'benchmark', 'case': {'bs': 8, 'load': 'verify 1', 'seed': 8606246882821671669, 'sharding': 'ep8', 'weight': 60}, 'status': 'pass', 'speedup': 1.390414258250925}
+   {'event': 'benchmark', 'case': {'bs': 128, 'load': 'verify 16', 'seed': 8606264912043081744, 'sharding': 'ep8', 'weight': 60}, 'status': 'pass', 'speedup': 1.5615783654118593}
+
+==== [2026-10-23T07:58:15.912Z] Extract per-shape H200 timings from the check
+CMD: cd muse-opt/muse_moe_w4a16 && python3 -c "
+import json; d=json.load(open('dev/check_v2.json')); r=d['result']
+for rec in r.get('records', []):
+    if rec.get('event') == 'benchmark':
+        print({k: (round(v,2) if isinstance(v,float) else v) for k, v in rec.items() if k
+   {'baseline_ns': 80080.0, 'baseline_parent_ns': 88479.99, 'baseline_raw_ns': 84080.0, 'baseline_runs_ns': [80256, 84736, 79136, 83392, 81344, 85472, 80544, 79264, 97856, 85760, 85248, 83968, 80992, 80160, 85824, 79040, 85
+   24, 320000, 318400, 281152, 292064, 318816, 308160, 280480, 321600, 333760, 278656, 317760, 320768, 302208, 291744, 353696, 321408, 295200, 327680, 271104, 282432, 272160, 318464, 293952, 313472, 312448, 276992, 318656, 
+   {'baseline_ns': 615823.99, 'baseline_parent_ns': 624800.0, 'baseline_raw_ns': 619951.99, 'baseline_runs_ns': [546496, 660256, 553344, 615104, 643040, 784352, 626144, 491104, 680960, 704800, 586208, 663648, 598912, 533088
+
+==== [2026-10-23T07:58:24.083Z] Read the judge's profile for the v2 check
+CMD: cd muse-opt/muse_moe_w4a16 && head -80 profiles/submission.f0aae482fdb446f4.txt; wc -l profiles/submission.f0aae482fdb446f4.txt
+   speedup     1.4752555467320987
+   speedup_ci  [1.4531267135311172 1.49738437993308]
+   case                                                         sglang      yours  speedup        sol  
+
+==== [2026-10-23T08:00:55.641Z] Build v4 with a signaler warp and benchmark
+CMD: cd muse-opt/muse_moe_w4a16 && cp dev/moe_v3.py dev/moe_v4.py && python3 - <<'EOF'
+p = "dev/moe_v4.py"
+s = open(p).read()
+def rep(old, new, cnt=1):
+    global s
+    assert s.count(old) == cnt, (s.count(old), old[:80])
+    s = s.replace(old, new)
+
+rep("""DEVI void consumer_
+   test {'bs': 4}: PASS relative L2 error 2.523e-03 (worst row 2.577e-03)
+   test {'bs': 33}: PASS relative L2 error 2.550e-03 (worst row 2.776e-03)
+   test {'bs': 257}: PASS relative L2 error 2.545e-03 (worst row 2.759e-03)
+   test {'bs': 128, 'dist': 'skewed'}: PASS relative L2 error 2.546e-03 (worst row 2.723e-03)
+   test {'bs': 1}: PASS relative L2 error 2.473e-03 (worst row 2.473e-03)
+   bs   1: start    0.0-   0.2  routed by    2.2  work end    40.8 .. median    43.8 ..    46.0  combine end    50.6 us
+           per CTA (median): consumer wait    6.8  epilogue    4.6  items    6  producer empty-wait    3.6  dep-wait    1.4 us
+   bs   8: start    0.0-   0.2  routed by    2.5  work end   127.0 .. median   130.5 ..   134.7  combine end   139.7 us
+           per CTA (median): consumer wait   14.6  epilogue   16.2  items   19  producer empty-wait   14.8  dep-wait    3.8 us
+   bs  16: start    0.0-   0.2  routed by    2.2  work end   127.1 .. median   139.8 ..   142.3  combine end   147.5 us
+           per CTA (median): consumer wait   12.2  epilogue    4.1  items    6  producer empty-wait   28.7  dep-wait    1.1 us
+   bs  32: start    0.0-   0.2  routed by    2.1  work end   175.4 .. median   181.1 ..   193.0  combine end   197.7 us
+           per CTA (median): consumer wait   13.0  epilogue    6.0  items    7  producer empty-wait   55.7  dep-wait    1.3 us
+   bs 128: start    0.0-   0.2  routed by    2.8  work end   312.4 .. median   319.9 ..   330.1  combine end   335.6 us
+           per CTA (median): consumer wait   19.1  epilogue   11.6  items   12  producer empty-wait   81.2  dep-wait    2.2 us
+   bs 256: start    0.0-   0.2  routed by    5.0  work end   394.2 .. median   400.7 ..   411.6  combine end   422.1 us
+           per CTA (median): consumer wait   20.7  epilogue   14.3  items   13  producer empty-wait   91.0  dep-wait    2.5 us
+   decode 1   bs   1  experts   2.6 pairs    2.6  sub     49.2 us (  1495 GB/s)  base     95.8 us  speedup 1.967x
+   decode 16  bs  16  experts  11.8 pairs   25.2  sub    145.4 us (  2308 GB/s)  base    222.8 us  speedup 1.542x
+   decode 32  bs  32  experts  16.2 pairs   50.1  sub    227.3 us (  2017 GB/s)  base    260.8 us  speedup 1.145x
+   verify 1   bs   8  experts   9.1 pairs   13.8  sub    127.3 us (  2024 GB/s)  base    181.7 us  speedup 1.474x
+   verify 16  bs 128  experts  22.9 pairs  206.7  sub    349.1 us (  1861 GB/s)  base    583.4 us  speedup 1.656x
+   verify 32  bs 256  experts  24.9 pairs  383.6  sub    453.2 us (  1556 GB/s)  base    766.9 us  speedup 1.678x
+   geomean speedup 1.557x over 6 loads
+
+==== [2026-10-23T08:14:46.250Z] Build v5 with fast scales and benchmark
+CMD: cp dev/moe_v4.py dev/moe_v5.py && python3 - <<'EOF'
+p = "dev/moe_v5.py"
+s = open(p).read()
+def rep(old, new, cnt=1):
+    global s
+    assert s.count(old) == cnt, (s.count(old), old[:100])
+    s = s.replace(old, new)
+
+# fast scale decode
+rep("""// E4M3 block scale -> BF16 pair (s, s) holding s * 2^11
+   test {'bs': 4}: PASS relative L2 error 2.523e-03 (worst row 2.577e-03)
+   test {'bs': 33}: PASS relative L2 error 2.550e-03 (worst row 2.776e-03)
+   test {'bs': 257}: PASS relative L2 error 2.545e-03 (worst row 2.759e-03)
+   test {'bs': 128, 'dist': 'skewed'}: PASS relative L2 error 2.546e-03 (worst row 2.723e-03)
+   test {'bs': 1}: PASS relative L2 error 2.473e-03 (worst row 2.473e-03)
+   decode 1   bs   1  experts   2.6 pairs    2.6  sub     48.6 us (  1516 GB/s)  base     94.9 us  speedup 1.982x
+   decode 16  bs  16  experts  11.8 pairs   25.2  sub    139.7 us (  2401 GB/s)  base    222.5 us  speedup 1.601x
+   decode 32  bs  32  experts  16.2 pairs   50.1  sub    216.8 us (  2116 GB/s)  base    259.8 us  speedup 1.201x
+   verify 1   bs   8  experts   9.1 pairs   13.8  sub    116.8 us (  2205 GB/s)  base    181.1 us  speedup 1.563x
+   verify 16  bs 128  experts  22.9 pairs  206.7  sub    325.4 us (  1997 GB/s)  base    574.5 us  speedup 1.745x
+   verify 32  bs 256  experts  24.9 pairs  383.6  sub    433.1 us (  1628 GB/s)  base    760.2 us  speedup 1.736x
+   geomean speedup 1.620x over 6 loads
+
+==== [2026-10-23T08:16:40.342Z] Build v6 with the 9-op decode and benchmark
+CMD: cp dev/moe_v5.py dev/moe_v6.py && python3 - <<'EOF'
+p = "dev/moe_v6.py"
+s = open(p).read()
+def rep(old, new, cnt=1):
+    global s
+    assert s.count(old) == cnt, (s.count(old), old[:100])
+    s = s.replace(old, new)
+rep("""#define M_BF 0x81C081C0u
+DEVI void dequant(u32 q, u32 sg, u32 sg8, u32& a0, u
+   test {'bs': 4}: PASS relative L2 error 2.523e-03 (worst row 2.577e-03)
+   test {'bs': 33}: PASS relative L2 error 2.550e-03 (worst row 2.776e-03)
+   test {'bs': 257}: PASS relative L2 error 2.545e-03 (worst row 2.759e-03)
+   test {'bs': 128, 'dist': 'skewed'}: PASS relative L2 error 2.546e-03 (worst row 2.723e-03)
+   test {'bs': 1}: PASS relative L2 error 2.473e-03 (worst row 2.473e-03)
+   decode 1   bs   1  experts   2.6 pairs    2.6  sub     49.5 us (  1488 GB/s)  base     95.6 us  speedup 1.948x
+   decode 16  bs  16  experts  11.8 pairs   25.2  sub    142.9 us (  2347 GB/s)  base    225.0 us  speedup 1.575x
+   decode 32  bs  32  experts  16.2 pairs   50.1  sub    216.7 us (  2116 GB/s)  base    259.6 us  speedup 1.193x
+   verify 1   bs   8  experts   9.1 pairs   13.8  sub    118.4 us (  2176 GB/s)  base    187.5 us  speedup 1.541x
+   verify 16  bs 128  experts  22.9 pairs  206.7  sub    335.9 us (  1934 GB/s)  base    580.9 us  speedup 1.714x
+   verify 32  bs 256  experts  24.9 pairs  383.6  sub    433.0 us (  1628 GB/s)  base    756.9 us  speedup 1.755x
+   geomean speedup 1.603x over 6 loads
+
+==== [2026-10-23T08:20:24.170Z] Build v7 with register prefetch and benchmark
+CMD: cp dev/moe_v6.py dev/moe_v7.py && python3 - <<'EOF'
+p = "dev/moe_v7.py"
+s = open(p).read()
+start = s.index("""    const uint2 sv0 = *reinterpret_cast<const uint2*>(sclb);""")
+end = s.index("""    __syncwarp();
+    if (lane == 0) mbar_arrive(smem_addr(&bars[NS + s]));""")
+new = r'''    // The whole s
+   test {'bs': 4}: PASS relative L2 error 2.523e-03 (worst row 2.577e-03)
+   test {'bs': 33}: PASS relative L2 error 2.550e-03 (worst row 2.776e-03)
+   test {'bs': 257}: PASS relative L2 error 2.545e-03 (worst row 2.759e-03)
+   test {'bs': 128, 'dist': 'skewed'}: PASS relative L2 error 2.546e-03 (worst row 2.723e-03)
+   test {'bs': 1}: PASS relative L2 error 2.473e-03 (worst row 2.473e-03)
+   decode 1   bs   1  experts   2.6 pairs    2.6  sub     39.2 us (  1878 GB/s)
+   decode 16  bs  16  experts  11.9 pairs   25.2  sub    123.9 us (  2718 GB/s)
+   decode 32  bs  32  experts  16.0 pairs   48.2  sub    238.1 us (  1903 GB/s)
+   verify 1   bs   8  experts   9.1 pairs   14.6  sub     97.7 us (  2638 GB/s)
+   verify 16  bs 128  experts  23.1 pairs  204.7  sub    336.6 us (  1943 GB/s)
+   verify 32  bs 256  experts  25.2 pairs  393.1  sub    421.4 us (  1693 GB/s)
+   decode 1   bs   1  experts   2.6 pairs    2.6  sub     46.4 us (  1586 GB/s)  base     96.0 us  speedup 2.128x
+   decode 16  bs  16  experts  11.8 pairs   25.2  sub    138.7 us (  2418 GB/s)  base    222.7 us  speedup 1.604x
+   decode 32  bs  32  experts  16.2 pairs   50.1  sub    243.7 us (  1882 GB/s)  base    260.1 us  speedup 1.058x
+   verify 1   bs   8  experts   9.1 pairs   13.8  sub    110.4 us (  2334 GB/s)  base    182.1 us  speedup 1.659x
+   verify 16  bs 128  experts  22.9 pairs  206.7  sub    351.4 us (  1849 GB/s)  base    581.4 us  speedup 1.649x
+   verify 32  bs 256  experts  24.9 pairs  383.6  sub    426.0 us (  1655 GB/s)  base    755.9 us  speedup 1.778x
+   geomean speedup 1.612x over 6 loads
+
+==== [2026-10-23T08:24:57.194Z] Build v8 with FMA-pipe shifts and benchmark
+CMD: cd muse-opt/muse_moe_w4a16 && cp dev/moe_v7.py dev/moe_v8.py && python3 - <<'EOF'
+p = "dev/moe_v8.py"
+s = open(p).read()
+def rep(old, new, cnt=1):
+    global s
+    assert s.count(old) == cnt, (s.count(old), old[:100])
+    s = s.replace(old, new)
+rep("""  // 9 integer ops 
+   test {'bs': 4}: PASS relative L2 error 2.523e-03 (worst row 2.577e-03)
+   test {'bs': 33}: PASS relative L2 error 2.550e-03 (worst row 2.776e-03)
+   test {'bs': 257}: PASS relative L2 error 2.545e-03 (worst row 2.759e-03)
+   test {'bs': 128, 'dist': 'skewed'}: PASS relative L2 error 2.546e-03 (worst row 2.723e-03)
+   test {'bs': 1}: PASS relative L2 error 2.473e-03 (worst row 2.473e-03)
+   decode 1   bs   1  experts   2.6 pairs    2.6  sub     50.0 us (  1471 GB/s)  base     94.9 us  speedup 1.914x
+   decode 16  bs  16  experts  11.8 pairs   25.2  sub    151.7 us (  2211 GB/s)  base    222.4 us  speedup 1.478x
+   decode 32  bs  32  experts  16.2 pairs   50.1  sub    260.3 us (  1762 GB/s)  base    260.1 us  speedup 0.984x
+   verify 1   bs   8  experts   9.1 pairs   13.8  sub    119.4 us (  2158 GB/s)  base    180.4 us  speedup 1.514x
+   verify 16  bs 128  experts  22.9 pairs  206.7  sub    376.0 us (  1728 GB/s)  base    580.6 us  speedup 1.527x
+   verify 32  bs 256  experts  24.9 pairs  383.6  sub    462.5 us (  1524 GB/s)  base    763.6 us  speedup 1.656x
+   geomean speedup 1.484x over 6 loads
+
+==== [2026-10-23T08:27:15.705Z] Build v9 with tile-count specialization and benchmark
+CMD: cd muse-opt/muse_moe_w4a16 && cp dev/moe_v7.py dev/moe_v9.py && python3 - <<'EOF'
+p = "dev/moe_v9.py"
+s = open(p).read()
+def rep(old, new, cnt=1):
+    global s
+    assert s.count(old) == cnt, (s.count(old), old[:100])
+    s = s.replace(old, new)
+
+start = s.index("""    //
+   test {'bs': 4}: PASS relative L2 error 2.523e-03 (worst row 2.577e-03)
+   test {'bs': 33}: PASS relative L2 error 2.550e-03 (worst row 2.776e-03)
+   test {'bs': 257}: PASS relative L2 error 2.545e-03 (worst row 2.759e-03)
+   test {'bs': 128, 'dist': 'skewed'}: PASS relative L2 error 2.546e-03 (worst row 2.723e-03)
+   test {'bs': 1}: PASS relative L2 error 2.473e-03 (worst row 2.473e-03)
+   decode 1   bs   1  experts   2.6 pairs    2.6  sub     46.2 us (  1592 GB/s)  base     94.7 us  speedup 2.080x
+   decode 16  bs  16  experts  11.8 pairs   25.2  sub    136.3 us (  2461 GB/s)  base    221.7 us  speedup 1.628x
+   decode 32  bs  32  experts  16.2 pairs   50.1  sub    184.4 us (  2487 GB/s)  base    259.3 us  speedup 1.398x
+   verify 1   bs   8  experts   9.1 pairs   13.8  sub    108.2 us (  2380 GB/s)  base    181.2 us  speedup 1.671x
+   verify 16  bs 128  experts  22.9 pairs  206.7  sub    278.8 us (  2330 GB/s)  base    580.1 us  speedup 2.048x
+   verify 32  bs 256  experts  24.9 pairs  383.6  sub    364.4 us (  1934 GB/s)  base    756.4 us  speedup 2.072x
+   geomean speedup 1.796x over 6 loads
+
+==== [2026-10-23T08:36:19.451Z] Show the scored result and our leaderboard position
+CMD: cd muse-opt/muse_moe_w4a16 && cat <scratch>/tasks/be7bryyqy.output | tail -14; export PATH="$HOME/.okc/bin:$PATH"; okc leaderboard muse_moe_w4a16 --json 2>/dev/null | python3 -c "
+import json
+   case                                                         sglang      yours  speedup        sol  
+   you {'rank': 12, 'team': 'gauravjain14', 'speedup': 1.8678, 'first': False, 'ahead': 11, 'to_first': 1.2453}
+
+==== [2026-10-23T08:40:10.404Z] Test and benchmark v10
+CMD: cd muse-opt/muse_moe_w4a16 && sed -i 's/state\["ctr"\]\[2048:2048 + 12 \* state\["sms"\]\]/state["ctr"][4352:4352 + 12 * state["sms"]]/' dev/timing.py && grep -n 4352 dev/timing.py && sed -i 's/^import moe_v9 as M  # noqa: E402/import moe_v10 as M  # noqa: E402/' dev/abl.
+   test {'bs': 4}: PASS relative L2 error 2.524e-03 (worst row 2.577e-03)
+   test {'bs': 33}: PASS relative L2 error 2.550e-03 (worst row 2.777e-03)
+   test {'bs': 257}: PASS relative L2 error 2.545e-03 (worst row 2.758e-03)
+   test {'bs': 128, 'dist': 'skewed'}: PASS relative L2 error 2.546e-03 (worst row 2.723e-03)
+   test {'bs': 1}: PASS relative L2 error 2.473e-03 (worst row 2.473e-03)
+   decode 1   bs   1  experts   2.6 pairs    2.6  sub     47.6 us (  1548 GB/s)  base     94.6 us  speedup 2.021x
+   decode 16  bs  16  experts  11.8 pairs   25.2  sub    135.8 us (  2471 GB/s)  base    223.6 us  speedup 1.637x
+   decode 32  bs  32  experts  16.2 pairs   50.1  sub    184.5 us (  2486 GB/s)  base    260.0 us  speedup 1.396x
+   verify 1   bs   8  experts   9.1 pairs   13.8  sub    108.3 us (  2379 GB/s)  base    187.1 us  speedup 1.732x
+   verify 16  bs 128  experts  22.9 pairs  206.7  sub    283.4 us (  2293 GB/s)  base    581.0 us  speedup 2.031x
+   verify 32  bs 256  experts  24.9 pairs  383.6  sub    370.5 us (  1903 GB/s)  base    766.6 us  speedup 2.047x
+   geomean speedup 1.793x over 6 loads
+
+==== [2026-10-23T08:46:48.101Z] Fix duplicate struct and rerun tests and timing
+CMD: cd muse-opt/muse_moe_w4a16 && python3 - <<'EOF'
+p = "dev/moe_v11.py"
+s = open(p).read()
+old = "struct __align__(16) StageInfo { int item, phase, tile, rb, ks, st, last, n, p0, e, pad0, pad1; };\n"
+assert s.count(old) == 1
+s = s.replace(old, "")
+open(p, "w").write(s)
+EOF
+d
+   test {'bs': 4}: PASS relative L2 error 2.522e-03 (worst row 2.577e-03)
+   test {'bs': 33}: PASS relative L2 error 2.551e-03 (worst row 2.777e-03)
+   test {'bs': 257}: PASS relative L2 error 2.545e-03 (worst row 2.758e-03)
+   test {'bs': 128, 'dist': 'skewed'}: PASS relative L2 error 2.546e-03 (worst row 2.723e-03)
+   test {'bs': 1}: PASS relative L2 error 2.472e-03 (worst row 2.472e-03)
+   decode 1   bs   1  experts   2.6 pairs    2.6  sub     57.2 us (  1286 GB/s)  base     95.1 us  speedup 1.676x
+   decode 16  bs  16  experts  11.8 pairs   25.2  sub    148.1 us (  2265 GB/s)  base    222.6 us  speedup 1.503x
+   decode 32  bs  32  experts  16.2 pairs   50.1  sub    214.3 us (  2140 GB/s)  base    259.5 us  speedup 1.241x
+   verify 1   bs   8  experts   9.1 pairs   13.8  sub    120.8 us (  2132 GB/s)  base    181.0 us  speedup 1.502x
+   verify 16  bs 128  experts  22.9 pairs  206.7  sub    337.7 us (  1924 GB/s)  base    580.3 us  speedup 1.707x
+   verify 32  bs 256  experts  24.9 pairs  383.6  sub    430.2 us (  1639 GB/s)  base    768.3 us  speedup 1.794x
+   geomean speedup 1.559x over 6 loads
+
+==== [2026-10-23T08:50:47.521Z] Dry-run the diagnostic on the H100 node
+CMD: cd muse-opt/muse_moe_w4a16 && python3 - <<'EOF'
+p = "dev/make_diag.py"
+s = open(p).read()
+s = s.replace('''            tm.launch("stream", sms, 288, 1024 + ns * stage, [srcb, per_cta, stage, ns, piece, 8, outb])''',
+'''            _launch_plain(tm, "stream", sms, 288, 102
+   DIAG gpu NVIDIA H100 80GB HBM3 sms 132 prepare 0.5s
+   DIAG fixed replay 5.73 us
+   DIAG full                                     1:   47.4 16:  132.6 32:  178.2 8:   96.3 128:  275.0 256:  366.0   (0s)
+   DIAG MOE_NO_LOAD                              1:   38.2 16:  119.1 32:  158.0 8:   79.5 128:  242.2 256:  315.2   (7s)
+   DIAG MOE_NO_DEQ                               1:   44.6 16:  129.9 32:  172.8 8:   95.8 128:  252.5 256:  333.8   (6s)
+   DIAG MOE_NO_MMA+MOE_NO_DEQ                    1:   43.6 16:  130.9 32:  171.9 8:   91.9 128:  243.1 256:  300.6   (6s)
+   DIAG MOE_ONLY_G1+MOE_NO_MMA+MOE_NO_DEQ        1:   30.8 16:   90.0 32:  119.2 8:   64.6 128:  171.4 256:  209.9   (6s)
+   DIAG MOE_NO_WORK                              1:    8.7 16:    8.1 32:   11.0 8:    8.7 128:   13.4 256:   18.3   (7s)
+   DIAG tma stage 16384 ns 4 piece 4096: 2972 GB/s
+   DIAG tma stage 32768 ns 3 piece 4096: 2980 GB/s
+   DIAG tma stage 32768 ns 4 piece 4096: 2992 GB/s
+   DIAG tma stage 36864 ns 4 piece 4096: 3000 GB/s
+   DIAG tma stage 49152 ns 4 piece 4096: 2994 GB/s
+   DIAG tma stage 65536 ns 3 piece 8192: 3002 GB/s
+   DIAG total 33s
+
+==== [2026-10-23T08:59:31.487Z] Read the H200 diagnostic results
+CMD: cat <scratch>/tasks/bailehkgb.output
+   DIAG gpu NVIDIA H200 sms 132 prepare 5.7s
+   DIAG fixed replay 4.83 us
+   DIAG full                                     1:   37.2 16:  106.4 32:  141.1 8:   72.5 128:  219.9 256:  293.5   (0s)
+   DIAG MOE_NO_LOAD                              1:   31.4 16:   96.6 32:  128.2 8:   64.9 128:  196.0 256:  255.5   (5s)
+   DIAG MOE_NO_DEQ                               1:   34.7 16:   95.2 32:  126.2 8:   68.8 128:  188.5 256:  258.0   (5s)
+   DIAG MOE_NO_MMA+MOE_NO_DEQ                    1:   34.2 16:   94.2 32:  124.0 8:   70.9 128:  177.2 256:  231.6   (4s)
+   DIAG MOE_ONLY_G1+MOE_NO_MMA+MOE_NO_DEQ        1:   24.8 16:   66.5 32:   88.0 8:   49.3 128:  127.0 256:  161.1   (4s)
+   DIAG MOE_NO_WORK                              1:    7.9 16:    7.3 32:    9.8 8:    7.6 128:   11.7 256:   16.0   (5s)
+   DIAG tma stage 16384 ns 4 piece 4096: 3988 GB/s
+   DIAG tma stage 32768 ns 3 piece 4096: 4303 GB/s
+   DIAG tma stage 32768 ns 4 piece 4096: 4321 GB/s
+   DIAG tma stage 36864 ns 4 piece 4096: 4305 GB/s
+   DIAG tma stage 49152 ns 4 piece 4096: 4313 GB/s
+   DIAG tma stage 65536 ns 3 piece 8192: 4312 GB/s
+   DIAG total 30s
+
+==== [2026-10-23T09:05:28.975Z] Interleave gate/up and down items per tile and benchmark
+CMD: python3 - <<'EOF'
+p = "dev/moe_v12.py"
+s = open(p).read()
+def rep(old, new, cnt=1):
+    global s
+    assert s.count(old) == cnt, (s.count(old), old[:120])
+    s = s.replace(old, new)
+# item decode helper: interleaved order G1(0), [G1(t+1), G2(t)] for t = 0..T-2, G2(T-1)
+rep("""struct Params {""", ""
+   test {'bs': 4}: PASS relative L2 error 2.524e-03 (worst row 2.577e-03)
+   test {'bs': 33}: PASS relative L2 error 2.550e-03 (worst row 2.777e-03)
+   test {'bs': 257}: PASS relative L2 error 2.545e-03 (worst row 2.758e-03)
+   test {'bs': 128, 'dist': 'skewed'}: PASS relative L2 error 2.546e-03 (worst row 2.723e-03)
+   test {'bs': 1}: PASS relative L2 error 2.473e-03 (worst row 2.473e-03)
+   1:49.8(base) 16:171.2(base) 32:298.4(base) 8:122.7(base) 128:547.6(base) 256:669.1(base) geomean speedup 1.268x over 6 loads
+   1:48.7(base) 16:172.4(base) 32:304.4(base) 8:124.0(base) 128:531.7(base) 256:692.0(base) geomean speedup 1.261x over 6 loads
+
+==== [2026-10-23T09:06:48.736Z] Revert to the original queue order and recheck
+CMD: python3 - <<'EOF'
+p = "dev/moe_v12.py"
+s = open(p).read()
+old_start = s.index("// Work-queue order: G1(0), then G1(t + 1)")
+old_end = s.index("struct Params {")
+s = s[:old_start] + """// Work-queue order: every gate/up item (tile-major), then every down item (tile-major).
+DEVI void decode_item(int i
+   1:44.0 16:133.8 32:185.6 8:103.4 128:279.9 256:366.2 geomean speedup 1.832x over 6 loads
+
+==== [2026-10-23T09:57:52.256Z] Benchmark the wgmma v16 against SGLang
+CMD: timeout 1800 dev/remote.sh "for i in 1 2; do python3 dev/bench.py dev/abl.py --reps 20 --no-tests 2>&1 | grep -a -E '^(decode|verify|geomean)' | awk '{ if (\$1==\"geomean\") print; else printf \"%s:%s(%s) \", \$4, \$10, \$16}'; done; MOE_DEFINES=MOE_NO_LOAD python3 dev/bench.py dev/abl.py --reps 15 
+   1:46.0(95.2) 16:134.1(221.8) 32:203.4(260.2) 8:104.2(180.4) 128:293.6(581.1) 256:367.5(762.9) geomean speedup 1.769x over 6 loads
+   1:46.7(94.9) 16:132.6(222.4) 32:203.1(260.8) 8:103.9(182.7) 128:294.2(581.0) 256:364.2(756.3) geomean speedup 1.771x over 6 loads
+
+==== [2026-10-23T10:03:45.592Z] Build v17 with lighter producer copies and benchmark
+CMD: cp dev/moe_v12.py dev/moe_v17.py && python3 - <<'EOF'
+p = "dev/moe_v17.py"
+s = open(p).read()
+def rep(old, new, cnt=1):
+    global s
+    assert s.count(old) == cnt, (s.count(old), old[:140])
+    s = s.replace(old, new)
+# W and S: one bulk copy per k chunk
+rep("""        for (int pc = lane; pc < KW *
+   test {'bs': 4}: PASS relative L2 error 2.524e-03 (worst row 2.577e-03)
+   test {'bs': 33}: PASS relative L2 error 2.550e-03 (worst row 2.777e-03)
+   test {'bs': 257}: PASS relative L2 error 2.545e-03 (worst row 2.758e-03)
+   test {'bs': 128, 'dist': 'skewed'}: PASS relative L2 error 2.546e-03 (worst row 2.723e-03)
+   test {'bs': 1}: PASS relative L2 error 2.473e-03 (worst row 2.473e-03)
+   1:47.1 16:132.2 32:183.4 8:106.6 128:267.7 256:340.3 geomean speedup 1.843x over 6 loads
+   1:45.8 16:132.5 32:184.3 8:103.5 128:269.4 256:344.7 geomean speedup 1.852x over 6 loads
+
+==== [2026-10-23T10:05:03.559Z] Add the gate/up activation gather and benchmark
+CMD: python3 - <<'EOF'
+p = "dev/moe_v17.py"
+s = open(p).read()
+def rep(old, new, cnt=1):
+    global s
+    assert s.count(old) == cnt, (s.count(old), old[:140])
+    s = s.replace(old, new)
+rep("""  u16* inter; float* ypart; u16* out; int* ctr; int pmax;""", """  u16* inter; float* ypart; u16* out; int* ct
+   test {'bs': 4}: PASS relative L2 error 2.524e-03 (worst row 2.577e-03)
+   test {'bs': 33}: PASS relative L2 error 2.550e-03 (worst row 2.777e-03)
+   test {'bs': 257}: PASS relative L2 error 2.545e-03 (worst row 2.758e-03)
+   test {'bs': 128, 'dist': 'skewed'}: PASS relative L2 error 2.546e-03 (worst row 2.723e-03)
+   test {'bs': 1}: PASS relative L2 error 2.473e-03 (worst row 2.473e-03)
+   1:46.2 16:135.4 32:183.9 8:104.9 128:261.3 256:333.5 geomean speedup 1.864x over 6 loads
+   1:45.4 16:133.7 32:182.8 8:104.6 128:261.5 256:330.9 geomean speedup 1.871x over 6 loads
+
+==== [2026-10-23T10:07:46.572Z] Update buckets and run tests plus timing for v17
+CMD: python3 - <<'EOF'
+p = "dev/moe_v17.py"
+s = open(p).read()
+old = """BUCKETS = [
+    (1, (2, 1, 2)),
+    (8, (4, 1, 2)),
+    (16, (4, 2, 1)),
+    (32, (8, 4, 2)),
+    (MAX_M, (8, 4, 1)),
+]"""
+assert old in s
+s = s.replace(old, """BUCKETS = [
+    (1, (2, 1, 2)),
+    (16, (4, 1, 2)),
+    (32, (8, 4, 2))
+   test {'bs': 4}: PASS relative L2 error 2.524e-03 (worst row 2.577e-03)
+   test {'bs': 33}: PASS relative L2 error 2.550e-03 (worst row 2.777e-03)
+   test {'bs': 257}: PASS relative L2 error 2.545e-03 (worst row 2.758e-03)
+   test {'bs': 128, 'dist': 'skewed'}: PASS relative L2 error 2.546e-03 (worst row 2.723e-03)
+   test {'bs': 1}: PASS relative L2 error 2.473e-03 (worst row 2.473e-03)
+   1:46.0(95.4) 16:135.2(222.0) 32:182.7(260.6) 8:105.1(181.8) 128:264.2(582.7) 256:333.6(760.3) geomean speedup 1.864x over 6 loads
+
+==== [2026-10-23T10:12:13.594Z] 
+CMD: 
+   7	src = src.replace('"""Routed NVFP4 experts', '"""DIAGNOSTIC BUILD (fails on purpose). Routed NVFP4 experts', 1)
+
+==== [2026-10-23T10:12:23.438Z] Generate the sweep diagnostic and dry-run it on H100
+CMD: grep -n "^open(sys.argv\[2\]" dev/make_diag.py && python3 - <<'EOF'
+p = "dev/make_diag.py"
+s = open(p).read()
+old = 'open(sys.argv[2], "w").write(src + diag)'
+assert s.count(old) == 1
+new = '''if len(sys.argv) > 3:
+    # config sweep: keep the helpers, swap in the sweep's prepare()
+    import os as 
+   DIAG gpu NVIDIA H100 80GB HBM3 sms 132 prepare 0.5s
+   DIAG fixed replay 5.60 us
+   DIAG cfg (2, 1, 2) 1:   46.0 16:  134.8 32:  192.4 8:   96.9 128:  357.2 256:  596.3   (0s)
+   DIAG cfg (2, 1, 1) 1:   46.7 16:  134.5 32:  188.6 8:   97.7 128:  352.1 256:  582.1   (3s)
+   DIAG cfg (4, 1, 2) 1:   48.8 16:  133.3 32:  186.1 8:   97.7 128:  334.0 256:  547.2   (0s)
+   DIAG cfg (4, 1, 1) 1:   53.6 16:  133.8 32:  184.2 8:   98.2 128:  335.6 256:  551.2   (0s)
+   DIAG cfg (4, 2, 1) 1:   54.0 16:  133.0 32:  184.3 8:   94.2 128:  281.2 256:  396.1   (0s)
+   DIAG cfg (4, 2, 2) 1:   50.0 16:  133.3 32:  180.5 8:   96.0 128:  282.7 256:  397.9   (0s)
+   DIAG cfg (8, 2, 2) 1:   53.4 16:  135.4 32:  184.9 8:  106.9 128:  279.8 256:  391.5   (0s)
+   DIAG cfg (8, 4, 1) 1:   66.5 16:  146.5 32:  178.0 8:  115.6 128:  256.4 256:  320.4   (0s)
+   DIAG cfg (8, 4, 2) 1:   55.8 16:  139.3 32:  180.8 8:  105.4 128:  260.6 256:  322.3   (0s)
+   DIAG cfg (2, 2, 2) 1:   48.2 16:  146.8 32:  201.2 8:  105.9 128:  320.2 256:  465.3   (0s)
+   DIAG cfg (8, 2, 1) 1:   65.6 16:  142.8 32:  185.3 8:  111.6 128:  279.2 256:  383.9   (0s)
+   DIAG total 6s
+
+==== [2026-10-23T10:13:55.203Z] Build v18 with per-chunk dependencies and benchmark
+CMD: cp dev/moe_v17.py dev/moe_v18.py && python3 - <<'EOF'
+p = "dev/moe_v18.py"
+s = open(p).read()
+def rep(old, new, cnt=1):
+    global s
+    assert s.count(old) == cnt, (s.count(old), old[:140])
+    s = s.replace(old, new)
+rep("""CTR_WORDS = 8192     # workspace counters: [0] queue head, [1] down items 
+   test {'bs': 4}: PASS relative L2 error 2.524e-03 (worst row 2.577e-03)
+   test {'bs': 33}: PASS relative L2 error 2.550e-03 (worst row 2.777e-03)
+   test {'bs': 257}: PASS relative L2 error 2.545e-03 (worst row 2.758e-03)
+   test {'bs': 128, 'dist': 'skewed'}: PASS relative L2 error 2.546e-03 (worst row 2.723e-03)
+   test {'bs': 1}: PASS relative L2 error 2.473e-03 (worst row 2.473e-03)
+   1:95.5 16:222.5 32:260.4 8:181.1 128:581.6 256:756.8 geomean speedup 1.820x over 6 loads
+   1:95.6 16:222.5 32:260.5 8:181.1 128:580.1 256:756.1 geomean speedup 1.818x over 6 loads
+
+==== [2026-10-23T10:15:23.168Z] Add the proxy fence and re-benchmark v18
+CMD: python3 - <<'EOF'
+p = "dev/moe_v18.py"
+s = open(p).read()
+old = """            const bool ok = lane < 16 && ld_acquire(&cnt1[tile * 16 + lane]) >= 512 / RB;
+            rmask = __ballot_sync(0xffffffffu, ok);
+          }"""
+new = """            const bool ok = lane < 16 && ld_acquire(&cnt1[tile * 16
+   test {'bs': 4}: PASS relative L2 error 2.524e-03 (worst row 2.577e-03)
+   test {'bs': 33}: PASS relative L2 error 2.550e-03 (worst row 2.777e-03)
+   test {'bs': 257}: PASS relative L2 error 2.545e-03 (worst row 2.758e-03)
+   test {'bs': 128, 'dist': 'skewed'}: PASS relative L2 error 2.546e-03 (worst row 2.723e-03)
+   test {'bs': 1}: PASS relative L2 error 2.473e-03 (worst row 2.473e-03)
+   1:45.9(speedup) 16:133.6(speedup) 32:185.2(speedup) 8:105.3(speedup) 128:264.9(speedup) 256:338.3(speedup) geomean speedup 1.862x over 6 loads
+   1:45.3(speedup) 16:134.4(speedup) 32:184.7(speedup) 8:104.3(speedup) 128:265.3(speedup) 256:336.4(speedup) geomean speedup 1.864x over 6 loads
+
+==== [2026-10-23T10:16:16.504Z] Read the v17 scored result and board position
+CMD: cat <scratch>/tasks/bpra8qe2p.output | tail -16
+   you {'rank': 6, 'team': 'gauravjain14', 'speedup': 1.9686, 'first': False, 'ahead': 5, 'to_first': 1.1815}
+
+==== [2026-10-23T10:16:23.866Z] Show the full v17 H200 table and sweep status
+CMD: J=$(python3 -c "import json; print(json.load(open('dev/submit_v17.json'))['id'])"); sed -n 9,17p profiles/submission.$J.txt; cat <scratch>/tasks/bbtkk9xoe.output 2>/dev/null | tail -16
+   case                                                         sglang      yours  speedup        sol  
+
+==== [2026-10-23T10:20:33.897Z] Benchmark v19 against SGLang on H100
+CMD: timeout 1800 dev/remote.sh "for i in 1 2; do python3 dev/bench.py dev/abl.py --reps 20 --no-tests 2>&1 | grep -a -E '^(decode|verify|geomean)' | awk '{ if (\$1==\"geomean\") print; else printf \"%s:%s(%sx) \", \$4, \$10, \$18}'; done"
+   1:46.0(speedupx) 16:135.1(speedupx) 32:191.5(speedupx) 8:105.6(speedupx) 128:273.2(speedupx) 256:320.9(speedupx) geomean speedup 1.851x over 6 loads
+   1:46.3(speedupx) 16:135.6(speedupx) 32:191.5(speedupx) 8:104.7(speedupx) 128:271.6(speedupx) 256:318.6(speedupx) geomean speedup 1.854x over 6 loads
+
+==== [2026-10-23T10:21:27.741Z] Restrict wgmma to big tiles and sweep the threshold
+CMD: sed -i 's/  constexpr int WGMIN = (KW == 1 \&\& NT >= 4) ? 3 : 99;/  constexpr int WGMIN = (KW == 1 \&\& NT >= 8) ? MOE_WGMIN : 99;/' dev/moe_v19.py && sed -i 's/^def _has_wg(rw, nt):\n    return rw == 8 and nt >= 4/X/' dev/moe_v19.py && python3 - <<'EOF'
+p = "muse-opt/mu
+   test {'bs': 4}: PASS relative L2 error 2.524e-03 (worst row 2.577e-03)
+   test {'bs': 33}: PASS relative L2 error 2.550e-03 (worst row 2.777e-03)
+   test {'bs': 257}: PASS relative L2 error 2.545e-03 (worst row 2.758e-03)
+   test {'bs': 128, 'dist': 'skewed'}: PASS relative L2 error 2.546e-03 (worst row 2.723e-03)
+   test {'bs': 1}: PASS relative L2 error 2.473e-03 (worst row 2.473e-03)
+   wgmin 5: 1:46.0 16:135.0 32:185.3 8:104.6 128:268.8 256:318.3 geomean speedup 1.856x over 6 loads
+   wgmin 3: 1:46.6 16:134.3 32:185.0 8:105.5 128:272.6 256:318.2 geomean speedup 1.858x over 6 loads
+
+==== [2026-10-23T10:23:34.067Z] Read the H200 config sweep results
+CMD: cat <scratch>/tasks/bbtkk9xoe.output
+   DIAG gpu NVIDIA H200 sms 132 prepare 5.2s
+   DIAG fixed replay 5.25 us
+   DIAG cfg (2, 1, 2) 1:   36.3 16:  107.4 32:  153.9 8:   76.0 128:  285.4 256:  481.6   (2s)
+   DIAG cfg (2, 1, 1) 1:   36.4 16:  105.3 32:  149.1 8:   75.0 128:  278.0 256:  468.4   (2s)
+   DIAG cfg (4, 1, 2) 1:   37.9 16:  100.5 32:  140.1 8:   70.8 128:  258.7 256:  435.7   (2s)
+   DIAG cfg (4, 1, 1) 1:   43.4 16:   99.0 32:  143.1 8:   70.9 128:  258.2 256:  435.4   (2s)
+   DIAG cfg (4, 2, 1) 1:   43.0 16:  101.7 32:  143.3 8:   72.7 128:  222.9 256:  320.5   (3s)
+   DIAG cfg (4, 2, 2) 1:   40.4 16:  102.4 32:  139.6 8:   73.7 128:  221.5 256:  317.2   (3s)
+   DIAG cfg (8, 2, 2) 1:   52.4 16:  101.7 32:  141.8 8:   76.9 128:  220.3 256:  310.4   (3s)
+   DIAG cfg (8, 4, 1) 1:   55.9 16:  113.0 32:  136.2 8:   79.5 128:  204.2 256:  257.7   (4s)
+   DIAG cfg (8, 4, 2) 1:   55.7 16:  105.8 32:  137.8 8:   80.7 128:  206.8 256:  257.5   (4s)
+   DIAG cfg (2, 2, 2) 1:   38.1 16:  118.2 32:  163.3 8:   85.5 128:  261.4 256:  376.0   (3s)
+   DIAG cfg (8, 2, 1) 1:   51.9 16:  106.0 32:  144.3 8:   76.0 128:  212.1 256:  300.4   (3s)
+   DIAG total 36s
+
+==== [2026-10-23T10:23:49.882Z] Compare v19 with new buckets against v18
+CMD: python3 - <<'EOF'
+p = "muse-opt/muse_moe_w4a16/dev/moe_v19.py"
+s = open(p).read()
+old = """BUCKETS = [
+    (1, (2, 1, 2)),
+    (16, (4, 1, 2)),
+    (32, (8, 4, 2)),
+    (MAX_M, (8, 8, 1)),
+]"""
+assert old in s
+s = s.replace(old, """BUCKETS = [
+    (1, (2, 1, 2)),
+    (16,
+   test {'bs': 4}: PASS relative L2 error 2.524e-03 (worst row 2.577e-03)
+   test {'bs': 33}: PASS relative L2 error 2.550e-03 (worst row 2.777e-03)
+   test {'bs': 257}: PASS relative L2 error 2.545e-03 (worst row 2.758e-03)
+   test {'bs': 128, 'dist': 'skewed'}: PASS relative L2 error 2.546e-03 (worst row 2.723e-03)
+   test {'bs': 1}: PASS relative L2 error 2.473e-03 (worst row 2.473e-03)
+   moe_v19: 1:46.4 16:134.6 32:183.2 8:105.5 128:262.5 256:316.7 geomean speedup 1.868x over 6 loads
+   moe_v18: 1:45.8 16:135.4 32:186.1 8:104.8 128:264.8 256:338.6 geomean speedup 1.853x over 6 loads
+   moe_v19: 1:45.4 16:135.9 32:186.5 8:105.4 128:264.4 256:321.7 geomean speedup 1.877x over 6 loads
+   moe_v18: 1:45.7 16:134.8 32:183.8 8:106.0 128:264.6 256:334.5 geomean speedup 1.853x over 6 loads
+
+==== [2026-10-23T10:26:04.932Z] Build the H200 timeline diagnostic and dry-run it
+CMD: cat > dev/diag_timing_tail.py <<'EOF'
+
+
+def prepare(weights):
+    """Phase timeline on the judge's GPU (MOE_TIMING build), one eager call per scored shape."""
+    t0 = _time.time()
+    dev = weights["w13"].device
+    state = _prepare_impl(weights)
+    p = torch.cuda.get_device_properties(dev)
+    pr
+   DIAG gpu NVIDIA H100 80GB HBM3 sms 132
+   DIAG bs   1 clk 1.45: routed 2.3/2.5/2.7 work-end 38.8/40.9/42.5 combine-end 47.9 us | per CTA: compute 21.6 (per stage 1214 ns) cons-wait 9.7 epi 3.9 prod-empty 1.7 dep 2.9
+   DIAG bs   8 clk 1.44: routed 2.4/2.6/2.8 work-end 72.5/75.3/78.8 combine-end 84.3 us | per CTA: compute 47.7 (per stage 1184 ns) cons-wait 13.0 epi 4.6 prod-empty 15.7 dep 0.0
+   DIAG bs  16 clk 1.44: routed 2.6/2.7/2.9 work-end 92.8/96.1/99.9 combine-end 105.3 us | per CTA: compute 62.2 (per stage 1187 ns) cons-wait 16.8 epi 6.0 prod-empty 23.8 dep 0.0
+   DIAG bs  32 clk 1.43: routed 2.9/4.1/5.2 work-end 111.2/114.5/124.7 combine-end 132.1 us | per CTA: compute 82.7 (per stage 1310 ns) cons-wait 11.5 epi 4.9 prod-empty 39.2 dep 0.0
+   DIAG bs 128 clk 1.43: routed 5.2/5.6/7.2 work-end 221.1/237.1/246.6 combine-end 251.4 us | per CTA: compute 177.3 (per stage 1309 ns) cons-wait 20.3 epi 9.3 prod-empty 81.5 dep 0.0
+   DIAG bs 256 clk 1.44: routed 7.0/8.3/9.5 work-end 285.8/298.0/310.3 combine-end 318.1 us | per CTA: compute 221.5 (per stage 1469 ns) cons-wait 18.0 epi 21.5 prod-empty 120.6 dep 0.0
+   DIAG total 11s
+
+==== [2026-10-23T10:33:31.698Z] Read the H200 timeline diagnostic
+CMD: cat <scratch>/tasks/by6yxhh97.output
+   DIAG gpu NVIDIA H200 sms 132
+   DIAG bs   1 clk 1.82: routed 1.9/2.0/2.1 work-end 27.5/29.7/32.4 combine-end 36.3 us | per CTA: compute 15.8 (per stage 891 ns) cons-wait 5.5 epi 3.5 prod-empty 1.9 dep 0.0
+   DIAG bs   8 clk 1.81: routed 1.9/2.0/2.1 work-end 55.3/56.8/60.4 combine-end 65.0 us | per CTA: compute 36.6 (per stage 912 ns) cons-wait 8.2 epi 4.0 prod-empty 12.5 dep 0.0
+   DIAG bs  16 clk 1.80: routed 3.2/3.3/3.5 work-end 71.0/72.3/76.6 combine-end 80.9 us | per CTA: compute 46.6 (per stage 895 ns) cons-wait 9.1 epi 5.6 prod-empty 16.3 dep 0.0
+   DIAG bs  32 clk 1.79: routed 2.6/4.2/4.7 work-end 87.3/90.0/98.4 combine-end 103.6 us | per CTA: compute 65.9 (per stage 1036 ns) cons-wait 7.8 epi 4.0 prod-empty 30.4 dep 0.0
+   DIAG bs 128 clk 1.77: routed 4.3/4.7/6.3 work-end 173.1/183.9/191.8 combine-end 195.7 us | per CTA: compute 136.9 (per stage 1015 ns) cons-wait 12.8 epi 8.1 prod-empty 60.5 dep 0.0
+   DIAG bs 256 clk 1.79: routed 5.9/6.9/8.4 work-end 229.0/239.2/249.9 combine-end 257.0 us | per CTA: compute 178.0 (per stage 1171 ns) cons-wait 14.0 epi 17.9 prod-empty 95.6 dep 0.0
+   DIAG total 16s
+
+==== [2026-10-23T10:35:37.656Z] Compare diag and bench input generators
+CMD: grep -n "_synth_input" -A 22 dev/diag_timing_v19.py | head -40; echo ----; grep -n "def \|load\|topk\|dist" dev/bench.py | head -40
+   1440-    per-expert popularity, relabelled so this GPU's experts 0-31 are the busiest."""
+   1459-    src = pre + CUDA_SRC + "".join(f"INST({rw}, {nt}, {ks2}, {ns}, {mw})\n" for rw, nt, ks2, ns, mw in _all_cfgs())
+   165:        print(f"geomean speedup {gm:.3f}x over {len(speedups)} loads")
+
+==== [2026-10-23T10:35:41.165Z] Show bench.py shape and input generation
+CMD: sed -n 1,26p dev/bench.py | grep -v "^$"; sed -n 120,160p dev/bench.py
+   inputs are fresh per repetition, and a shape's speedup is the median of paired ratios.
+       speedups = []
+                   f"sub {med_s:8.1f} us ({gbps:6.0f} GB/s)")
+               speedups.append(sp)
+               line += f"  base {statistics.median(tb):8.1f} us  speedup {sp:5.3f}x"
+
+==== [2026-10-23T10:35:49.031Z] Check the popularity constant and judge seeding
+CMD: grep -n "^POPULARITY\|^LOCAL\|^ROUTED\|^D_\|^N_EXP" reference.py; grep -n "seed\|generate_input\|SHAPES\|loads\|replay" TASK.md | head -30
+   42:A shape's weight is how many times one step runs it. A load's time is the sum of its shapes' times, each times its weight. Your speedup on the problem is the geometric mean, over loads, of SGLang's load time over your
+
+==== [2026-10-23T11:11:50.585Z] Check the diagnostic builder's ablation variants
+CMD: grep -n "VARIANTS\|NO_LOAD\|NO_WORK\|tma\|TMA" dev/make_diag.py | head -20; ls dev/diag_tail*.py dev/*tail*.py 2>/dev/null
+   167:        print(f"DIAG tma stage {stage} ns {ns} piece {piece}: {per_cta * sms / t / 1e9:.0f} GB/s", flush=True)
+
+==== [2026-10-23T11:11:55.335Z] Read the ablation diagnostic's prepare
+CMD: sed -n 100,200p dev/make_diag.py
+       print(f"DIAG gpu {p.name} sms {p.multi_processor_count} prepare {_time.time() - t0:.1f}s", flush=True)
+       print(f"DIAG fixed replay {fixed:.2f} us", flush=True)
+           print(f"DIAG {'+'.join(v) or 'full':40s} " + " ".join(f"{bs}:{res[bs] - fixed:7.1f}" for bs in shapes)
+           print(f"DIAG tma stage {stage} ns {ns} piece {piece}: {per_cta * sms / t / 1e9:.0f} GB/s", flush=True)
+       print(f"DIAG total {_time.time() - t0:.0f}s", flush=True)
+
+==== [2026-10-23T11:12:05.920Z] Build and dry-run an H200 ablation diagnostic
+CMD: python3 - <<'EOF'
+p = "muse-opt/muse_moe_w4a16/dev/make_diag.py"
+s = open(p).read()
+old = '''if len(sys.argv) > 3 and sys.argv[3] == "timing":'''
+new = '''if len(sys.argv) > 3 and sys.argv[3].startswith("abl:"):
+    # ablation list only ("abl:A+B;C;..."), no TMA sweep
+   
+   DIAG gpu NVIDIA H100 80GB HBM3 sms 132 prepare 10.8s
+   DIAG fixed replay 5.60 us
+   DIAG full                                     1:   47.2 16:  133.8 32:  179.3 8:   97.5 128:  260.3 256:  320.1   (0s)
+   DIAG MOE_NO_STORE                             1:   47.6 16:  135.6 32:  180.1 8:  100.2 128:  254.0 256:  301.7   (0s)
+   DIAG MOE_NO_LOAD                              1:   38.2 16:  115.1 32:  155.9 8:   80.7 128:  241.0 256:  306.9   (0s)
+   DIAG MOE_NO_MMA+MOE_NO_DEQ                    1:   44.6 16:  130.3 32:  174.0 8:   94.0 128:  235.6 256:  279.7   (0s)
+   DIAG MOE_NO_WORK                              1:    9.3 16:   10.6 32:   13.3 8:    9.5 128:   16.6 256:   22.9   (0s)
+   DIAG full                                     1:   46.9 16:  135.2 32:  180.4 8:   98.2 128:  257.7 256:  318.0   (0s)
+   DIAG total 12s
+
+==== [2026-10-23T11:15:12.363Z] Test v21 correctness and compare to v20
+CMD: dev/sync.sh dev/moe_v21.py dev/abl.py >/dev/null && timeout 1800 dev/remote.sh "python3 dev/bench.py dev/abl.py --tests-only --no-base 2>&1 | tr -d '\000' | grep -a -E 'test|rror|FAIL' | head -8; for v in moe_v21 moe_v20 moe_v21 moe_v20; do sed -i \"s/^import moe_v[0-9]* as M  # noqa: E402/import \$
+   test {'bs': 4}: PASS relative L2 error 2.524e-03 (worst row 2.577e-03)
+   test {'bs': 33}: PASS relative L2 error 2.550e-03 (worst row 2.777e-03)
+   test {'bs': 257}: PASS relative L2 error 2.545e-03 (worst row 2.758e-03)
+   test {'bs': 128, 'dist': 'skewed'}: PASS relative L2 error 2.546e-03 (worst row 2.723e-03)
+   test {'bs': 1}: PASS relative L2 error 2.473e-03 (worst row 2.473e-03)
+   moe_v21: 1:44.7 16:135.2 32:186.0 8:105.5 128:265.6 256:318.7 geomean speedup 1.884x over 6 loads
+   moe_v20: 1:46.4 16:134.8 32:183.1 8:105.3 128:263.9 256:319.4 geomean speedup 1.873x over 6 loads
+   moe_v21: 1:45.0 16:136.5 32:185.5 8:105.1 128:264.5 256:319.3 geomean speedup 1.878x over 6 loads
+   moe_v20: 1:46.5 16:136.3 32:185.9 8:105.4 128:262.5 256:317.4 geomean speedup 1.865x over 6 loads
+
+==== [2026-10-23T11:17:38.651Z] Use fast division in SwiGLU and re-measure
+CMD: python3 - <<'EOF'
+p = "muse-opt/muse_moe_w4a16/dev/moe_v21.py"
+s = open(p).read()
+old = "          return (u32)f2bf(g0 / (1.f + __expf(-g0)) * u0) | ((u32)f2bf(g1 / (1.f + __expf(-g1)) * u1) << 16);"
+new = "          return (u32)f2bf(__fdividef(g0, 1.f + __expf(-g0)) * u0
+   test {'bs': 4}: PASS relative L2 error 2.524e-03 (worst row 2.577e-03)
+   test {'bs': 33}: PASS relative L2 error 2.550e-03 (worst row 2.777e-03)
+   test {'bs': 257}: PASS relative L2 error 2.545e-03 (worst row 2.758e-03)
+   test {'bs': 128, 'dist': 'skewed'}: PASS relative L2 error 2.546e-03 (worst row 2.723e-03)
+   test {'bs': 1}: PASS relative L2 error 2.472e-03 (worst row 2.472e-03)
+           epilogue split (median per CTA): k-reduction   0.9  stores   3.1  signal   1.9 us
+           epilogue split (median per CTA): k-reduction   3.3  stores   5.3  signal   2.0 us
+   1:45.6 16:134.9 32:186.0 8:105.5 128:261.8 256:311.9 geomean speedup 1.883x over 6 loads
+   1:46.6 16:135.3 32:184.4 8:105.6 128:260.9 256:310.2 geomean speedup 1.869x over 6 loads
+
+==== [2026-10-23T11:19:34.010Z] Build v22 per-item stage loops and compare with v21
+CMD: cp dev/moe_v21.py dev/moe_v22.py && python3 - <<'EOF'
+p = "muse-opt/muse_moe_w4a16/dev/moe_v22.py"
+s = open(p).read()
+def rep(old, new, cnt=1):
+    global s
+    assert s.count(old) == cnt, (s.count(old), old[:160])
+    s = s.replace(old, new)
+a = s.index("""  int it = 0;
+
+   moe_v22: moe_v21: 1:46.2 16:135.0 32:185.8 8:105.6 128:261.2 256:313.4 geomean speedup 1.879x over 6 loads
+   moe_v22: moe_v21: 1:45.6 16:135.0 32:185.4 8:105.8 128:261.3 256:314.4 geomean speedup 1.880x over 6 loads
+
+==== [2026-10-23T11:20:29.446Z] Read H200 ablations and locate the NVRTC error line
+CMD: cat <scratch>/tasks/b2wpp4coi.output; cd muse-opt/muse_moe_w4a16 && python3 -c "
+import sys; sys.path.insert(0,'dev')
+src = open('dev/moe_v22.py').read()
+i = src.index('CUDA_SRC = r\"\"\"') +
+   DIAG gpu NVIDIA H200 sms 132 prepare 8.4s
+   DIAG fixed replay 5.06 us
+   DIAG full                                     1:   36.0 16:  101.9 32:  136.6 8:   72.7 128:  203.3 256:  259.0   (1s)
+   DIAG MOE_NO_STORE                             1:   38.1 16:  100.0 32:  135.8 8:   73.3 128:  200.4 256:  242.8   (8s)
+   DIAG MOE_NO_LOAD                              1:   31.2 16:   93.0 32:  125.1 8:   64.9 128:  193.3 256:  248.5   (8s)
+   DIAG MOE_NO_MMA+MOE_NO_DEQ                    1:   34.3 16:   96.4 32:  125.7 8:   70.3 128:  170.0 256:  210.5   (7s)
+   DIAG MOE_NO_WORK                              1:    8.8 16:    9.7 32:   11.2 8:    8.4 128:   14.1 256:   20.3   (8s)
+   DIAG full                                     1:   37.2 16:  102.1 32:  136.2 8:   73.2 128:  203.7 256:  259.6   (0s)
+   DIAG total 40s
+   809     // full-barrier wait, the compute and the release. K = NTL for mma.sync, 100 + NTL for wgmma.
+
+==== [2026-10-23T11:21:46.467Z] Replace the lambda with a macro and benchmark v22
+CMD: python3 - <<'EOF'
+p = "muse-opt/muse_moe_w4a16/dev/moe_v22.py"
+s = open(p).read()
+a = s.index("    auto run = [&](auto kind) {")
+b = s.index("    it += nst;\n", a)
+new = r"""#ifdef MOE_TIMING
+#define MOE_T(x) x
+#else
+#define MOE_T(x)
+#endif
+#define MOE_RUN_ITEM(K)        
+   test {'bs': 4}: PASS relative L2 error 2.524e-03 (worst row 2.577e-03)
+   test {'bs': 33}: PASS relative L2 error 2.550e-03 (worst row 2.777e-03)
+   test {'bs': 257}: PASS relative L2 error 2.545e-03 (worst row 2.758e-03)
+   test {'bs': 128, 'dist': 'skewed'}: PASS relative L2 error 2.546e-03 (worst row 2.723e-03)
+   test {'bs': 1}: PASS relative L2 error 2.472e-03 (worst row 2.472e-03)
+   moe_v22: 1:46.3 16:135.3 32:190.4 8:105.0 128:263.6 256:317.2 geomean speedup 1.861x over 6 loads
+   moe_v21: 1:46.7 16:134.9 32:184.7 8:105.1 128:261.3 256:313.4 geomean speedup 1.879x over 6 loads
+   moe_v22: 1:46.1 16:136.3 32:189.7 8:105.6 128:262.7 256:316.4 geomean speedup 1.856x over 6 loads
+   moe_v21: 1:45.1 16:136.4 32:185.6 8:105.7 128:261.1 256:312.8 geomean speedup 1.890x over 6 loads
+
+==== [2026-10-23T11:24:38.086Z] Build a multi-rep timeline diagnostic and dry-run it
+CMD: python3 - <<'EOF'
+p = "muse-opt/muse_moe_w4a16/dev/moe_v21.py"
+s = open(p).read()
+old = """    mbar_wait(smem_addr(&bars[s]), ph);
+#ifdef MOE_TIMING
+    c_wait += ctimer() - tw0;
+#endif
+    const StageInfo f = info[s];"""
+new = """    mbar_wait(smem_addr(&bars[s]), ph);
+#
+   DIAG gpu NVIDIA H100 80GB HBM3 sms 132
+   DIAG full                   bs   1 experts  3.0 | routed   2.6 first-data med   7.0 max  11.5 | work-end   33.8/  37.5/  39.4 combine-end   44.1 | per CTA compute   20.0 cons-wait   8.4 epi   3.1 prod-empty   2.0 dep   2
+   DIAG full                   bs   8 experts  9.0 | routed   2.8 first-data med   7.2 max  12.2 | work-end   91.7/  95.9/  98.7 combine-end  103.0 | per CTA compute   61.8 cons-wait  16.3 epi   4.6 prod-empty  21.9 dep   0
+   DIAG full                   bs  16 experts 12.0 | routed   2.7 first-data med   7.5 max  11.9 | work-end  121.1/ 124.3/ 129.2 combine-end  133.7 | per CTA compute   82.5 cons-wait  20.0 epi   6.3 prod-empty  29.1 dep   0
+   DIAG full                   bs  32 experts 17.0 | routed   5.8 first-data med   7.3 max   9.6 | work-end  169.2/ 171.7/ 182.9 combine-end  188.3 | per CTA compute  120.6 cons-wait  21.0 epi   5.6 prod-empty  60.7 dep   0
+   DIAG full                   bs 128 experts 22.0 | routed   7.4 first-data med   8.8 max  10.4 | work-end  222.1/ 240.8/ 248.1 combine-end  254.8 | per CTA compute  179.8 cons-wait  18.8 epi   6.7 prod-empty  84.9 dep   0
+   DIAG full                   bs 256 experts 24.0 | routed   9.8 first-data med  11.1 max  12.8 | work-end  269.4/ 273.7/ 296.7 combine-end  304.5 | per CTA compute  199.5 cons-wait  18.5 epi  11.5 prod-empty 102.5 dep   0
+   DIAG MOE_NO_MMA+MOE_NO_DEQ  bs   1 experts  3.0 | routed   2.5 first-data med   6.9 max  11.8 | work-end   35.0/  37.4/  38.5 combine-end   44.3 | per CTA compute    8.2 cons-wait  20.8 epi   2.8 prod-empty   1.5 dep   3
+   DIAG MOE_NO_MMA+MOE_NO_DEQ  bs   8 experts  9.0 | routed   2.6 first-data med   7.0 max  11.6 | work-end   88.3/  92.8/  95.8 combine-end  101.1 | per CTA compute   23.5 cons-wait  55.7 epi   3.8 prod-empty  26.9 dep   3
+   DIAG MOE_NO_MMA+MOE_NO_DEQ  bs  16 experts 12.0 | routed   2.7 first-data med   7.2 max   9.0 | work-end  117.2/ 122.5/ 125.9 combine-end  131.3 | per CTA compute   31.1 cons-wait  73.1 epi   5.1 prod-empty  39.8 dep   3
+   DIAG MOE_NO_MMA+MOE_NO_DEQ  bs  32 experts 17.0 | routed   6.0 first-data med   7.2 max   9.4 | work-end  160.8/ 171.0/ 174.1 combine-end  178.8 | per CTA compute   42.8 cons-wait 101.7 epi   4.8 prod-empty  80.0 dep   0
+   DIAG MOE_NO_MMA+MOE_NO_DEQ  bs 128 experts 22.0 | routed   7.0 first-data med   8.7 max  10.0 | work-end  199.4/ 221.1/ 226.7 combine-end  232.3 | per CTA compute   66.7 cons-wait 114.5 epi   6.2 prod-empty 110.1 dep   0
+   DIAG MOE_NO_MMA+MOE_NO_DEQ  bs 256 experts 24.0 | routed   9.9 first-data med  11.3 max  13.1 | work-end  227.3/ 243.7/ 250.5 combine-end  258.4 | per CTA compute  101.9 cons-wait  91.0 epi  11.1 prod-empty 110.9 dep   0
+   DIAG total 28s
+
+==== [2026-10-23T11:25:57.343Z] Re-measure timeline and speedups with read-only flush
+CMD: sed -i 's/^import moe_v[0-9]* as M  # noqa: E402/import moe_v21 as M  # noqa: E402/' dev/abl.py && python3 dev/make_diag.py dev/moe_v21.py dev/diag_timing_v21.py timing "full;MOE_NO_MMA+MOE_NO_DEQ" >/dev/null && dev/sync.sh dev/bench.py dev/timing.py dev/abl.py dev/diag_timing_v21.py >/dev/null && t
+   DIAG full                   bs   1 experts  3.0 | routed   2.7 first-data med   5.9 max   7.0 | work-end   32.7/  35.4/  36.3 combine-end   42.4 | per
+   DIAG full                   bs   8 experts  9.0 | routed   2.8 first-data med   6.0 max   7.6 | work-end   84.6/  86.7/  91.4 combine-end   95.7 | per
+   DIAG full                   bs  16 experts 12.0 | routed   2.7 first-data med   5.9 max   7.8 | work-end  111.3/ 113.7/ 117.6 combine-end  124.0 | per
+   DIAG full                   bs  32 experts 17.0 | routed   5.0 first-data med   7.1 max   7.6 | work-end  158.1/ 162.4/ 172.0 combine-end  177.3 | per
+   DIAG full                   bs 128 experts 22.0 | routed   6.4 first-data med   8.7 max   8.9 | work-end  215.6/ 232.0/ 241.7 combine-end  248.7 | per
+   DIAG full                   bs 256 experts 24.0 | routed   8.9 first-data med  10.5 max  11.3 | work-end  266.3/ 271.2/ 293.2 combine-end  302.5 | per
+   1:42.2/93.1 16:123.7/218.9 32:170.1/255.9 8:96.5/178.1 128:250.7/579.9 256:302.3/764.1 geomean speedup 1.985x over 6 loads
+   1:41.8/93.1 16:123.8/218.7 32:170.2/258.2 8:97.4/178.7 128:251.4/582.4 256:303.6/767.5 geomean speedup 1.988x over 6 loads
+
+==== [2026-10-23T11:29:25.953Z] Build v23 elementwise combine and compare with v21
+CMD: cp dev/moe_v21.py dev/moe_v23.py && python3 - <<'EOF'
+p = "muse-opt/muse_moe_w4a16/dev/moe_v23.py"
+s = open(p).read()
+def rep(old, new, cnt=1):
+    global s
+    assert s.count(old) == cnt, (s.count(old), old[:160])
+    s = s.replace(old, new)
+# Params
+rep("""  u16* xs;  /
+   test {'bs': 4}: PASS relative L2 error 2.522e-03 (worst row 2.577e-03)
+   test {'bs': 33}: PASS relative L2 error 2.550e-03 (worst row 2.777e-03)
+   test {'bs': 257}: PASS relative L2 error 2.545e-03 (worst row 2.758e-03)
+   test {'bs': 128, 'dist': 'skewed'}: PASS relative L2 error 2.546e-03 (worst row 2.723e-03)
+   test {'bs': 1}: PASS relative L2 error 2.472e-03 (worst row 2.472e-03)
+   moe_v23: 1:43.1 16:122.8 32:175.6 8:100.5 128:255.0 256:307.5 geomean speedup 1.959x over 6 loads
+   moe_v21: 1:41.9 16:124.1 32:169.7 8:96.5 128:249.1 256:299.9 geomean speedup 1.991x over 6 loads
+   moe_v23: 1:43.7 16:123.9 32:175.5 8:99.8 128:255.3 256:312.6 geomean speedup 1.947x over 6 loads
+   moe_v21: 1:42.0 16:123.4 32:170.3 8:97.6 128:252.0 256:302.1 geomean speedup 1.992x over 6 loads
+
+==== [2026-10-23T11:31:36.164Z] Batch the combine loads and isolate the KS2 effect
+CMD: python3 - <<'EOF'
+p = "muse-opt/muse_moe_w4a16/dev/moe_v23.py"
+s = open(p).read()
+def rep(old, new, cnt=1):
+    global s
+    assert s.count(old) == cnt, (s.count(old), old[:160])
+    s = s.replace(old, new)
+rep("""  // Sums of squares alternate between two buffers by call
+   test {'bs': 4}: PASS relative L2 error 2.522e-03 (worst row 2.577e-03)
+   test {'bs': 33}: PASS relative L2 error 2.550e-03 (worst row 2.777e-03)
+   test {'bs': 257}: PASS relative L2 error 2.545e-03 (worst row 2.758e-03)
+   test {'bs': 128, 'dist': 'skewed'}: PASS relative L2 error 2.546e-03 (worst row 2.723e-03)
+   test {'bs': 1}: PASS relative L2 error 2.472e-03 (worst row 2.472e-03)
+   new: 1:43.8 16:123.6 32:175.9 8:100.1 128:251.8 256:312.7 geomean speedup 1.946x over 6 loads
+   old: 1:41.9 16:124.2 32:171.6 8:97.2 128:252.0 256:311.5 geomean speedup 1.976x over 6 loads
+   new: 1:43.9 16:123.6 32:177.2 8:100.1 128:252.6 256:310.5 geomean speedup 1.951x over 6 loads
+   old: 1:42.1 16:124.5 32:170.9 8:97.5 128:252.9 256:312.2 geomean speedup 1.976x over 6 loads
+
+==== [2026-10-23T11:55:01.824Z] Check status and logs of the sweep command
+CMD: autor ps okc-sglang 2>&1 | grep -a -E "cmd-6bnky|running" | head; autor logs okc-sglang cmd-6bnky 2>&1 | tr -d '\000' | grep -a -E "geomean|rror" | tail
+   none                                      : 1:42.0 16:124.0 32:170.7 8:97.0 128:250.8 256:308.9 geomean speedup 1.990x over 6 loads
+
+==== [2026-10-23T11:55:23.461Z] Peek at sweep progress
+CMD: autor logs okc-sglang cmd-6bnky 2>&1 | tr -d '\000' | grep -a -E "geomean|rror|Traceback" | tail; autor ps okc-sglang 2>&1 | grep -a "cmd-6bnky"
+   none                                      : 1:42.0 16:124.0 32:170.7 8:97.0 128:250.8 256:308.9 geomean speedup 1.990x over 6 loads
+
+==== [2026-10-23T11:55:53.690Z] Test v24 and compare to v21 with and without fence
+CMD: sed -i 's/^import moe_v[0-9]* as M  # noqa: E402/import moe_v24 as M  # noqa: E402/' dev/abl.py && dev/sync.sh dev/moe_v24.py dev/abl.py >/dev/null && timeout 1800 dev/remote.sh "python3 dev/bench.py dev/abl.py --tests-only --no-base 2>&1 | tr -d '\000' | grep -a -E 'test|rror|FAIL' | head -8; for c
+   test {'bs': 4}: PASS relative L2 error 2.524e-03 (worst row 2.577e-03)
+   test {'bs': 33}: PASS relative L2 error 2.550e-03 (worst row 2.777e-03)
+   test {'bs': 257}: PASS relative L2 error 2.545e-03 (worst row 2.758e-03)
+   test {'bs': 128, 'dist': 'skewed'}: PASS relative L2 error 2.546e-03 (worst row 2.723e-03)
+   test {'bs': 1}: PASS relative L2 error 2.472e-03 (worst row 2.472e-03)
+   moe_v24:none            : 1:42.1 16:123.5 32:171.0 8:96.6 128:251.5 256:303.7 geomean speedup 1.983x over 6 loads
+   moe_v21:none            : 1:41.9 16:123.8 32:170.7 8:96.3 128:251.7 256:302.5 geomean speedup 1.987x over 6 loads
+   moe_v24:MOE_NO_SIGFENCE : 1:40.6 16:123.0 32:170.4 8:95.5 128:251.0 256:305.6 geomean speedup 2.002x over 6 loads
+   moe_v21:none            : 1:41.8 16:124.3 32:170.9 8:97.1 128:250.0 256:301.9 geomean speedup 1.986x over 6 loads
+   moe_v24:none            : 1:41.8 16:123.2 32:171.7 8:96.1 128:252.0 256:304.5 geomean speedup 1.988x over 6 loads
+
+==== [2026-10-23T11:58:25.444Z] Test fence-free v24 with correctness checks on
+CMD: python3 - <<'EOF'
+p = "muse-opt/muse_moe_w4a16/dev/moe_v24.py"
+s = open(p).read()
+old = """        if (si.x < 0) break;
+#ifndef MOE_NO_SIGFENCE
+        asm volatile("fence.acq_rel.gpu;" ::: "memory");
+#endif
+        red_release_add(si.x == 1 ? &cnt1[si.y] : done2, 1);"""
+
+   test {'bs': 4}: PASS relative L2 error 2.524e-03 (worst row 2.577e-03)
+   test {'bs': 33}: PASS relative L2 error 2.550e-03 (worst row 2.777e-03)
+   test {'bs': 257}: PASS relative L2 error 2.545e-03 (worst row 2.758e-03)
+   test {'bs': 128, 'dist': 'skewed'}: PASS relative L2 error 2.546e-03 (worst row 2.723e-03)
+   test {'bs': 1}: PASS relative L2 error 2.472e-03 (worst row 2.472e-03)
+   1:35.9 16:125.7 32:164.2 8:95.5 128:250.8 256:304.8 geomean speedup 2.012x over 6 loads
+   1:36.6 16:125.9 32:163.2 8:96.0 128:252.1 256:307.8 geomean speedup 2.015x over 6 loads
+
+==== [2026-10-23T11:59:40.611Z] Compare 64/216 and 40/232 register splits
+CMD: python3 - <<'EOF'
+p = "muse-opt/muse_moe_w4a16/dev/moe_v24.py"
+s = open(p).read()
+old1 = 'asm volatile("setmaxnreg.dec.sync.aligned.u32 64;" ::: "memory");'
+old2 = 'asm volatile("setmaxnreg.inc.sync.aligned.u32 216;" ::: "memory");'
+assert s.count(old1) == 1 and s.count(o
+   none                    : 1:40.8 16:122.7 32:170.5 8:96.4 128:252.2 256:305.7 geomean speedup 1.999x over 6 loads
+   MOE_PREG=40,MOE_CREG=232: 1:42.9 16:124.4 32:171.2 8:98.2 128:252.6 256:306.5 geomean speedup 1.977x over 6 loads
+   none                    : 1:41.3 16:122.7 32:171.0 8:95.6 128:250.3 256:303.3 geomean speedup 1.998x over 6 loads
+   MOE_PREG=40,MOE_CREG=232: 1:43.2 16:124.8 32:171.3 8:98.0 128:252.5 256:307.6 geomean speedup 1.965x over 6 loads
+
+==== [2026-10-23T12:02:57.343Z] Test v25 and sweep the split amount
+CMD: sed -i 's/    scal\[0\] = 0; scal\[1\] = 0; scal\[2\] = 0; scal\[3\] = 0;/    scal[0] = 0; scal[1] = 0; scal[2] = 0; scal[3] = 0; scal[4] = 0; scal[5] = 0;/' dev/moe_v25.py && sed -i 's/^import moe_v[0-9]* as M  # noqa: E402/import moe_v25 as M  # noqa: E402/' dev/abl.py && dev/sync.sh dev/moe_v25.p
+   test {'bs': 4}: PASS relative L2 error 2.524e-03 (worst row 2.577e-03)
+   test {'bs': 33}: PASS relative L2 error 2.550e-03 (worst row 2.777e-03)
+   test {'bs': 257}: PASS relative L2 error 2.545e-03 (worst row 2.758e-03)
+   test {'bs': 128, 'dist': 'skewed'}: PASS relative L2 error 2.546e-03 (worst row 2.723e-03)
+   test {'bs': 1}: PASS relative L2 error 2.472e-03 (worst row 2.472e-03)
+   moe_v25:none            : 1:41.9 16:123.3 32:169.5 8:96.5 128:250.4 256:301.1 geomean speedup 2.000x over 6 loads
+   moe_v24:none            : 1:41.3 16:122.3 32:171.2 8:96.3 128:251.1 256:307.1 geomean speedup 1.997x over 6 loads
+   moe_v25:MOE_SPLW=2.0f   : 1:41.7 16:122.7 32:168.8 8:96.4 128:252.2 256:302.0 geomean speedup 1.989x over 6 loads
+   moe_v25:MOE_SPLW=0.5f   : 1:41.7 16:123.0 32:170.4 8:96.3 128:253.6 256:300.9 geomean speedup 1.994x over 6 loads
+   moe_v24:none            : 1:41.1 16:123.4 32:171.3 8:95.5 128:250.8 256:305.6 geomean speedup 1.998x over 6 loads
+   moe_v25:none            : 1:41.5 16:123.2 32:168.7 8:96.3 128:250.1 256:302.0 geomean speedup 2.003x over 6 loads
+
+==== [2026-10-23T12:06:46.170Z] Build and dry-run the v25 timeline diagnostic
+CMD: grep -q "tdbg\[15\] = gtimer()" dev/moe_v25.py && echo probe-ok; python3 dev/make_diag.py dev/moe_v25.py dev/diag_timing_v25.py timing "full;MOE_NO_MMA+MOE_NO_DEQ" && dev/sync.sh dev/diag_timing_v25.py >/dev/null && timeout 900 dev/remote.sh "python3 dev/run_diag.py dev/diag_timing_v25.py 2>&1 | gre
+   DIAG gpu NVIDIA H100 80GB HBM3 sms 132
+   DIAG full                   bs   1 experts  3.0 | routed   2.9 first-data med   5.6 max   5.8 | work-end   33.0/  36.4/  38.0 combine-end   42.4 | per CTA compute   20.1 cons-wait   5.8 epi   3.2 prod
+   DIAG full                   bs   8 experts  9.0 | routed   2.9 first-data med   5.5 max   5.9 | work-end   86.0/  88.3/  93.1 combine-end   97.0 | per CTA compute   59.7 cons-wait   8.9 epi   4.7 prod
+   DIAG full                   bs  16 experts 12.0 | routed   2.9 first-data med   5.6 max   5.8 | work-end  113.1/ 115.3/ 119.7 combine-end  124.2 | per CTA compute   80.6 cons-wait  11.5 epi   6.4 prod
+   DIAG full                   bs  32 experts 17.0 | routed   6.6 first-data med   7.4 max   7.6 | work-end  158.4/ 162.6/ 164.9 combine-end  172.0 | per CTA compute  115.9 cons-wait  12.3 epi   6.5 prod
+   DIAG full                   bs 128 experts 22.0 | routed   7.9 first-data med   8.8 max   8.9 | work-end  228.3/ 231.2/ 234.9 combine-end  244.4 | per CTA compute  170.0 cons-wait  12.9 epi   8.9 prod
+   DIAG full                   bs 256 experts 24.0 | routed  10.5 first-data med  11.4 max  11.5 | work-end  280.5/ 283.4/ 288.3 combine-end  302.8 | per CTA compute  213.0 cons-wait  13.7 epi  14.7 prod
+   DIAG MOE_NO_MMA+MOE_NO_DEQ  bs   1 experts  3.0 | routed   2.8 first-data med   5.5 max   6.2 | work-end   29.0/  31.4/  31.7 combine-end   36.9 | per CTA compute    8.0 cons-wait  14.4 epi   2.9 prod
+   DIAG MOE_NO_MMA+MOE_NO_DEQ  bs   8 experts  9.0 | routed   2.8 first-data med   5.7 max   6.7 | work-end   79.9/  83.2/  86.2 combine-end   90.3 | per CTA compute   23.6 cons-wait  44.4 epi   4.0 prod
+   DIAG MOE_NO_MMA+MOE_NO_DEQ  bs  16 experts 12.0 | routed   2.8 first-data med   5.7 max   6.9 | work-end  107.2/ 111.1/ 113.1 combine-end  117.5 | per CTA compute   31.3 cons-wait  60.5 epi   5.4 prod
+   DIAG MOE_NO_MMA+MOE_NO_DEQ  bs  32 experts 17.0 | routed   6.4 first-data med   7.2 max   7.4 | work-end  155.1/ 158.7/ 160.3 combine-end  166.3 | per CTA compute   42.5 cons-wait  86.6 epi   5.2 prod
+   DIAG MOE_NO_MMA+MOE_NO_DEQ  bs 128 experts 22.0 | routed   7.9 first-data med   8.8 max   8.9 | work-end  202.9/ 207.3/ 209.9 combine-end  217.2 | per CTA compute   66.2 cons-wait  99.9 epi   7.9 prod
+   DIAG MOE_NO_MMA+MOE_NO_DEQ  bs 256 experts 24.0 | routed  10.3 first-data med  11.3 max  11.4 | work-end  228.6/ 232.8/ 235.2 combine-end  247.3 | per CTA compute   97.4 cons-wait  81.2 epi  15.1 prod
+   DIAG total 19s
+
+==== [2026-10-23T12:07:32.937Z] Extract per-shape timing records from the check
+CMD: python3 -c "
+import json; d=json.load(open('dev/check_v24.json')); r=d['result']
+for rec in r['records']:
+    if rec.get('event') in ('timing', 'time', 'score') or 'speedup' in rec:
+        c = rec.get('case', {})
+        print(c.get('bs'), c.get('load'), {k: rec[k] for k in rec if k in ('us','basel
+   1 decode 1 {'speedup': 2.4227405239322275}
+   16 decode 16 {'speedup': 1.850396559658528}
+   32 decode 32 {'speedup': 1.4923684504334627}
+   8 verify 1 {'speedup': 1.9877946058544427}
+   128 verify 16 {'speedup': 2.1591417027186393}
+   256 verify 32 {'speedup': 2.4132531191622424}
+
+==== [2026-10-23T12:07:40.080Z] Inspect a benchmark record from the check
+CMD: python3 -c "
+import json; d=json.load(open('dev/check_v24.json')); r=d['result']
+b = [rec for rec in r['records'] if rec.get('event') == 'benchmark']
+import pprint; pprint.pprint({k: (v if not isinstance(v, list) or len(v) < 8 else str(v[:6]) + '...') for k, v in b[0].items()}, width=150)
+for rec in
+    'speedup': 2.4227405239322275,
+    'speedup_of_medians': 2.515072842396779,
+
+==== [2026-10-23T12:09:23.850Z] Test v26 and compare with v25
+CMD: sed -i 's/^import moe_v[0-9]* as M  # noqa: E402/import moe_v26 as M  # noqa: E402/' dev/abl.py && dev/sync.sh dev/moe_v26.py dev/abl.py >/dev/null && timeout 1800 dev/remote.sh "python3 dev/bench.py dev/abl.py --tests-only --no-base 2>&1 | tr -d '\000' | grep -a -E 'test|rror|FAIL' | head -8; for v
+   test {'bs': 4}: PASS relative L2 error 2.524e-03 (worst row 2.577e-03)
+   test {'bs': 33}: PASS relative L2 error 2.550e-03 (worst row 2.777e-03)
+   test {'bs': 257}: PASS relative L2 error 2.545e-03 (worst row 2.758e-03)
+   test {'bs': 128, 'dist': 'skewed'}: PASS relative L2 error 2.546e-03 (worst row 2.723e-03)
+   test {'bs': 1}: PASS relative L2 error 2.472e-03 (worst row 2.472e-03)
+   moe_v26 : 1:41.4 16:123.3 32:169.8 8:96.5 128:249.6 256:301.8 geomean speedup 1.997x over 6 loads
+   moe_v25 : 1:41.4 16:123.2 32:168.3 8:96.4 128:249.6 256:300.3 geomean speedup 2.009x over 6 loads
+   moe_v26 : 1:41.8 16:124.4 32:168.6 8:97.1 128:249.1 256:300.3 geomean speedup 1.995x over 6 loads
+   moe_v25 : 1:41.6 16:123.4 32:169.1 8:96.9 128:249.3 256:301.9 geomean speedup 2.002x over 6 loads
+
+==== [2026-10-23T12:12:57.161Z] Test v27 and compare with v25
+CMD: sed -i 's/^import moe_v[0-9]* as M  # noqa: E402/import moe_v27 as M  # noqa: E402/' dev/abl.py && dev/sync.sh dev/moe_v27.py dev/abl.py >/dev/null && timeout 1800 dev/remote.sh "python3 dev/bench.py dev/abl.py --tests-only --no-base 2>&1 | tr -d '\000' | grep -a -E 'test|rror|FAIL' | head -8; for v
+   test {'bs': 4}: PASS relative L2 error 2.524e-03 (worst row 2.577e-03)
+   test {'bs': 33}: PASS relative L2 error 2.550e-03 (worst row 2.777e-03)
+   test {'bs': 257}: PASS relative L2 error 2.545e-03 (worst row 2.758e-03)
+   test {'bs': 128, 'dist': 'skewed'}: PASS relative L2 error 2.546e-03 (worst row 2.723e-03)
+   test {'bs': 1}: PASS relative L2 error 2.472e-03 (worst row 2.472e-03)
+   moe_v27 : 1:42.1 16:124.0 32:170.1 8:97.8 128:256.3 256:538.3 geomean speedup 1.796x over 6 loads
+   moe_v25 : 1:41.8 16:122.6 32:169.7 8:96.1 128:248.3 256:299.0 geomean speedup 2.005x over 6 loads
+   moe_v27 : 1:43.1 16:123.7 32:170.8 8:98.2 128:253.4 256:534.1 geomean speedup 1.788x over 6 loads
+   moe_v25 : 1:42.1 16:123.6 32:168.6 8:95.5 128:247.7 256:298.9 geomean speedup 2.000x over 6 loads
+
+==== [2026-10-23T12:15:33.802Z] Test skipping the activation gather for NT=4
+CMD: grep -n "constexpr bool GATHER = NT >= 4;" dev/moe_v25.py && sed -i 's/  constexpr bool GATHER = NT >= 4;/#ifndef MOE_GATHER_MIN\n#define MOE_GATHER_MIN 4\n#endif\n  constexpr bool GATHER = NT >= MOE_GATHER_MIN;  \/\/ gate\/up activations gathered tile-major first/' dev/moe_v25.py && grep -n "nt >= 
+   test {'bs': 4}: PASS relative L2 error 2.524e-03 (worst row 2.577e-03)
+   test {'bs': 33}: PASS relative L2 error 2.550e-03 (worst row 2.777e-03)
+   test {'bs': 257}: PASS relative L2 error 2.545e-03 (worst row 2.758e-03)
+   test {'bs': 128, 'dist': 'skewed'}: PASS relative L2 error 2.546e-03 (worst row 2.723e-03)
+   test {'bs': 1}: PASS relative L2 error 2.472e-03 (worst row 2.472e-03)
+   MOE_GATHER_MIN=8  : 1:41.7 16:123.1 32:168.2 8:95.9 128:252.2 256:303.0 geomean speedup 2.005x over 6 loads
+   none              : 1:41.5 16:122.8 32:169.1 8:96.6 128:250.3 256:301.3 geomean speedup 2.001x over 6 loads
+   MOE_GATHER_MIN=8  : 1:41.7 16:123.2 32:168.4 8:97.0 128:251.3 256:298.8 geomean speedup 1.998x over 6 loads
+   none              : 1:41.8 16:122.6 32:169.5 8:96.1 128:249.9 256:301.6 geomean speedup 2.006x over 6 loads
+
+==== [2026-10-23T12:25:21.779Z] Test v29 and compare with v25
+CMD: cd muse-opt/muse_moe_w4a16 && sed -i 's/^import moe_v[0-9]* as M  # noqa: E402/import moe_v29 as M  # noqa: E402/' dev/abl.py && dev/sync.sh dev/moe_v29.py dev/abl.py >/dev/null && timeout 1800 dev/remote.sh "python3 dev/bench.py dev/abl.py --tests-only --no-base 2>&1 | t
+   test {'bs': 4}: PASS relative L2 error 2.524e-03 (worst row 2.577e-03)
+   test {'bs': 33}: PASS relative L2 error 2.550e-03 (worst row 2.777e-03)
+   test {'bs': 257}: PASS relative L2 error 2.545e-03 (worst row 2.758e-03)
+   test {'bs': 128, 'dist': 'skewed'}: PASS relative L2 error 2.546e-03 (worst row 2.723e-03)
+   test {'bs': 1}: PASS relative L2 error 2.472e-03 (worst row 2.472e-03)
+   moe_v29 : 1:43.4 16:123.3 32:167.7 8:96.3 128:248.0 256:303.0 geomean speedup 1.995x over 6 loads
+   moe_v25 : 1:42.0 16:122.5 32:169.1 8:96.4 128:249.2 256:301.4 geomean speedup 2.002x over 6 loads
+   moe_v29 : 1:43.0 16:123.1 32:168.0 8:95.4 128:246.2 256:299.5 geomean speedup 2.004x over 6 loads
+   moe_v25 : 1:42.0 16:123.3 32:168.7 8:96.3 128:249.6 256:302.4 geomean speedup 1.998x over 6 loads
+
+==== [2026-10-23T12:27:25.098Z] Poll tile readiness in parallel warps and re-test
+CMD: cd muse-opt/muse_moe_w4a16 && python3 - <<'EOF'
+p = "muse-opt/muse_moe_w4a16/dev/moe_v29.py"
+s = open(p).read()
+old = """        if (tid == 0) {
+          const int tl = ftile[e] + pr / T;"""
+new = """        if (tid == np * 32) {  // one warp 
+   test {'bs': 4}: PASS relative L2 error 2.524e-03 (worst row 2.577e-03)
+   test {'bs': 33}: PASS relative L2 error 2.550e-03 (worst row 2.777e-03)
+   test {'bs': 257}: PASS relative L2 error 2.545e-03 (worst row 2.758e-03)
+   test {'bs': 128, 'dist': 'skewed'}: PASS relative L2 error 2.546e-03 (worst row 2.723e-03)
+   test {'bs': 1}: PASS relative L2 error 2.472e-03 (worst row 2.472e-03)
+   moe_v29 : 1:43.0 16:122.7 32:166.2 8:95.7 128:244.5 256:298.6 geomean speedup 2.004x over 6 loads
+   moe_v25 : 1:42.0 16:123.5 32:169.4 8:96.6 128:250.0 256:302.8 geomean speedup 2.002x over 6 loads
+   moe_v29 : 1:42.8 16:123.2 32:166.0 8:96.7 128:247.2 256:299.5 geomean speedup 2.006x over 6 loads
+   moe_v25 : 1:42.0 16:122.8 32:169.0 8:96.8 128:249.0 256:301.7 geomean speedup 2.002x over 6 loads
+
+==== [2026-10-23T12:37:22.800Z] Test v30 and compare with v29
+CMD: cd muse-opt/muse_moe_w4a16 && sed -i 's/^import moe_v[0-9]* as M  # noqa: E402/import moe_v30 as M  # noqa: E402/' dev/abl.py && dev/sync.sh dev/abl.py >/dev/null && timeout 1800 dev/remote.sh "python3 dev/bench.py dev/abl.py --tests-only --no-base 2>&1 | tr -d '\000' | g
+   test {'bs': 4}: PASS relative L2 error 2.524e-03 (worst row 2.577e-03)
+   test {'bs': 33}: PASS relative L2 error 2.550e-03 (worst row 2.777e-03)
+   test {'bs': 257}: PASS relative L2 error 2.545e-03 (worst row 2.758e-03)
+   test {'bs': 128, 'dist': 'skewed'}: PASS relative L2 error 2.546e-03 (worst row 2.723e-03)
+   test {'bs': 1}: PASS relative L2 error 2.472e-03 (worst row 2.472e-03)
+   moe_v30 : 1:43.6 16:122.6 32:165.8 8:95.9 128:244.6 256:290.7 geomean speedup 2.021x over 6 loads
+   moe_v29 : 1:42.9 16:123.0 32:167.0 8:96.2 128:246.5 256:297.1 geomean speedup 2.005x over 6 loads
+   moe_v30 : 1:43.4 16:121.7 32:167.2 8:95.0 128:244.1 256:292.7 geomean speedup 2.029x over 6 loads
+   moe_v29 : 1:43.2 16:122.5 32:168.0 8:96.2 128:247.2 256:298.8 geomean speedup 2.002x over 6 loads
+
+==== [2026-10-23T12:39:44.301Z] Verify the NTL-1-only IMAD scales and re-benchmark v30
+CMD: cd muse-opt/muse_moe_w4a16 && python3 - <<'EOF'
+p = "muse-opt/muse_moe_w4a16/dev/moe_v30.py"
+s = open(p).read()
+old = """    const u32 sg0 = (kk & 1) ? scale_of<2>(sw0) : scale_of<0>(sw0);
+    const u32 sg80 = (kk & 1) ? scale_of<3>(sw0) : scal
+   test {'bs': 4}: PASS relative L2 error 2.524e-03 (worst row 2.577e-03)
+   test {'bs': 33}: PASS relative L2 error 2.550e-03 (worst row 2.777e-03)
+   test {'bs': 257}: PASS relative L2 error 2.545e-03 (worst row 2.758e-03)
+   test {'bs': 128, 'dist': 'skewed'}: PASS relative L2 error 2.546e-03 (worst row 2.723e-03)
+   test {'bs': 1}: PASS relative L2 error 2.472e-03 (worst row 2.472e-03)
+   1:43.6 16:121.5 32:166.0 8:94.2 128:244.7 256:290.8 geomean speedup 2.023x over 6 loads
+   1:42.9 16:122.4 32:166.7 8:95.2 128:244.4 256:292.8 geomean speedup 2.026x over 6 loads
+
+==== [2026-10-23T12:46:45.106Z] Build and dry-run the v30 ablation diagnostic
+CMD: python3 dev/make_diag.py dev/moe_v30.py dev/diag_abl_v30.py "abl:full;MOE_NO_LOAD;MOE_NO_MMA+MOE_NO_DEQ;MOE_NO_WORK;full" && dev/sync.sh dev/diag_abl_v30.py >/dev/null && timeout 900 dev/remote.sh "python3 dev/run_diag.py dev/diag_abl_v30.py 2>&1 | grep -a -E 'DIAG|raised|rror' | head -10"
+   DIAG gpu NVIDIA H100 80GB HBM3 sms 132 prepare 10.6s
+   DIAG fixed replay 5.54 us
+   DIAG full                                     1:   43.5 16:  121.2 32:  162.4 8:   87.1 128:  238.9 256:  290.7   (0s)
+   DIAG MOE_NO_LOAD                              1:   34.9 16:  105.9 32:  144.1 8:   74.5 128:  221.4 256:  282.4   (10s)
+   DIAG MOE_NO_MMA+MOE_NO_DEQ                    1:   38.3 16:  119.4 32:  158.9 8:   83.7 128:  218.5 256:  257.9   (8s)
+
+==== [2026-10-23T12:48:01.704Z] Skip combine waits in the no-work ablation and rerun
+CMD: autor kill okc-sglang cmd-bcnpf 2>&1 | tail -1; cd muse-opt/muse_moe_w4a16 && python3 - <<'EOF'
+p = "muse-opt/muse_moe_w4a16/dev/moe_v30.py"
+s = open(p).read()
+old = """          while (ld_acquire(&cnt2[tl]) < want) {}"""
+new = """#ifndef MOE_N
+   DIAG gpu NVIDIA H100 80GB HBM3 sms 132 prepare 10.8s
+   DIAG fixed replay 5.57 us
+   DIAG full                                     1:   43.0 16:  120.8 32:  162.6 8:   85.9 128:  238.1 256:  288.3   (0s)
+   DIAG MOE_NO_LOAD                              1:   34.8 16:  105.2 32:  142.7 8:   73.6 128:  219.8 256:  277.1   (10s)
+   DIAG MOE_NO_MMA+MOE_NO_DEQ                    1:   38.2 16:  118.1 32:  158.8 8:   83.5 128:  218.3 256:  259.1   (8s)
+   DIAG MOE_NO_WORK                              1:    9.2 16:   10.0 32:   14.9 8:    9.0 128:   18.7 256:   26.7   (10s)
+   DIAG full                                     1:   43.4 16:  120.9 32:  161.5 8:   85.3 128:  237.3 256:  288.8   (0s)
+   DIAG total 40s
+
+==== [2026-10-23T12:51:33.144Z] Test v31 warp-per-token combine against v30
+CMD: cp dev/moe_v30.py dev/moe_v31.py && python3 - <<'EOF'
+p = "muse-opt/muse_moe_w4a16/dev/moe_v31.py"
+s = open(p).read()
+old = """  {
+  // A token is combined as soon as the down items of its tiles are done, not after the last
+  // item of the whole queue: most of the combin
+   moe_v31:none          : moe_v30:none          : 1:43.1 16:122.1 32:165.2 8:95.6 128:244.2 256:290.0 geomean speedup 2.021x over 6 loads
+   moe_v31:MOE_WCOMB_MIN=8: moe_v31:none          : moe_v30:none          : 1:43.5 16:122.2 32:166.3 8:94.2 128:245.0 256:293.0 geomean speedup 2.022x over 6 loads
+
+==== [2026-10-23T12:53:00.038Z] Fix the brace and benchmark v31 against v30
+CMD: python3 - <<'EOF'
+p = "muse-opt/muse_moe_w4a16/dev/moe_v31.py"
+s = open(p).read()
+old2 = """      *reinterpret_cast<uint2*>(P.out + (size_t)t * 4096 + n) = make_uint2(lo, hi);
+    }
+  }
+  }
+  }
+#ifdef MOE_NO_COMBINE
+done_combine:"""
+new2 = """      *reinterpret_cast<uint2
+   test {'bs': 4}: PASS relative L2 error 2.524e-03 (worst row 2.577e-03)
+   test {'bs': 33}: PASS relative L2 error 2.550e-03 (worst row 2.777e-03)
+   test {'bs': 257}: PASS relative L2 error 2.545e-03 (worst row 2.758e-03)
+   test {'bs': 128, 'dist': 'skewed'}: PASS relative L2 error 2.546e-03 (worst row 2.723e-03)
+   test {'bs': 1}: PASS relative L2 error 2.472e-03 (worst row 2.472e-03)
+   moe_v31:none          : 1:45.5 16:124.4 32:166.8 8:96.6 128:320.0 256:368.3 geomean speedup 1.842x over 6 loads
+   moe_v30:none          : 1:43.3 16:122.4 32:165.1 8:95.4 128:243.5 256:290.9 geomean speedup 2.018x over 6 loads
+   moe_v31:MOE_WCOMB_MIN=8: 1:45.1 16:143.7 32:223.9 8:116.5 128:318.7 256:367.4 geomean speedup 1.665x over 6 loads
+   moe_v31:none          : 1:45.7 16:125.0 32:165.8 8:97.2 128:320.5 256:370.4 geomean speedup 1.844x over 6 loads
+   moe_v30:none          : 1:43.5 16:121.9 32:166.0 8:94.8 128:243.7 256:290.4 geomean speedup 2.029x over 6 loads
+
+==== [2026-10-23T12:57:29.285Z] Retry sync and benchmark v32 against v30
+CMD: cd muse-opt/muse_moe_w4a16 && sleep 5; dev/sync.sh dev/moe_v32.py dev/abl.py >/dev/null && timeout 1800 dev/remote.sh "python3 dev/bench.py dev/abl.py --tests-only --no-base 2>&1 | tr -d '\000' | grep -a -E 'test|rror|FAIL' | head -8; for v in moe_v32 moe_v30 moe_v32 moe_
+   test {'bs': 4}: PASS relative L2 error 2.524e-03 (worst row 2.577e-03)
+   test {'bs': 33}: PASS relative L2 error 2.550e-03 (worst row 2.777e-03)
+   test {'bs': 257}: PASS relative L2 error 2.545e-03 (worst row 2.758e-03)
+   test {'bs': 128, 'dist': 'skewed'}: PASS relative L2 error 2.546e-03 (worst row 2.723e-03)
+   test {'bs': 1}: PASS relative L2 error 2.472e-03 (worst row 2.472e-03)
+   moe_v32 : 1:42.7 16:123.7 32:166.0 8:95.2 128:245.2 256:290.2 geomean speedup 2.019x over 6 loads
+   moe_v30 : 1:43.4 16:122.3 32:166.2 8:94.9 128:244.1 256:292.1 geomean speedup 2.027x over 6 loads
+   moe_v32 : 1:42.8 16:122.7 32:166.5 8:95.4 128:245.2 256:292.3 geomean speedup 2.021x over 6 loads
+   moe_v30 : 1:43.3 16:122.2 32:165.8 8:94.6 128:245.5 256:291.3 geomean speedup 2.027x over 6 loads
+
+==== [2026-10-23T12:57:36.515Z] Read the v30 H200 ablation results
+CMD: cat <scratch>/tasks/bfrepmo0n.output
+   DIAG gpu NVIDIA H200 sms 132 prepare 8.2s
+   DIAG fixed replay 5.28 us
+   DIAG full                                     1:   35.2 16:   94.5 32:  124.6 8:   67.6 128:  189.4 256:  235.6   (0s)
+   DIAG MOE_NO_LOAD                              1:   29.2 16:   85.9 32:  115.4 8:   60.6 128:  177.1 256:  225.2   (8s)
+   DIAG MOE_NO_MMA+MOE_NO_DEQ                    1:   29.7 16:   84.7 32:  111.9 8:   59.6 128:  156.2 256:  188.9   (6s)
+   DIAG MOE_NO_WORK                              1:    8.0 16:    8.7 32:   12.9 8:    7.8 128:   16.6 256:   24.0   (8s)
+   DIAG full                                     1:   35.2 16:   95.6 32:  124.9 8:   67.0 128:  188.5 256:  235.8   (0s)
+   DIAG total 30s
+
+==== [2026-10-23T12:58:42.882Z] Build v33 batched combine and compare with v30
+CMD: cd muse-opt/muse_moe_w4a16 && cp dev/moe_v32.py dev/moe_v33.py && python3 - <<'EOF'
+p = "muse-opt/muse_moe_w4a16/dev/moe_v33.py"
+s = open(p).read()
+def rep(old, new, cnt=1):
+    global s
+    assert s.count(old) == cnt, (s.count(old), old[:160])
+   test {'bs': 4}: PASS relative L2 error 2.524e-03 (worst row 2.577e-03)
+   test {'bs': 33}: PASS relative L2 error 2.550e-03 (worst row 2.777e-03)
+   test {'bs': 257}: PASS relative L2 error 2.545e-03 (worst row 2.758e-03)
+   test {'bs': 128, 'dist': 'skewed'}: PASS relative L2 error 2.546e-03 (worst row 2.723e-03)
+   test {'bs': 1}: PASS relative L2 error 2.472e-03 (worst row 2.472e-03)
+   moe_v33 : 1:41.9 16:121.1 32:165.2 8:94.5 128:245.7 256:292.3 geomean speedup 2.034x over 6 loads
+   moe_v30 : 1:43.6 16:122.4 32:165.0 8:94.3 128:245.2 256:293.0 geomean speedup 2.018x over 6 loads
+   moe_v33 : 1:42.0 16:121.2 32:164.8 8:94.4 128:246.4 256:293.3 geomean speedup 2.036x over 6 loads
+   moe_v30 : 1:43.3 16:121.7 32:166.0 8:94.6 128:244.2 256:289.3 geomean speedup 2.027x over 6 loads
+
+==== [2026-10-23T13:01:01.945Z] Build and dry-run a v33 tuning-knob diagnostic
+CMD: cd muse-opt/muse_moe_w4a16 && python3 dev/make_diag.py dev/moe_v33.py dev/diag_abl_v33.py "abl:full;MOE_GATHER_MIN=8;MOE_SPLW=0.5f;MOE_SPLW=2.0f;MOE_WGMIN=4;MOE_WGMIN=6;full" && dev/sync.sh dev/diag_abl_v33.py >/dev/null && timeout 900 dev/remote.sh "python3 dev/run_diag.
+   DIAG gpu NVIDIA H100 80GB HBM3 sms 132 prepare 0.6s
+   DIAG fixed replay 5.57 us
+   DIAG full                                     1:   42.5 16:  120.4 32:  160.7 8:   86.9 128:  240.0 256:  295.5   (1s)
+   DIAG MOE_GATHER_MIN=8                         1:   42.6 16:  120.7 32:  160.9 8:   85.5 128:  241.3 256:  287.1   (10s)
+   DIAG MOE_SPLW=0.5f                            1:   43.1 16:  121.6 32:  162.5 8:   86.0 128:  245.0 256:  289.8   (10s)
+   DIAG MOE_SPLW=2.0f                            1:   42.2 16:  120.9 32:  161.8 8:   85.6 128:  242.8 256:  298.8   (10s)
+   DIAG MOE_WGMIN=4                              1:   42.6 16:  121.5 32:  162.1 8:   85.8 128:  238.9 256:  287.4   (10s)
+   DIAG MOE_WGMIN=6                              1:   42.7 16:  121.1 32:  161.2 8:   86.5 128:  240.6 256:  291.3   (10s)
+   DIAG full                                     1:   42.8 16:  120.9 32:  161.5 8:   86.8 128:  240.7 256:  292.8   (0s)
+   DIAG total 52s
+
+==== [2026-10-23T13:06:51.513Z] Test non-divergent slot release in v34
+CMD: cp dev/moe_v33.py dev/moe_v34.py && python3 - <<'EOF'
+p = "muse-opt/muse_moe_w4a16/dev/moe_v34.py"
+s = open(p).read()
+def rep(old, new, cnt=1):
+    global s
+    assert s.count(old) == cnt, (s.count(old), old[:160])
+    s = s.replace(old, new)
+rep("""      mbar_init(smem_a
+   test {'bs': 4}: PASS relative L2 error 2.524e-03 (worst row 2.577e-03)
+   test {'bs': 33}: PASS relative L2 error 2.550e-03 (worst row 2.777e-03)
+   test {'bs': 257}: PASS relative L2 error 2.545e-03 (worst row 2.758e-03)
+   test {'bs': 128, 'dist': 'skewed'}: PASS relative L2 error 2.546e-03 (worst row 2.723e-03)
+   test {'bs': 1}: PASS relative L2 error 2.472e-03 (worst row 2.472e-03)
+   moe_v34 : 1:42.1 16:121.2 32:165.4 8:94.8 128:246.1 256:294.7 geomean speedup 2.027x over 6 loads
+   moe_v33 : 1:43.0 16:121.5 32:164.7 8:94.8 128:246.6 256:291.1 geomean speedup 2.024x over 6 loads
+   moe_v34 : 1:42.7 16:121.1 32:164.7 8:93.9 128:243.9 256:291.3 geomean speedup 2.025x over 6 loads
+   moe_v33 : 1:42.4 16:121.2 32:165.1 8:94.1 128:245.0 256:292.2 geomean speedup 2.033x over 6 loads
+
+==== [2026-10-23T13:15:18.413Z] Build v35 per-tile gather readiness and compare
+CMD: cp dev/moe_v33.py dev/moe_v35.py && python3 - <<'EOF'
+p = "muse-opt/muse_moe_w4a16/dev/moe_v35.py"
+s = open(p).read()
+def rep(old, new, cnt=1):
+    global s
+    assert s.count(old) == cnt, (s.count(old), old[:160])
+    s = s.replace(old, new)
+rep("""      consumer_sync();
+   test {'bs': 4}: PASS relative L2 error 2.524e-03 (worst row 2.577e-03)
+   test {'bs': 33}: PASS relative L2 error 2.550e-03 (worst row 2.777e-03)
+   test {'bs': 257}: PASS relative L2 error 2.545e-03 (worst row 2.758e-03)
+   test {'bs': 128, 'dist': 'skewed'}: PASS relative L2 error 2.546e-03 (worst row 2.723e-03)
+   test {'bs': 1}: PASS relative L2 error 2.472e-03 (worst row 2.472e-03)
+   moe_v35 : 1:42.2 16:121.2 32:166.1 8:93.9 128:244.0 256:291.7 geomean speedup 2.034x over 6 loads
+   moe_v33 : 1:42.1 16:121.6 32:164.2 8:93.8 128:245.2 256:293.6 geomean speedup 2.033x over 6 loads
+   moe_v35 : 1:42.6 16:121.5 32:164.5 8:94.9 128:244.5 256:290.8 geomean speedup 2.026x over 6 loads
+   moe_v33 : 1:42.3 16:121.7 32:165.9 8:95.4 128:245.9 256:295.7 geomean speedup 2.028x over 6 loads
+
+==== [2026-10-23T13:16:51.527Z] Compare startup timelines of v33 and v35
+CMD: python3 dev/make_diag.py dev/moe_v35.py dev/diag_timing_v35.py timing "full" >/dev/null && python3 dev/make_diag.py dev/moe_v33.py dev/diag_timing_v33.py timing "full" >/dev/null && dev/sync.sh dev/diag_timing_v35.py dev/diag_timing_v33.py >/dev/null && timeout 900 dev/remote.sh "for v in v33 v35; d
+   DIAG full                   bs   1 experts  3.0 | routed   2.8 first-data med   5.6 max   6.4 | work-end   33.6/  35.8/  38.1 combine-end   
+   DIAG full                   bs   8 experts  9.0 | routed   2.9 first-data med   5.6 max   6.7 | work-end   83.4/  86.0/  89.4 combine-end   
+   DIAG full                   bs  16 experts 12.0 | routed   2.9 first-data med   5.6 max   7.1 | work-end  109.2/ 114.3/ 116.4 combine-end  1
+   DIAG full                   bs  32 experts 17.0 | routed   6.4 first-data med   7.2 max   7.3 | work-end  156.2/ 160.2/ 162.8 combine-end  1
+   DIAG full                   bs 128 experts 22.0 | routed   7.8 first-data med   8.7 max   8.8 | work-end  226.0/ 229.7/ 232.8 combine-end  2
+   DIAG full                   bs 256 experts 24.0 | routed  10.7 first-data med  11.7 max  11.8 | work-end  277.3/ 279.4/ 284.3 combine-end  2
+   DIAG full                   bs   1 experts  3.0 | routed   2.8 first-data med   5.6 max   6.3 | work-end   33.6/  36.4/  38.0 combine-end   
+   DIAG full                   bs   8 experts  9.0 | routed   2.9 first-data med   5.6 max   6.6 | work-end   83.4/  86.5/  90.1 combine-end   
+   DIAG full                   bs  16 experts 12.0 | routed   2.9 first-data med   5.7 max   6.9 | work-end  109.2/ 113.3/ 116.2 combine-end  1
+   DIAG full                   bs  32 experts 17.0 | routed   7.5 first-data med   7.0 max   8.6 | work-end  156.7/ 161.3/ 163.2 combine-end  1
+   DIAG full                   bs 128 experts 22.0 | routed  11.3 first-data med   8.7 max  11.8 | work-end  225.7/ 228.5/ 232.1 combine-end  2
+   DIAG full                   bs 256 experts 24.0 | routed  13.7 first-data med  11.4 max  14.0 | work-end  275.6/ 278.3/ 282.6 combine-end  2
+
+==== [2026-10-23T13:18:18.096Z] Build v36 batched gather, test and compare
+CMD: cp dev/moe_v33.py dev/moe_v36.py && python3 - <<'EOF'
+p = "muse-opt/muse_moe_w4a16/dev/moe_v36.py"
+s = open(p).read()
+a = s.index("""      int tile = 0;
+      for (int p = pb; p < pe; ++p) {
+        while (tile + 1 < scal[0] && tiles[tile + 1].y <= p) ++tile;""")
+b = s.in
+   test {'bs': 4}: PASS relative L2 error 2.524e-03 (worst row 2.577e-03)
+   test {'bs': 33}: PASS relative L2 error 2.550e-03 (worst row 2.777e-03)
+   test {'bs': 257}: PASS relative L2 error 2.545e-03 (worst row 2.758e-03)
+   test {'bs': 128, 'dist': 'skewed'}: PASS relative L2 error 2.546e-03 (worst row 2.723e-03)
+   test {'bs': 1}: PASS relative L2 error 2.472e-03 (worst row 2.472e-03)
+   DIAG full                   bs  32 experts 17.0 | routed   6.1 first-data med   6.9 max   6.9 | work-end  156.0/ 160.7/ 163.8 combine-end  1
+   DIAG full                   bs 128 experts 22.0 | routed   7.0 first-data med   8.0 max   8.2 | work-end  223.6/ 227.0/ 229.9 combine-end  2
+   DIAG full                   bs 256 experts 24.0 | routed  10.4 first-data med  11.5 max  11.8 | work-end  276.1/ 279.9/ 283.1 combine-end  2
+   moe_v36 : 1:42.1 16:121.4 32:164.8 8:94.2 128:243.4 256:294.7 geomean speedup 2.033x over 6 loads
+   moe_v33 : 1:42.3 16:121.4 32:165.2 8:94.8 128:245.9 256:295.4 geomean speedup 2.028x over 6 loads
+   moe_v36 : 1:42.5 16:121.1 32:164.7 8:94.4 128:241.7 256:293.4 geomean speedup 2.027x over 6 loads
+   moe_v33 : 1:42.2 16:121.0 32:165.7 8:94.7 128:245.9 256:291.2 geomean speedup 2.032x over 6 loads
+
+==== [2026-10-23T13:22:09.547Z] Read the v33 H200 check result
+CMD: cat <scratch>/tasks/b600n138c.output
+   speedup 2.08744272375043
+
+==== [2026-10-23T13:22:57.230Z] Build v37 faster ranking, test and compare
+CMD: cp dev/moe_v36.py dev/moe_v37.py && python3 - <<'EOF'
+p = "muse-opt/muse_moe_w4a16/dev/moe_v37.py"
+s = open(p).read()
+old = """    int rank = 0;
+    for (int j = 0; j < 32; ++j) {
+      const int cj = __shfl_sync(0xffffffffu, c, j);
+      rank += (cj > c) || (cj == c && j
+   test {'bs': 4}: FAIL relative L2 error 3.759e-01 > 0.015
+           routing: bitmaps done   1.4/  1.5  ranked   2.2/  2.3  pair list done   2.5/  2.6  routed   2.6/  2.7 us
+           routing: bitmaps done   1.5/  1.6  ranked   2.0/  2.1  pair list done   2.3/  2.4  routed   2.4/  2.5 us
+   moe_v37:none      : FAIL:0.015 moe_v36:none      : 1:42.6 16:121.2 32:165.4 8:93.2 128:242.6 256:290.6 geomean speedup 2.041x over 6 loads
+   moe_v37:MOE_NOSORT: FAIL:0.015 moe_v37:none      : FAIL:0.015 moe_v36:none      : 1:42.1 16:121.2 32:164.6 8:94.5 128:243.3 256:294.5 geomean speedup 2.040x over 6 loads
+
+==== [2026-10-23T13:25:40.463Z] Fix the scratch overlap and re-test v37
+CMD: python3 - <<'EOF'
+p = "muse-opt/muse_moe_w4a16/dev/moe_v37.py"
+s = open(p).read()
+old = """    int2* rk = reinterpret_cast<int2*>(off);  // off[] is written only after this"""
+new = """    int2* rk = reinterpret_cast<int2*>(tiles);  // tiles[] (>= 32 entries) is written o
+   test {'bs': 4}: PASS relative L2 error 2.524e-03 (worst row 2.577e-03)
+   test {'bs': 33}: PASS relative L2 error 2.550e-03 (worst row 2.777e-03)
+   test {'bs': 257}: PASS relative L2 error 2.545e-03 (worst row 2.758e-03)
+   test {'bs': 128, 'dist': 'skewed'}: PASS relative L2 error 2.546e-03 (worst row 2.723e-03)
+   test {'bs': 1}: PASS relative L2 error 2.472e-03 (worst row 2.472e-03)
+   moe_v37:none      : 1:42.4 16:120.7 32:164.3 8:94.7 128:242.9 256:292.4 geomean speedup 2.041x over 6 loads
+   moe_v36:none      : 1:42.2 16:122.0 32:165.5 8:94.9 128:242.8 256:293.7 geomean speedup 2.036x over 6 loads
+   moe_v37:MOE_NOSORT: 1:41.7 16:121.5 32:166.7 8:95.0 128:243.2 256:301.1 geomean speedup 2.026x over 6 loads
+   moe_v37:none      : 1:42.7 16:121.4 32:164.8 8:94.1 128:244.3 256:291.9 geomean speedup 2.037x over 6 loads
+   moe_v36:none      : 1:42.0 16:122.2 32:165.2 8:94.0 128:243.8 256:293.2 geomean speedup 2.040x over 6 loads
+   moe_v37:MOE_NOSORT: 1:42.2 16:121.9 32:167.7 8:94.2 128:241.7 256:298.0 geomean speedup 2.026x over 6 loads
+
+==== [2026-10-23T13:28:27.805Z] Build v38 with per-config combine loops and compare
+CMD: cp dev/moe_v37.py dev/moe_v38.py && python3 - <<'EOF'
+src30 = open("muse-opt/muse_moe_w4a16/dev/moe_v30.py").read()
+a30 = src30.index("""    float accv[16];
+#pragma unroll
+    for (int k = 0; k < 16; ++k) accv[k] = 0.f;
+    float4 cur[4 * KSM];""")
+b30 = src30.index("""#p
+   test {'bs': 4}: PASS relative L2 error 2.524e-03 (worst row 2.577e-03)
+   test {'bs': 33}: PASS relative L2 error 2.550e-03 (worst row 2.777e-03)
+   test {'bs': 257}: PASS relative L2 error 2.545e-03 (worst row 2.758e-03)
+   test {'bs': 128, 'dist': 'skewed'}: PASS relative L2 error 2.546e-03 (worst row 2.723e-03)
+   test {'bs': 1}: PASS relative L2 error 2.472e-03 (worst row 2.472e-03)
+   moe_v38 : 1:42.9 16:121.9 32:165.8 8:94.1 128:243.8 256:292.6 geomean speedup 2.032x over 6 loads
+   moe_v37 : 1:41.5 16:121.8 32:163.9 8:94.6 128:241.0 256:289.9 geomean speedup 2.034x over 6 loads
+   moe_v38 : 1:42.1 16:120.5 32:164.8 8:94.5 128:244.9 256:292.8 geomean speedup 2.038x over 6 loads
+   moe_v37 : 1:43.0 16:120.8 32:165.5 8:94.5 128:244.5 256:293.2 geomean speedup 2.033x over 6 loads
+
+==== [2026-10-23T13:38:49.258Z] Read the v33 scored submission result
+CMD: cat <scratch>/tasks/bcjpqtu38.output
+   status done True None speedup 2.091344380122171
+
+==== [2026-10-23T13:39:00.664Z] Measure run-to-run noise on the locked node
+CMD: NODE=okc-lock timeout 1800 dev/remote.sh "for v in moe_v37 moe_v37 moe_v38 moe_v38 moe_v37 moe_v38; do sed -i \"s/^import moe_v[0-9]* as M  # noqa: E402/import \$v as M  # noqa: E402/\" dev/abl.py; python3 dev/bench.py dev/abl.py --reps 20 --no-tests 2>&1 | grep -a -E '^(decode|verify|geomean)' | aw
+   moe_v37 : 1:42.2 16:118.9 32:162.4 8:94.3 128:241.8 256:290.8 geomean speedup 2.049x over 6 loads
+   moe_v37 : 1:42.5 16:118.6 32:163.2 8:94.0 128:241.6 256:290.3 geomean speedup 2.048x over 6 loads
+   moe_v38 : 1:42.1 16:119.6 32:163.3 8:93.0 128:241.4 256:287.7 geomean speedup 2.054x over 6 loads
+   moe_v38 : 1:42.5 16:119.4 32:164.1 8:93.3 128:241.4 256:290.3 geomean speedup 2.053x over 6 loads
+   moe_v37 : 1:41.7 16:119.6 32:163.8 8:92.9 128:242.2 256:292.4 geomean speedup 2.061x over 6 loads
+   moe_v38 : 1:42.6 16:119.2 32:163.5 8:93.2 128:241.2 256:289.2 geomean speedup 2.050x over 6 loads
+
+==== [2026-10-23T13:47:35.020Z] Build v39 per-item loops on v38 and compare
+CMD: cp dev/moe_v38.py dev/moe_v39.py && python3 - <<'EOF'
+p = "muse-opt/muse_moe_w4a16/dev/moe_v39.py"
+s = open(p).read()
+a = s.index("""  int it = 0;
+  for (;;) {
+    const int s = it % NS;
+    const u32 ph = (it / NS) & 1;
+#ifdef MOE_TIMING
+    const u32 tw0 = ctimer();
+#en
+   test {'bs': 4}: PASS relative L2 error 2.524e-03 (worst row 2.577e-03)
+   test {'bs': 33}: PASS relative L2 error 2.550e-03 (worst row 2.777e-03)
+   test {'bs': 257}: PASS relative L2 error 2.545e-03 (worst row 2.758e-03)
+   test {'bs': 128, 'dist': 'skewed'}: PASS relative L2 error 2.546e-03 (worst row 2.723e-03)
+   test {'bs': 1}: PASS relative L2 error 2.472e-03 (worst row 2.472e-03)
+   moe_v39 : 1:41.6 16:119.2 32:170.8 8:92.2 128:242.9 256:285.5 geomean speedup 2.044x over 6 loads
+   moe_v38 : 1:43.0 16:119.1 32:162.6 8:94.1 128:241.2 256:289.3 geomean speedup 2.049x over 6 loads
+   moe_v39 : 1:41.6 16:119.1 32:169.8 8:93.3 128:240.9 256:287.8 geomean speedup 2.042x over 6 loads
+   moe_v38 : 1:42.9 16:118.8 32:163.4 8:93.8 128:241.9 256:288.6 geomean speedup 2.043x over 6 loads
+
+==== [2026-10-23T13:49:32.345Z] Make per-item loops conditional and compare
+CMD: python3 - <<'EOF'
+src38 = open("muse-opt/muse_moe_w4a16/dev/moe_v38.py").read()
+a38 = src38.index("""  int it = 0;
+  for (;;) {
+    const int s = it % NS;
+    const u32 ph = (it / NS) & 1;
+#ifdef MOE_TIMING
+    const u32 tw0 = ctimer();
+#endif""")
+b38_mark = """    if (la
+   test {'bs': 4}: PASS relative L2 error 2.524e-03 (worst row 2.577e-03)
+   test {'bs': 33}: PASS relative L2 error 2.550e-03 (worst row 2.777e-03)
+   test {'bs': 257}: PASS relative L2 error 2.545e-03 (worst row 2.758e-03)
+   test {'bs': 128, 'dist': 'skewed'}: PASS relative L2 error 2.546e-03 (worst row 2.723e-03)
+   test {'bs': 1}: PASS relative L2 error 2.472e-03 (worst row 2.472e-03)
+   moe_v39 : 1:41.4 16:118.0 32:163.0 8:92.6 128:241.6 256:290.9 geomean speedup 2.066x over 6 loads
+   moe_v38 : 1:42.4 16:118.9 32:162.6 8:93.2 128:241.8 256:288.1 geomean speedup 2.051x over 6 loads
+   moe_v39 : 1:41.8 16:118.7 32:163.4 8:92.4 128:240.5 256:288.2 geomean speedup 2.060x over 6 loads
+   moe_v38 : 1:42.0 16:118.8 32:162.7 8:93.3 128:240.8 256:289.2 geomean speedup 2.058x over 6 loads
+
+==== [2026-10-23T13:54:51.206Z] Dry-run and submit the per-item H200 diagnostic
+CMD: python3 dev/make_diag.py dev/moe_v39a.py dev/diag_abl_v39a.py "abl:full;MOE_PERITEM_ALL;full;MOE_PERITEM_ALL;MOE_NO_LOAD;MOE_NO_LOAD+MOE_PERITEM_ALL" >/dev/null && dev/sync.sh dev/diag_abl_v39a.py >/dev/null && timeout 900 dev/remote.sh "python3 dev/run_diag.py dev/diag_abl_v39a.py 2>&1 | grep -a -E
+   DIAG gpu NVIDIA H100 80GB HBM3 sms 132 prepare 10.4s
+   DIAG fixed replay 5.50 us
+   DIAG full                                     1:   42.2 16:  118.4 32:  158.8 8:   84.7 128:  233.5 256:  285.8   (0s)
+   DIAG MOE_PERITEM_ALL                          1:   41.2 16:  119.5 32:  166.8 8:   85.1 128:  234.7 256:  288.0   (0s)
+   DIAG full                                     1:   42.1 16:  118.8 32:  159.7 8:   84.9 128:  236.2 256:  289.7   (0s)
+   DIAG MOE_PERITEM_ALL                          1:   42.1 16:  119.1 32:  167.7 8:   84.6 128:  233.2 256:  287.8   (0s)
+   DIAG MOE_NO_LOAD                              1:   33.4 16:   99.3 32:  142.0 8:   69.4 128:  219.9 256:  277.5   (0s)
+   DIAG MOE_NO_LOAD+MOE_PERITEM_ALL              1:   33.6 16:   98.8 32:  134.9 8:   69.6 128:  203.3 256:  268.6   (0s)
+   DIAG total 12s
+
+==== [2026-10-23T14:04:12.939Z] Build v40 ballot bitmaps, test and compare
+CMD: cp dev/moe_v39.py dev/moe_v40.py && python3 - <<'EOF'
+p = "muse-opt/muse_moe_w4a16/dev/moe_v40.py"
+s = open(p).read()
+old = """  for (int i4 = tid; i4 < M * 2; i4 += blockDim.x) {
+    const int4 v = reinterpret_cast<const int4*>(P.ids)[i4];
+    const int ev[4] = {v.x - P.
+   test {'bs': 4}: PASS relative L2 error 2.524e-03 (worst row 2.577e-03)
+   test {'bs': 33}: PASS relative L2 error 2.550e-03 (worst row 2.777e-03)
+   test {'bs': 257}: PASS relative L2 error 2.545e-03 (worst row 2.758e-03)
+   test {'bs': 128, 'dist': 'skewed'}: PASS relative L2 error 2.546e-03 (worst row 2.723e-03)
+   test {'bs': 1}: PASS relative L2 error 2.472e-03 (worst row 2.472e-03)
+           routing: bitmaps done   1.6/  1.6  ranked   2.4/  2.5  pair list done   2.7/  2.8  routed   2.8/  2.8 us
+           routing: bitmaps done   2.0/  2.0  ranked   3.5/  3.5  pair list done   4.5/  4.5  routed   8.1/  9.9 us
+   moe_v40 : 1:41.1 16:119.0 32:163.0 8:92.8 128:241.5 256:288.5 geomean speedup 2.067x over 6 loads
+   moe_v39 : 1:41.7 16:119.4 32:163.0 8:92.4 128:241.8 256:289.2 geomean speedup 2.063x over 6 loads
+   moe_v40 : 1:41.5 16:118.8 32:162.8 8:92.5 128:241.0 256:288.3 geomean speedup 2.058x over 6 loads
+   moe_v39 : 1:41.6 16:118.7 32:162.8 8:92.8 128:240.5 256:288.7 geomean speedup 2.062x over 6 loads
+
+==== [2026-10-23T14:06:12.995Z] Check the per-item H200 diagnostic status
+CMD: cat muse-opt/muse_moe_w4a16/dev/diag_abl_v39a.txt 2>/dev/null; export PATH="$HOME/.okc/bin:$PATH"; okc jobs 2>&1 | head -4
+   DIAG gpu NVIDIA H200 sms 132 prepare 8.0s
+   DIAG fixed replay 5.15 us
+   DIAG full                                     1:   34.5 16:   89.9 32:  125.0 8:   64.1 128:  187.0 256:  235.3   (0s)
+   DIAG MOE_PERITEM_ALL                          1:   34.5 16:   91.7 32:  127.6 8:   64.4 128:  183.8 256:  231.3   (10s)
+   DIAG full                                     1:   34.0 16:   91.3 32:  124.6 8:   64.6 128:  187.9 256:  233.9   (0s)
+   DIAG MOE_PERITEM_ALL                          1:   34.3 16:   90.6 32:  127.1 8:   64.1 128:  181.8 256:  233.6   (0s)
+   DIAG MOE_NO_LOAD                              1:   28.1 16:   81.0 32:  115.5 8:   57.8 128:  177.2 256:  224.0   (8s)
+   DIAG MOE_NO_LOAD+MOE_PERITEM_ALL              1:   27.9 16:   80.8 32:  112.6 8:   57.9 128:  164.9 256:  219.2   (10s)
+   DIAG total 37s
+
+==== [2026-10-23T14:06:27.577Z] Apply the per-item condition and compare v40 to v39
+CMD: python3 - <<'EOF'
+p = "muse-opt/muse_moe_w4a16/dev/moe_v40.py"
+s = open(p).read()
+old = """    if constexpr (KW > 1) {
+      // few-token configs: the stage info is read and dispatched once per item"""
+new = """    // Stage info read and dispatched once per item, except f
+   test {'bs': 4}: PASS relative L2 error 2.524e-03 (worst row 2.577e-03)
+   test {'bs': 33}: PASS relative L2 error 2.550e-03 (worst row 2.777e-03)
+   test {'bs': 257}: PASS relative L2 error 2.545e-03 (worst row 2.758e-03)
+   test {'bs': 128, 'dist': 'skewed'}: PASS relative L2 error 2.546e-03 (worst row 2.723e-03)
+   test {'bs': 1}: PASS relative L2 error 2.472e-03 (worst row 2.472e-03)
+   moe_v40 : 1:41.6 16:119.2 32:164.8 8:92.4 128:238.8 256:288.5 geomean speedup 2.058x over 6 loads
+   moe_v39 : 1:41.7 16:119.0 32:162.8 8:93.3 128:240.7 256:289.8 geomean speedup 2.061x over 6 loads
+   moe_v40 : 1:42.4 16:119.3 32:162.9 8:92.8 128:242.6 256:290.8 geomean speedup 2.055x over 6 loads
+   moe_v39 : 1:41.7 16:118.9 32:163.6 8:93.0 128:241.9 256:289.8 geomean speedup 2.064x over 6 loads
+
+==== [2026-10-23T14:19:46.306Z] Re-run correctly selected A/B comparisons
+CMD: timeout 1800 dev/remote.sh "for cfg in moe_v40:MOE_NO_LOAD moe_v39a:MOE_NO_LOAD,MOE_PERITEM_ALL moe_v39a:MOE_NO_LOAD moe_v41:MOE_NO_LOAD moe_v40:none moe_v41:none moe_v39:none; do v=\${cfg%%:*}; d=\${cfg##*:}; sh dev/setv.sh \$v || exit 1; ck=''; case \$d in *NO_LOAD*) ck='--no-check --no-base';; es
+   moe_v40:none                    : 1:42.2 16:119.5 32:163.2 8:93.4 128:243.1 256:287.2 geomean speedup 2.052x over 6 loads
+   moe_v41:none                    : 1:41.7 16:120.1 32:164.8 8:93.7 128:245.1 256:289.7 geomean speedup 2.050x over 6 loads
+   moe_v39:none                    : 1:41.4 16:118.9 32:162.8 8:93.0 128:240.2 256:290.7 geomean speedup 2.065x over 6 loads
+

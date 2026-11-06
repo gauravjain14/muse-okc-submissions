@@ -1,0 +1,19 @@
+[gv3pool]   dramRd=50.487552Mbyte  dur=15.232000us  block=512  grid=2,048  occRegLim=4.000000block  regs=30register/thread  dsmem=0byte/block  clk=1.871475Ghz  hmma%=0  sm%=48.381458  occ%=88.152699  issue%=57.588687  elig/clk=2.422985warp
+[gv3pool]   stalls: long_scoreboard 47%, barrier 16%, not_selected 12%, selected 6%, wait 5%, math_pipe_throttle 5%, short_scoreboard 4%
+[k1sp16]   dramRd=53.108736Mbyte  dur=18.144000us  block=512  grid=132  occRegLim=1.000000block  regs=122register/thread  dsmem=141.312000Kbyte/block  clk=1.794642Ghz  hmma%=3.675614  sm%=27.235311  occ%=24.838186  issue%=32.436372  elig/clk=0.503107warp
+[k1sp16]   stalls: long_scoreboard 43%, wait 17%, barrier 10%, selected 8%, not_selected 5%, membar 3%, branch_resolving 3%
+[k1tq16]   dramRd=29.173760Mbyte  dur=12.512000us  block=512  grid=120  occRegLim=1.000000block  regs=127register/thread  dsmem=122.880000Kbyte/block  clk=1.840587Ghz  hmma%=3.428966  sm%=24.875341  occ%=24.644493  issue%=34.162362  elig/clk=0.530494warp
+[k1tq16]   stalls: long_scoreboard 39%, wait 20%, barrier 8%, selected 8%, not_selected 6%, short_scoreboard 3%, branch_resolving 3%
+[k1tp32]   dramRd=53.408256Mbyte  dur=20.160000us  block=512  grid=132  occRegLim=1.000000block  regs=128register/thread  dsmem=232.448000Kbyte/block  clk=1.771956Ghz  hmma%=6.647922  sm%=29.808878  occ%=24.848086  issue%=34.836217  elig/clk=0.531059warp
+[k1tp32]   stalls: long_scoreboard 24%, wait 23%, barrier 11%, selected 9%, lg_throttle 8%, short_scoreboard 5%, not_selected 4%
+[lt128p]   dramRd=69.225728Mbyte  dur=22.912000us  block=384  grid=128  occRegLim=1.000000block  regs=168register/thread  dsmem=221.508000Kbyte/block  clk=1.693934Ghz  hmma%=6.011614  sm%=40.935151  occ%=14.103493  issue%=24.478779  elig/clk=0.263581warp
+[lt128p]   stalls: long_scoreboard 60%, wait 19%, selected 10%, math_pipe_throttle 3%, warpgroup_arrive 2%, branch_resolving 2%, no_instructions 2%
+[rw64]   dramRd=10.627840Mbyte  dur=8.352000us  block=160  grid=128  occRegLim=6.000000block  regs=58register/thread  dsmem=149.504000Kbyte/block  clk=1.713670Ghz  hmma%=1.230820  sm%=13.875486  occ%=7.808236  issue%=14.954175  elig/clk=0.153348warp
+[rw64]   stalls: long_scoreboard 39%, wait 18%, barrier 18%, selected 13%, no_instructions 4%, imc_miss 3%, short_scoreboard 1%
+[rt16]   dramRd=8.663552Mbyte  dur=6.272000us  block=288  grid=132  occRegLim=4.000000block  regs=48register/thread  dsmem=100.352000Kbyte/block  clk=1.823504Ghz  hmma%=1.612002  sm%=8.076613  occ%=13.509472  issue%=11.153040  elig/clk=0.130740warp
+[rt16]   stalls: long_scoreboard 50%, wait 12%, short_scoreboard 10%, barrier 6%, selected 6%, no_instructions 6%, branch_resolving 4%
+[gmo8]   dramRd=12.725760Mbyte  dur=6.368000us  block=128  grid=512  occRegLim=6.000000block  regs=80register/thread  dsmem=0byte/block  clk=1.853793Ghz  hmma%=1.633185  sm%=15.506715  occ%=23.245237  issue%=24.133249  elig/clk=0.339197warp
+[gmo8]   stalls: long_scoreboard 54%, wait 12%, selected 9%, barrier 9%, imc_miss 4%, no_instructions 4%, short_scoreboard 2%
+[lt256q]   dramRd=41.962240Mbyte  dur=19.584000us  block=384  grid=128  occRegLim=1.000000block  regs=168register/thread  dsmem=225.652000Kbyte/block  clk=1.674922Ghz  hmma%=3.647360  sm%=54.489471  occ%=14.079964  issue%=23.603515  elig/clk=0.254789warp
+[lt256q]   stalls: long_scoreboard 58%, wait 17%, selected 11%, no_instructions 3%, warpgroup_arrive 3%, math_pipe_throttle 3%, imc_miss 1%
+REMOTE_EXIT 0

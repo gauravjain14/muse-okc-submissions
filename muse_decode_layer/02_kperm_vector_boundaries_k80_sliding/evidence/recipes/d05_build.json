@@ -1,0 +1,7 @@
+{
+  "base": "muse-opt-codex/muse_decode_layer/variants/d04_router_shared.py",
+  "output": "muse-opt-codex/muse_decode_layer/variants/d05_vector_boundaries.py",
+  "sha256": "bac644689a7371f68162874af46c56b6cf25abdd2c2607c111b97427d38ad0ed",
+  "bytes": 870576,
+  "change": "Four adjacent elements per lane in both residual/norm boundaries; same FP32 intermediates and BF16 output precision."
+}

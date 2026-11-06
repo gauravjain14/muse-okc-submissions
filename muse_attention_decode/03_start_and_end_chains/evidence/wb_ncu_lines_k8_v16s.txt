@@ -1,0 +1,47 @@
+total stall samples 1442, lines 156
+by stall type: barrier 23.6%, long_scoreboard 17.3%, wait 14.8%, selected 8.3%, mio_throttle 8.2%, not_selected 7.6%, short_scoreboard 7.5%, math_pipe_throttle 4.5%, no_instructions 2.7%, dispatch_stall 2.6%, branch_resolving 1.9%, lg_throttle 0.4%, misc 0.4%, drain 0.2%
+  9.9% L2092 for (int i0 = 0; i0 < items; i0 += blockDim.x) {                                           | barrier 140, wait 2, selected 1
+  6.2% L2077 const int ci = misc[3 * q];                                                                | barrier 90
+  6.1% L1614 const float ksc = __ldg(p.k_scale), vsc = __ldg(p.v_scale);                                | long_scoreboard 87, mio_throttle 1
+  4.3% L 408 pv[i] = ex2(fmaf(s[16 * nb + i], sc, neg[(i >> 1) & 1]));                                  | mio_throttle 28, selected 12, not_selected 10
+  3.9% L1772 if (it < my_n) {                                                                           | barrier 53, wait 3
+  3.5% L1782 cp16((sb + 128 * j) ^ (16 * j), cbase + (long long)row * rowbytes, j < lim ? 16 : 0);      | long_scoreboard 30, not_selected 6, wait 5
+  3.3% L 489 *(float4*)(dst + 16 * m + 4 * q) = make_float4(w.o[4 * (2 * m) + 2 * rh], w.o[4 * (2 * m + | mio_throttle 43, wait 2, not_selected 1
+  2.8% L2159 if (d == K - 1) { cnt[bb] = 0; cnt[1024 + bb] = 0; }                                       | long_scoreboard 35, wait 3, drain 2
+  2.7% L1986 if (c4 == 0) { wsO[R * HD + r] = mx; wsO[R * HD + R + r] = ls; }                           | long_scoreboard 17, wait 10, not_selected 3
+  2.2% L1904 if (K8_FENCE_CP || (QSM && it == 0)) fence_async();   // this thread's landed cp.async dat | long_scoreboard 31, not_selected 1
+  1.8% L1962 for (int k2 = 0; k2 < NL; ++k2) mx = fmaxf(mx, mM[k2 * R + r]);                            | short_scoreboard 18, mio_throttle 4, selected 2
+  1.7% L2107 const float mn = fmaxf(mx, m);                                                             | long_scoreboard 25
+  1.7% L2080 const int rpc = max(max(1, min(R, p.comb_bytes / (P * HD * 4))), (R + P - 1) / P);   // K  | mio_throttle 6, math_pipe_throttle 6, wait 4
+  1.7% L2136 if (tid < ((nitem + 31) & ~31)) {                                                          | barrier 22, wait 2
+  1.5% L1706 u1 = last_part ? NUb : (long long)(part + 1) * (NUb - 1) / p.cpr;                          | wait 10, short_scoreboard 3, math_pipe_throttle 3
+  1.5% L3282 K8(1, 0, K8_DST_S, 0) K8(1, 1, K8_DST_S, 0) K8(1, 0, K8_DST_S, 1) K8(1, 1, K8_DST_S, 1)    | no_instructions 19, wait 2
+  1.4% L1705 u0 = (long long)part * (NUb - 1) / p.cpr;                                                  | wait 12, short_scoreboard 4, selected 2
+  1.2% L1949 if (tig == 0) { mM[li * R + r] = ws.m[rh]; mL[li * R + r] = ws.o[32 + 2 * rh]; }           | mio_throttle 14, not_selected 2, wait 1
+  1.2% L1744 if (ub + j < npast) ev[j] = __ldg(p.page_table + ptbase + (PAGE1 ? tpos + j : (tpos + j) / | wait 8, short_scoreboard 5, not_selected 2
+  1.2% L  40 __device__ __forceinline__ u32 prmt(u32 a, u32 b, u32 s) { u32 d; asm("prmt.b32 %0, %1, %2 | short_scoreboard 16, wait 1
+  1.1% L1985 *(float4*)(wsO + r * HD + c4 * 4) = acc;                                                   | wait 7, selected 4, math_pipe_throttle 3
+  1.1% L 463 for (int i = 0; i < 36; ++i) w.o[i] = fmaf(w.o[i], alpha[(i >> 1) & 1], t[i]);             | selected 7, dispatch_stall 5, misc 3
+  1.0% L 347 mx[i] = fmaxf(fmaxf(s[8 * i + 2 * rh], s[8 * i + 2 * rh + 1]), fmaxf(s[8 * i + 4 + 2 * rh] | selected 6, not_selected 4, wait 3
+  1.0% L1858 ss += __shfl_xor_sync(0xffffffffu, ss, 1);                                                 | short_scoreboard 9, not_selected 2, dispatch_stall 2
+  1.0% L2122 m4[u] = __ldcg(w + R * HD + r); l4[u] = __ldcg(w + R * HD + R + r);                        | wait 6, not_selected 3, dispatch_stall 3
+  1.0% L 453 wg_wait<0>();                                                                              | barrier 14
+  0.9% L1956 float* wsO = p.ws + (((long long)hp * G + c) * 2 + slot) * SLOT;                           | short_scoreboard 7, not_selected 3, barrier 3
+  0.9% L1857 for (int e = 0; e < 16; ++e) ss += f[e] * f[e];                                            | not_selected 7, selected 3, wait 2
+  0.9% L 338 if (tt < lo[rh] || tt >= hi[rh]) s[4 * i + 2 * rh + e] = NEG_INF;                          | wait 7, math_pipe_throttle 3, selected 2
+  0.8% L 125 template <int N> __device__ __forceinline__ void wg_wait() { asm volatile("wgmma.wait_grou | long_scoreboard 12
+  0.8% L1868 const float2 t = rtab[(2 * mt + rh) * 32 + 8 * (e >> 1) + 2 * tig + (e & 1)];              | wait 6, not_selected 3, short_scoreboard 2
+  0.8% L2094 const int pg_n = max(1, (int)blockDim.x / nitem);                                          | wait 6, short_scoreboard 3, selected 2
+  0.8% L1681 p.qkv + t * p.qkv_stride + (long long)(hq + 2 * p.hkv) * HD + (long long)(hp * 16 + hl) *  | math_pipe_throttle 4, dispatch_stall 4, not_selected 2
+  0.8% L  37 __device__ __forceinline__ u32 e4m3x4(float a, float b, float c, float d) { return e4m3x2( | not_selected 5, selected 3, short_scoreboard 1
+  0.8% L1957 for (int item = tid; item < R * 16; item += blockDim.x) {                                  | wait 7, short_scoreboard 1, not_selected 1
+  0.8% L1971 ls += w * mL[k2 * R + r];                                                                  | short_scoreboard 7, mio_throttle 2, wait 1
+  0.7% L1623 b_begin = c / (int)p.cpr; b_end = b_begin + 1;                                             | short_scoreboard 5, not_selected 2, math_pipe_throttle 1
+  0.7% L 316 stsm4(c.stsm + vt + nb * WG_VTB, prmt(x0, x1, 0x6420), prmt(x0, x1, 0x7531), prmt(x2, x3,  | short_scoreboard 7, math_pipe_throttle 2, selected 1
+  0.7% L1680 cp16(smem_u32(gseg + r * HD + q8 * 8),                                                     | mio_throttle 10
+  0.6% L2116 if (CPF) for (; pp + 3 * pg_n < P; pp += 4 * pg_n) {   // 4 partials' loads in flight toge | wait 3, math_pipe_throttle 3, long_scoreboard 2
+  0.6% L2081 const int K = (R + rpc - 1) / rpc;                                                         | wait 7, short_scoreboard 2
+  0.6% L1672 for (int cg = 0; cg < 4; ++cg) qx[rh][cg] = __ldg(src + 4 * cg + tig);                     | lg_throttle 5, wait 2, not_selected 1
+  0.6% L1805 if (has_new) {                                                                             | barrier 8, wait 1
+  0.6% L1969 const float4 x = *(const float4*)(mO + ((long long)k2 * R + r) * MOS + c4 * 4);            | mio_throttle 3, long_scoreboard 2, selected 1
+  0.6% L1901 for (int it = 0; it < my_n; ++it) {                                                        | math_pipe_throttle 5, wait 1, not_selected 1

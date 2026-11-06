@@ -1,0 +1,17 @@
+lab: NVIDIA H200, 132 SMs
+lab bs   1: bulk5 26.8 us (x1.000)  tmap5 27.1 us (x0.985)  bulk4 26.7 us (x1.005)  bulk3 27.5 us (x0.980)
+lab: experiment took 4 s
+lab trace1 seed 9000 (2 experts): start 0.1/0.1 x 0.4/0.5 u0g1 7.0/8.6 u0in 7.1/8.8 u0 10.0/11.4 u1g1 14.0/15.1 u1in 14.2/15.3 u1 16.7/17.8 u2 19.2/19.2 atom 18.1/19.1 | last: atom 19.10 flag 19.17 loads 20.03 red 20.54 end 20.86
+lab trace1 seed 9001 (2 experts): start 0.1/0.1 x 0.5/0.5 u0g1 7.0/7.8 u0in 7.1/8.0 u0 10.0/11.2 u1g1 14.0/15.3 u1in 14.1/15.5 u1 16.6/17.9 u2 19.2/19.2 atom 18.4/19.1 | last: atom 19.10 flag 19.20 loads 19.97 red 20.51 end 20.83
+lab trace1 seed 9004 (2 experts): start 0.0/0.1 x 0.4/0.5 u0g1 8.5/9.3 u0in 8.6/9.5 u0 11.3/12.7 u1g1 15.3/16.4 u1in 15.4/16.6 u1 17.9/19.1 u2 20.3/20.3 atom 19.4/20.2 | last: atom 20.22 flag 20.29 loads 21.06 red 21.63 end 21.95
+lab trace1 seed 9005 (2 experts): start 0.1/0.1 x 0.5/0.5 u0g1 7.8/9.3 u0in 8.0/9.5 u0 10.8/12.1 u1g1 14.8/15.8 u1in 14.9/16.0 u1 17.4/18.4 u2 19.7/19.7 atom 18.9/19.7 | last: atom 19.68 flag 19.74 loads 20.48 red 21.02 end 21.38
+lab trace1 seed 9006 (2 experts): start 0.0/0.1 x 0.4/0.5 u0g1 7.0/7.7 u0in 7.1/7.9 u0 10.1/11.2 u1g1 14.0/15.1 u1in 14.1/15.2 u1 16.6/17.7 u2 19.1/19.1 atom 18.4/19.1 | last: atom 19.07 flag 19.14 loads 19.97 red 20.48 end 20.83
+lab: experiment took 1 s
+lab bs   8: ns4 74.9 us (x1.000)  ns5 75.8 us (x0.983)  early 74.1 us (x1.012)
+lab bs  16: ns4 94.5 us (x1.000)  ns5 95.6 us (x0.991)  early 93.9 us (x1.006)
+lab: experiment took 5 s
+lab bs  32: ks2 120.7 us (x1.000)  ks1 121.0 us (x1.000)
+lab: experiment took 5 s
+lab bs 128: base 186.5 us (x1.000)  splw0.5 186.1 us (x1.002)  splw2 190.6 us (x0.984)  wgmin4 187.1 us (x0.999)
+lab bs 256: base 232.2 us (x1.000)  splw0.5 231.9 us (x1.005)  splw2 236.3 us (x0.983)  wgmin4 233.7 us (x0.997)
+lab: experiment took 20 s

@@ -1,0 +1,33 @@
+[gate] slot 1 at 14:51:24 (2 running)
+✓ Initialized. View run at 
+<modal-run-url>
+✓ Created objects.
+├── 🔨 Created mount 
+│   autoresearch-kernels/attn/tools/modal_run.py
+├── 🔨 Created mount autoresearch-kernels/attn
+└── 🔨 Created function run.
+[gpu-before]
+NVIDIA H200, 0 %, 4 MiB, 345 MHz, 1980 MHz, 84.34 W
+0
+[k34a] import 31.8s
+[xe] import 1.7s
+[k36] import 2.5s
+[k35] import 1.5s
+[k34b] import 1.0s
+decode 1  sliding w46 sglang    19.65 | k34a     3.16 x6.217 | xe     3.07 x6.393 | k36     4.00 x4.906 | k35     2.72 x7.218 | k34b     3.06 x6.416   sol    0.11
+verify 1  sliding w46 sglang    22.08 | k34a     4.98 x4.438 | xe     4.10 x5.379 | k36     4.75 x4.648 | k35     4.12 x5.354 | k34b     4.87 x4.532   sol    0.12
+[k36] import 1.7s
+[k35] import 1.3s
+[k34b] import 1.1s
+[xe] import 1.2s
+[k34a] import 1.1s
+decode 1  sliding w46 sglang    19.55 | k36     3.79 x5.160 | k35     2.59 x7.537 | k34b     2.97 x6.579 | xe     2.95 x6.621 | k34a     3.02 x6.475   sol    0.11
+verify 1  sliding w46 sglang    21.79 | k36     4.76 x4.575 | k35     3.86 x5.648 | k34b     4.74 x4.602 | xe     4.05 x5.381 | k34a     4.75 x4.591   sol    0.12
+[gpu-after]
+NVIDIA H200, 0 %, 4 MiB, 1980 MHz, 1980 MHz, 136.44 W
+0
+
+[exit 0]
+Stopping app - local entrypoint completed.
+✓ App completed. View run at 
+<modal-run-url>

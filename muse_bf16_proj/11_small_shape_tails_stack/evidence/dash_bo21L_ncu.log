@@ -1,0 +1,38 @@
+[sbx] waited 174s for a GPU
+[sbx] box 0
+shape 29: m=256 router
+==PROF== Disconnected from process 904
+==PROF== Report: /tmp/ncuall_bo21L.ncu-rep
+| m | layer | kernel | us(ncu) | DRAM MB | GB/s | %4.8T | dram% | L2% | SM% | issue% | hmma% | gmma% | occ% | grid x blk / regs | top stalls (% of warp-active) |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| 1 | qkv_gate | n2_qkv_gate | 8.93 | 27.3 | 3058 | 64 | 64 | 67 | 40 | 52 | 0 | 0 | 63 | 2304x256/40 | long_scoreboard 57, barrier 9, not_selected 7 |
+| 1 | o | nk_o1_16_1_1_1_2_2_0_1 | 5.95 | 12.7 | 2135 | 44 | 45 | 48 | 19 | 29 | 5 | 0 | 59 | 512x512/38 | long_scoreboard 52, barrier 14, not_selected 5 |
+| 1 | pooler | n2_pooler | 14.43 | 48.7 | 3371 | 70 | 74 | 72 | 45 | 57 | 0 | 0 | 60 | 4096x256/40 | long_scoreboard 53, barrier 10, not_selected 8 |
+| 1 | unpooler | sm5_cgemv | 4.22 | 6.3 | 1502 | 31 | 32 | 37 | 22 | 38 | 0 | 0 | 56 | 1024x160/32 | long_scoreboard 51, barrier 12, short_scoreboard 6 |
+| 1 | router | sm5_rz1 | 4.61 | 6.4 | 1385 | 29 | 29 | 35 | 12 | 18 | 4 | 0 | 26 | 260x288/55 | long_scoreboard 55, barrier 13, wait 7 |
+| 16 | qkv_gate | qkvb_qkv_gate_16 | 9.92 | 28.6 | 2886 | 60 | 60 | 63 | 16 | 27 | 16 | 0 | 12 | 96x256/88 | long_scoreboard 42, wait 20, short_scoreboard 7 |
+| 16 | o | sk11_o_16 | 6.21 | 12.8 | 2056 | 43 | 43 | 48 | 16 | 21 | 10 | 0 | 25 | 256x288/54 | long_scoreboard 50, wait 12, no_instruction 7 |
+| 16 | pooler | pu5_pooler_16 | 15.23 | 50.7 | 3327 | 69 | 73 | 71 | 23 | 27 | 13 | 0 | 13 | 128x288/54 | long_scoreboard 45, wait 24, short_scoreboard 3 |
+| 16 | unpooler | pu5_unpooler_16 | 15.94 | 50.6 | 3176 | 66 | 71 | 70 | 33 | 43 | 12 | 0 | 24 | 256x288/50 | long_scoreboard 46, wait 20, not_selected 6 |
+| 16 | router | sm5_rz2 | 4.96 | 6.6 | 1337 | 28 | 28 | 35 | 12 | 20 | 7 | 0 | 26 | 260x288/63 | long_scoreboard 54, barrier 9, wait 9 |
+| 32 | qkv_gate | sk11_qkv_gate_32 | 10.56 | 28.9 | 2736 | 57 | 57 | 61 | 18 | 26 | 30 | 0 | 12 | 96x256/96 | long_scoreboard 46, wait 20, short_scoreboard 7 |
+| 32 | o | o3_o_32 | 6.50 | 12.7 | 1950 | 41 | 41 | 47 | 15 | 21 | 13 | 0 | 14 | 128x288/96 | long_scoreboard 36, wait 17, barrier 15 |
+| 32 | pooler | pu5_pooler_32 | 15.97 | 50.9 | 3190 | 66 | 70 | 71 | 23 | 27 | 24 | 0 | 12 | 128x288/80 | long_scoreboard 41, wait 25, short_scoreboard 6 |
+| 32 | unpooler | skh_unpooler_32 | 15.84 | 50.7 | 3198 | 67 | 70 | 69 | 21 | 23 | 26 | 0 | 9 | 128x192/115 | long_scoreboard 34, wait 21, short_scoreboard 10 |
+| 32 | router | ya_1_8_4_17_0 | 5.41 | 8.9 | 1650 | 34 | 35 | 44 | 8 | 9 | 12 | 0 | 13 | 132x288/159 | long_scoreboard 55, wait 9, lg_throttle 8 |
+| 8 | qkv_gate | qkvb_qkv_gate_8 | 9.60 | 28.5 | 2969 | 62 | 62 | 64 | 17 | 28 | 16 | 0 | 12 | 96x256/88 | long_scoreboard 37, wait 18, short_scoreboard 6 |
+| 8 | o | nk_o8_16_1_1_0_2_2_0_8 | 6.02 | 12.7 | 2115 | 44 | 44 | 49 | 21 | 33 | 5 | 0 | 64 | 512x512/38 | long_scoreboard 50, barrier 16, not_selected 5 |
+| 8 | pooler | m8_pooler | 14.88 | 50.5 | 3397 | 71 | 74 | 75 | 15 | 14 | 7 | 0 | 49 | 256x544/56 | long_scoreboard 81, barrier 6, wait 3 |
+| 8 | unpooler | unps_8_1_32_1 | 4.99 | 6.4 | 1278 | 27 | 27 | 31 | 9 | 29 | 7 | 0 | 45 | 64x1024/54 | long_scoreboard 31, lg_throttle 22, barrier 11 |
+| 8 | router | sm5_rz1 | 4.70 | 6.5 | 1381 | 29 | 29 | 35 | 11 | 18 | 4 | 0 | 26 | 260x288/55 | long_scoreboard 57, barrier 11, wait 7 |
+| 128 | qkv_gate | kg_qkv_gate_64_72_2_2_12_0_9_0_1_0_0_2 | 14.02 | 39.9 | 2844 | 59 | 62 | 66 | 36 | 20 | 45 | 0 | 13 | 128x384/168 | long_scoreboard 45, wait 19, barrier 14 |
+| 128 | o | q5_o | 7.26 | 17.0 | 2347 | 49 | 49 | 59 | 31 | 22 | 44 | 0 | 15 | 128x384/168 | long_scoreboard 28, barrier 22, wait 18 |
+| 128 | pooler | kg_pooler_64_64_2_1_14_0_0_0_0_0_0_2_1 | 20.54 | 69.2 | 3369 | 70 | 74 | 79 | 44 | 24 | 51 | 0 | 14 | 128x384/168 | long_scoreboard 48, wait 20, barrier 10 |
+| 128 | unpooler | u128_unpooler | 18.75 | 51.5 | 2748 | 57 | 60 | 65 | 48 | 27 | 56 | 0 | 17 | 128x384/168 | long_scoreboard 38, wait 19, math_pipe_throttle 7 |
+| 128 | router | r5_32_8_2_5 | 6.24 | 10.5 | 1683 | 35 | 35 | 50 | 18 | 18 | 26 | 0 | 8 | 132x192/58 | long_scoreboard 30, wait 19, barrier 18 |
+| 256 | qkv_gate | ph_qkv_9_64_1_0_0_0_0_0_0_0_1_0_0_0_0_ | 16.83 | 42.0 | 2494 | 52 | 55 | 65 | 62 | 30 | 74 | 0 | 13 | 128x384/168 | wait 22, barrier 22, long_scoreboard 12 |
+| 256 | o | kg_o_128_128_0_1_6_0_0_0_0_0_0_2_1_0_3 | 9.22 | 17.3 | 1879 | 39 | 39 | 54 | 50 | 20 | 66 | 0 | 15 | 128x384/168 | barrier 33, wait 17, long_scoreboard 16 |
+| 256 | pooler | kg_pooler_64_128_1_1_9_0_0_0_0_0_0_2_1 | 25.09 | 71.3 | 2843 | 59 | 61 | 73 | 75 | 36 | 85 | 0 | 14 | 128x384/168 | wait 34, barrier 15, long_scoreboard 11 |
+| 256 | unpooler | kg_unpooler_128_128_0_1_6_0_0_0_0_0_0_ | 24.38 | 69.2 | 2839 | 59 | 61 | 73 | 77 | 22 | 87 | 0 | 14 | 128x384/168 | barrier 32, wait 20, long_scoreboard 15 |
+| 256 | router | r4_64_1_8_8_1_4_1_0_0_1_0_0_3 | 7.39 | 12.6 | 1704 | 36 | 36 | 56 | 30 | 20 | 42 | 0 | 9 | 132x192/90 | barrier 22, long_scoreboard 21, wait 21 |
+REMOTE_EXIT 0

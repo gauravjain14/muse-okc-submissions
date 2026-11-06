@@ -1,0 +1,7 @@
+{
+  "base": "muse-opt-codex/muse_decode_layer/variants/d16_stack.py",
+  "output": "muse-opt-codex/muse_decode_layer/variants/d20_norm_schedule.py",
+  "sha256": "49b4f3fa7b225e06744238a5a20960fda4d83fea4f26cca3f9dc608c085a026b",
+  "bytes": 983512,
+  "change": "For T>=192, use late coefficient loads and vector width eight in both residual norms. The isolated sweep uses 55 registers/thread without spills; original schedules remain for smaller shapes."
+}

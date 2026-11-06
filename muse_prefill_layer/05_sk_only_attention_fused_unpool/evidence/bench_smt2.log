@@ -1,0 +1,33 @@
+✓ Initialized. View run at 
+<modal-run-url>
+✓ Created objects.
+├── 🔨 Created mount 
+│   <scratch>
+│   5-ce57afd4da60/scratchpad/snap.mUFlF9/dev/modal_run.py
+├── 🔨 Created mount 
+│   <scratch>
+│   5-ce57afd4da60/scratchpad/snap.mUFlF9
+└── 🔨 Created function run.
+router seed 728034927264498030 (2 s)
+prepared s108 (cand_full21s108.py) in 52.0 s
+prepared s112 (cand_full21s112.py) in 0.7 s
+prepared s116 (cand_full21s116.py) in 0.7 s
+prepared s120 (cand_full21s120.py) in 0.7 s
+  s108 case 1: pass update relative L2 error 6.462e-02 (worst row 1.125e-01) [bound 0.150]; attention input relative L2 error 4.223e-02 (worst row 7.373e-02) [bound 0.099]
+  s112 case 1: pass update relative L2 error 6.462e-02 (worst row 1.125e-01) [bound 0.150]; attention input relative L2 error 4.223e-02 (worst row 7.373e-02) [bound 0.099]
+  s116 case 1: pass update relative L2 error 6.462e-02 (worst row 1.125e-01) [bound 0.150]; attention input relative L2 error 4.223e-02 (worst row 7.373e-02) [bound 0.099]
+  s120 case 1: pass update relative L2 error 6.462e-02 (worst row 1.125e-01) [bound 0.150]; attention input relative L2 error 4.223e-02 (worst row 7.373e-02) [bound 0.099]
+1 turn 1     b1 ctx80000 full    q753  sglang    1522.8  s108     803.2 x1.879  s112     801.6 x1.888 (vs s108 x1.0007)  s116     805.3 x1.879 (vs s108 x0.9989)  s120     805.8 x1.884 (vs s108 x0.9984)
+  s108 case 3: pass update relative L2 error 6.525e-02 (worst row 1.119e-01) [bound 0.150]; attention input relative L2 error 4.255e-02 (worst row 8.430e-02) [bound 0.101]
+  s112 case 3: pass update relative L2 error 6.525e-02 (worst row 1.119e-01) [bound 0.150]; attention input relative L2 error 4.255e-02 (worst row 8.430e-02) [bound 0.101]
+  s116 case 3: pass update relative L2 error 6.525e-02 (worst row 1.119e-01) [bound 0.150]; attention input relative L2 error 4.255e-02 (worst row 8.430e-02) [bound 0.101]
+  s120 case 3: pass update relative L2 error 6.525e-02 (worst row 1.119e-01) [bound 0.150]; attention input relative L2 error 4.255e-02 (worst row 8.430e-02) [bound 0.101]
+3 turn 4     b4 ctx80000 full    q753  sglang    5128.2  s108    2790.0 x1.829  s112    2810.1 x1.830 (vs s108 x0.9992)  s116    2812.5 x1.833 (vs s108 x0.9989)  s120    2818.0 x1.821 (vs s108 x0.9964)
+s108: turn 1 x1.879  turn 4 x1.829  geomean x1.8540 (partial)
+s112: turn 1 x1.888  turn 4 x1.830  geomean x1.8590 (partial)
+s116: turn 1 x1.879  turn 4 x1.833  geomean x1.8557 (partial)
+s120: turn 1 x1.884  turn 4 x1.821  geomean x1.8521 (partial)
+Stopping app - local entrypoint completed.
+✓ App completed. View run at 
+<modal-run-url>
+done

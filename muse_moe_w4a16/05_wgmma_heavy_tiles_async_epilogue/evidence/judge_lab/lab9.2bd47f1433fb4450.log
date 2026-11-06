@@ -1,0 +1,7 @@
+lab: NVIDIA H200, 132 SMs
+lab env: torch 2.14.1+cu130 (cuda 13.0), cuda-python 13.4.3, nvrtc 13.0, driver api 13000
+lab check mix1: bs200:2.74e-03 bs200:2.72e-03 bs256:2.75e-03 bs256:2.73e-03
+lab check mix2: bs200:2.74e-03 bs200:2.72e-03 bs256:2.75e-03 bs256:2.73e-03
+lab: experiment took 8 s
+lab bs 256: v145 222.9 us (x1.000)  mix1 223.0 us (x1.001)  mix2 222.4 us (x1.000)  mix1b 223.7 us (x0.999)  mix2b 223.1 us (x1.000)  v145b 222.9 us (x1.000)
+lab: experiment took 4 s

@@ -1,0 +1,6 @@
+[sbx] waited 70s for a GPU
+[sbx] box 0
+A:slim_xe.py  B:slim_frm.py[XE_FRM=1]  C:slim_frm.py[XE_FRM=2]  D:slim_xe.py
+d16s  (6 inst) A 9.937  B 10.104 (d +0.167 +- 0.037)  C 10.215 (d +0.277 +- 0.053)  D 9.951 (d +0.013 +- 0.062)
+REMOTE_EXIT 0
+JOBDONE 0

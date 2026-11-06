@@ -1,0 +1,24 @@
+DIAG gpu NVIDIA H200 sms 132 prepare 5.2s
+DIAG fixed replay 5.25 us
+DIAG cfg (2, 1, 2) 1:   36.3 16:  107.4 32:  153.9 8:   76.0 128:  285.4 256:  481.6   (2s)
+DIAG cfg (2, 1, 1) 1:   36.4 16:  105.3 32:  149.1 8:   75.0 128:  278.0 256:  468.4   (2s)
+DIAG cfg (4, 1, 2) 1:   37.9 16:  100.5 32:  140.1 8:   70.8 128:  258.7 256:  435.7   (2s)
+DIAG cfg (4, 1, 1) 1:   43.4 16:   99.0 32:  143.1 8:   70.9 128:  258.2 256:  435.4   (2s)
+DIAG cfg (4, 2, 1) 1:   43.0 16:  101.7 32:  143.3 8:   72.7 128:  222.9 256:  320.5   (3s)
+DIAG cfg (4, 2, 2) 1:   40.4 16:  102.4 32:  139.6 8:   73.7 128:  221.5 256:  317.2   (3s)
+DIAG cfg (8, 2, 2) 1:   52.4 16:  101.7 32:  141.8 8:   76.9 128:  220.3 256:  310.4   (3s)
+DIAG cfg (8, 4, 1) 1:   55.9 16:  113.0 32:  136.2 8:   79.5 128:  204.2 256:  257.7   (4s)
+DIAG cfg (8, 4, 2) 1:   55.7 16:  105.8 32:  137.8 8:   80.7 128:  206.8 256:  257.5   (4s)
+DIAG cfg (2, 2, 2) 1:   38.1 16:  118.2 32:  163.3 8:   85.5 128:  261.4 256:  376.0   (3s)
+DIAG cfg (8, 2, 1) 1:   51.9 16:  106.0 32:  144.3 8:   76.0 128:  212.1 256:  300.4   (3s)
+DIAG total 36s
+Traceback (most recent call last):
+  File "/tmp/muse_moe_w4a16-4nv6fv7s/run/worker.py", line 423, in child_main
+    send(_setup_op(msg, module, state, sync, perf))
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/tmp/muse_moe_w4a16-4nv6fv7s/run/worker.py", line 322, in _setup_op
+    state["prep"] = prepare(weights)
+                    ^^^^^^^^^^^^^^^^
+  File "/tmp/muse_moe_w4a16-4nv6fv7s/run/submission.py", line 1326, in prepare
+    raise RuntimeError("diagnostic build: prepare() measured and printed, nothing to score")
+RuntimeError: diagnostic build: prepare() measured and printed, nothing to score

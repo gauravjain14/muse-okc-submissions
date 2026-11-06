@@ -1,0 +1,42 @@
+[v7] prepare 84.1s
+fixed graph cost 5.28 us
+decode 1  m=1    qkv_gate  sglang   13.41 | v7    7.83 x1.713   sol   7.87
+decode 1  m=1    o         sglang    5.68 | v7    4.51 x1.258   sol   3.50
+decode 1  m=1    pooler    sglang   20.00 | v7   12.67 x1.579   sol  13.99
+decode 1  m=1    unpooler  sglang    6.14 | v7    2.58 x2.381   sol   1.75
+decode 1  m=1    router    sglang    9.39 | v7    2.93 x3.210   sol   1.75
+decode 16 m=16   qkv_gate  sglang   13.46 | v7   10.70 x1.258   sol   7.93
+decode 16 m=16   o         sglang    5.65 | v7    5.29 x1.068   sol   3.56
+decode 16 m=16   pooler    sglang   20.48 | v7   15.79 x1.297   sol  14.06
+decode 16 m=16   unpooler  sglang   17.60 | v7   15.09 x1.166   sol  14.06
+decode 16 m=16   router    sglang   14.26 | v7    4.36 x3.269   sol   1.81
+decode 32 m=32   qkv_gate  sglang   13.79 | v7   12.01 x1.148   sol   8.00
+decode 32 m=32   o         sglang    5.86 | v7    5.14 x1.139   sol   3.62
+decode 32 m=32   pooler    sglang   20.93 | v7   17.27 x1.211   sol  14.14
+decode 32 m=32   unpooler  sglang   17.47 | v7   17.08 x1.023   sol  14.14
+decode 32 m=32   router    sglang   14.67 | v7    4.75 x3.087   sol   1.86
+verify 1  m=8    qkv_gate  sglang   13.66 | v7   10.52 x1.299   sol   7.90
+verify 1  m=8    o         sglang    5.65 | v7    4.33 x1.306   sol   3.53
+verify 1  m=8    pooler    sglang   20.37 | v7   15.09 x1.350   sol  14.02
+verify 1  m=8    unpooler  sglang    6.42 | v7    3.94 x1.627   sol   1.76
+verify 1  m=8    router    sglang   25.44 | v7    4.16 x6.111   sol   1.78
+verify 16 m=128  qkv_gate  sglang   16.38 | v7   14.75 x1.111   sol   8.42
+verify 16 m=128  o         sglang    6.43 | v7    6.41 x1.003   sol   3.99
+verify 16 m=128  pooler    sglang   24.94 | v7   19.68 x1.267   sol  14.64
+verify 16 m=128  unpooler  sglang   18.91 | v7   17.63 x1.073   sol  14.64
+verify 16 m=128  router    sglang   15.70 | v7    6.74 x2.328   sol   2.21
+verify 32 m=256  qkv_gate  sglang   18.61 | v7   16.45 x1.131   sol   9.77
+verify 32 m=256  o         sglang    8.38 | v7    8.18 x1.025   sol   4.48
+verify 32 m=256  pooler    sglang   28.78 | v7   23.14 x1.244   sol  17.37
+verify 32 m=256  unpooler  sglang   23.92 | v7   23.25 x1.029   sol  17.37
+verify 32 m=256  router    sglang   16.54 | v7    8.75 x1.891   sol   2.68
+
+per-load speedups:
+  decode 1  sglang   54.62 | v7   30.52 x1.790
+  decode 16 sglang   71.44 | v7   51.23 x1.395
+  decode 32 sglang   72.72 | v7   56.26 x1.292
+  verify 1  sglang   71.54 | v7   38.04 x1.881
+  verify 16 sglang   82.37 | v7   65.22 x1.263
+  verify 32 sglang   96.24 | v7   79.76 x1.207
+GEOMEAN v7: x1.4487 over 6 loads   judge-projected (+1.0 us/shape) x1.4037
+REMOTE_EXIT 0

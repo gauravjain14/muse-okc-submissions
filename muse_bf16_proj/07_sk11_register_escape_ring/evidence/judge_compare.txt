@@ -1,0 +1,62 @@
+judge_before_bo1_scored_1b299d12: job 1b299d12 speedup 1.5688 score_us 3079.2855947015846
+judge_bo5_check_4aeb8901: job 4aeb8901 speedup 1.5763 score_us 3064.654778342851
+judge_bo6_check_5ecc4fe7: job 5ecc4fe7 speedup 1.5757 score_us 3065.805850706648
+judge_after_bo7b_check_d34e34cf: job d34e34cf speedup 1.5910 score_us 3036.391299891833
+
+load      layer     m   sgl0 yours0 | sgl1 yours1 | sgl2 yours2 | sgl3 yours3 | d1-0 d2-0 d3-0 | kernel (last run)
+decode 1  qkv_gate  1    14.00   8.13 |  13.86   8.09 |  14.05   7.96 |  13.86   8.28 |  -0.04  -0.17  +0.15 | g1_qkv_gate_g311
+decode 1  o         1     6.85   5.04 |   6.74   4.66 |   6.75   4.71 |   6.72   4.74 |  -0.38  -0.33  -0.30 | g1_o_tc
+decode 1  pooler    1    21.81  13.07 |  21.44  12.60 |  21.60  12.83 |  21.25  12.88 |  -0.47  -0.24  -0.19 | g1_pooler_g311
+decode 1  unpooler  1     7.14   3.57 |   6.82   3.49 |   7.20   3.78 |   7.07   3.52 |  -0.08  +0.21  -0.05 | cgemv_kernel<2, 128, 4096>(unsigne
+decode 1  router    1    10.66   3.93 |  10.69   4.11 |  10.69   4.01 |  10.48   3.66 |  +0.18  +0.08  -0.27 | rgemv_kernel<1, 1>(float const*, _
+decode 16 qkv_gate  16   14.11   9.86 |  14.06   9.67 |  14.02   9.68 |  14.05   9.28 |  -0.19  -0.18  -0.58 | sk11_qkv_gate_16
+decode 16 o         16    6.82   5.46 |   6.75   5.28 |   6.85   5.80 |   6.82   5.48 |  -0.18  +0.34  +0.02 | sk3_o_16
+decode 16 pooler    16   21.55  13.93 |  21.60  14.01 |  21.18  13.88 |  21.49  13.92 |  +0.08  -0.05  -0.01 | dd_cap2_b_cpssm_gemv<1, 2, 1, 2, 0
+decode 16 unpooler  16   18.91  13.98 |  18.91  13.80 |  18.46  13.83 |  18.74  14.01 |  -0.18  -0.15  +0.03 | sk3_unpooler_16
+decode 16 router    16   14.93   4.61 |  15.07   4.84 |  14.91   4.38 |  14.78   4.01 |  +0.23  -0.23  -0.60 | ya_1_8_2_17_0
+decode 32 qkv_gate  32   14.03  10.50 |  14.37  10.74 |  14.53  10.81 |  14.24   9.89 |  +0.24  +0.31  -0.61 | sk11_qkv_gate_32
+decode 32 o         32    7.10   5.94 |   6.82   5.84 |   7.22   6.45 |   6.91   5.71 |  -0.10  +0.51  -0.23 | sk2_kernel<2, 32, 2, 2, 2, 2, 3, t
+decode 32 pooler    32   21.92  14.91 |  22.18  15.06 |  21.89  14.84 |  22.02  14.50 |  +0.15  -0.07  -0.41 | sk11_pooler_32
+decode 32 unpooler  32   19.14  14.82 |  19.02  14.59 |  18.85  14.55 |  19.04  14.75 |  -0.23  -0.27  -0.07 | sk3_unpooler_32
+decode 32 router    32   15.55   5.48 |  15.28   5.48 |  15.50   4.94 |  15.33   4.46 |  +0.00  -0.54  -1.02 | ya_1_8_4_17_0
+verify 1  qkv_gate  8    13.82   9.03 |  14.08   9.17 |  14.50   9.46 |  13.73   8.59 |  +0.14  +0.43  -0.44 | sk11_qkv_gate_8
+verify 1  o         8     6.82   5.40 |   6.75   5.20 |   6.66   5.24 |   6.78   5.09 |  -0.20  -0.16  -0.31 | v18s_gemv<1, 1, 1, 2, 0, 0, 256, 0
+verify 1  pooler    8    21.47  13.71 |  21.42  13.70 |  21.22  13.40 |  21.33  13.72 |  -0.01  -0.31  +0.01 | smallm2_gemv<1, 1, 1, 1, 0, 0, 102
+verify 1  unpooler  8     7.07   3.83 |   7.10   3.90 |   7.23   4.10 |   7.26   4.01 |  +0.07  +0.27  +0.18 | g1m_unpslice
+verify 1  router    8    26.48   4.45 |  26.14   4.13 |  26.30   4.24 |  26.82   4.52 |  -0.32  -0.21  +0.07 | ys_2_8_1_1_0_0
+verify 16 qkv_gate  128  17.46  14.14 |  17.10  13.90 |  17.20  13.97 |  16.83  14.21 |  -0.24  -0.17  +0.07 | qb_e12dcf82a592343f::qb_kernel<64,
+verify 16 o         128   7.39   6.77 |   7.52   7.04 |   7.50   7.06 |   7.55   6.80 |  +0.27  +0.29  +0.03 | ol_projection<128, 128, 4, 3, 1, 1
+verify 16 pooler    128  25.31  20.36 |  24.61  19.18 |  25.26  19.99 |  25.17  19.67 |  -1.18  -0.37  -0.69 | mz_pooler_4_3_2_0
+verify 16 unpooler  128  19.89  17.98 |  19.81  18.08 |  19.70  17.92 |  19.97  18.14 |  +0.10  -0.06  +0.16 | mk_unpooler
+verify 16 router    128  16.16   5.79 |  16.42   5.96 |  16.43   5.86 |  16.43   6.07 |  +0.17  +0.07  +0.28 | rk_6_0_1_64_0
+verify 32 qkv_gate  256  19.57  17.07 |  19.74  16.63 |  19.87  16.05 |  19.74  17.19 |  -0.44  -1.02  +0.12 | vg_qkv_gate_128_72_0_2_9_0_4_6_0
+verify 32 o         256   9.38   8.86 |   9.41   9.05 |   9.54   9.14 |   9.38   9.00 |  +0.19  +0.28  +0.14 | rl_early_projection<256, 64, 5, 3,
+verify 32 pooler    256  31.10  24.50 |  30.96  24.49 |  30.78  24.31 |  31.09  24.56 |  -0.01  -0.19  +0.06 | nvjet_sm90_tst_128x64_64x8_1x1_v_b
+verify 32 unpooler  256  24.30  23.41 |  24.43  23.49 |  24.16  23.21 |  24.21  22.99 |  +0.08  -0.20  -0.42 | nvjet_sm90_tst_128x128_64x6_1x1_v_
+verify 32 router    256  17.74   7.25 |  17.60   7.08 |  17.68   7.40 |  17.33   6.79 |  -0.17  +0.15  -0.46 | rk_kernel(CUtensorMap_st, CUtensor
+
+judge_before_bo1_scored_1b299d12: decode 1  60.46/ 33.74=x1.792; decode 16  76.32/ 47.84=x1.595; decode 32  77.74/ 51.65=x1.505; verify 1  75.66/ 36.42=x2.077; verify 16  86.21/ 65.04=x1.325; verify 32 102.09/ 81.09=x1.259 | geomean x1.5690
+judge_bo5_check_4aeb8901: decode 1  59.55/ 32.95=x1.807; decode 16  76.39/ 47.60=x1.605; decode 32  77.67/ 51.71=x1.502; verify 1  75.49/ 36.10=x2.091; verify 16  85.46/ 64.16=x1.332; verify 32 102.14/ 80.74=x1.265 | geomean x1.5765
+judge_bo6_check_5ecc4fe7: decode 1  60.29/ 33.29=x1.811; decode 16  75.42/ 47.57=x1.585; decode 32  77.99/ 51.59=x1.512; verify 1  75.91/ 36.44=x2.083; verify 16  86.09/ 64.80=x1.329; verify 32 102.03/ 80.11=x1.274 | geomean x1.5756
+judge_after_bo7b_check_d34e34cf: decode 1  59.38/ 33.08=x1.795; decode 16  75.88/ 46.70=x1.625; decode 32  77.54/ 49.31=x1.573; verify 1  75.92/ 35.93=x2.113; verify 16  85.95/ 64.89=x1.325; verify 32 101.75/ 80.53=x1.264 | geomean x1.5910
+
+per-shape 'yours' change vs run 0, split by whether the kernel name changed (same name = same code, inferred);
+geometric means of time ratios; the SGLang column is the same statistic for SGLang's own times
+  judge_bo5_check_4aeb8901 vs judge_before_bo1_scored_1b299d12: same-kernel shapes 20 -0.08% | changed shapes 10 -1.99% | SGLang (all 30) -0.45%
+    -> judge_bo5_check_4aeb8901 re-read on judge_before_bo1_scored_1b299d12's node (both drifts removed): x1.5822
+  judge_bo6_check_5ecc4fe7 vs judge_before_bo1_scored_1b299d12: same-kernel shapes 16 +0.74% | changed shapes 14 -1.27% | SGLang (all 30) +0.08%
+    -> judge_bo6_check_5ecc4fe7 re-read on judge_before_bo1_scored_1b299d12's node (both drifts removed): x1.5860
+  judge_after_bo7b_check_d34e34cf vs judge_before_bo1_scored_1b299d12: same-kernel shapes 15 -1.11% | changed shapes 15 -3.81% | SGLang (all 30) -0.45%
+    -> judge_after_bo7b_check_d34e34cf re-read on judge_before_bo1_scored_1b299d12's node (both drifts removed): x1.5804
+
+=== bo5 -> bo6 (pair)
+per-shape 'yours' change vs run 0, split by whether the kernel name changed (same name = same code, inferred);
+geometric means of time ratios; the SGLang column is the same statistic for SGLang's own times
+  judge_bo6_check_5ecc4fe7 vs judge_bo5_check_4aeb8901: same-kernel shapes 25 +1.55% | changed shapes  5 -4.49% | SGLang (all 30) +0.53%
+    -> judge_bo6_check_5ecc4fe7 re-read on judge_bo5_check_4aeb8901's node (both drifts removed): x1.5917
+
+=== bo6 -> bo7b (pair)
+per-shape 'yours' change vs run 0, split by whether the kernel name changed (same name = same code, inferred);
+geometric means of time ratios; the SGLang column is the same statistic for SGLang's own times
+  judge_after_bo7b_check_d34e34cf vs judge_bo6_check_5ecc4fe7: same-kernel shapes 26 -1.67% | changed shapes  4 -6.08% | SGLang (all 30) -0.52%
+    -> judge_after_bo7b_check_d34e34cf re-read on judge_bo6_check_5ecc4fe7's node (both drifts removed): x1.5727

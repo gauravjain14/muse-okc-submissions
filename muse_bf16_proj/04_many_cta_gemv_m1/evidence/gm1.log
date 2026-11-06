@@ -1,0 +1,30 @@
+[gate] slot 1 at 14:26:13 (1 running)
+✓ Initialized. View run at 
+<modal-run-url>
+✓ Created objects.
+├── 🔨 Created mount 
+│   muse-opt-codex/muse_bf16_proj/claude/modal_run.p
+│   y
+├── 🔨 Created mount muse-opt-codex/muse_bf16_proj
+└── 🔨 Created function run.
+[gpu-before]
+NVIDIA H200, 0 %, 4 MiB, 345 MHz, 1980 MHz, 75.31 W
+0
+[gm] o: E 3 TB 24832
+all ok
+decode 1  m=1    o         sglang    5.28 | gm4    4.79 x1.103 | gm2    4.88 x1.081 | gm8    4.43 x1.193 | v5    3.92 x1.348   sol   3.50
+decode 16 m=16   o         sglang    5.44 | gm4    6.66 x0.817 | gm2    7.60 x0.715 | gm8    5.78 x0.942 | v5    4.92 x1.105   sol   3.56
+decode 32 m=32   o         sglang    5.47 | gm4    9.90 x0.553 | gm2   13.57 x0.403 | gm8    8.42 x0.650 | v5    4.97 x1.101   sol   3.62
+verify 1  m=8    o         sglang    5.38 | gm4    5.54 x0.971 | gm2    5.43 x0.990 | gm8    4.72 x1.140 | v5    4.88 x1.102   sol   3.53
+GEOMEAN gm4: x0.8341 over 4 loads   judge-projected (+1.0 us/shape) x0.8528
+GEOMEAN gm2: x0.7454 over 4 loads   judge-projected (+1.0 us/shape) x0.7702
+GEOMEAN gm8: x0.9550 over 4 loads   judge-projected (+1.0 us/shape) x0.9580
+GEOMEAN v5: x1.1594 over 4 loads   judge-projected (+1.0 us/shape) x1.1303
+[gpu-after]
+NVIDIA H200, 0 %, 4 MiB, 1980 MHz, 1980 MHz, 123.79 W
+0
+
+[exit 0]
+Stopping app - local entrypoint completed.
+✓ App completed. View run at 
+<modal-run-url>

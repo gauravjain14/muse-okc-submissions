@@ -1,0 +1,5 @@
+[
+    {"check": [4, 8, 16, 32], "variants": [("g1", ["MOE_GATHER_MIN=1"], {"GATHER_MIN": 1}), ("g1w", ["MOE_GATHER_MIN=1", "MOE_GATHER_MIN0=1"], {"GATHER_MIN": 1})], "seeds": 2},
+    {"bs": [8, 16, 32], "variants": [("v150", [], {}), ("g1", ["MOE_GATHER_MIN=1"], {"GATHER_MIN": 1}), ("g2", ["MOE_GATHER_MIN=2"], {"GATHER_MIN": 2}),
+                                     ("g1w", ["MOE_GATHER_MIN=1", "MOE_GATHER_MIN0=1"], {"GATHER_MIN": 1}), ("g1b", ["MOE_GATHER_MIN=1"], {"GATHER_MIN": 1}), ("v150b", [], {})], "seeds": 16, "reps": 3},
+]

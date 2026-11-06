@@ -1,0 +1,126 @@
+[gate] slot 2 at 04:19:49 (2 running)
+✓ Initialized. View run at 
+<modal-run-url>
+✓ Created objects.
+├── 🔨 Created mount 
+│   autoresearch-kernels/attn/tools/modal_run.py
+├── 🔨 Created mount autoresearch-kernels/attn
+└── 🔨 Created function run.
+[gpu-before]
+NVIDIA H200, 0 %, 4 MiB, 345 MHz, 1980 MHz, 77.83 W
+0
+attn_8_0_0_0     k15.py     regs 128 spill st140/ld228         loop 664 instr MUFU 39 F2FP 16 PRMT 8 LDL 0 STL 0
+attn_8_0_0_0     k16x.py    regs 128 spill st140/ld228         loop 664 instr MUFU 39 F2FP 16 PRMT 8 LDL 0 STL 0
+attn_8_0_0_1     k15.py     regs 126 spill st0/ld0             loop 623 instr MUFU 39 F2FP 16 PRMT 8 LDL 0 STL 0
+attn_8_0_0_1     k16x.py    regs 128 spill st0/ld0             loop 633 instr MUFU 7 F2FP 0 PRMT 32 LDL 0 STL 0
+attn_8_0_1_0     k15.py     regs 128 spill st0/ld0             loop 475 instr MUFU 34 F2FP 16 PRMT 8 LDL 0 STL 0
+attn_8_0_1_0     k16x.py    regs 128 spill st0/ld0             loop 475 instr MUFU 34 F2FP 16 PRMT 8 LDL 0 STL 0
+attn_8_0_1_1     k15.py     regs 128 spill st0/ld0             loop 458 instr MUFU 34 F2FP 16 PRMT 8 LDL 0 STL 0
+attn_8_0_1_1     k16x.py    regs 126 spill st0/ld0             loop 470 instr MUFU 2 F2FP 0 PRMT 32 LDL 0 STL 0
+attn_8_1_0_0     k15.py     regs 128 spill st124/ld176         loop 662 instr MUFU 39 F2FP 16 PRMT 8 LDL 0 STL 0
+attn_8_1_0_0     k16x.py    regs 128 spill st132/ld180         loop 675 instr MUFU 7 F2FP 0 PRMT 32 LDL 0 STL 0
+attn_8_1_0_1     k15.py     regs 128 spill st4/ld4             loop 626 instr MUFU 39 F2FP 16 PRMT 8 LDL 0 STL 0
+attn_8_1_0_1     k16x.py    regs 128 spill st8/ld8             loop 639 instr MUFU 7 F2FP 0 PRMT 32 LDL 0 STL 0
+attn_8_1_0_1c    k15.py     regs 126 spill st0/ld0             loop 625 instr MUFU 39 F2FP 16 PRMT 8 LDL 0 STL 0
+attn_8_1_0_1c    k16x.py    regs 126 spill st0/ld0             loop 641 instr MUFU 7 F2FP 0 PRMT 32 LDL 0 STL 0
+attn_8_1_0_1q    k15.py     regs 128 spill st0/ld0             loop 652 instr MUFU 39 F2FP 16 PRMT 8 LDL 0 STL 0
+attn_8_1_0_1q    k16x.py    regs 128 spill st0/ld0             loop 663 instr MUFU 7 F2FP 0 PRMT 32 LDL 0 STL 0
+attn_8_1_0_1r    k15.py     regs 128 spill st0/ld0             loop 652 instr MUFU 39 F2FP 16 PRMT 8 LDL 0 STL 0
+attn_8_1_0_1r    k16x.py    regs 128 spill st0/ld0             loop 663 instr MUFU 7 F2FP 0 PRMT 32 LDL 0 STL 0
+attn_8_1_1_0     k15.py     regs 128 spill st0/ld0             loop 478 instr MUFU 34 F2FP 16 PRMT 8 LDL 0 STL 0
+attn_8_1_1_0     k16x.py    regs 128 spill st0/ld0             loop 491 instr MUFU 2 F2FP 0 PRMT 32 LDL 0 STL 0
+attn_8_1_1_1     k15.py     regs 128 spill st0/ld0             loop 459 instr MUFU 34 F2FP 16 PRMT 8 LDL 0 STL 0
+attn_8_1_1_1     k16x.py    regs 128 spill st0/ld0             loop 472 instr MUFU 2 F2FP 0 PRMT 32 LDL 0 STL 0
+attn_8_1_1_1c    k15.py     regs 127 spill st0/ld0             loop 460 instr MUFU 34 F2FP 16 PRMT 8 LDL 0 STL 0
+attn_8_1_1_1c    k16x.py    regs 128 spill st0/ld0             loop 474 instr MUFU 2 F2FP 0 PRMT 32 LDL 0 STL 0
+attn_8_1_1_1q    k15.py     regs 128 spill st0/ld0             loop 485 instr MUFU 34 F2FP 16 PRMT 8 LDL 0 STL 0
+attn_8_1_1_1q    k16x.py    regs 128 spill st0/ld0             loop 498 instr MUFU 2 F2FP 0 PRMT 32 LDL 0 STL 0
+attn_8_1_1_1r    k15.py     regs 128 spill st0/ld0             loop 485 instr MUFU 34 F2FP 16 PRMT 8 LDL 0 STL 0
+attn_8_1_1_1r    k16x.py    regs 128 spill st0/ld0             loop 498 instr MUFU 2 F2FP 0 PRMT 32 LDL 0 STL 0
+case                   |     ex2 e2e mean/max worst row |    EXPQ e2e mean/max worst row | ratio
+coherent  NT 150       |  4.94e-03 / 5.43e-03  2.72e-02 |  9.57e-03 / 1.00e-02  4.15e-02 | x1.94
+coherent  NT 300       |  3.43e-03 / 3.54e-03  1.77e-02 |  7.08e-03 / 7.20e-03  4.90e-02 | x2.06
+coherent  NT 300 masks |  3.44e-03 / 3.55e-03  1.77e-02 |  7.08e-03 / 7.21e-03  4.89e-02 | x2.06
+sliding   NT  32       |  8.37e-03 / 8.56e-03  2.89e-02 |  1.67e-02 / 1.77e-02  5.52e-02 | x1.99
+sliding   NT  32 masks |  8.35e-03 / 8.61e-03  2.83e-02 |  1.69e-02 / 1.80e-02  5.56e-02 | x2.02
+sliding   NT 150       |  7.69e-03 / 7.92e-03  3.02e-02 |  1.56e-02 / 1.63e-02  4.91e-02 | x2.03
+random    NT 150       |  8.28e-03 / 8.92e-03  3.37e-02 |  1.58e-02 / 1.60e-02  5.62e-02 | x1.91
+wdcoh     NT 150       |  5.50e-04 / 5.76e-04  1.86e-03 |  1.07e-03 / 1.11e-03  6.49e-03 | x1.95
+import 20.6s
+PASS [batch 1, ctx 10, heads tp8, layer sliding] seed 0 call 0: relative L2 error 4.994e-02 (worst row 4.994e-02) [bound 0.126: 2.5 x the reference's 0.044 with FP8 E4M3 queries + 0.015]
+PASS [batch 1, ctx 10, heads tp8, layer sliding] seed 0 call 1: relative L2 error 4.994e-02 (worst row 4.994e-02) [bound 0.126: 2.5 x the reference's 0.044 with FP8 E4M3 queries + 0.015]
+PASS [batch 3, ctx 2047, heads tp8, layer sliding] seed 0 call 0: relative L2 error 8.091e-02 (worst row 9.652e-02) [bound 0.150: 2.5 x the reference's 0.080 with FP8 E4M3 queries + 0.015]
+PASS [batch 3, ctx 2047, heads tp8, layer sliding] seed 0 call 1: relative L2 error 8.091e-02 (worst row 9.652e-02) [bound 0.150: 2.5 x the reference's 0.080 with FP8 E4M3 queries + 0.015]
+PASS [batch 5, ctx 5000, heads tp8, layer sliding, q_len 8, spread mixed, page 1] seed 0 call 0: relative L2 error 8.106e-02 (worst row 1.205e-01) [bound 0.150: 2.5 x the reference's 0.080 with FP8 E4M3 queries + 0.015]
+PASS [batch 5, ctx 5000, heads tp8, layer sliding, q_len 8, spread mixed, page 1] seed 0 call 1: relative L2 error 8.106e-02 (worst row 1.205e-01) [bound 0.150: 2.5 x the reference's 0.080 with FP8 E4M3 queries + 0.015]
+PASS [batch 4, ctx 3000, heads tp8, layer full] seed 0 call 0: relative L2 error 9.568e-02 (worst row 1.211e-01) [bound 0.150: 2.5 x the reference's 0.096 with FP8 E4M3 queries + 0.015]
+PASS [batch 4, ctx 3000, heads tp8, layer full] seed 0 call 1: relative L2 error 9.568e-02 (worst row 1.211e-01) [bound 0.150: 2.5 x the reference's 0.096 with FP8 E4M3 queries + 0.015]
+PASS [batch 8, ctx 8192, heads dp, layer full, spread mixed] seed 0 call 0: relative L2 error 8.045e-02 (worst row 8.672e-02) [bound 0.150: 2.5 x the reference's 0.080 with FP8 E4M3 queries + 0.015]
+PASS [batch 8, ctx 8192, heads dp, layer full, spread mixed] seed 0 call 1: relative L2 error 8.045e-02 (worst row 8.672e-02) [bound 0.150: 2.5 x the reference's 0.080 with FP8 E4M3 queries + 0.015]
+PASS [batch 2, ctx 100000, heads tp8, layer full, q_len 8, page 1] seed 0 call 0: relative L2 error 9.403e-02 (worst row 1.370e-01) [bound 0.150: 2.5 x the reference's 0.094 with FP8 E4M3 queries + 0.015]
+PASS [batch 2, ctx 100000, heads tp8, layer full, q_len 8, page 1] seed 0 call 1: relative L2 error 9.403e-02 (worst row 1.370e-01) [bound 0.150: 2.5 x the reference's 0.094 with FP8 E4M3 queries + 0.015]
+PASS [batch 4, ctx 6000, heads tp8, layer sliding, dist edges, page 1] seed 0 call 0: relative L2 error 7.524e-02 (worst row 1.032e-01) [bound 0.150: 2.5 x the reference's 0.075 with FP8 E4M3 queries + 0.015]
+PASS [batch 4, ctx 6000, heads tp8, layer sliding, dist edges, page 1] seed 0 call 1: relative L2 error 7.524e-02 (worst row 1.032e-01) [bound 0.150: 2.5 x the reference's 0.075 with FP8 E4M3 queries + 0.015]
+PASS [batch 4, ctx 6000, heads tp8, layer full, q_len 8, dist edges] seed 0 call 0: relative L2 error 8.040e-02 (worst row 1.088e-01) [bound 0.150: 2.5 x the reference's 0.080 with FP8 E4M3 queries + 0.015]
+PASS [batch 4, ctx 6000, heads tp8, layer full, q_len 8, dist edges] seed 0 call 1: relative L2 error 8.040e-02 (worst row 1.088e-01) [bound 0.150: 2.5 x the reference's 0.080 with FP8 E4M3 queries + 0.015]
+PASS [batch 1, ctx 1048576, heads tp8, layer full, q_len 8] seed 0 call 0: relative L2 error 9.166e-02 (worst row 1.153e-01) [bound 0.150: 2.5 x the reference's 0.091 with FP8 E4M3 queries + 0.015]
+PASS [batch 1, ctx 1048576, heads tp8, layer full, q_len 8] seed 0 call 1: relative L2 error 9.166e-02 (worst row 1.153e-01) [bound 0.150: 2.5 x the reference's 0.091 with FP8 E4M3 queries + 0.015]
+PASS [batch 3, ctx 4000, heads tp8, layer sliding, q_len 8, page 1, kv_scale 0.015625] seed 0 call 0: relative L2 error 7.620e-02 (worst row 1.100e-01) [bound 0.150: 2.5 x the reference's 0.075 with FP8 E4M3 queries + 0.015]
+PASS [batch 3, ctx 4000, heads tp8, layer sliding, q_len 8, page 1, kv_scale 0.015625] seed 0 call 1: relative L2 error 7.620e-02 (worst row 1.100e-01) [bound 0.150: 2.5 x the reference's 0.075 with FP8 E4M3 queries + 0.015]
+PASS [batch 2, ctx 9000, heads tp8, layer full, kv_scale 0.015625] seed 0 call 0: relative L2 error 7.837e-02 (worst row 8.125e-02) [bound 0.150: 2.5 x the reference's 0.078 with FP8 E4M3 queries + 0.015]
+PASS [batch 2, ctx 9000, heads tp8, layer full, kv_scale 0.015625] seed 0 call 1: relative L2 error 7.837e-02 (worst row 8.125e-02) [bound 0.150: 2.5 x the reference's 0.078 with FP8 E4M3 queries + 0.015]
+PASS [batch 4, ctx 80000, heads tp8, layer full, spread mixed, dist soft] seed 0 call 0: relative L2 error 7.452e-02 (worst row 8.056e-02) [bound 0.150: 2.5 x the reference's 0.075 with FP8 E4M3 queries + 0.015]
+PASS [batch 4, ctx 80000, heads tp8, layer full, spread mixed, dist soft] seed 0 call 1: relative L2 error 7.452e-02 (worst row 8.056e-02) [bound 0.150: 2.5 x the reference's 0.075 with FP8 E4M3 queries + 0.015]
+PASS [batch 4, ctx 6000, heads tp8, layer sliding, q_len 8, dist soft, page 1] seed 0 call 0: relative L2 error 6.449e-02 (worst row 8.937e-02) [bound 0.150: 2.5 x the reference's 0.063 with FP8 E4M3 queries + 0.015]
+PASS [batch 4, ctx 6000, heads tp8, layer sliding, q_len 8, dist soft, page 1] seed 0 call 1: relative L2 error 6.449e-02 (worst row 8.937e-02) [bound 0.150: 2.5 x the reference's 0.063 with FP8 E4M3 queries + 0.015]
+PASS [batch 2, ctx 20000, heads dp, layer full, q_len 8, dist soft] seed 0 call 0: relative L2 error 7.130e-02 (worst row 7.868e-02) [bound 0.150: 2.5 x the reference's 0.071 with FP8 E4M3 queries + 0.015]
+PASS [batch 2, ctx 20000, heads dp, layer full, q_len 8, dist soft] seed 0 call 1: relative L2 error 7.130e-02 (worst row 7.868e-02) [bound 0.150: 2.5 x the reference's 0.071 with FP8 E4M3 queries + 0.015]
+PASS [batch 4, ctx 80000, heads tp8, layer full, spread mixed, dist coherent, page 1] seed 0 call 0: relative L2 error 3.823e-02 (worst row 4.211e-02) [bound 0.110: 2.5 x the reference's 0.038 with FP8 E4M3 queries + 0.015]
+PASS [batch 4, ctx 80000, heads tp8, layer full, spread mixed, dist coherent, page 1] seed 0 call 1: relative L2 error 3.823e-02 (worst row 4.211e-02) [bound 0.110: 2.5 x the reference's 0.038 with FP8 E4M3 queries + 0.015]
+PASS [batch 2, ctx 20000, heads dp, layer full, q_len 8, dist coherent] seed 0 call 0: relative L2 error 3.689e-02 (worst row 4.163e-02) [bound 0.107: 2.5 x the reference's 0.037 with FP8 E4M3 queries + 0.015]
+PASS [batch 2, ctx 20000, heads dp, layer full, q_len 8, dist coherent] seed 0 call 1: relative L2 error 3.689e-02 (worst row 4.163e-02) [bound 0.107: 2.5 x the reference's 0.037 with FP8 E4M3 queries + 0.015]
+PASS [batch 1, ctx 80000, heads tp8, layer sliding, page 1, dist soft] seed 0 call 0: relative L2 error 7.197e-02 (worst row 7.197e-02) [bound 0.150: 2.5 x the reference's 0.071 with FP8 E4M3 queries + 0.015]
+PASS [batch 1, ctx 80000, heads tp8, layer sliding, page 1, dist soft] seed 0 call 1: relative L2 error 7.197e-02 (worst row 7.197e-02) [bound 0.150: 2.5 x the reference's 0.071 with FP8 E4M3 queries + 0.015]
+PASS [batch 1, ctx 80000, heads tp8, layer full, page 1, dist coherent] seed 0 call 0: relative L2 error 3.476e-02 (worst row 3.476e-02) [bound 0.102: 2.5 x the reference's 0.035 with FP8 E4M3 queries + 0.015]
+PASS [batch 1, ctx 80000, heads tp8, layer full, page 1, dist coherent] seed 0 call 1: relative L2 error 3.476e-02 (worst row 3.476e-02) [bound 0.102: 2.5 x the reference's 0.035 with FP8 E4M3 queries + 0.015]
+PASS [batch 16, ctx 80000, heads tp8, layer sliding, page 1, dist soft, spread agentic] seed 0 call 0: relative L2 error 6.222e-02 (worst row 8.598e-02) [bound 0.150: 2.5 x the reference's 0.062 with FP8 E4M3 queries + 0.015]
+PASS [batch 16, ctx 80000, heads tp8, layer sliding, page 1, dist soft, spread agentic] seed 0 call 1: relative L2 error 6.222e-02 (worst row 8.598e-02) [bound 0.150: 2.5 x the reference's 0.062 with FP8 E4M3 queries + 0.015]
+PASS [batch 16, ctx 80000, heads tp8, layer full, page 1, dist coherent, spread agentic] seed 0 call 0: relative L2 error 3.697e-02 (worst row 5.156e-02) [bound 0.107: 2.5 x the reference's 0.037 with FP8 E4M3 queries + 0.015]
+PASS [batch 16, ctx 80000, heads tp8, layer full, page 1, dist coherent, spread agentic] seed 0 call 1: relative L2 error 3.697e-02 (worst row 5.156e-02) [bound 0.107: 2.5 x the reference's 0.037 with FP8 E4M3 queries + 0.015]
+PASS [batch 32, ctx 80000, heads tp8, layer sliding, page 1, dist soft, spread agentic] seed 0 call 0: relative L2 error 6.343e-02 (worst row 8.300e-02) [bound 0.150: 2.5 x the reference's 0.063 with FP8 E4M3 queries + 0.015]
+PASS [batch 32, ctx 80000, heads tp8, layer sliding, page 1, dist soft, spread agentic] seed 0 call 1: relative L2 error 6.343e-02 (worst row 8.300e-02) [bound 0.150: 2.5 x the reference's 0.063 with FP8 E4M3 queries + 0.015]
+PASS [batch 32, ctx 80000, heads tp8, layer full, page 1, dist coherent, spread agentic] seed 0 call 0: relative L2 error 4.208e-02 (worst row 5.856e-02) [bound 0.120: 2.5 x the reference's 0.042 with FP8 E4M3 queries + 0.015]
+PASS [batch 32, ctx 80000, heads tp8, layer full, page 1, dist coherent, spread agentic] seed 0 call 1: relative L2 error 4.208e-02 (worst row 5.856e-02) [bound 0.120: 2.5 x the reference's 0.042 with FP8 E4M3 queries + 0.015]
+PASS [batch 1, ctx 80000, heads tp8, layer sliding, page 1, dist soft, q_len 8] seed 0 call 0: relative L2 error 5.866e-02 (worst row 7.025e-02) [bound 0.150: 2.5 x the reference's 0.058 with FP8 E4M3 queries + 0.015]
+PASS [batch 1, ctx 80000, heads tp8, layer sliding, page 1, dist soft, q_len 8] seed 0 call 1: relative L2 error 5.866e-02 (worst row 7.025e-02) [bound 0.150: 2.5 x the reference's 0.058 with FP8 E4M3 queries + 0.015]
+PASS [batch 1, ctx 80000, heads tp8, layer full, page 1, dist coherent, q_len 8] seed 0 call 0: relative L2 error 2.430e-02 (worst row 2.943e-02) [bound 0.073: 2.5 x the reference's 0.023 with FP8 E4M3 queries + 0.015]
+PASS [batch 1, ctx 80000, heads tp8, layer full, page 1, dist coherent, q_len 8] seed 0 call 1: relative L2 error 2.430e-02 (worst row 2.943e-02) [bound 0.073: 2.5 x the reference's 0.023 with FP8 E4M3 queries + 0.015]
+PASS [batch 16, ctx 80000, heads tp8, layer sliding, page 1, dist soft, q_len 8, spread agentic] seed 0 call 0: relative L2 error 6.626e-02 (worst row 1.080e-01) [bound 0.150: 2.5 x the reference's 0.064 with FP8 E4M3 queries + 0.015]
+PASS [batch 16, ctx 80000, heads tp8, layer sliding, page 1, dist soft, q_len 8, spread agentic] seed 0 call 1: relative L2 error 6.626e-02 (worst row 1.080e-01) [bound 0.150: 2.5 x the reference's 0.064 with FP8 E4M3 queries + 0.015]
+PASS [batch 16, ctx 80000, heads tp8, layer full, page 1, dist coherent, q_len 8, spread agentic] seed 0 call 0: relative L2 error 2.716e-02 (worst row 7.119e-02) [bound 0.083: 2.5 x the reference's 0.027 with FP8 E4M3 queries + 0.015]
+PASS [batch 16, ctx 80000, heads tp8, layer full, page 1, dist coherent, q_len 8, spread agentic] seed 0 call 1: relative L2 error 2.716e-02 (worst row 7.119e-02) [bound 0.083: 2.5 x the reference's 0.027 with FP8 E4M3 queries + 0.015]
+PASS [batch 32, ctx 80000, heads tp8, layer sliding, page 1, dist soft, q_len 8, spread agentic] seed 0 call 0: relative L2 error 6.487e-02 (worst row 9.936e-02) [bound 0.150: 2.5 x the reference's 0.063 with FP8 E4M3 queries + 0.015]
+PASS [batch 32, ctx 80000, heads tp8, layer sliding, page 1, dist soft, q_len 8, spread agentic] seed 0 call 1: relative L2 error 6.487e-02 (worst row 9.936e-02) [bound 0.150: 2.5 x the reference's 0.063 with FP8 E4M3 queries + 0.015]
+PASS [batch 32, ctx 80000, heads tp8, layer full, page 1, dist coherent, q_len 8, spread agentic] seed 0 call 0: relative L2 error 2.743e-02 (worst row 7.941e-02) [bound 0.083: 2.5 x the reference's 0.027 with FP8 E4M3 queries + 0.015]
+PASS [batch 32, ctx 80000, heads tp8, layer full, page 1, dist coherent, q_len 8, spread agentic] seed 0 call 1: relative L2 error 2.743e-02 (worst row 7.941e-02) [bound 0.083: 2.5 x the reference's 0.027 with FP8 E4M3 queries + 0.015]
+
+0 failures
+[k15a] import 20.9s
+[xa] import 0.7s
+[k15b] import 0.5s
+[xb] import 0.6s
+fixed graph cost 5.09 us
+verify 1  sliding w46 | k15a     8.88 (min 8.51) | xa     8.77 (min 8.42) | k15b     8.90 (min 8.70) | xb     8.91 (min 8.54)   sol    0.12
+verify 1  full    w16 | k15a    18.45 (min 17.66) | xa    17.92 (min 17.38) | k15b    18.14 (min 17.50) | xb    17.76 (min 17.02)   sol    4.28
+verify 16 sliding w46 | k15a    12.42 (min 12.03) | xa    12.19 (min 11.78) | k15b    12.46 (min 12.10) | xb    12.05 (min 11.71)   sol    1.86
+verify 16 full    w16 | k15a   110.53 (min 104.93) | xa   111.14 (min 105.15) | k15b   110.08 (min 106.85) | xb   110.98 (min 105.86)   sol   63.39
+verify 32 sliding w46 | k15a    15.63 (min 15.30) | xa    14.98 (min 14.50) | k15b    15.74 (min 15.01) | xb    14.93 (min 14.56)   sol    3.72
+verify 32 full    w16 | k15a   207.39 (min 203.58) | xa   207.50 (min 203.68) | k15b   207.76 (min 203.97) | xb   207.54 (min 203.55)   sol  126.78
+[gpu-after]
+NVIDIA H200, 0 %, 4 MiB, 1980 MHz, 1980 MHz, 288.83 W
+0
+
+[exit 0]
+Stopping app - local entrypoint completed.
+✓ App completed. View run at 
+<modal-run-url>

@@ -1,0 +1,22 @@
+# box 0, same-run x clones: python3 claude/t3/N/t_ab.py --cand base=claude/t3/bo15L.py --cand n2=claude/t3/N2/sub_n2.py --shapes 1 --layers qkv_gate,pooler --ng 6 --reps 40 --base  (3 runs)
+m=1   qkv_gate  | base  6.96 [6.88-7.04] d+0.000 | n2  6.94 [6.91-6.99] d-0.085 | sglang 12.99 [12.80-13.14] d+6.072
+m=1   pooler    | base 11.42 [11.36-11.52] d+0.000 | n2 11.50 [11.46-11.57] d+0.096 | sglang 19.81 [19.34-20.14] d+8.336
+m=1   qkv_gate  | base  6.90 [6.83-6.99] d+0.000 | n2  6.90 [6.80-6.96] d-0.027 | sglang 12.90 [12.69-13.10] d+6.067
+m=1   pooler    | base 11.38 [11.34-11.44] d+0.000 | n2 11.44 [11.34-11.47] d+0.059 | sglang 19.73 [19.25-20.00] d+8.280
+m=1   qkv_gate  | base  6.96 [6.90-7.01] d+0.000 | n2  6.93 [6.88-6.98] d-0.027 | sglang 12.91 [12.69-13.02] d+5.968
+m=1   pooler    | base 11.47 [11.39-11.55] d+0.000 | n2 11.50 [11.44-11.54] d-0.035 | sglang 19.76 [19.26-20.14] d+8.184
+# box 0, alternating single-candidate processes: python3 claude/bench.py --cand <c> --shapes 1 --layers qkv_gate,pooler --reps 60
+decode 1  m=1    qkv_gate  sglang   13.76 | bo15L    7.26 x1.896   sol   7.87
+decode 1  m=1    pooler    sglang   19.82 | bo15L   11.75 x1.687   sol  13.99
+decode 1  m=1    qkv_gate  sglang   13.50 | n2    7.40 x1.826   sol   7.87
+decode 1  m=1    pooler    sglang   19.81 | n2   11.77 x1.683   sol  13.99
+decode 1  m=1    qkv_gate  sglang   13.47 | bo15L    7.20 x1.872   sol   7.87
+decode 1  m=1    pooler    sglang   19.79 | bo15L   11.66 x1.698   sol  13.99
+decode 1  m=1    qkv_gate  sglang   13.47 | n2    7.29 x1.848   sol   7.87
+decode 1  m=1    pooler    sglang   19.76 | n2   11.76 x1.681   sol  13.99
+decode 1  m=1    qkv_gate  sglang   13.60 | bo15L    7.24 x1.878   sol   7.87
+decode 1  m=1    pooler    sglang   19.71 | bo15L   11.69 x1.686   sol  13.99
+decode 1  m=1    qkv_gate  sglang   13.50 | n2    7.28 x1.854   sol   7.87
+decode 1  m=1    pooler    sglang   19.84 | n2   11.75 x1.689   sol  13.99
+# nsys in-graph (nsys_shapes.py g1=sub_g1lean n2=sub_n2_only, 20 reps): qkv g1 8.14 / n2 8.29 (same SASS), pooler g1 12.77 / n2 12.70
+# ncu (ncu_run.sh): pooler n2 14.27 us / G 14.30, 48.65 MB, issue 56.3/55.3 %, occ 64.5/64.7 %, elig 1.44/1.38; qkv n2 8.93 / G 8.86

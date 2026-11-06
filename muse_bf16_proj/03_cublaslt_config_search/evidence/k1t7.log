@@ -1,0 +1,54 @@
+[gate] slot 0 at 12:49:34 (0 running)
+✓ Initialized. View run at 
+<modal-run-url>
+✓ Created objects.
+├── 🔨 Created mount 
+│   muse-opt-codex/muse_bf16_proj/claude/modal_run.p
+│   y
+├── 🔨 Created mount muse-opt-codex/muse_bf16_proj
+└── 🔨 Created function run.
+[gpu-before]
+NVIDIA H200, 0 %, 4 MiB, 345 MHz, 1980 MHz, 85.92 W
+0
+k1t_qkv32_32_1         regs 128 local  104 dims {'ovoff': 198656, 'smem': 206848, 'nkt': 8, 'r': 6}
+k1t_qkv_gate_8_1       regs 128 local   88 dims {'ovoff': 67584, 'smem': 122880, 'nkt': 8, 'r': 8}
+k1t_qkv_gate_16_1      regs 128 local   88 dims {'ovoff': 133120, 'smem': 141312, 'nkt': 8, 'r': 8}
+NVRTC log: k1t.cu(140): warning #177-D: variable "g0" was declared but never referenced
+    const int g0 = r0 / 8;   // (only used when !HALF)
+              ^
+
+Remark: The warnings can be suppressed with "-diag-suppress <warning-number>"
+all ok
+qkv_gate  m=1   CTAs 132 | start  0.16/ 0.29 first  4.51/ 5.50 loopend 10.43/11.84 sync 10.46/11.90 parts 11.49/12.29 clw -1793130592468992.00/-1793130592468992.00 sums 12.16/12.77 end 12.38/12.99 | w0 wait   0.0k comp   0.0k cyc
+qkv_gate  m=8   CTAs 132 | start  0.16/ 0.26 first  4.45/ 4.99 loopend 10.27/11.26 sync 10.30/11.33 parts 11.30/11.87 clw -1793130592468992.00/-1793130592468992.00 sums 12.06/12.48 end 12.29/12.70 | w0 wait   0.0k comp   0.0k cyc
+qkv_gate  m=32  CTAs 132 | start  0.13/ 0.26 first  4.03/ 4.70 loopend 14.59/15.46 sync 14.62/15.52 parts 15.84/16.35 clw -1793130592468992.00/-1793130592468992.00 sums 16.96/17.47 end 17.22/17.70 | w0 wait   0.0k comp   0.0k cyc
+fixed graph cost 5.73 us
+decode 1  m=1    qkv_gate  sglang   12.78 | t12   13.73 x0.931 | s12   10.54 x1.213 | cx    9.27 x1.380   sol   7.87
+decode 1  m=1    pooler    sglang   19.31 | t12   16.12 x1.198 | s12   15.79 x1.223 | cx   15.47 x1.249   sol  13.99
+decode 1  m=1    unpooler  sglang    5.76 | t12    4.64 x1.241 | s12    4.17 x1.382 | cx    2.61 x2.205   sol   1.75
+decode 16 m=16   qkv_gate  sglang   13.14 | t12   13.50 x0.973 | s12   10.68 x1.230 | cx   11.06 x1.188   sol   7.93
+decode 16 m=16   pooler    sglang   19.23 | t12   15.78 x1.219 | s12   15.22 x1.264 | cx   17.50 x1.099   sol  14.06
+decode 16 m=16   unpooler  sglang   17.02 | t12   15.34 x1.110 | s12   14.55 x1.170 | cx   16.54 x1.030   sol  14.06
+decode 32 m=32   qkv_gate  sglang   13.33 | t12   18.04 x0.739 | s12   13.38 x0.996 | cx   11.65 x1.144   sol   8.00
+decode 32 m=32   pooler    sglang   19.49 | t12   17.35 x1.123 | s12   20.05 x0.972 | cx   18.58 x1.049   sol  14.14
+decode 32 m=32   unpooler  sglang   17.28 | t12   16.27 x1.062 | s12   17.21 x1.004 | cx   17.12 x1.009   sol  14.14
+verify 1  m=8    qkv_gate  sglang   13.01 | t12   13.42 x0.969 | s12   10.43 x1.247 | cx   11.99 x1.085   sol   7.90
+verify 1  m=8    pooler    sglang   19.49 | t12   15.47 x1.260 | s12   14.68 x1.328 | cx   17.23 x1.131   sol  14.02
+verify 1  m=8    unpooler  sglang    6.06 | t12    4.35 x1.394 | s12    3.99 x1.521 | cx    3.56 x1.702   sol   1.76
+
+per-load speedups:
+  decode 1  sglang   37.86 | t12   34.50 x1.097 | s12   30.50 x1.241 | cx   27.34 x1.385
+  decode 16 sglang   49.39 | t12   44.62 x1.107 | s12   40.44 x1.221 | cx   45.10 x1.095
+  decode 32 sglang   50.10 | t12   51.66 x0.970 | s12   50.64 x0.989 | cx   47.35 x1.058
+  verify 1  sglang   38.56 | t12   33.24 x1.160 | s12   29.10 x1.325 | cx   32.78 x1.176
+GEOMEAN t12: x1.0812 over 4 loads   judge-projected (+1.0 us/shape) x1.0750
+GEOMEAN s12: x1.1874 over 4 loads   judge-projected (+1.0 us/shape) x1.1718
+GEOMEAN cx: x1.1721 over 4 loads   judge-projected (+1.0 us/shape) x1.1577
+[gpu-after]
+NVIDIA H200, 0 %, 4 MiB, 1980 MHz, 1980 MHz, 133.66 W
+0
+
+[exit 0]
+Stopping app - local entrypoint completed.
+✓ App completed. View run at 
+<modal-run-url>

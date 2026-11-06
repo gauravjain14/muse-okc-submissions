@@ -1,0 +1,64 @@
+✓ Initialized. View run at 
+<modal-run-url>
+✓ Created objects.
+├── 🔨 Created mount 
+│   <scratch>
+│   5-ce57afd4da60/scratchpad/snap.SCBpEu/dev/modal_run.py
+├── 🔨 Created mount 
+│   <scratch>
+│   5-ce57afd4da60/scratchpad/snap.SCBpEu
+└── 🔨 Created function run.
+[gpu before]
+0 %, 120 MiB, 345 MHz, 76.09 W, 30
+compute procs: 0
+M 3012:
+    cublas                    257.0 us  x1.000 vs cublas
+    sk2 2/2/192/3 dp          261.3 us  x0.983 vs cublas
+    ub2 G4                    301.0 us  x0.854 vs cublas
+    ub2 G4 plain              273.1 us  x0.941 vs cublas
+    ub2 G12                   289.9 us  x0.886 vs cublas
+    ub2 G12 plain             266.1 us  x0.966 vs cublas
+    ub2 G2                    300.0 us  x0.857 vs cublas
+    ub2 G8                    285.8 us  x0.899 vs cublas
+M 16384:
+    cublas                   1482.0 us  x1.000 vs cublas
+    sk2 2/2/192/3 dp         1500.3 us  x0.988 vs cublas
+    ub2 G4                   1577.4 us  x0.940 vs cublas
+    ub2 G4 plain             1456.0 us  x1.018 vs cublas
+    ub2 G64                  1608.3 us  x0.922 vs cublas
+    ub2 G64 plain            1496.1 us  x0.991 vs cublas
+    ub2 G2                   1588.3 us  x0.933 vs cublas
+    ub2 G8                   1579.7 us  x0.938 vs cublas
+M 753: tiles 129 groups [1, 1, 1] bnd items 95 cap 16 grid 129  f' vs torch 0.00e+00  layer path vs torch: s 4.56e-08 x 1.30e-05  fused vs layer path: s 2.19e-04 x 3.39e-04  max|ds| 2.34e-02
+    trace: span 101.6 us, last tile done 75.5 us; tiles 129 median 74.7 p90 75.0 us; bnd items 95 median 22.53 p90 23.23 us (2.82 us/row), producer fetch waits (bnd) total 1468 us max 17.5; bnd items after the last tile 95, CTA busy sum 11747 us = 91.1 us/CTA
+    trace: first item start 0.00 us; per-CTA end spread 74.5 .. 101.6 us
+    traced plan vs layer path s 2.19e-04 x 3.39e-04
+    cublas+bnd2          93.3 us   x1.000 vs cublas+bnd2
+    cublas               71.5 us   x1.305 vs cublas+bnd2
+    ub2 gemm only        89.7 us   x1.041 vs cublas+bnd2
+    ub2 fused           112.9 us   x0.827 vs cublas+bnd2
+    after replays: fused vs layer path s 2.19e-04 x 3.39e-04
+M 3012: tiles 516 groups [4, 4, 2, 1, 1] bnd items 377 cap 16 grid 132  f' vs torch 0.00e+00  layer path vs torch: s 4.55e-08 x 1.08e-05  fused vs layer path: s 2.22e-04 x 3.42e-04  max|ds| 2.99e-02
+    trace: span 403.4 us, last tile done 387.4 us; tiles 516 median 72.2 p90 93.3 us; bnd items 377 median 14.98 p90 22.66 us (1.87 us/row), producer fetch waits (bnd) total 2544 us max 55.3; bnd items after the last tile 25, CTA busy sum 45071 us = 341.4 us/CTA
+    trace: first item start 0.00 us; per-CTA end spread 321.2 .. 403.4 us
+    traced plan vs layer path s 2.22e-04 x 3.42e-04
+    cublas+bnd2         343.2 us   x1.000 vs cublas+bnd2
+    cublas              256.6 us   x1.338 vs cublas+bnd2
+    ub2 gemm only       294.6 us   x1.165 vs cublas+bnd2
+    ub2 fused           406.6 us   x0.844 vs cublas+bnd2
+    after replays: fused vs layer path s 2.22e-04 x 3.42e-04
+M 16384: tiles 2752 groups [4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 2, 1, 1] bnd items 2048 cap 16 grid 132  f' vs torch 0.00e+00  layer path vs torch: s 1.96e-06 x 1.37e-05  fused vs layer path: s 2.24e-04 x 3.46e-04  max|ds| 3.10e-02
+    trace: span 1798.0 us, last tile done 1781.6 us; tiles 2752 median 71.6 p90 75.6 us; bnd items 2048 median 13.57 p90 16.51 us (1.70 us/row), producer fetch waits (bnd) total 6703 us max 63.0; bnd items after the last tile 32, CTA busy sum 227823 us = 1725.9 us/CTA
+    trace: first item start 0.00 us; per-CTA end spread 1727.2 .. 1798.0 us
+    traced plan vs layer path s 2.24e-04 x 3.46e-04
+    cublas+bnd2        1908.4 us   x1.000 vs cublas+bnd2
+    cublas             1431.7 us   x1.333 vs cublas+bnd2
+    ub2 gemm only      1534.1 us   x1.244 vs cublas+bnd2
+    ub2 fused          1839.2 us   x1.038 vs cublas+bnd2
+    after replays: fused vs layer path s 2.24e-04 x 3.46e-04
+[gpu after]
+27 %, 120 MiB, 1980 MHz, 124.87 W, 31
+compute procs: 0
+Stopping app - local entrypoint completed.
+✓ App completed. View run at 
+<modal-run-url>

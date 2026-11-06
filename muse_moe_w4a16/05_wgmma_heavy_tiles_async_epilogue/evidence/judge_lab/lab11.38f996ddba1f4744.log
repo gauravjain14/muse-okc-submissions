@@ -1,0 +1,7 @@
+lab: NVIDIA H200, 132 SMs
+lab env: torch 2.14.1+cu130 (cuda 13.0), cuda-python 13.4.3, nvrtc 13.0, driver api 13000
+lab check wg4: bs65:2.64e-03 bs65:2.53e-03 bs100:2.68e-03 bs100:2.59e-03 bs128:2.67e-03 bs128:2.61e-03
+lab check wg4m4: bs65:2.64e-03 bs65:2.53e-03 bs100:2.68e-03 bs100:2.59e-03 bs128:2.67e-03 bs128:2.61e-03
+lab: experiment took 5 s
+lab bs 128: v147 184.5 us (x1.000)  wg4 181.8 us (x1.015)  wg4m4 183.6 us (x1.005)  noa 183.8 us (x0.995)  wg4b 181.8 us (x1.014)  v147b 184.2 us (x1.001)
+lab: experiment took 4 s

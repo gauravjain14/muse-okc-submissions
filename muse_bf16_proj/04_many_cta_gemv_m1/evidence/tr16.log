@@ -1,0 +1,25 @@
+[gate] slot 0 at 15:07:22 (0 running)
+✓ Initialized. View run at 
+<modal-run-url>
+✓ Created objects.
+├── 🔨 Created mount 
+│   muse-opt-codex/muse_bf16_proj/claude/modal_run.p
+│   y
+├── 🔨 Created mount muse-opt-codex/muse_bf16_proj
+└── 🔨 Created function run.
+[gpu-before]
+NVIDIA H200, 0 %, 4 MiB, 345 MHz, 1980 MHz, 77.03 W
+0
+qkv_gate  m=8   CTAs 132 | start  0.13/ 0.22 first  0.93/ 1.06 loopend  8.10/ 8.54 sync  8.13/ 8.61 parts  8.67/ 8.96 clw -1793138779750400.00/-1793138779750400.00 sums  9.31/ 9.63 end  9.54/ 9.82 | w0 wait   0.0k comp   0.0k cyc
+qkv_gate  m=16  CTAs 132 | start  0.10/ 0.22 first  1.02/ 1.18 loopend  8.13/ 8.51 sync  8.16/ 8.51 parts  8.70/ 9.02 clw -1793138779750400.00/-1793138779750400.00 sums  9.41/ 9.89 end  9.60/10.08 | w0 wait   0.0k comp   0.0k cyc
+pooler    m=8   CTAs 132 | start  0.10/ 0.19 first  1.18/ 1.28 loopend 12.96/13.57 sync 12.99/13.63 parts 13.63/13.92 clw -1793138779750400.00/-1793138779750400.00 sums 13.89/14.18 end 13.92/14.21 | w0 wait   0.0k comp   0.0k cyc
+pooler    m=16  CTAs 132 | start  0.16/ 0.26 first  1.25/ 1.38 loopend 12.99/13.63 sync 13.02/13.66 parts 13.63/13.95 clw -1793138779750400.00/-1793138779750400.00 sums 14.34/14.62 end 14.56/14.85 | w0 wait   0.0k comp   0.0k cyc
+unpooler  m=16  CTAs 132 | start  0.16/ 0.22 first  1.25/ 1.31 loopend 12.90/13.50 sync 12.93/13.54 parts 13.50/13.82 clw -1793138779750400.00/-1793138779750400.00 sums 13.82/14.18 end 13.86/14.18 | w0 wait   0.0k comp   0.0k cyc
+[gpu-after]
+NVIDIA H200, 5 %, 4 MiB, 1980 MHz, 1980 MHz, 119.34 W
+0
+
+[exit 0]
+Stopping app - local entrypoint completed.
+✓ App completed. View run at 
+<modal-run-url>

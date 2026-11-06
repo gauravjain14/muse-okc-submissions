@@ -1,0 +1,14 @@
+k20 vs k19/k19c: local geomean +1.47 %, judge-projected +1.46 % | d32f +0.41, v16f -5.73, v32f -11.77
+k21 vs k20/k20c: local geomean +0.76 %, judge-projected +0.66 % | d1f -0.89, d32f -0.25, v32f +0.29
+k22 vs k21/k21c: local geomean +0.31 %, judge-projected +0.32 % | d16f +0.26, v16f -2.30, v32f -1.88
+k23 vs k22/k22c: local geomean +1.85 %, judge-projected +1.70 % | d1f -0.26, d16s -1.78, d32s -2.19, d32f +0.34, v32f -1.04
+k25 vs k23c: local geomean +0.50 %, judge-projected +0.44 % | d32f +0.32, v1f -0.75, v16f -0.53, v32f -0.45
+k26 vs k25/k25c: local geomean +0.04 %, judge-projected +0.02 % | d1f -0.43, d16f +0.27, d32f -0.30, v1f +0.51, v16f -0.33, v32f +0.30
+k27 vs k26/k26c: local geomean +0.79 %, judge-projected +0.75 % | d32f -0.50, v16s -1.51, v32s -0.77, v32f -1.67
+k28 vs k27/k27c: local geomean +0.60 %, judge-projected +0.54 % | d32f -0.51, v1f -0.71, v16f +0.38, v32f -0.47
+k29 vs k28/k28c: local geomean +0.62 %, judge-projected +0.57 % | d16f -1.33, d32f -0.50, v1f -0.28
+k30 vs k29/k29c: local geomean +3.05 %, judge-projected +2.88 % | d1f -0.26, d16f -0.26, d32f +0.29, v1f -1.12, v16s -0.61, v16f -5.71, v32s -0.48, v32f -12.79
+k31 vs k30/k30c: local geomean +0.46 %, judge-projected +0.42 % | d32f -0.57, v16f -0.73, v32f +0.48
+k32 vs k31/k31c: local geomean +0.92 %, judge-projected +0.83 % | d1f -0.34, v16s -0.71
+chained: local +12.05 %, judge-projected +11.19 %
+sum of same-job deltas per shape (us): d1s -0.17, d1f -2.26, d16s -2.78, d16f -1.52, d32s -2.15, d32f -1.44, v1s -0.07, v1f -3.10, v16s -3.12, v16f -15.47, v32s -1.69, v32f -28.88

@@ -1,0 +1,35 @@
+==== [2026-10-24T05:37:01.608Z] Run a same-build control alongside v98, v99, v100 at bs1
+CMD: M=<scratch>/modal-venv/bin/modal && timeout 3000 $M run dev/modal_run.py --cmd "python3 dev/bench2.py - --variants 'a100|dev/moe_v100.py|;b100|dev/moe_v100.py|;v98|dev/moe_v98.py|;v99|dev/moe_v99.py|' --reps 300 --shapes 1" 2>&1 | grep -a -E "^(geomean|decode|verify| )|rror|FAIL|test" | cut -c1-400
+   decode 1   bs   1 experts  2.57 (|2..3|) max_tok med 1.0
+      a100                23.2 us  x3.248  e=2:x3.470(158)  e=3:x2.539(118)  e=4:x2.353(20)  e=5:x2.133(4)  vs a100: x1.0000
+      b100                22.6 us  x3.340  e=2:x3.549(158)  e=3:x2.699(118)  e=4:x2.450(20)  e=5:x2.159(4)  vs a100: x1.0361
+      v98                 22.6 us  x3.350  e=2:x3.550(158)  e=3:x2.657(118)  e=4:x2.397(20)  e=5:x2.122(4)  vs a100: x1.0303
+      v99                 22.3 us  x3.360  e=2:x3.587(158)  e=3:x2.677(118)  e=4:x2.439(20)  e=5:x2.147(4)  vs a100: x1.0397
+   geomean a100: x3.2483 over 1 shapes
+   geomean b100: x3.3395 over 1 shapes
+   geomean v98: x3.3502 over 1 shapes
+   geomean v99: x3.3595 over 1 shapes
+
+==== [2026-10-24T05:43:01.505Z] Re-measure bs1 variants with one shared weight placement
+CMD: python3 - <<'EOF'
+p = "dev/bench2.py"
+s = open(p).read()
+a = """        subs.append((label, mod, mod.prepare(weights)))"""
+assert s.count(a) == 1
+s = s.replace(a, """        st = mod.prepare(weights)
+        if subs and not os.environ.get("B2_OWN_STATE"):
+            # one weight placement for every variant (separate copies measured a few % apart)
+            st = subs[0][2]
+            torch.cuda
+   decode 1   bs   1 experts  2.57 (|2..3|) max_tok med 1.0
+      a100                23.1 us  x3.226  e=2:x3.412(158)  e=3:x2.507(118)  e=4:x2.297(20)  e=5:x2.116(4)  vs a100: x1.0000
+      b100                23.1 us  x3.220  e=2:x3.417(158)  e=3:x2.503(118)  e=4:x2.303(20)  e=5:x2.147(4)  vs a100: x1.0005
+      v92                 23.6 us  x3.149  e=2:x3.348(158)  e=3:x2.479(118)  e=4:x2.272(20)  e=5:x2.123(4)  vs a100: x0.9845
+      v98                 23.6 us  x3.157  e=2:x3.362(158)  e=3:x2.468(118)  e=4:x2.256(20)  e=5:x2.113(4)  vs a100: x0.9859
+      v99                 23.5 us  x3.172  e=2:x3.389(158)  e=3:x2.485(118)  e=4:x2.305(20)  e=5:x2.143(4)  vs a100: x0.9912
+   geomean a100: x3.2260 over 1 shapes
+   geomean b100: x3.2201 over 1 shapes
+   geomean v92: x3.1495 over 1 shapes
+   geomean v98: x3.1571 over 1 shapes
+   geomean v99: x3.1715 over 1 shapes
+

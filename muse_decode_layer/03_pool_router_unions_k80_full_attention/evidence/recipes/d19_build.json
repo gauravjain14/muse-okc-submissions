@@ -1,0 +1,7 @@
+{
+  "base": "muse-opt-codex/muse_decode_layer/variants/d16_stack.py",
+  "output": "muse-opt-codex/muse_decode_layer/variants/d19_expert_cache.py",
+  "sha256": "ca3c8d482e9cd7fb4bd6b3eb50bd9a189340550adc20a50d57ceb487657f6b5d",
+  "bytes": 981107,
+  "change": "GPU routing counts choose evict-last for an expert whose weights are read in more than one 64-token job; single-use expert weights remain evict-first. No cross-call output or activation cache."
+}

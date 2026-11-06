@@ -1,0 +1,331 @@
+===== [2026-10-23T20:52:14.060Z UTC] Compare per-stage and per-item loops for bs32
+$ cd muse-opt/muse_moe_w4a16 && grep -n "if constexpr (KW > 1 || KS2 == 1) {" dev/moe_v59.py && cp dev/moe_v59.py dev/moe_v65.py && python3 - <<'EOF'
+p = "dev/moe_v65.py"
+s = open(p).read()
+a = "    if constexpr (KW > 1 || KS2 == 1) {"
+assert s.count(a) == 1
+s = s.replace(a, """#ifdef MOE_PI_ALL
+    if constexpr (true) {
+#else
+    if constexpr (KW > 1 || KS2 == 1) {
+#endif""")
+open(p, "w").write(s)
+print("ok")
+EOF
+cat > dev/sweeps/s19.lst <<'EOF'
+v65|moe_v65|||32
+v65 per-item|moe_v65|MOE_PI_ALL||32
+v65|moe_v65|||32
+v65 per-item|moe_v65|MOE_PI_ALL||32
+EOF
+M=<scratch>/modal-venv/bin/modal && timeout 2400 $M run dev/modal_run.py --cmd "sh dev/setv.sh moe_v65 >/dev/null; for d in '' MOE_PI_ALL; do echo \"== [\$d]\"; MOE_DEFINES=\$d python3 dev/kern_sass.py /tmp/k\$d moe_8_4_2_4_1 2>&1 | grep -a -E 'C7511|spill|^moe_8_4_2' | grep -v ' 0 bytes spill'; MOE_DEFINES=\$d,MOE_TIMING python3 dev/timing.py 32 2>&1 | grep -E 'compute per stage|per CTA \(median\)|work end'; done; MOE_DEFINES=MOE_PI_ALL python3 dev/bench.py dev/abl.py --tests-only --no-base 2>&1 | grep -a -E 'FAIL|rror'; sh dev/sweep_list.sh dev/sweeps/s19.lst 40" 2>&1 | grep -a -v -E "Uploaded|Created|Initialized|View run|modal.com|modal_run.py|Stopping"
+----- output
+1108:    if constexpr (KW > 1 || KS2 == 1) {
+ok
+== []
+moe_8_4_2_4_1: 6448 instructions; HMMA:320 HGMMA:0 LOP3:777 IMAD:1030 SHF:439 HMUL2:512 LDS:226 STS:69 LDL:10 STL:32 BAR:9 BRA:179 SYNCS:40 PRMT:67
+bs  32: start    0.0-   0.2  routed by    5.4  work end   101.2 .. median   104.9 ..   106.4  combine end   111.3 us
+        compute per stage (warp 0): 891 ns over 10752 stages; per CTA compute 72.7 us
+        per CTA (median): consumer wait    8.5  epilogue    4.4  items    8  producer empty-wait   17.2  dep-wait    0.0 us
+        consumer accounted (wait+epi+compute) median   85.8 us vs work end  104.9
+== [MOE_PI_ALL]
+moe_8_4_2_4_1: 8872 instructions; HMMA:640 HGMMA:0 LOP3:1422 IMAD:1324 SHF:702 HMUL2:1024 LDS:347 STS:69 LDL:10 STL:32 BAR:9 BRA:198 SYNCS:51 PRMT:131
+bs  32: start    0.0-   0.2  routed by    4.9  work end    97.4 .. median   100.8 ..   103.0  combine end   107.3 us
+        compute per stage (warp 0): 884 ns over 10752 stages; per CTA compute 72.4 us
+        per CTA (median): consumer wait    8.2  epilogue    4.5  items    8  producer empty-wait   18.8  dep-wait    0.0 us
+        consumer accounted (wait+epi+compute) median   85.0 us vs work end  100.8
+test {'bs': 4}: PASS relative L2 error 2.524e-03 (worst row 2.577e-03)
+test {'bs': 33}: PASS relative L2 error 2.550e-03 (worst row 2.777e-03)
+test {'bs': 257}: PASS relative L2 error 2.545e-03 (worst row 2.758e-03)
+test {'bs': 128, 'dist': 'skewed'}: PASS relative L2 error 2.546e-03 (worst row 2.723e-03)
+test {'bs': 1}: PASS relative L2 error 2.472e-03 (worst row 2.472e-03)
+v65                           : 32:122.2(1.630x) 1.630x
+v65 per-item                  : 32:125.1(1.601x) 1.601x
+v65                           : 32:122.8(1.623x) 1.623x
+v65 per-item                  : 32:124.5(1.596x) 1.596x
+
+===== [2026-10-23T20:58:56.259Z UTC] Check whether unroll 1 removes the duplicated loops
+$ cd muse-opt/muse_moe_w4a16 && grep -n "#define MOE_RUN_ITEM(K)" -A 2 dev/moe_v65.py && python3 - <<'EOF'
+p = "dev/moe_v65.py"
+s = open(p).read()
+a = """#define MOE_RUN_ITEM(K)                                                                                  \\
+    for (int st = 0;;) {                                                                                 \\"""
+assert s.count(a) == 1, s.count(a)
+s = s.replace(a, """#ifdef MOE_RUN_NOPEEL
+#define MOE_RUN_PRAGMA _Pragma("unroll 1")
+#else
+#define MOE_RUN_PRAGMA
+#endif
+#define MOE_RUN_ITEM(K)                                                                                  \\
+    MOE_RUN_PRAGMA                                                                                       \\
+    for (int st = 0;;) {                                                                                 \\""")
+open(p, "w").write(s)
+print("ok")
+EOF
+M=<scratch>/modal-venv/bin/modal && timeout 1500 $M run dev/modal_run.py --cmd "sh dev/setv.sh moe_v65 >/dev/null; for d in '' MOE_RUN_NOPEEL MOE_PI_ALL,MOE_RUN_NOPEEL; do echo \"== [\$d]\"; MOE_DEFINES=\$d python3 dev/kern_sass.py /tmp/k 2>&1 | grep -a -E 'C7511|^moe_' | cut -c1-120; done" 2>&1 | grep -a -v -E "Uploaded|Created|Initialized|View run|modal.com|modal_run.py|Stopping"
+----- output
+1142:#define MOE_RUN_ITEM(K)                                                                                  \
+1143-    for (int st = 0;;) {                                                                                 \
+1144-      MOE_T(const u32 tc0 = ctimer();)                                                                   \
+ok
+== []
+moe_8_8_1_3_16: 17808 instructions; HMMA:640 HGMMA:384 LOP3:3534 IMAD:2912 SHF:1589 HMUL2:2560 LDS:486 STS:116 LDL:10 ST
+moe_8_8_1_3_8: 17776 instructions; HMMA:640 HGMMA:384 LOP3:3536 IMAD:2901 SHF:1589 HMUL2:2560 LDS:482 STS:108 LDL:10 STL
+moe_8_4_2_4_1: 6448 instructions; HMMA:320 HGMMA:0 LOP3:777 IMAD:1030 SHF:439 HMUL2:512 LDS:226 STS:69 LDL:10 STL:32 BAR
+moe_8_4_1_4_4: 9016 instructions; HMMA:640 HGMMA:0 LOP3:1423 IMAD:1360 SHF:719 HMUL2:1024 LDS:348 STS:72 LDL:10 STL:32 B
+moe_8_4_1_4_2: 9000 instructions; HMMA:640 HGMMA:0 LOP3:1423 IMAD:1355 SHF:719 HMUL2:1024 LDS:347 STS:70 LDL:10 STL:32 B
+moe_4_1_1_4_1: 5016 instructions; HMMA:64 HGMMA:0 LOP3:446 IMAD:893 SHF:273 HMUL2:256 LDS:123 STS:47 LDL:16 STL:32 BAR:7
+moe_2_1_1_4_1: 4576 instructions; HMMA:64 HGMMA:0 LOP3:446 IMAD:725 SHF:269 HMUL2:256 LDS:124 STS:47 LDL:16 STL:30 BAR:7
+== [MOE_RUN_NOPEEL]
+moe_8_8_1_3_16: 17808 instructions; HMMA:640 HGMMA:384 LOP3:3534 IMAD:2912 SHF:1589 HMUL2:2560 LDS:486 STS:116 LDL:10 ST
+moe_8_8_1_3_8: 17776 instructions; HMMA:640 HGMMA:384 LOP3:3536 IMAD:2901 SHF:1589 HMUL2:2560 LDS:482 STS:108 LDL:10 STL
+moe_8_4_2_4_1: 6448 instructions; HMMA:320 HGMMA:0 LOP3:777 IMAD:1030 SHF:439 HMUL2:512 LDS:226 STS:69 LDL:10 STL:32 BAR
+moe_8_4_1_4_4: 9016 instructions; HMMA:640 HGMMA:0 LOP3:1423 IMAD:1360 SHF:719 HMUL2:1024 LDS:348 STS:72 LDL:10 STL:32 B
+moe_8_4_1_4_2: 9000 instructions; HMMA:640 HGMMA:0 LOP3:1423 IMAD:1355 SHF:719 HMUL2:1024 LDS:347 STS:70 LDL:10 STL:32 B
+moe_4_1_1_4_1: 5016 instructions; HMMA:64 HGMMA:0 LOP3:446 IMAD:893 SHF:273 HMUL2:256 LDS:123 STS:47 LDL:16 STL:32 BAR:7
+moe_2_1_1_4_1: 4576 instructions; HMMA:64 HGMMA:0 LOP3:446 IMAD:725 SHF:269 HMUL2:256 LDS:124 STS:47 LDL:16 STL:30 BAR:7
+== [MOE_PI_ALL,MOE_RUN_NOPEEL]
+moe_8_8_1_3_16: 17808 instructions; HMMA:640 HGMMA:384 LOP3:3534 IMAD:2912 SHF:1589 HMUL2:2560 LDS:486 STS:116 LDL:10 ST
+moe_8_8_1_3_8: 17776 instructions; HMMA:640 HGMMA:384 LOP3:3536 IMAD:2901 SHF:1589 HMUL2:2560 LDS:482 STS:108 LDL:10 STL
+moe_8_4_2_4_1: 8872 instructions; HMMA:640 HGMMA:0 LOP3:1422 IMAD:1324 SHF:702 HMUL2:1024 LDS:347 STS:69 LDL:10 STL:32 B
+moe_8_4_1_4_4: 9016 instructions; HMMA:640 HGMMA:0 LOP3:1423 IMAD:1360 SHF:719 HMUL2:1024 LDS:348 STS:72 LDL:10 STL:32 B
+moe_8_4_1_4_2: 9000 instructions; HMMA:640 HGMMA:0 LOP3:1423 IMAD:1355 SHF:719 HMUL2:1024 LDS:347 STS:70 LDL:10 STL:32 B
+moe_4_1_1_4_1: 5016 instructions; HMMA:64 HGMMA:0 LOP3:446 IMAD:893 SHF:273 HMUL2:256 LDS:123 STS:47 LDL:16 STL:32 BAR:7
+moe_2_1_1_4_1: 4576 instructions; HMMA:64 HGMMA:0 LOP3:446 IMAD:725 SHF:269 HMUL2:256 LDS:124 STS:47 LDL:16 STL:30 BAR:7
+
+===== [2026-10-23T21:00:11.092Z UTC] Read the per-item loop macro
+$ cd muse-opt/muse_moe_w4a16 && sed -n "$(grep -n '#define MOE_RUN_ITEM(K)' dev/moe_v65.py | cut -d: -f1),+24p" dev/moe_v65.py
+----- output
+#define MOE_RUN_ITEM(K)                                                                                  \
+    MOE_RUN_PRAGMA                                                                                       \
+    for (int st = 0;;) {                                                                                 \
+      MOE_T(const u32 tc0 = ctimer();)                                                                   \
+      const unsigned char* sbase = stages + s * STAGE;                                                   \
+      const unsigned char* wbase = sbase + (kw * RGS + rw * 2) * 2048 + lane * 16;                       \
+      const unsigned char* sclb = sbase + WB + (kw * RGS + rw * 2) * 256 + lane * 8;                     \
+      if constexpr (MOE_NOC) {                                                                           \
+      } else if constexpr ((K) >= 100) {                                                                 \
+        if constexpr (HASWG) stage_compute_wg<NT, (K) - 100>(acc, wbase, sclb, smem_addr(sbase + WB + SB), T); \
+      } else {                                                                                           \
+        stage_compute<NT, (K)>(acc, acc2, wbase, sclb, sbase + WB + SB + g * XP + kw * 512 + tig * 32, XP); \
+      }                                                                                                  \
+      __syncwarp();                                                                                      \
+      MOE_T(c_comp += ctimer() - tc0; c_stages += 1; if (lane == 0) wcomp += ctimer() - tc0;)            \
+      if (++st == nst) break;                                                                            \
+      if (lane == 0) mbar_arrive(smem_addr(&bars[NS + s]));                                              \
+      if (++s == NS) { s = 0; ph ^= 1; }                                                                 \
+      MOE_T(tw0 = ctimer();)                                                                             \
+      mbar_wait(smem_addr(&bars[s]), ph);                                                                \
+      MOE_T(c_wait += ctimer() - tw0;)                                                                   \
+    }
+    if (HASWG && ntl >= WGMIN) {
+      if constexpr (HASWG) {
+        switch (ntl) {
+
+===== [2026-10-23T21:00:26.232Z UTC] Check the loop restructure removes the duplication
+$ cd muse-opt/muse_moe_w4a16 && python3 - <<'EOF'
+p = "dev/moe_v65.py"
+s = open(p).read()
+old = """    MOE_RUN_PRAGMA                                                                                       \\
+    for (int st = 0;;) {                                                                                 \\
+      MOE_T(const u32 tc0 = ctimer();)                                                                   \\"""
+new = """    MOE_RUN_PRAGMA                                                                                       \\
+    for (int st = 0; st < nst; ++st) {                                                                   \\
+      if (MOE_RUN_TOP && st > 0) {  /* the previous stage's release and this stage's wait */           \\
+        if (lane == 0) mbar_arrive(smem_addr(&bars[NS + s]));                                            \\
+        if (++s == NS) { s = 0; ph ^= 1; }                                                               \\
+        MOE_T(tw0 = ctimer();)                                                                           \\
+        mbar_wait(smem_addr(&bars[s]), ph);                                                              \\
+        MOE_T(c_wait += ctimer() - tw0;)                                                                 \\
+      }                                                                                                  \\
+      MOE_T(const u32 tc0 = ctimer();)                                                                   \\"""
+assert s.count(old) == 1; s = s.replace(old, new)
+old = """      MOE_T(c_comp += ctimer() - tc0; c_stages += 1; if (lane == 0) wcomp += ctimer() - tc0;)            \\
+      if (++st == nst) break;                                                                            \\
+      if (lane == 0) mbar_arrive(smem_addr(&bars[NS + s]));                                              \\
+      if (++s == NS) { s = 0; ph ^= 1; }                                                                 \\
+      MOE_T(tw0 = ctimer();)                                                                             \\
+      mbar_wait(smem_addr(&bars[s]), ph);                                                                \\
+      MOE_T(c_wait += ctimer() - tw0;)                                                                   \\
+    }"""
+new = """      MOE_T(c_comp += ctimer() - tc0; c_stages += 1; if (lane == 0) wcomp += ctimer() - tc0;)            \\
+      if (!MOE_RUN_TOP) {                                                                                \\
+        if (st + 1 == nst) break;                                                                        \\
+        if (lane == 0) mbar_arrive(smem_addr(&bars[NS + s]));                                            \\
+        if (++s == NS) { s = 0; ph ^= 1; }                                                               \\
+        MOE_T(tw0 = ctimer();)                                                                           \\
+        mbar_wait(smem_addr(&bars[s]), ph);                                                              \\
+        MOE_T(c_wait += ctimer() - tw0;)                                                                 \\
+      }                                                                                                  \\
+    }"""
+assert s.count(old) == 1; s = s.replace(old, new)
+old = """#ifdef MOE_RUN_NOPEEL"""
+new = """// MOE_RUN_TOP: the per-item stage loop waits at its top, so the (fully unrolled) stage body is
+// emitted once; with the wait at the bottom the compiler inverted the loop and duplicated it
+#ifndef MOE_RUN_TOP
+#define MOE_RUN_TOP 1
+#endif
+#ifdef MOE_RUN_NOPEEL"""
+assert s.count(old) == 1; s = s.replace(old, new)
+open(p, "w").write(s)
+print("ok")
+EOF
+M=<scratch>/modal-venv/bin/modal && timeout 1500 $M run dev/modal_run.py --cmd "sh dev/setv.sh moe_v65 >/dev/null; for d in MOE_RUN_TOP=0 MOE_RUN_TOP=1 MOE_PI_ALL; do echo \"== [\$d]\"; MOE_DEFINES=\$d python3 dev/kern_sass.py /tmp/k 2>&1 | grep -a -E 'C7511|^moe_' | cut -c1-100; done; python3 dev/bench.py dev/abl.py --tests-only --no-base 2>&1 | grep -a -E 'FAIL|rror|test' | cut -c1-80" 2>&1 | grep -a -v -E "Uploaded|Created|Initialized|View run|modal.com|modal_run.py|Stopping"
+----- output
+ok
+== [MOE_RUN_TOP=0]
+moe_8_8_1_3_16: 12496 instructions; HMMA:320 HGMMA:192 LOP3:1934 IMAD:2480 SHF:943 HMUL2:1280 LDS:30
+moe_8_8_1_3_8: 12472 instructions; HMMA:320 HGMMA:192 LOP3:1936 IMAD:2472 SHF:943 HMUL2:1280 LDS:302
+moe_8_4_2_4_1: 6448 instructions; HMMA:320 HGMMA:0 LOP3:777 IMAD:1030 SHF:439 HMUL2:512 LDS:226 STS:
+moe_8_4_1_4_4: 6784 instructions; HMMA:320 HGMMA:0 LOP3:784 IMAD:1065 SHF:463 HMUL2:512 LDS:228 STS:
+moe_8_4_1_4_2: 6768 instructions; HMMA:320 HGMMA:0 LOP3:784 IMAD:1060 SHF:463 HMUL2:512 LDS:227 STS:
+moe_4_1_1_4_1: 4520 instructions; HMMA:32 HGMMA:0 LOP3:286 IMAD:811 SHF:209 HMUL2:128 LDS:105 STS:47
+moe_2_1_1_4_1: 4072 instructions; HMMA:32 HGMMA:0 LOP3:286 IMAD:643 SHF:205 HMUL2:128 LDS:106 STS:47
+== [MOE_RUN_TOP=1]
+moe_8_8_1_3_16: 12248 instructions; HMMA:320 HGMMA:192 LOP3:1930 IMAD:2141 SHF:949 HMUL2:1280 LDS:30
+moe_8_8_1_3_8: 12216 instructions; HMMA:320 HGMMA:192 LOP3:1932 IMAD:2132 SHF:949 HMUL2:1280 LDS:302
+moe_8_4_2_4_1: 6448 instructions; HMMA:320 HGMMA:0 LOP3:777 IMAD:1030 SHF:439 HMUL2:512 LDS:226 STS:
+moe_8_4_1_4_4: 6752 instructions; HMMA:320 HGMMA:0 LOP3:784 IMAD:1062 SHF:463 HMUL2:512 LDS:228 STS:
+moe_8_4_1_4_2: 6736 instructions; HMMA:320 HGMMA:0 LOP3:784 IMAD:1057 SHF:463 HMUL2:512 LDS:227 STS:
+moe_4_1_1_4_1: 4520 instructions; HMMA:32 HGMMA:0 LOP3:286 IMAD:811 SHF:209 HMUL2:128 LDS:105 STS:47
+moe_2_1_1_4_1: 4072 instructions; HMMA:32 HGMMA:0 LOP3:286 IMAD:643 SHF:205 HMUL2:128 LDS:106 STS:47
+== [MOE_PI_ALL]
+moe_8_8_1_3_16: 12248 instructions; HMMA:320 HGMMA:192 LOP3:1930 IMAD:2141 SHF:949 HMUL2:1280 LDS:30
+moe_8_8_1_3_8: 12216 instructions; HMMA:320 HGMMA:192 LOP3:1932 IMAD:2132 SHF:949 HMUL2:1280 LDS:302
+moe_8_4_2_4_1: 6600 instructions; HMMA:320 HGMMA:0 LOP3:782 IMAD:1027 SHF:446 HMUL2:512 LDS:227 STS:
+moe_8_4_1_4_4: 6752 instructions; HMMA:320 HGMMA:0 LOP3:784 IMAD:1062 SHF:463 HMUL2:512 LDS:228 STS:
+moe_8_4_1_4_2: 6736 instructions; HMMA:320 HGMMA:0 LOP3:784 IMAD:1057 SHF:463 HMUL2:512 LDS:227 STS:
+moe_4_1_1_4_1: 4520 instructions; HMMA:32 HGMMA:0 LOP3:286 IMAD:811 SHF:209 HMUL2:128 LDS:105 STS:47
+moe_2_1_1_4_1: 4072 instructions; HMMA:32 HGMMA:0 LOP3:286 IMAD:643 SHF:205 HMUL2:128 LDS:106 STS:47
+test {'bs': 4}: PASS relative L2 error 2.524e-03 (worst row 2.577e-03)
+test {'bs': 33}: PASS relative L2 error 2.550e-03 (worst row 2.777e-03)
+test {'bs': 257}: PASS relative L2 error 2.545e-03 (worst row 2.758e-03)
+test {'bs': 128, 'dist': 'skewed'}: PASS relative L2 error 2.546e-03 (worst row 
+test {'bs': 1}: PASS relative L2 error 2.472e-03 (worst row 2.472e-03)
+
+===== [2026-10-23T21:01:57.902Z UTC] A/B the single-body loop against v59 on all shapes
+$ cd muse-opt/muse_moe_w4a16 && cat > dev/sweeps/s20.lst <<'EOF'
+v59|moe_v59|||
+v65 single-body|moe_v65|||
+v65 single-body + per-item bs32|moe_v65|MOE_PI_ALL||
+v59|moe_v59|||
+v65 single-body|moe_v65|||
+v65 single-body + per-item bs32|moe_v65|MOE_PI_ALL||
+v59|moe_v59|||
+v65 single-body|moe_v65|||
+v65 single-body + per-item bs32|moe_v65|MOE_PI_ALL||
+EOF
+M=<scratch>/modal-venv/bin/modal && timeout 3500 $M run dev/modal_run.py --cmd "sh dev/setv.sh moe_v65 >/dev/null; MOE_DEFINES=MOE_PI_ALL python3 dev/bench.py dev/abl.py --tests-only --no-base 2>&1 | grep -a -E 'FAIL|rror'; sh dev/sweep_list.sh dev/sweeps/s20.lst 30" 2>&1 | grep -a -E "^(v[0-9]|bs)|rror|FAIL" | tee dev/sweeps/s20_result.txt
+----- output
+test {'bs': 4}: PASS relative L2 error 2.524e-03 (worst row 2.577e-03)
+test {'bs': 33}: PASS relative L2 error 2.550e-03 (worst row 2.777e-03)
+test {'bs': 257}: PASS relative L2 error 2.545e-03 (worst row 2.758e-03)
+test {'bs': 128, 'dist': 'skewed'}: PASS relative L2 error 2.546e-03 (worst row 2.723e-03)
+test {'bs': 1}: PASS relative L2 error 2.472e-03 (worst row 2.472e-03)
+v59                           : 1:30.2(2.467x) 16:90.8(2.053x) 32:126.3(1.634x) 8:69.9(2.129x) 128:188.6(2.464x) 256:232.7(2.653x) 2.206x
+v65 single-body               : 1:29.7(2.498x) 16:92.8(2.015x) 32:127.5(1.626x) 8:70.3(2.100x) 128:184.4(2.524x) 256:225.2(2.700x) 2.212x
+v65 single-body + per-item bs32: 1:30.0(2.487x) 16:93.4(2.007x) 32:121.4(1.696x) 8:71.8(2.091x) 128:183.7(2.518x) 256:226.6(2.713x) 2.224x
+v59                           : 1:30.3(2.468x) 16:90.4(2.075x) 32:126.4(1.634x) 8:69.4(2.145x) 128:189.7(2.464x) 256:231.3(2.645x) 2.212x
+v65 single-body               : 1:30.8(2.462x) 16:93.0(2.013x) 32:128.0(1.622x) 8:71.2(2.083x) 128:184.8(2.525x) 256:225.6(2.724x) 2.206x
+v65 single-body + per-item bs32: 1:30.3(2.489x) 16:93.5(2.012x) 32:122.0(1.695x) 8:71.2(2.077x) 128:184.8(2.521x) 256:226.2(2.717x) 2.223x
+v59                           : 1:30.3(2.455x) 16:91.1(2.033x) 32:125.8(1.625x) 8:70.4(2.119x) 128:190.2(2.465x) 256:230.8(2.672x) 2.199x
+v65 single-body               : 1:30.4(2.464x) 16:93.5(1.990x) 32:126.8(1.614x) 8:71.1(2.091x) 128:184.3(2.508x) 256:225.4(2.709x) 2.197x
+v65 single-body + per-item bs32: 1:29.9(2.493x) 16:92.7(2.005x) 32:121.0(1.704x) 8:71.2(2.084x) 128:184.9(2.508x) 256:225.7(2.702x) 2.222x
+
+===== [2026-10-23T21:09:52.746Z UTC] Build v66 and A/B it against v59
+$ cd muse-opt/muse_moe_w4a16 && cp dev/moe_v65.py dev/moe_v66.py && python3 - <<'EOF'
+p = "dev/moe_v66.py"
+s = open(p).read()
+def rep(a, b, cnt=1):
+    global s
+    assert s.count(a) == cnt, (s.count(a), a[:80])
+    s = s.replace(a, b)
+# per-item loops for every config
+rep("""#ifdef MOE_PI_ALL
+    if constexpr (true) {
+#else
+    if constexpr (KW > 1 || KS2 == 1) {
+#endif""", """    // Stage info read and dispatched once per item (every config)
+    if constexpr (true) {""")
+# the macro: per-config loop form
+i = s.index("// MOE_RUN_TOP: the per-item stage loop")
+j = s.index("#define MOE_RUN_ITEM(K)")
+s = s[:i] + s[j:]
+rep("""#define MOE_RUN_ITEM(K)                                                                                  \\
+    MOE_RUN_PRAGMA                                                                                       \\
+    for (int st = 0; st < nst; ++st) {                                                                   \\
+      if (MOE_RUN_TOP && st > 0) {  /* the previous stage's release and this stage's wait */           \\""",
+"""// Multi-group tiles: the loop waits at its top, so the (fully unrolled) stage body is emitted once
+// (the bottom-tested form below is inverted by the compiler, which duplicates the body). Single-
+// group tiles keep the bottom-tested form, which measures faster there.
+#define MOE_RUN_ITEM(K)                                                                                  \\
+    if constexpr (NT == 1) { MOE_RUN_ITEM_BOT(K) } else { MOE_RUN_ITEM_TOP(K) }
+#define MOE_RUN_ITEM_BOT(K)                                                                              \\
+    for (int st = 0;;) {                                                                                 \\
+      MOE_T(const u32 tc0 = ctimer();)                                                                   \\
+      const unsigned char* sbase = stages + s * STAGE;                                                   \\
+      const unsigned char* wbase = sbase + (kw * RGS + rw * 2) * 2048 + lane * 16;                       \\
+      const unsigned char* sclb = sbase + WB + (kw * RGS + rw * 2) * 256 + lane * 8;                     \\
+      if constexpr (MOE_NOC) {                                                                           \\
+      } else if constexpr ((K) >= 100) {                                                                 \\
+        if constexpr (HASWG) stage_compute_wg<NT, (K) - 100>(acc, wbase, sclb, smem_addr(sbase + WB + SB), T); \\
+      } else {                                                                                           \\
+        stage_compute<NT, (K)>(acc, acc2, wbase, sclb, sbase + WB + SB + g * XP + kw * 512 + tig * 32, XP); \\
+      }                                                                                                  \\
+      __syncwarp();                                                                                      \\
+      MOE_T(c_comp += ctimer() - tc0; c_stages += 1; if (lane == 0) wcomp += ctimer() - tc0;)            \\
+      if (++st == nst) break;                                                                            \\
+      if (lane == 0) mbar_arrive(smem_addr(&bars[NS + s]));                                              \\
+      if (++s == NS) { s = 0; ph ^= 1; }                                                                 \\
+      MOE_T(tw0 = ctimer();)                                                                             \\
+      mbar_wait(smem_addr(&bars[s]), ph);                                                                \\
+      MOE_T(c_wait += ctimer() - tw0;)                                                                   \\
+    }
+#define MOE_RUN_ITEM_TOP(K)                                                                              \\
+    for (int st = 0; st < nst; ++st) {                                                                   \\
+      if (st > 0) {  /* the previous stage's release and this stage's wait */                           \\""")
+rep("""      MOE_T(c_comp += ctimer() - tc0; c_stages += 1; if (lane == 0) wcomp += ctimer() - tc0;)            \\
+      if (!MOE_RUN_TOP) {                                                                                \\
+        if (st + 1 == nst) break;                                                                        \\
+        if (lane == 0) mbar_arrive(smem_addr(&bars[NS + s]));                                            \\
+        if (++s == NS) { s = 0; ph ^= 1; }                                                               \\
+        MOE_T(tw0 = ctimer();)                                                                           \\
+        mbar_wait(smem_addr(&bars[s]), ph);                                                              \\
+        MOE_T(c_wait += ctimer() - tw0;)                                                                 \\
+      }                                                                                                  \\
+    }""", """      MOE_T(c_comp += ctimer() - tc0; c_stages += 1; if (lane == 0) wcomp += ctimer() - tc0;)            \\
+    }""")
+rep("#undef MOE_RUN_ITEM\n", "#undef MOE_RUN_ITEM\n#undef MOE_RUN_ITEM_BOT\n#undef MOE_RUN_ITEM_TOP\n")
+open(p, "w").write(s)
+print("ok")
+EOF
+grep -n "MOE_RUN_PRAGMA\|MOE_RUN_TOP" dev/moe_v66.py | head; cat > dev/sweeps/s21.lst <<'EOF'
+v59|moe_v59|||
+v66|moe_v66|||
+v59|moe_v59|||
+v66|moe_v66|||
+v59|moe_v59|||
+v66|moe_v66|||
+EOF
+M=<scratch>/modal-venv/bin/modal && timeout 3500 $M run dev/modal_run.py --cmd "sh dev/setv.sh moe_v66 >/dev/null; python3 dev/kern_sass.py /tmp/k 2>&1 | grep -a -E 'C7511|rror|^moe_' | cut -c1-90; python3 dev/bench.py dev/abl.py --tests-only --no-base 2>&1 | grep -a -E 'test|rror' | cut -c1-80; sh dev/sweep_list.sh dev/sweeps/s21.lst 30" 2>&1 | grep -a -E "^(v[0-9]|bs|moe_)|rror|test|C75" | tee dev/sweeps/s21_result.txt
+----- output
+ok
+moe_8_8_1_3_16: 12248 instructions; HMMA:320 HGMMA:192 LOP3:1930 IMAD:2141 SHF:949 HMUL2:1
+moe_8_8_1_3_8: 12216 instructions; HMMA:320 HGMMA:192 LOP3:1932 IMAD:2132 SHF:949 HMUL2:12
+moe_8_4_2_4_1: 6600 instructions; HMMA:320 HGMMA:0 LOP3:782 IMAD:1027 SHF:446 HMUL2:512 LD
+moe_8_4_1_4_4: 6752 instructions; HMMA:320 HGMMA:0 LOP3:784 IMAD:1062 SHF:463 HMUL2:512 LD
+moe_8_4_1_4_2: 6736 instructions; HMMA:320 HGMMA:0 LOP3:784 IMAD:1057 SHF:463 HMUL2:512 LD
+moe_4_1_1_4_1: 5016 instructions; HMMA:64 HGMMA:0 LOP3:446 IMAD:893 SHF:273 HMUL2:256 LDS:
+moe_2_1_1_4_1: 4576 instructions; HMMA:64 HGMMA:0 LOP3:446 IMAD:725 SHF:269 HMUL2:256 LDS:
+test {'bs': 4}: PASS relative L2 error 2.524e-03 (worst row 2.577e-03)
+test {'bs': 33}: PASS relative L2 error 2.550e-03 (worst row 2.777e-03)
+test {'bs': 257}: PASS relative L2 error 2.545e-03 (worst row 2.758e-03)
+test {'bs': 128, 'dist': 'skewed'}: PASS relative L2 error 2.546e-03 (worst row 
+test {'bs': 1}: PASS relative L2 error 2.472e-03 (worst row 2.472e-03)
+v59                           : 1:30.7(2.464x) 16:91.0(2.052x) 32:125.4(1.647x) 8:69.9(2.123x) 128:187.7(2.470x) 256:231.2(2.662x) 2.209x
+v66                           : 1:30.3(2.477x) 16:90.1(2.066x) 32:120.7(1.711x) 8:69.3(2.128x) 128:183.3(2.519x) 256:224.1(2.734x) 2.246x
+v59                           : 1:30.0(2.486x) 16:90.8(2.056x) 32:125.6(1.652x) 8:69.2(2.126x) 128:187.5(2.476x) 256:229.1(2.643x) 2.213x
+v66                           : 1:30.7(2.426x) 16:90.6(2.054x) 32:120.5(1.712x) 8:69.4(2.124x) 128:183.2(2.519x) 256:223.8(2.734x) 2.235x
+v59                           : 1:30.7(2.462x) 16:90.6(2.069x) 32:125.1(1.645x) 8:69.3(2.126x) 128:188.6(2.466x) 256:230.5(2.666x) 2.212x
+v66                           : 1:31.7(2.423x) 16:91.2(2.052x) 32:120.4(1.706x) 8:69.2(2.139x) 128:183.1(2.533x) 256:223.3(2.745x) 2.240x
+

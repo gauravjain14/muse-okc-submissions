@@ -1,0 +1,7 @@
+{
+  "base": "muse-opt-codex/muse_decode_layer/variants/d16_stack.py",
+  "output": "muse-opt-codex/muse_decode_layer/variants/d18_expert96.py",
+  "sha256": "ae0514a352d0a60b6a4496f70e4c54c24a81ce1d4a0b30f7b7824073cb50b85c",
+  "bytes": 980373,
+  "change": "WGS uses 96-token expert jobs with native wgmma m64n72/80/88/96, two 48-KiB activation stages, extended costs and 6144-float fixup slots. All selected routes retained."
+}

@@ -1,0 +1,62 @@
+[sbx] box 0
+GPU_BEFORE NVIDIA H200, 345 MHz, 76.17 W, 26, 0 %, 78 MiB
+hang1 t3/IL/moe_il_6.py: 16 finished, 16 ok
+hang1 t3/IL/moe_il_5.py: 16 finished, 16 ok
+check_mt t3/IL/moe_il_6.py (full): FAILURES 0
+check_mt t3/IL/moe_il_5.py (129 200 256): FAILURES 0
+bs1: control mean 23.22 us (60 routings); % = time vs control mean (+ = slower)
+   fA    fA:-0.72  mean -0.72  each-vs-each-ctrl -0.28..+0.00
+   a     a1:+0.26 a2:-0.21 a3:-0.44  mean -0.13  each-vs-each-ctrl -0.78..+0.78
+   c     c1:-0.54 c2:-0.05 c3:-0.82  mean -0.47  each-vs-each-ctrl -0.67..+0.62
+   w     w1:-0.16 w2:-0.44  mean -0.30  each-vs-each-ctrl -0.19..+0.56
+   p     p1:+2.05  mean +2.05  each-vs-each-ctrl +2.41..+2.62
+   fB    fB:-0.64  mean -0.64  each-vs-each-ctrl -0.14..+0.07
+bs8: control mean 61.75 us (60 routings); % = time vs control mean (+ = slower)
+   fA    fA:+0.15  mean +0.15  each-vs-each-ctrl -0.10..+0.28
+   a     a1:-0.17 a2:-0.22 a3:+0.24  mean -0.05  each-vs-each-ctrl -0.48..+0.49
+   c     c1:+0.15 c2:-0.34 c3:+0.20  mean +0.00  each-vs-each-ctrl -0.68..+0.29
+   w     w1:+0.05 w2:-0.04  mean +0.00  each-vs-each-ctrl -0.38..+0.43
+   p     p1:+2.35  mean +2.35  each-vs-each-ctrl +2.45..+2.63
+   fB    fB:-0.44  mean -0.44  each-vs-each-ctrl -0.61..-0.16
+bs16: control mean 82.46 us (60 routings); % = time vs control mean (+ = slower)
+   fA    fA:+0.29  mean +0.29  each-vs-each-ctrl -0.03..+0.35
+   a     a1:+0.04 a2:+0.06 a3:-0.03  mean +0.02  each-vs-each-ctrl -0.29..+0.29
+   c     c1:+0.21 c2:+0.06 c3:-0.05  mean +0.07  each-vs-each-ctrl -0.18..+0.48
+   w     w1:-0.12 w2:+0.30  mean +0.09  each-vs-each-ctrl -0.12..+0.33
+   p     p1:+2.82  mean +2.82  each-vs-each-ctrl +2.67..+2.83
+   fB    fB:+0.35  mean +0.35  each-vs-each-ctrl +0.13..+0.27
+bs32: control mean 111.43 us (60 routings); % = time vs control mean (+ = slower)
+   fA    fA:-0.08  mean -0.08  each-vs-each-ctrl -0.11..+0.08
+   a     a1:-0.13 a2:+0.00 a3:+0.03  mean -0.03  each-vs-each-ctrl -0.12..+0.12
+   c     c1:-0.20 c2:+0.12 c3:+0.02  mean -0.02  each-vs-each-ctrl -0.30..+0.28
+   w     w1:+0.06 w2:-0.01  mean +0.03  each-vs-each-ctrl -0.08..+0.21
+   p     p1:+1.00  mean +1.00  each-vs-each-ctrl +0.99..+1.22
+   fB    fB:-0.07  mean -0.07  each-vs-each-ctrl -0.18..+0.13
+bs128: control mean 160.96 us (60 routings); % = time vs control mean (+ = slower)
+   fA    fA:-0.29  mean -0.29  each-vs-each-ctrl -0.42..-0.24
+   a     a1:-0.13 a2:-0.03 a3:+0.11  mean -0.02  each-vs-each-ctrl -0.15..+0.15
+   c     c1:-0.04 c2:+0.05 c3:-0.15  mean -0.05  each-vs-each-ctrl -0.25..+0.14
+   w     w1:+0.00 w2:+0.03  mean +0.02  each-vs-each-ctrl -0.14..+0.08
+   p     p1:+0.89  mean +0.89  each-vs-each-ctrl +0.79..+0.93
+   fB    fB:-0.54  mean -0.54  each-vs-each-ctrl -0.61..-0.30
+bs256: control mean 196.86 us (60 routings); % = time vs control mean (+ = slower)
+   fA    fA:-0.54  mean -0.54  each-vs-each-ctrl -0.52..-0.39
+   a     a1:+0.06 a2:+0.06 a3:-0.10  mean +0.01  each-vs-each-ctrl -0.14..+0.14
+   c     c1:-1.00 c2:-0.92 c3:-1.09  mean -1.00  each-vs-each-ctrl -1.23..-0.81
+   w     w1:-0.76 w2:-0.72  mean -0.74  each-vs-each-ctrl -0.78..-0.69
+   p     p1:+0.74  mean +0.74  each-vs-each-ctrl +0.76..+0.87
+   fB    fB:-0.47  mean -0.47  each-vs-each-ctrl -0.64..-0.39
+anchor p1 = v1504 scored: 5157.1 us   (c = 0.0 us)
+  fA               projected  5068.2 us  rank ~ 5  (bs1:1.0260 bs8:1.0208 bs16:1.0257 bs32:1.0089 bs128:1.0119 bs256:1.0121)
+  a1               projected  5068.4 us  rank ~ 5  (bs1:1.0243 bs8:1.0258 bs16:1.0267 bs32:1.0122 bs128:1.0087 bs256:1.0076)
+  c1               projected  5063.3 us  rank ~ 5  (bs1:1.0256 bs8:1.0231 bs16:1.0254 bs32:1.0119 bs128:1.0084 bs256:1.0170)
+  w1               projected  5069.4 us  rank ~ 5  (bs1:1.0207 bs8:1.0272 bs16:1.0245 bs32:1.0092 bs128:1.0078 bs256:1.0147)
+  a2               projected  5068.1 us  rank ~ 5  (bs1:1.0241 bs8:1.0263 bs16:1.0283 bs32:1.0099 bs128:1.0093 bs256:1.0077)
+  c2               projected  5067.1 us  rank ~ 5  (bs1:1.0222 bs8:1.0255 bs16:1.0276 bs32:1.0087 bs128:1.0069 bs256:1.0160)
+  w2               projected  5065.8 us  rank ~ 5  (bs1:1.0248 bs8:1.0241 bs16:1.0257 bs32:1.0086 bs128:1.0086 bs256:1.0164)
+  a3               projected  5068.3 us  rank ~ 5  (bs1:1.0262 bs8:1.0245 bs16:1.0276 bs32:1.0105 bs128:1.0079 bs256:1.0087)
+  c3               projected  5060.4 us  rank ~ 5  (bs1:1.0279 bs8:1.0246 bs16:1.0245 bs32:1.0086 bs128:1.0096 bs256:1.0197)
+  p1               projected  5157.1 us  rank ~ 6  (bs1:1.0000 bs8:1.0000 bs16:1.0000 bs32:1.0000 bs128:1.0000 bs256:1.0000)
+  fB               projected  5059.1 us  rank ~ 5  (bs1:1.0256 bs8:1.0285 bs16:1.0258 bs32:1.0104 bs128:1.0136 bs256:1.0125)
+GPU_AFTER NVIDIA H200, 1980 MHz, 127.41 W, 31, 0 %, 78 MiB
+REMOTE_EXIT 0

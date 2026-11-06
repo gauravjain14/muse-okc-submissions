@@ -1,0 +1,14 @@
+[sbx] box 0
+bo1      m=8    router    span   4.19 us | rr_small_kernel 4.19
+rt3      m=8    router    span   3.90 us | ys_2_8_1_1_0_0 3.90
+bo1      m=16   router    span   4.45 us | rr_small_kernel 4.45
+rt3      m=16   router    span   4.03 us | ya_1_8_2_17_0 4.03
+bo1      m=32   router    span   5.26 us | sk2_kernel 5.26
+rt3      m=32   router    span   4.45 us | ya_1_8_4_17_0 4.45
+bo1      m=128  router    span   5.84 us | rk_kernel 5.84
+rt3      m=128  router    span   5.82 us | rk_6_0_1_64_0 5.82
+[y16] ya_1_8_2_17_0 dur=5,504ns dramRd=8,660,736byte dram%=32.86 L2bytes=16,107,296byte L2%=38.86 L2toSM=12,591,328byte sm%=3.77 issue%=6.69 gmma%=n/a hmma%=2.23 occ%=13.52 elig=0.08warp grid=132 regs=111register/thread
+[y16]   stalls: long_scoreboard 63%, wait 10%, no_instructions 7%, lg_throttle 6%
+[y32] ya_1_8_4_17_0 dur=5,440ns dramRd=8,923,648byte dram%=34.32 L2bytes=18,991,584byte L2%=42.51 L2toSM=16,787,680byte sm%=7.62 issue%=8.51 gmma%=n/a hmma%=3.58 occ%=12.14 elig=0.11warp grid=132 regs=159register/thread
+[y32]   stalls: long_scoreboard 59%, lg_throttle 10%, wait 9%, short_scoreboard 6%
+REMOTE_EXIT 0

@@ -1,0 +1,72 @@
+[modal_gate] slot 0 acquired at 23:21:36 (0 okc containers running)
+✓ Initialized. View run at 
+<modal-run-url>
+✓ Created objects.
+├── 🔨 Created mount 
+│   muse-opt/muse_moe_w4a16/dev/modal_run.py
+├── 🔨 Created mount muse-opt/muse_moe_w4a16
+└── 🔨 Created function run.
+GPU_BEFORE NVIDIA H200, 345 MHz, 3201 MHz, 77.50 W, 30, 0 %, 68 MiB
+STEP smoke
+bs 1: ok relative L2 error 2.515e-03 (worst row 2.515e-03)
+bs 2: ok relative L2 error 3.202e-03 (worst row 3.205e-03)
+bs 4: ok relative L2 error 3.229e-03 (worst row 3.270e-03)
+bs 8: ok relative L2 error 3.204e-03 (worst row 3.406e-03)
+bs 9: ok relative L2 error 3.213e-03 (worst row 3.406e-03)
+bs 16: ok relative L2 error 3.206e-03 (worst row 3.406e-03)
+bs 17: ok relative L2 error 2.856e-03 (worst row 3.321e-03)
+bs 32: ok relative L2 error 3.077e-03 (worst row 3.399e-03)
+bs 33: ok relative L2 error 3.095e-03 (worst row 3.312e-03)
+bs 64: ok relative L2 error 3.097e-03 (worst row 3.398e-03)
+bs 65: ok relative L2 error 3.175e-03 (worst row 3.398e-03)
+bs 128: ok relative L2 error 3.206e-03 (worst row 3.398e-03)
+bs 129: ok relative L2 error 3.206e-03 (worst row 3.398e-03)
+bs 256: ok relative L2 error 3.217e-03 (worst row 3.427e-03)
+bs 257: ok relative L2 error 3.217e-03 (worst row 3.427e-03)
+bs 9: ok relative L2 error 3.212e-03 (worst row 3.398e-03)
+bs 12: ok relative L2 error 3.223e-03 (worst row 3.398e-03)
+bs 16: ok relative L2 error 3.206e-03 (worst row 3.398e-03)
+STEP check_mt v1502
+FAILURES 0
+STEP check_mt v1503u K2 w1.0 / K4 w0.5
+FAILURES 0
+FAILURES 0
+STEP bench all shapes, 70 reps: v969|/tmp/v969s.py|;v969b|/tmp/v969s.py|;v1501|dev/moe_v1501.py|;v1502|dev/moe_v1502.py|;v1502b|dev/moe_v1502.py|
+geomean v969: x2.5474 over 6 shapes
+geomean v969b: x2.5472 over 6 shapes
+geomean v1501: x2.5700 over 6 shapes
+geomean v1502: x2.5682 over 6 shapes
+geomean v1502b: x2.5715 over 6 shapes
+anchor v969 = v969 scored: 5263.1 us   (c = 0.0 us)
+  v969             projected  5263.1 us  rank ~ 6  (bs1:1.0000 bs8:1.0000 bs16:1.0000 bs32:1.0000 bs128:1.0000 bs256:1.0000)
+  v969b            projected  5257.6 us  rank ~ 6  (bs1:1.0075 bs8:1.0019 bs16:1.0010 bs32:0.9993 bs128:1.0000 bs256:0.9966)
+  v1501            projected  5228.7 us  rank ~ 6  (bs1:1.0270 bs8:1.0014 bs16:0.9996 bs32:1.0025 bs128:1.0078 bs256:1.0014)
+  v1502            projected  5217.0 us  rank ~ 6  (bs1:1.0299 bs8:1.0062 bs16:1.0028 bs32:1.0031 bs128:1.0088 bs256:1.0024)
+  v1502b           projected  5214.1 us  rank ~ 6  (bs1:1.0261 bs8:1.0026 bs16:1.0056 bs32:1.0046 bs128:1.0107 bs256:1.0070)
+STEP bench bs16 split rules (timing; outputs of KRS variants after rep 2 invalid with B2_SHARE_EQ), 100 reps: v1502|dev/moe_v1502.py|;v1502b|dev/moe_v1502.py|;k2w1|dev/moe_v1503u.py|MOE_E2_KSXNT2=2,MOE_S2_SPLW2=1.0f;k4w05|dev/moe_v1503u.py|MOE_E2_KSXNT2=4,MOE_S2_SPLW2=0.5f;k2w1b|dev/moe_v1503u.py|MOE_E2_KSXNT2=2,MOE_S2_SPLW2=1.0f
+  v1502b: shares ['w13', 's13', 'w2', 's2', 'ykz', 'w2f', 's2f', 'w13f', 's13f', 's13c6', 's2c6', 's2f6', 'wc13', 'wc2', 'wc13_6', 'wc2_6', 'wa1t', 'wb1t', 'wb13', 'wb2'] with v1502
+  k2w1: shares ['wpa_scr', 'w13', 's13', 'w2', 's2', 'ykz', 'w2f', 's2f', 'w13f', 's13f', 's13c6', 's2c6', 's2f6', 'wc13', 'wc2', 'wc13_6', 'wc2_6', 'wa1t', 'wb1t', 'wb13', 'wb2'] with v1502
+  k4w05: shares ['wpa_scr', 'w13', 's13', 'w2', 's2', 'ykz', 'w2f', 's2f', 'w13f', 's13f', 's13c6', 's2c6', 's2f6', 'wc13', 'wc2', 'wc13_6', 'wc2_6', 'wa1t', 'wb1t', 'wb13', 'wb2'] with v1502
+  k2w1b: shares ['wpa_scr', 'w13', 's13', 'w2', 's2', 'ykz', 'w2f', 's2f', 'w13f', 's13f', 's13c6', 's2c6', 's2f6', 'wc13', 'wc2', 'wc13_6', 'wc2_6', 'wa1t', 'wb1t', 'wb13', 'wb2'] with v1502
+   v1502               84.9 us  x2.238  e<=11:x2.330(37)  e>13:x2.112(29)  hot>9:x2.273(37)  vs v1502: x1.0000
+   v1502b              85.1 us  x2.208  e<=11:x2.333(37)  e>13:x2.099(29)  hot>9:x2.285(37)  vs v1502: x0.9949
+   k2w1                85.0 us  x2.230  e<=11:x2.366(37)  e>13:x2.122(29)  hot>9:x2.284(37)  vs v1502: x1.0081
+   k4w05               85.2 us  x2.224  e<=11:x2.367(37)  e>13:x2.120(29)  hot>9:x2.279(37)  vs v1502: x1.0063
+   k2w1b               84.9 us  x2.231  e<=11:x2.374(37)  e>13:x2.130(29)  hot>9:x2.299(37)  vs v1502: x1.0141
+   v1502               63.8 us  x2.318  e=5:x2.588(3)  e=6:x2.505(8)  e=7:x2.510(12)  e=8:x2.375(18)  e=9:x2.313(22)  e=10:x2.268(18)  e=11:x2.187(11)  e=12:x2.149(5)  e=13:x2.125(2)  e=14:x2.122(1)  vs v1502: x1.0000
+   v1502b              63.8 us  x2.329  e=5:x2.614(3)  e=6:x2.459(8)  e=7:x2.495(12)  e=8:x2.347(18)  e=9:x2.325(22)  e=10:x2.251(18)  e=11:x2.174(11)  e=12:x2.171(5)  e=13:x2.151(2)  e=14:x2.114(1)  vs v1502: x0.9962
+   k2w1                63.6 us  x2.314  e=5:x2.606(3)  e=6:x2.535(8)  e=7:x2.486(12)  e=8:x2.353(18)  e=9:x2.316(22)  e=10:x2.262(18)  e=11:x2.208(11)  e=12:x2.165(5)  e=13:x2.140(2)  e=14:x2.089(1)  vs v1502: x0.9967
+   k4w05               63.8 us  x2.317  e=5:x2.631(3)  e=6:x2.526(8)  e=7:x2.484(12)  e=8:x2.357(18)  e=9:x2.317(22)  e=10:x2.267(18)  e=11:x2.169(11)  e=12:x2.168(5)  e=13:x2.139(2)  e=14:x2.086(1)  vs v1502: x0.9964
+   k2w1b               63.4 us  x2.330  e=5:x2.572(3)  e=6:x2.471(8)  e=7:x2.498(12)  e=8:x2.367(18)  e=9:x2.333(22)  e=10:x2.267(18)  e=11:x2.182(11)  e=12:x2.145(5)  e=13:x2.133(2)  e=14:x2.088(1)  vs v1502: x0.9970
+geomean v1502: x2.2780 over 2 shapes
+geomean v1502b: x2.2673 over 2 shapes
+geomean k2w1: x2.2718 over 2 shapes
+geomean k4w05: x2.2702 over 2 shapes
+geomean k2w1b: x2.2796 over 2 shapes
+GPU_AFTER NVIDIA H200, 1980 MHz, 3201 MHz, 128.50 W, 31, 1 %, 68 MiB
+STEP done
+
+fetched into muse-opt/muse_moe_w4a16/dev/remote_out: 37181 bytes
+Stopping app - local entrypoint completed.
+✓ App completed. View run at 
+<modal-run-url>

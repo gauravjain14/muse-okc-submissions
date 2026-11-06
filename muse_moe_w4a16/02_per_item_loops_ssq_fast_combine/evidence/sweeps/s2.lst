@@ -1,0 +1,9 @@
+v50|moe_v50|||
+v45 2cta small|moe_v45||1:2,1,2,4;16:4,1,2,4;32:4,4,2,4;128:4,4,1,4;512:8,8,1|
+v45 2cta bs1-16 only|moe_v45||1:2,1,2,4;16:4,1,2,4;32:8,4,2;128:8,4,1;512:8,8,1|1,8,16
+v45 8warp ref|moe_v45|||1,8,16
+v41 bf16 staging|moe_v41|||
+v42p per-item bs32|moe_v42p|MOE_PI_ALL||32
+v42p ref|moe_v42p|||32
+v46 epi warps|moe_v46|||
+v50|moe_v50|||

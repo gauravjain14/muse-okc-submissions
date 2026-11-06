@@ -1,0 +1,45 @@
+[sbx] box 1
+GPU_BEFORE NVIDIA H200, 345 MHz, 3201 MHz, 74.91 W, 28, 0 %, 118 MiB
+[SU1_EP] 2 finished 2 ok
+[SU1_EP,SU1_EPN=4] 2 finished 2 ok
+[SU1_EP,SU1_EPW=1] 2 finished 2 ok
+[SU1_EP,SU1_EPW=1,SU1_EPN=4] 2 finished 2 ok
+[SU1_TS,SU1_EP] 2 finished 2 ok
+  base: output ok relative L2 error 2.479e-03 (worst row 2.479e-03)
+  e1: output ok relative L2 error 2.479e-03 (worst row 2.479e-03)
+  e4: output ok relative L2 error 2.479e-03 (worst row 2.479e-03)
+  w1: output ok relative L2 error 2.479e-03 (worst row 2.479e-03)
+  w4: output ok relative L2 error 2.479e-03 (worst row 2.479e-03)
+event (us, incl. replay cost): base 28.63  e1 28.93  e4 28.91  w1 29.16  w4 31.36
+event           base        e1        e4        w1        w4
+entry           0.07      0.07      0.08      0.07      0.08
+w8_bar          0.11      0.11      0.11      0.53      0.73
+row_iss         0.74      0.39      0.40      0.21      0.22
+st0_iss         1.02      0.60      0.67      0.47      0.50
+st1_iss         1.19      1.21      0.73      1.19      0.55
+st2_iss         1.40      1.38      0.79      1.30      0.61
+st3_iss         1.67      1.63      0.86      1.41      0.65
+st4_iss         4.82      5.38      5.37      5.68      7.79
+st5_iss         5.95      6.53      6.28      6.83      8.95
+st6_iss         6.82      7.41      7.12      7.71      9.83
+st7_iss         7.87      8.46      8.15      8.75     10.88
+st8_iss         8.81      9.39      9.08      9.65     11.79
+st9_iss         9.98     10.59     10.26     10.86     12.98
+st10_iss       10.90     11.55     11.20     11.80     13.93
+st11_iss       11.95     12.58     12.26     12.85     14.98
+empty graph 5.41 us
+reps 100; controls ['b00', 'b01', 'b02', 'b03', 'b04', 'b05', 'b06', 'b07', 'b08', 'b09']
+  control medians: b00:23.58 b01:23.65 b02:23.68 b03:23.60 b04:23.57 b05:23.58 b06:23.55 b07:23.49 b08:23.58 b09:23.58
+  fA           med  23.78 us  vs ctl-mean  +0.39%  | ne2:17.76(-0.18) ne3:23.90(+0.12) ne4:29.94(-0.35) ne5:36.26(-0.34)
+  e1           med  23.87 us  vs ctl-mean  -1.11%  | ne2:18.21(+0.21) ne3:24.03(+0.35) ne4:30.45(+0.19) ne5:36.32(-0.29)
+  e2           med  23.84 us  vs ctl-mean  -1.52%  | ne2:18.40(+0.19) ne3:24.16(+0.39) ne4:30.75(+0.56) ne5:37.79(+1.16)
+  e4           med  24.29 us  vs ctl-mean  -2.16%  | ne2:18.37(+0.25) ne3:24.42(+0.72) ne4:30.69(+0.42) ne5:36.54(-0.05)
+  w1           med  24.27 us  vs ctl-mean  -2.34%  | ne2:18.40(+0.48) ne3:24.45(+0.70) ne4:30.48(+0.27) ne5:36.50(-0.07)
+  w4           med  26.45 us  vs ctl-mean -10.92%  | ne2:20.58(+2.52) ne3:26.59(+2.84) ne4:32.94(+2.64) ne5:39.62(+3.05)
+  e1b          med  23.84 us  vs ctl-mean  -0.51%  | ne2:18.05(-0.01) ne3:24.03(+0.27) ne4:30.18(-0.08) ne5:36.51(-0.05)
+  w1b          med  24.19 us  vs ctl-mean  -2.03%  | ne2:18.50(+0.49) ne3:24.26(+0.49) ne4:30.78(+0.57) ne5:36.82(+0.21)
+  e4b          med  23.84 us  vs ctl-mean  -0.59%  | ne2:18.08(+0.06) ne3:24.00(+0.14) ne4:30.32(+0.26) ne5:37.04(+0.43)
+  w4b          med  26.51 us  vs ctl-mean -10.96%  | ne2:20.64(+2.55) ne3:26.66(+2.81) ne4:32.78(+2.52) ne5:40.32(+3.72)
+  fB           med  23.54 us  vs ctl-mean  +0.93%  | ne2:17.82(-0.30) ne3:23.62(-0.14) ne4:29.84(-0.49) ne5:35.92(-0.72)
+GPU_AFTER NVIDIA H200, 1980 MHz, 3201 MHz, 246.21 W, 33, 1 %, 118 MiB
+REMOTE_EXIT 0

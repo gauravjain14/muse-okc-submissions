@@ -1,0 +1,33 @@
+✓ Initialized. View run at 
+<modal-run-url>
+✓ Created objects.
+├── 🔨 Created mount 
+│   <scratch>
+│   5-ce57afd4da60/scratchpad/snap.TKc1T6/dev/modal_run.py
+├── 🔨 Created mount 
+│   <scratch>
+│   5-ce57afd4da60/scratchpad/snap.TKc1T6
+└── 🔨 Created function run.
+router seed 728034927264498030 (2 s)
+prepared full21 (cand_full21.py) in 63.1 s
+prepared s92 (cand_full21s92.py) in 1.0 s
+prepared s100 (cand_full21s100.py) in 1.0 s
+prepared s108 (cand_full21s108.py) in 1.0 s
+  full21 case 1: pass update relative L2 error 6.462e-02 (worst row 1.125e-01) [bound 0.150]; attention input relative L2 error 4.223e-02 (worst row 7.373e-02) [bound 0.099]
+  s92 case 1: pass update relative L2 error 6.462e-02 (worst row 1.125e-01) [bound 0.150]; attention input relative L2 error 4.223e-02 (worst row 7.373e-02) [bound 0.099]
+  s100 case 1: pass update relative L2 error 6.462e-02 (worst row 1.125e-01) [bound 0.150]; attention input relative L2 error 4.223e-02 (worst row 7.373e-02) [bound 0.099]
+  s108 case 1: pass update relative L2 error 6.462e-02 (worst row 1.125e-01) [bound 0.150]; attention input relative L2 error 4.223e-02 (worst row 7.373e-02) [bound 0.099]
+1 turn 1     b1 ctx80000 full    q753  sglang    1533.6  full21     813.6 x1.866  s92     816.0 x1.866 (vs full21 x0.9982)  s100     813.8 x1.869 (vs full21 x1.0030)  s108     808.9 x1.878 (vs full21 x1.0058)
+  full21 case 3: pass update relative L2 error 6.525e-02 (worst row 1.119e-01) [bound 0.150]; attention input relative L2 error 4.255e-02 (worst row 8.430e-02) [bound 0.101]
+  s92 case 3: pass update relative L2 error 6.525e-02 (worst row 1.119e-01) [bound 0.150]; attention input relative L2 error 4.255e-02 (worst row 8.430e-02) [bound 0.101]
+  s100 case 3: pass update relative L2 error 6.525e-02 (worst row 1.119e-01) [bound 0.150]; attention input relative L2 error 4.255e-02 (worst row 8.430e-02) [bound 0.101]
+  s108 case 3: pass update relative L2 error 6.525e-02 (worst row 1.119e-01) [bound 0.150]; attention input relative L2 error 4.255e-02 (worst row 8.430e-02) [bound 0.101]
+3 turn 4     b4 ctx80000 full    q753  sglang    5104.3  full21    2843.9 x1.806  s92    2837.2 x1.808 (vs full21 x1.0030)  s100    2832.3 x1.814 (vs full21 x1.0041)  s108    2820.0 x1.824 (vs full21 x1.0098)
+full21: turn 1 x1.866  turn 4 x1.806  geomean x1.8357 (partial)
+s92: turn 1 x1.866  turn 4 x1.808  geomean x1.8368 (partial)
+s100: turn 1 x1.869  turn 4 x1.814  geomean x1.8411 (partial)
+s108: turn 1 x1.878  turn 4 x1.824  geomean x1.8508 (partial)
+Stopping app - local entrypoint completed.
+✓ App completed. View run at 
+<modal-run-url>
+done

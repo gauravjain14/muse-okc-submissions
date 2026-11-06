@@ -1,0 +1,81 @@
+--- 02_native_moe_f16_softmax_pdl/build.py
++++ 03_expq_fp8_exponential/build.py
+@@ -5684,6 +5684,10 @@
+ #ifndef ATT_POLYH
+ #define ATT_POLYH 0         // with ATT_F16S: n8 blocks (of 16) whose exp2 runs as an f16x2 polynomial
+ #endif
++#ifndef ATT_EXPQ
++#define ATT_EXPQ 0          // with ATT_F16S: P's FP8 code straight from the f16 score (Schraudolph:
++                            // code = round(8 (S - m) + 56), linear mantissa), no MUFU
++#endif
+ #ifndef ATT_LAZY
+ #define ATT_LAZY 0          // exp with the previous max at once; the tile max (from P) only gates a rare rescale
+ #endif
+@@ -5794,6 +5798,7 @@
+ DEVI u32 h2sub(u32 a, u32 b) { u32 r; asm("sub.f16x2 %0, %1, %2;" : "=r"(r) : "r"(a), "r"(b)); return r; }
+ DEVI u32 h2ex2(u32 a) { u32 r; asm("ex2.approx.f16x2 %0, %1;" : "=r"(r) : "r"(a)); return r; }
+ DEVI u32 h2mul(u32 a, u32 b) { u32 r; asm("mul.f16x2 %0, %1, %2;" : "=r"(r) : "r"(a), "r"(b)); return r; }
++DEVI u32 prmt_b(u32 a, u32 b, u32 sel) { u32 r; asm("prmt.b32 %0, %1, %2, %3;" : "=r"(r) : "r"(a), "r"(b), "r"(sel)); return r; }
+ DEVI u32 h2add(u32 a, u32 b) { u32 r; asm("add.f16x2 %0, %1, %2;" : "=r"(r) : "r"(a), "r"(b)); return r; }
+ DEVI u32 h2fma(u32 a, u32 b, u32 c) { u32 r; asm("fma.rn.f16x2 %0, %1, %2, %3;" : "=r"(r) : "r"(a), "r"(b), "r"(c)); return r; }
+ // 2^x for f16x2 x <= 8 on the FMA pipe: n = round(x) through the 1551 magic (its low 6 bits hold
+@@ -6472,10 +6477,27 @@
+         const bool na = ta > ma + 8.f, nb = tb > mb + 8.f;
+         resc = __any_sync(0xffffffff, na || nb);
+         if (resc) {
+-          const float ma2 = na ? ta - 8.f : ma, mb2 = nb ? tb - 8.f : mb;
++          float ma2 = na ? ta - 8.f : ma, mb2 = nb ? tb - 8.f : mb;
++#if ATT_EXPQ
++          ma2 = rintf(ma2 * 8.f) * 0.125f; mb2 = rintf(mb2 * 8.f) * 0.125f;   // 8 m integer: the code offset is exact
++#endif
+           sca = ex2_mufu(ma - ma2); scb = ex2_mufu(mb - mb2);
+           ma = ma2; mb = mb2;
+         }
++#if ATT_EXPQ
++        {
++          // y = 8 S + (1080 - 8 m) lands in [1024, 2048) (ulp 1) for kept scores: its low byte is the
++          // E4M3 code of 2^(S - m) with a linear mantissa; below 1024 (S - m < -7, masked) -> code 0
++          const float ca = 1080.f - 8.f * fminf(fmaxf(ma, -1000.f), 1000.f), cb = 1080.f - 8.f * fminf(fmaxf(mb, -1000.f), 1000.f);
++          const u32 cha = f2_to_h2(ca, ca), chb = f2_to_h2(cb, cb);
++#pragma unroll
++          for (int n8 = 0; n8 < 16; ++n8) {
++            hs[n8][0] = h2max(h2fma(hs[n8][0], 0x48004800u, cha), 0x64006400u);
++            hs[n8][1] = h2max(h2fma(hs[n8][1], 0x48004800u, chb), 0x64006400u);
++          }
++        }
++        if (false) {
++#endif
+         const float mca = fmaxf(ma, -60000.f), mcb = fmaxf(mb, -60000.f);
+         const u32 mha = f2_to_h2(mca, mca), mhb = f2_to_h2(mcb, mcb);
+ #pragma unroll
+@@ -6484,8 +6506,21 @@
+           if ((n8 * ATT_POLYH) % 16 < ATT_POLYH) { hs[n8][0] = h2exp_poly(x0); hs[n8][1] = h2exp_poly(x1); }
+           else { hs[n8][0] = h2ex2(x0); hs[n8][1] = h2ex2(x1); }
+         }
++#if ATT_EXPQ
++        }
++#endif
+       };
+       auto to_p_h = [&](u32 (&hs)[16][2]) {
++#if ATT_EXPQ
++#pragma unroll
++        for (int kc = 0; kc < 4; ++kc) {   // the codes are the low bytes of each f16 half
++          pf[kc][0] = prmt_b(hs[4 * kc][0], hs[4 * kc + 1][0], 0x6420);
++          pf[kc][1] = prmt_b(hs[4 * kc][1], hs[4 * kc + 1][1], 0x6420);
++          pf[kc][2] = prmt_b(hs[4 * kc + 2][0], hs[4 * kc + 3][0], 0x6420);
++          pf[kc][3] = prmt_b(hs[4 * kc + 2][1], hs[4 * kc + 3][1], 0x6420);
++        }
++        return;
++#endif
+ #pragma unroll
+         for (int kc = 0; kc < 4; ++kc) {
+           pf[kc][0] = (u32)h2_to_e4m3x2(hs[4 * kc][0]) | ((u32)h2_to_e4m3x2(hs[4 * kc + 1][0]) << 16);
+@@ -7189,7 +7224,7 @@
+ # ---------------------------------------------------------------------------------------------
+ # Prefill attention (own kernels): replaces FA3 + the output norm/gate. QK-norm/RoPE/FP8 cache store,
+ # KV packing and a wgmma attention kernel with the output norm and gate fused.
+-ATT_DEFINES = ['ATT_CW 3', 'ATT_POLY 0', 'ATT_PP 2', 'ATT_F16S 1', 'ATT_POLYH 3']
++ATT_DEFINES = ['ATT_CW 3', 'ATT_POLY 0', 'ATT_PP 2', 'ATT_F16S 1', 'ATT_EXPQ 1']
+ ATT_SLIDING_MIN = 0   # sliding layers this long take the new kernels too
+ _att_base_prepare = prepare
+ 

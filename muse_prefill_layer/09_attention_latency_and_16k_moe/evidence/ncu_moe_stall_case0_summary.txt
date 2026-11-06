@@ -1,0 +1,59 @@
+total stall samples 29093
+  stall_wait                    18.5%
+  stall_selected                17.2%
+  stall_barrier                 16.2%
+  stall_dispatch                 8.3%
+  stall_long_sb                  8.0%
+  stall_not_selected             7.3%
+  stall_short_sb                 6.4%
+  stall_math                     5.8%
+  stall_no_inst                  2.7%
+  stall_sleep                    2.2%
+  stall_branch_resolving         2.2%
+  stall_membar                   0.2%
+  stall_mio                      0.1%
+  stall_imc                      0.1%
+  stall_misc                     0.1%
+  stall_drain                    0.0%
+by opcode (share of all samples):
+  WARPGROUP       16.5%
+                  12.2%
+  LOP3            10.8%
+  HMUL2            8.7%
+  SHF              8.4%
+  IMAD             6.8%
+  HGMMA            6.5%
+  LDS              3.8%
+  BRA              2.8%
+  ISETP            2.2%
+  IADD3            2.1%
+  PRMT             1.8%
+  LEA              1.3%
+  SYNCS            1.1%
+  ULEA             1.1%
+top 25 PCs:
+   5.38% 0x2b83bb5074c0       WARPGROUP.DEPBAR.LE gsb0, 0x1                                                        barrier=99%, selected=1%
+   3.35% 0x2b83bb507730       WARPGROUP.DEPBAR.LE gsb0, 0x1                                                        barrier=98%, selected=1%
+   3.20% 0x2b83bb507600       WARPGROUP.DEPBAR.LE gsb0, 0x1                                                        barrier=98%, no_inst=1%
+   2.76% 0x2b83bb515040       BRA 0x2b83bb5146c0                                                                   sleep=81%, branch_resolving=8%
+   2.11% 0x2b83bb507150       SHF.L.W.U32.HI R15, R4, 0xa, R4                                                      short_sb=96%, wait=3%
+   1.30% 0x2b83bb5146e0       LDS R14, [R14]                                                                       branch_resolving=75%, wait=8%
+   1.23% 0x2b83bb515df0 @!P4  BRA 0x2b83bb516f50                                                                   long_sb=99%, dispatch=0%
+   1.19% 0x2b83bb516390 @!P4  BRA 0x2b83bb516f90                                                                   long_sb=98%, dispatch=1%
+   1.07% 0x2b83bb507120 @!P1  BRA 0x2b83bb516df0                                                                   long_sb=96%, selected=4%
+   0.90% 0x2b83bb510980       WARPGROUP.DEPBAR.LE gsb0, 0x1                                                        barrier=97%, dispatch=3%
+   0.77% 0x2b83bb4eed80 @!P1  BRA 0x2b83bb516b50                                                                   long_sb=89%, not_selected=6%
+   0.69% 0x2b83bb5146f0       NOP                                                                                  short_sb=81%, not_selected=10%
+   0.69% 0x2b83bb510470       SHF.L.W.U32.HI R23, R4, 0xa, R4                                                      short_sb=92%, wait=4%
+   0.65% 0x2b83bb514720       SHF.R.S32.HI R13, RZ, 0x1f, R14                                                      short_sb=83%, not_selected=7%
+   0.64% 0x2b83bb5076d0       HGMMA.64x256x16.F32.BF16 R24, R152, gdesc[UR16], R24, gsb0                           wait=30%, not_selected=12%
+   0.61% 0x2b83bb4eedc0       IMAD R40, R25, UR22, RZ                                                              short_sb=87%, not_selected=9%
+   0.57% 0x2b83bb4fac50       SHF.L.W.U32.HI R23, R4, 0xa, R4                                                      short_sb=92%, wait=5%
+   0.56% 0x2b83bb4f4b50       SHF.L.W.U32.HI R23, R13, 0xa, R13                                                    short_sb=91%, wait=4%
+   0.53% 0x2b83bb4f03e0 @!P0  BRA 0x2b83bb4f0db0                                                                   barrier=100%, branch_resolving=0%
+   0.50% 0x2b83bb507480       HGMMA.64x256x16.F32.BF16 R24, R152, gdesc[UR16], R24, gsb0                           wait=14%, dispatch=5%
+   0.46% 0x2b83bb514750 @P0   BRA 0x2b83bb515010                                                                   wait=86%, dispatch=6%
+   0.46% 0x2b83bb4fac20 @!P1  BRA 0x2b83bb516cd0                                                                   long_sb=96%, dispatch=2%
+   0.44% 0x2b83bb510a00       WARPGROUP.DEPBAR.LE gsb0, 0x1                                                        barrier=94%, dispatch=3%
+   0.43% 0x2b83bb4f4b20 @!P1  BRA 0x2b83bb516c10                                                                   long_sb=90%, wait=4%
+   0.42% 0x2b83bb4fb1e0       WARPGROUP.DEPBAR.LE gsb0, 0x1                                                        barrier=98%, dispatch=2%

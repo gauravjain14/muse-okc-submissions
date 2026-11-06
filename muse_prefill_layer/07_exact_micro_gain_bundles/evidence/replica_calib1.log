@@ -1,0 +1,63 @@
+weights_seed=5353 router_seed=728034927264498030
+PREPARE sglang 0.3s
+PREPARE b12 51.9s
+PREPARE b14 45.7s
+PREPARE b17 46.3s
+PREPARE b23 1.8s
+PREPARE b26 57.7s
+FIXED_US 4.480 (one 5.504 two 6.528)
+CHECK PASS case=0 rep=0 b12: update relative L2 error 5.157e-02 (worst row 9.354e-02) [bound 0.120]; attention input relative L2 error 3.381e-02 (worst row 6.304e-02) [bound 0.079]
+CHECK PASS case=0 rep=0 b14: update relative L2 error 5.157e-02 (worst row 9.354e-02) [bound 0.120]; attention input relative L2 error 3.381e-02 (worst row 6.304e-02) [bound 0.079]
+CHECK PASS case=0 rep=0 b17: update relative L2 error 5.157e-02 (worst row 9.354e-02) [bound 0.120]; attention input relative L2 error 3.381e-02 (worst row 6.304e-02) [bound 0.079]
+CHECK PASS case=0 rep=0 b23: update relative L2 error 5.157e-02 (worst row 9.354e-02) [bound 0.120]; attention input relative L2 error 3.381e-02 (worst row 6.304e-02) [bound 0.079]
+CHECK PASS case=0 rep=0 b26: update relative L2 error 5.157e-02 (worst row 9.354e-02) [bound 0.120]; attention input relative L2 error 3.381e-02 (worst row 6.304e-02) [bound 0.079]
+RESULT case=0 turn 1     sliding b1 ctx80000 q753 sglang=1111.9 b12=570.0us x1.9506 b14=566.6us x1.9623 b17=561.9us x1.9786 b23=559.6us x1.9868 b26=559.4us x1.9877
+CHECK PASS case=1 rep=0 b12: update relative L2 error 6.462e-02 (worst row 1.125e-01) [bound 0.150]; attention input relative L2 error 4.223e-02 (worst row 7.373e-02) [bound 0.099]
+CHECK PASS case=1 rep=0 b14: update relative L2 error 6.462e-02 (worst row 1.125e-01) [bound 0.150]; attention input relative L2 error 4.223e-02 (worst row 7.373e-02) [bound 0.099]
+CHECK PASS case=1 rep=0 b17: update relative L2 error 6.462e-02 (worst row 1.125e-01) [bound 0.150]; attention input relative L2 error 4.223e-02 (worst row 7.373e-02) [bound 0.099]
+CHECK PASS case=1 rep=0 b23: update relative L2 error 6.462e-02 (worst row 1.125e-01) [bound 0.150]; attention input relative L2 error 4.223e-02 (worst row 7.373e-02) [bound 0.099]
+CHECK PASS case=1 rep=0 b26: update relative L2 error 6.462e-02 (worst row 1.125e-01) [bound 0.150]; attention input relative L2 error 4.223e-02 (worst row 7.373e-02) [bound 0.099]
+RESULT case=1 turn 1     full    b1 ctx80000 q753 sglang=1526.5 b12=766.3us x1.9920 b14=764.6us x1.9966 b17=758.1us x2.0135 b23=758.0us x2.0139 b26=757.4us x2.0156
+CHECK PASS case=2 rep=0 b12: update relative L2 error 5.288e-02 (worst row 1.090e-01) [bound 0.123]; attention input relative L2 error 3.480e-02 (worst row 7.419e-02) [bound 0.081]
+CHECK PASS case=2 rep=0 b14: update relative L2 error 5.288e-02 (worst row 1.090e-01) [bound 0.123]; attention input relative L2 error 3.480e-02 (worst row 7.419e-02) [bound 0.081]
+CHECK PASS case=2 rep=0 b17: update relative L2 error 5.288e-02 (worst row 1.090e-01) [bound 0.123]; attention input relative L2 error 3.480e-02 (worst row 7.419e-02) [bound 0.081]
+CHECK PASS case=2 rep=0 b23: update relative L2 error 5.288e-02 (worst row 1.090e-01) [bound 0.123]; attention input relative L2 error 3.480e-02 (worst row 7.419e-02) [bound 0.081]
+CHECK PASS case=2 rep=0 b26: update relative L2 error 5.288e-02 (worst row 1.090e-01) [bound 0.123]; attention input relative L2 error 3.480e-02 (worst row 7.419e-02) [bound 0.081]
+RESULT case=2 turn 4     sliding b4 ctx80000 q753 sglang=3494.6 b12=1819.7us x1.9204 b14=1816.8us x1.9235 b17=1810.1us x1.9306 b23=1806.8us x1.9342 b26=1807.4us x1.9335
+CHECK PASS case=3 rep=0 b12: update relative L2 error 6.525e-02 (worst row 1.119e-01) [bound 0.150]; attention input relative L2 error 4.255e-02 (worst row 8.430e-02) [bound 0.101]
+CHECK PASS case=3 rep=0 b14: update relative L2 error 6.525e-02 (worst row 1.119e-01) [bound 0.150]; attention input relative L2 error 4.255e-02 (worst row 8.430e-02) [bound 0.101]
+CHECK PASS case=3 rep=0 b17: update relative L2 error 6.525e-02 (worst row 1.119e-01) [bound 0.150]; attention input relative L2 error 4.255e-02 (worst row 8.430e-02) [bound 0.101]
+CHECK PASS case=3 rep=0 b23: update relative L2 error 6.525e-02 (worst row 1.119e-01) [bound 0.150]; attention input relative L2 error 4.255e-02 (worst row 8.430e-02) [bound 0.101]
+CHECK PASS case=3 rep=0 b26: update relative L2 error 6.525e-02 (worst row 1.119e-01) [bound 0.150]; attention input relative L2 error 4.255e-02 (worst row 8.430e-02) [bound 0.101]
+RESULT case=3 turn 4     full    b4 ctx80000 q753 sglang=5088.0 b12=2603.9us x1.9539 b14=2601.7us x1.9556 b17=2600.2us x1.9568 b23=2597.4us x1.9588 b26=2591.6us x1.9633
+CHECK PASS case=4 rep=0 b12: update relative L2 error 2.119e-02 (worst row 5.979e-02) [bound 0.044]; attention input relative L2 error 1.404e-02 (worst row 3.340e-02) [bound 0.030]
+CHECK PASS case=4 rep=0 b14: update relative L2 error 2.119e-02 (worst row 5.979e-02) [bound 0.044]; attention input relative L2 error 1.404e-02 (worst row 3.340e-02) [bound 0.030]
+CHECK PASS case=4 rep=0 b17: update relative L2 error 2.119e-02 (worst row 5.979e-02) [bound 0.044]; attention input relative L2 error 1.404e-02 (worst row 3.340e-02) [bound 0.030]
+CHECK PASS case=4 rep=0 b23: update relative L2 error 2.119e-02 (worst row 5.979e-02) [bound 0.044]; attention input relative L2 error 1.404e-02 (worst row 3.340e-02) [bound 0.030]
+CHECK PASS case=4 rep=0 b26: update relative L2 error 2.119e-02 (worst row 5.979e-02) [bound 0.044]; attention input relative L2 error 1.404e-02 (worst row 3.340e-02) [bound 0.030]
+RESULT case=4 first turn full    b1 ctx0 q16384 sglang=18359.8 b12=9182.2us x1.9995 b14=9205.8us x1.9944 b17=9120.2us x2.0131 b23=9255.3us x1.9837 b26=9244.0us x1.9861
+CHECK PASS case=5 rep=0 b12: update relative L2 error 3.219e-02 (worst row 1.114e-01) [bound 0.069]; attention input relative L2 error 2.126e-02 (worst row 6.751e-02) [bound 0.046]
+CHECK PASS case=5 rep=0 b14: update relative L2 error 3.219e-02 (worst row 1.114e-01) [bound 0.069]; attention input relative L2 error 2.126e-02 (worst row 6.751e-02) [bound 0.046]
+CHECK PASS case=5 rep=0 b17: update relative L2 error 3.219e-02 (worst row 1.114e-01) [bound 0.069]; attention input relative L2 error 2.126e-02 (worst row 6.751e-02) [bound 0.046]
+CHECK PASS case=5 rep=0 b23: update relative L2 error 3.219e-02 (worst row 1.114e-01) [bound 0.069]; attention input relative L2 error 2.126e-02 (worst row 6.751e-02) [bound 0.046]
+CHECK PASS case=5 rep=0 b26: update relative L2 error 3.219e-02 (worst row 1.114e-01) [bound 0.069]; attention input relative L2 error 2.126e-02 (worst row 6.751e-02) [bound 0.046]
+RESULT case=5 first turn sliding b1 ctx32768 q16384 sglang=17252.7 b12=8691.0us x1.9851 b14=8445.5us x2.0428 b17=8419.9us x2.0491 b23=8398.6us x2.0542 b26=8386.0us x2.0573
+CHECK PASS case=6 rep=0 b12: update relative L2 error 5.356e-02 (worst row 1.262e-01) [bound 0.123]; attention input relative L2 error 3.490e-02 (worst row 7.867e-02) [bound 0.080]
+CHECK PASS case=6 rep=0 b14: update relative L2 error 5.356e-02 (worst row 1.262e-01) [bound 0.123]; attention input relative L2 error 3.490e-02 (worst row 7.867e-02) [bound 0.080]
+CHECK PASS case=6 rep=0 b17: update relative L2 error 5.356e-02 (worst row 1.262e-01) [bound 0.123]; attention input relative L2 error 3.490e-02 (worst row 7.867e-02) [bound 0.080]
+CHECK PASS case=6 rep=0 b23: update relative L2 error 5.356e-02 (worst row 1.262e-01) [bound 0.123]; attention input relative L2 error 3.490e-02 (worst row 7.867e-02) [bound 0.080]
+CHECK PASS case=6 rep=0 b26: update relative L2 error 5.356e-02 (worst row 1.262e-01) [bound 0.123]; attention input relative L2 error 3.490e-02 (worst row 7.867e-02) [bound 0.080]
+RESULT case=6 first turn full    b1 ctx32768 q16384 sglang=23280.9 b12=11370.7us x2.0475 b14=11070.2us x2.1030 b17=11107.1us x2.0960 b23=11204.6us x2.0778 b26=11216.2us x2.0757
+CHECK PASS case=7 rep=0 b12: update relative L2 error 6.108e-02 (worst row 1.197e-01) [bound 0.142]; attention input relative L2 error 3.998e-02 (worst row 8.612e-02) [bound 0.093]
+CHECK PASS case=7 rep=0 b14: update relative L2 error 6.108e-02 (worst row 1.197e-01) [bound 0.142]; attention input relative L2 error 3.998e-02 (worst row 8.612e-02) [bound 0.093]
+CHECK PASS case=7 rep=0 b17: update relative L2 error 6.108e-02 (worst row 1.197e-01) [bound 0.142]; attention input relative L2 error 3.998e-02 (worst row 8.612e-02) [bound 0.093]
+CHECK PASS case=7 rep=0 b23: update relative L2 error 6.108e-02 (worst row 1.197e-01) [bound 0.142]; attention input relative L2 error 3.998e-02 (worst row 8.612e-02) [bound 0.093]
+CHECK PASS case=7 rep=0 b26: update relative L2 error 6.108e-02 (worst row 1.197e-01) [bound 0.142]; attention input relative L2 error 3.998e-02 (worst row 8.612e-02) [bound 0.093]
+RESULT case=7 first turn full    b1 ctx65536 q16384 sglang=26912.6 b12=12979.0us x2.0735 b14=13031.1us x2.0653 b17=13015.4us x2.0678 b23=13006.9us x2.0691 b26=13042.7us x2.0634
+SCORE b12: speedup 1.9660 score 197.048 ms loads {"turn 1": 1.9638, "turn 4": 1.9316, "first turn": 2.0035} draws mean 1.9687 sd 0.0052 min 1.9609 max 1.9755
+SCORE b14: speedup 1.9845 score 195.218 ms loads {"turn 1": 1.9733, "turn 4": 1.9342, "first turn": 2.0477} draws mean 1.9841 sd 0.0036 min 1.9804 max 1.9894
+SCORE b17: speedup 1.9936 score 194.328 ms loads {"turn 1": 1.9898, "turn 4": 1.9393, "first turn": 2.0532} draws mean 1.9897 sd 0.0050 min 1.9848 max 1.9980
+SCORE b23: speedup 1.9963 score 194.066 ms loads {"turn 1": 1.9955, "turn 4": 1.9424, "first turn": 2.0524} draws mean 1.9939 sd 0.0072 min 1.9846 max 2.0037
+SCORE b26: speedup 1.9974 score 193.951 ms loads {"turn 1": 1.9966, "turn 4": 1.9434, "first turn": 2.0538} draws mean 1.9929 sd 0.0084 min 1.9803 max 2.0035
+REPLICA_RC=0
+REMOTE_EXIT 0

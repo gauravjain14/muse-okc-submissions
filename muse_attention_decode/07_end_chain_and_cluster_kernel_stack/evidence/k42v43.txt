@@ -1,0 +1,31 @@
+[gate] slot 2 at 16:58:34 (2 running)
+✓ Initialized. View run at 
+<modal-run-url>
+✓ Created objects.
+├── 🔨 Created mount 
+│   autoresearch-kernels/attn/tools/modal_run.py
+├── 🔨 Created mount autoresearch-kernels/attn
+└── 🔨 Created function run.
+[gpu-before]
+NVIDIA H200, 0 %, 4 MiB, 345 MHz, 1980 MHz, 77.92 W
+0
+  check k34a verify 16 full: relative L2 error 2.930e-02 (worst row 5.340e-02) [bound 0.086: 2.5 x the reference's 0.029 with FP8 E4M3 queries + 0.015]
+  check k42 verify 16 full: relative L2 error 2.922e-02 (worst row 5.322e-02) [bound 0.086: 2.5 x the reference's 0.029 with FP8 E4M3 queries + 0.015]
+  check k43 verify 16 full: relative L2 error 2.922e-02 (worst row 5.332e-02) [bound 0.086: 2.5 x the reference's 0.029 with FP8 E4M3 queries + 0.015]
+  check k34b verify 16 full: relative L2 error 2.930e-02 (worst row 5.340e-02) [bound 0.086: 2.5 x the reference's 0.029 with FP8 E4M3 queries + 0.015]
+verify 16 full    w16 sglang   202.56 | k34a   101.33 x1.999 | k42    95.49 x2.121 | k43    95.90 x2.112 | k34b   101.41 x1.997   sol   63.39
+  check k34a verify 32 full: relative L2 error 3.265e-02 (worst row 5.985e-02) [bound 0.095: 2.5 x the reference's 0.032 with FP8 E4M3 queries + 0.015]
+  check k42 verify 32 full: relative L2 error 3.265e-02 (worst row 5.841e-02) [bound 0.095: 2.5 x the reference's 0.032 with FP8 E4M3 queries + 0.015]
+  check k43 verify 32 full: relative L2 error 3.262e-02 (worst row 5.842e-02) [bound 0.095: 2.5 x the reference's 0.032 with FP8 E4M3 queries + 0.015]
+  check k34b verify 32 full: relative L2 error 3.265e-02 (worst row 5.985e-02) [bound 0.095: 2.5 x the reference's 0.032 with FP8 E4M3 queries + 0.015]
+verify 32 full    w16 sglang   387.52 | k34a   183.31 x2.114 | k42   178.15 x2.175 | k43   174.61 x2.219 | k34b   183.35 x2.114   sol  126.78
+0 failures
+[gpu-after]
+NVIDIA H200, 12 %, 4 MiB, 1980 MHz, 1980 MHz, 122.78 W
+0
+
+[exit 0]
+Stopping app - local entrypoint completed.
+Runner terminated.
+✓ App completed. View run at 
+<modal-run-url>

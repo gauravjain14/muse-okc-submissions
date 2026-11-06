@@ -1,0 +1,5 @@
+LAB gpu NVIDIA H200 torch 2.14.1+cu130 cuda 13.0 cublas _BlasBackend.Cublas
+LAB clock idle: 1.980 GHz over 9.0 ms
+LAB gemm16k sustained: 1477.1 us/call = 744 TF/s; SM clock beside it 1.649 GHz over 32.3 ms
+LAB gemm16k cold: 1398.0 us = 787 TF/s; gemm753 cold: 72.7 us = 695 TF/s
+LAB hbm copy: 4.26 TB/s

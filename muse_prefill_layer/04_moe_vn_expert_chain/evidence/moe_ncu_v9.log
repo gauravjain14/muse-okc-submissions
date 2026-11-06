@@ -1,0 +1,37 @@
+✓ Initialized. View run at 
+<modal-run-url>
+✓ Created objects.
+==PROF== Disconnected from process 35
+==WARNING== No source files were imported. Check that the target application was compiled with -lineinfo.
+==PROF== Report: /tmp/m753.ncu-rep
+  SM Frequency                                       1.71 Ghz
+  Memory Throughput                                 42.05 %
+  DRAM Throughput                                   31.86 %
+  Duration                                         301.25 us
+  L2 Cache Throughput                               48.02 %
+  Compute (SM) Throughput                           58.57 %
+  Executed Ipc Active                                1.44 inst/cycle
+  Issue Slots Busy                                  33.50 %
+  Memory Throughput                                  1.53 Tbyte/s
+  L1/TEX Hit Rate                                   51.63 %
+  L2 Hit Rate                                       44.92 %
+  No Eligible                                       63.98 %
+  Active Warps Per Scheduler                         2.48 warp
+  Eligible Warps Per Scheduler                       0.51 warp
+  Registers Per Thread                                168 register/thread
+  Achieved Occupancy                                15.63 %
+stall reasons: [('Warp Stall Sampling (All Samples)', 30437.0), ('stall_wait', 5195.0), ('stall_selected', 4592.0), ('stall_long_sb', 4331.0), ('stall_dispatch', 3480.0), ('stall_math', 2735.0), ('stall_long_sb (Not Issued)', 2689.0), ('stall_wait (Not Issued)', 2561.0), ('stall_barrier', 2519.0), ('stall_not_selected', 1859.0), ('stall_no_inst', 1714.0), ('stall_barrier (Not Issued)', 1626.0), ('stall_no_inst (Not Issued)', 1517.0), ('stall_short_sb', 1099.0)]
+samples by opcode: [('LOP3', 4581.0), ('HGMMA', 3110.0), ('IMAD', 2491.0), ('BRA', 2486.0), ('WARPGROUP', 2445.0), ('HMUL2', 2285.0), ('NANOSLEEP', 1986.0), ('HMMA', 1876.0), ('SHF', 1789.0), ('R2UR', 909.0), ('ISETP', 683.0), ('LEA', 675.0), ('PRMT', 490.0), ('STS', 466.0), ('IADD3', 449.0), ('SYNCS', 378.0)]
+  LOP3       selected 1102, wait 1022, math 899, dispatch 796, not_selected 531, no_inst 135
+  HGMMA      wait 864, dispatch 193, mio 122, selected 109, not_selected 99, no_inst 8
+  IMAD       selected 598, dispatch 378, wait 376, short_sb 368, no_inst 220, long_sb 184
+  BRA        long_sb 1888, wait 282, barrier 75, selected 63, branch_resolving 56, dispatch 56
+  WARPGROUP  barrier 2179, wait 102, dispatch 73, selected 61, not_selected 29, no_inst 1
+  HMUL2      selected 758, dispatch 673, wait 387, math 203, not_selected 140, no_inst 124
+  NANOSLEEP  long_sb 1977, dispatch 4, wait 4, selected 1, barrier 0, branch_resolving 0
+  HMMA       math 773, wait 368, selected 225, not_selected 223, dispatch 211, short_sb 62
+  SHF        selected 448, wait 336, short_sb 294, dispatch 260, math 221, not_selected 144
+  R2UR       wait 235, selected 230, dispatch 199, math 128, not_selected 71, no_inst 32
+Stopping app - local entrypoint completed.
+✓ App completed. View run at 
+<modal-run-url>

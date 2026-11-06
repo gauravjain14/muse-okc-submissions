@@ -1,0 +1,10 @@
+[sbx] box 1
+=== trace cold []
+replays 32  event 29.07 us  K(last store) 22.56
+store - seen (per-CTA median) 0.384 us   first seen - slowest red 0.384
+slowest red - median red 0.288 (p90 0.800)  median seen - slowest red 0.480  last store - slowest red 0.976
+=== trace cold [EC_OF,EC_R4,EC_UP1]
+replays 32  event 28.93 us  K(last store) 22.24
+store - seen (per-CTA median) 0.064 us   first seen - slowest red 0.256
+slowest red - median red 0.288 (p90 0.608)  median seen - slowest red 0.352  last store - slowest red 0.512
+REMOTE_EXIT 0

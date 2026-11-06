@@ -1,0 +1,29 @@
+[gate] slot 0 at 23:58:34 (0 running)
+<modal-run-url>
+│   autoresearch-kernels/attn/tools/modal_run.py
+0 failures
+decode 1  sliding w46 sglang    20.14 | k3    12.62 x1.596 | k3w    12.84 x1.569   sol    0.11
+decode 1  full    w16 sglang    30.67 | k3    16.63 x1.844 | k3w    16.63 x1.844   sol    4.27
+decode 16 sliding w46 sglang    25.55 | k3    13.88 x1.841 | k3w    14.10 x1.813   sol    1.65
+decode 16 full    w16 sglang   198.42 | k3   107.71 x1.842 | k3w   107.28 x1.850   sol   63.18
+decode 32 sliding w46 sglang    30.26 | k3    17.76 x1.704 | k3w    17.80 x1.700   sol    3.29
+decode 32 full    w16 sglang   382.19 | k3   189.80 x2.014 | k3w   190.59 x2.005   sol  126.35
+verify 1  sliding w46 sglang    21.92 | k3    21.04 x1.042 | k3w    17.36 x1.263   sol    0.12
+verify 1  full    w16 sglang    34.69 | k3    30.08 x1.153 | k3w    21.58 x1.607   sol    4.28
+verify 16 sliding w46 sglang    27.95 | k3    21.14 x1.322 | k3w    18.22 x1.534   sol    1.86
+verify 16 full    w16 sglang   202.14 | k3   315.83 x0.640 | k3w   142.39 x1.420   sol   63.39
+verify 32 sliding w46 sglang    33.62 | k3    28.57 x1.177 | k3w    21.84 x1.540   sol    3.72
+verify 32 full    w16 sglang   387.18 | k3   606.61 x0.638 | k3w   253.27 x1.529   sol  126.78
+per-load (weighted sums, us):
+  decode 1  sglang    1417.4 | k3     846.8 x1.674 | k3w     856.7 x1.654
+  decode 16 sglang    4350.0 | k3    2361.7 x1.842 | k3w    2364.8 x1.839
+  decode 32 sglang    7506.8 | k3    3853.7 x1.948 | k3w    3868.4 x1.941
+  verify 1  sglang    1563.3 | k3    1449.0 x1.079 | k3w    1143.7 x1.367
+  verify 16 sglang    4520.1 | k3    6025.9 x0.750 | k3w    3116.4 x1.450
+  verify 32 sglang    7741.3 | k3   11020.1 x0.702 | k3w    5056.8 x1.531
+GEOMEAN k3: x1.2271 (board time 3008.6 us)   judge-projected (+1.0 us/call) x1.2180 (board 3095.2 us)
+GEOMEAN k3w: x1.6177 (board time 2282.1 us)   judge-projected (+1.0 us/call) x1.5988 (board 2358.0 us)
+grep: (standard input): binary file matches
+fetched into autoresearch-kernels/attn/out/20261028T000036_verify_k3w
+[exit 0]
+<modal-run-url>

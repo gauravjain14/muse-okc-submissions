@@ -1,0 +1,72 @@
+actions 40, samples 60079, lines 266
+by stall: barrier 21.6%, wait 17.4%, short_scoreboard 13.0%, no_instructions 12.8%, selected 12.7%, not_selected 6.7%, long_scoreboard 4.7%, math_pipe_throttle 4.2%, branch_resolving 3.6%, mio_throttle 1.8%, dispatch_stall 0.9%, drain 0.4%, misc 0.1%
+  7.9% L 2880 *(float2*)(mO + ((long long)li2 * R + r) * HD + 16 * wl2 + 2 * g2) = make_float2(ds. | barrier 4498, mio_throttle 127, wait 78
+  6.5% L 2761 range(seq, pos0l, npast, has_new, lo);                                               | barrier 3874, not_selected 25, wait 23
+  3.2% L 2943 const int bq = (int)cl_id();                                                         | barrier 1835, mio_throttle 51, wait 25
+  3.1% L   70 __device__ __forceinline__ u32 cl_rank() { u32 r; asm volatile("mov.u32 %0, %%cluste | long_scoreboard 1753, mio_throttle 31, selected 20
+  3.0% L 2882 ls += __shfl_xor_sync(0xffffffffu, ls, 4);                                           | short_scoreboard 1233, branch_resolving 269, mio_throttle 132
+  3.0% L 3144 K3W(0, 0, 3) K3W(0, 1, 3) K3W(1, 0, 3) K3W(1, 1, 3)                                  | no_instructions 1717, not_selected 43, mio_throttle 11
+  2.4% L 2863 dec_tile<false>(ds, st, isnew ? 4096u : (u32)(DSTG / 2), qd, pt, xl, wl, g, tig, lan | barrier 1402, not_selected 53, selected 4
+  2.4% L 2981 A.x += on ? y.x : 0.f; A.y += on ? y.y : 0.f; A.z += on ? y.z : 0.f; A.w += on ? y.w | no_instructions 787, selected 602, wait 33
+  2.3% L 2883 ls += __shfl_xor_sync(0xffffffffu, ls, 8);                                           | short_scoreboard 1280, wait 80, selected 38
+  2.3% L 2948 const int r0 = (int)crank * R / CLn, r1 = ((int)crank + 1) * R / CLn, nrow = r1 - r0 | wait 410, short_scoreboard 237, math_pipe_throttle 211
+  2.2% L 2650 u0 = (long long)((unsigned)part * n1 / cp_);                                         | wait 364, no_instructions 269, short_scoreboard 208
+  1.9% L 2960 for (int q2 = 0; q2 < 16; ++q2) M = fmaxf(M, recv[(min(q2, CLn - 1) * RS + rr) * 68  | selected 398, wait 244, not_selected 228
+  1.8% L 2898 const int RS = (R + CLn - 1) / CLn;                                                  | wait 412, short_scoreboard 213, selected 145
+  1.8% L 2687 cp16(dst, ok ? (const void*)(gsrc + (long long)r * rowbytes) : (const void*)p.k_cach | no_instructions 690, selected 129, wait 72
+  1.8% L 3017 cl_wait();   // nobody exits while a peer's st.async may still target it             | wait 281, drain 221, short_scoreboard 192
+  1.7% L  746 const float y2 = a2 * rs / (1.f + __expf(-g2)), y3 = a3 * rs / (1.f + __expf(-g3));  | wait 524, short_scoreboard 226, selected 166
+  1.7% L 2668 if (PAGE1) row = __ldg(p.page_table + ptbase + tpos);                                | wait 320, short_scoreboard 226, not_selected 209
+  1.6% L 2708 u0g = (long long)((unsigned)part * n1 / cp_);                                        | wait 409, short_scoreboard 221, math_pipe_throttle 124
+  1.5% L  745 const float y0 = a0 * rs / (1.f + __expf(-g0)), y1 = a1 * rs / (1.f + __expf(-g1));  | wait 452, short_scoreboard 200, selected 169
+  1.4% L 2970 if (tid < ((nrow * 16 + 31) & ~31)) {                                                | barrier 703, wait 90, branch_resolving 42
+  1.2% L  752 *(uint2*)(p.out + t * (hq * HD) + (long long)(hp * 16 + hl) * HD + c4 * 4) = ov;     | no_instructions 385, wait 128, selected 97
+  1.0% L 2725 if (ROPE && tid < 32) tpos_f = (float)__ldg(p.positions + b);                        | branch_resolving 134, wait 123, short_scoreboard 107
+  1.0% L  740 for (int off = 1; off < 16; off <<= 1) ss += __shfl_xor_sync(0xffffffffu, ss, off);  | short_scoreboard 431, wait 112, selected 43
+  0.9% L 2642 lo_r = window ? max(0LL, seq_v - window + 1) : 0LL;                                  | not_selected 144, short_scoreboard 139, math_pipe_throttle 113
+  0.9% L   71 __device__ __forceinline__ void cl_arrive_relaxed() { asm volatile("barrier.cluster. | short_scoreboard 265, wait 138, selected 64
+  0.9% L 2978 const float4 y = cs4[(rr * CLn + qc) * 16 + c4];                                     | no_instructions 340, selected 218, wait 4
+  0.9% L 2841 fence_async();   // Q^T and the new tile (generic stores) -> async proxy; barriers b | long_scoreboard 209, mio_throttle 132, wait 56
+  0.9% L 2884 ls += __shfl_xor_sync(0xffffffffu, ls, 16);                                          | short_scoreboard 381, wait 74, selected 49
+  0.8% L  723 asm volatile("cp.async.ca.shared.global [%0], [%1], 4, %2;\n" :: "r"(dst), "l"(src), | wait 125, not_selected 106, selected 101
+  0.8% L 2979 const float l2 = csl[rr * CLn + qc];                                                 | no_instructions 374, selected 108
+  0.8% L 2887 if (wl2 == 0) mM[li2 * R + r] = ds.m[h][e];                                          | wait 245, branch_resolving 81, no_instructions 70
+  0.8% L 2651 u1 = last_part ? NUb : (long long)((unsigned)(part + 1) * n1 / cp_);                 | wait 247, math_pipe_throttle 94, selected 73
+  0.8% L 2798 ss += __shfl_xor_sync(0xffffffffu, ss, 2);                                           | short_scoreboard 418, wait 32, selected 11
+  0.8% L 2703 if (p.chunk > 0) {                                                                   | short_scoreboard 323, wait 89, selected 25
+  0.8% L 2709 u1g = last_part ? p.gn1 + 1 : (long long)((unsigned)(part + 1) * n1 / cp_);          | wait 290, selected 68, math_pipe_throttle 41
+  0.7% L 2666 const long long tpos = pos0_r + ub;                                                  | not_selected 178, math_pipe_throttle 169, selected 51
+  0.7% L 2813 sts64(qt + (qr >> 3) * 512 + (qk >> 1) * 128 + (qr & 7) * 16 + (qk & 1) * 8,         | no_instructions 121, wait 81, not_selected 81
+  0.7% L 2686 const bool ok = 2 * jj < rem && (unsigned)r < (unsigned long long)p.cache_rows;      | selected 138, wait 73, math_pipe_throttle 60
+  0.6% L 2722 else if (lane == 9) cp4(smem_u32(wme + 33), p.v_scale, 4);                           | wait 177, selected 55, not_selected 45
+  0.6% L 2749 mb_expect_tx(mb, (u32)(CLn * (r1 - r0) * 264));                                      | no_instructions 312, branch_resolving 15, long_scoreboard 4
+  0.5% L 2665 const int ub = k * DT + wl * TPW + (lane % TPW);                                     | long_scoreboard 230, wait 41, selected 28
+  0.5% L 2677 if (k * DT < npast_r) {                                                              | wait 135, not_selected 69, branch_resolving 55
+  0.5% L 2721 else if (lane == 8) cp4(smem_u32(wme + 32), p.k_scale, 4);                           | wait 185, selected 34, branch_resolving 33
+  0.5% L 2797 ss += __shfl_xor_sync(0xffffffffu, ss, 1);                                           | short_scoreboard 265, not_selected 21, wait 12
+  0.5% L 2685 const u32 dst = sbase + isv_ * (DSTG / 2) + tk * 128 + ((ch_ ^ (tk & 7)) << 4);      | no_instructions 81, selected 78, wait 42
+  0.5% L 2753 if (last_part) for (int i = tid; i < DNEWT / 16; i += blockDim.x) ((uint4*)newt)[i]  | no_instructions 157, branch_resolving 54, wait 46
+  0.5% L 2667 if (ub < npast_r && tpos < width) {                                                  | not_selected 88, selected 71, wait 71
+  0.5% L 2720 if (lane < 8) cp16(smem_u32(wme + lane * 4), p.inv_freq + lane * 4, 16);             | wait 92, selected 61, no_instructions 58
+  0.5% L 2758 const long long seq = misc[13];                                                      | wait 89, no_instructions 81, selected 51
+  0.5% L 2786 rtab[tid] = make_float2(cs, sn);                                                     | no_instructions 263, branch_resolving 19, selected 1
+  0.5% L 2957 const int c4 = tid & 15, rq = tid >> 4, rr = rq / CLn, q = rq - rr * CLn;            | wait 146, selected 60, dispatch_stall 24
+  0.5% L 2610 const int tid = threadIdx.x, warp = tid >> 5, lane = tid & 31, g = lane >> 2, tig =  | wait 129, selected 58, not_selected 41
+  0.5% L 2799 ss += __shfl_xor_sync(0xffffffffu, ss, 4);                                           | short_scoreboard 243, selected 13, wait 12
+  0.4% L   32 __device__ __forceinline__ void bar_sync(int id, int n) { asm volatile("bar.sync %0, | long_scoreboard 240, selected 19, not_selected 6
+  0.4% L   69 __device__ __forceinline__ u32 cl_id() { u32 r; asm volatile("mov.u32 %0, %%clusteri | short_scoreboard 86, no_instructions 52, wait 44
+  0.4% L 2966 if (c4 == 0) csl[rq] = w * e[65];                                                    | short_scoreboard 131, wait 61, no_instructions 49
+  0.4% L 2800 const float rs = rsqrtf(ss * (1.0f / HD) + 1e-5f);                                   | wait 103, short_scoreboard 74, not_selected 48
+  0.4% L  599 wg_fence();                                                                          | barrier 231, selected 15, not_selected 5
+  0.4% L 2658 npast_r = pend > u0 ? (int)(pend - u0) : 0;                                          | math_pipe_throttle 95, not_selected 94, wait 37
+  0.4% L 2982 LS += on ? l2 : 0.f;                                                                 | selected 161, no_instructions 56, wait 21
+  0.4% L 2648 } else if ((NUb - 1) * p.cpr < (1LL << 32)) {   // 32-bit division (the 64-bit one i | wait 146, selected 43, not_selected 20
+  0.4% L 2712 npast_g = (int)max(0LL, min(u1g, p.gn1) - u0g);                                      | selected 69, short_scoreboard 48, not_selected 28
+  0.4% L 2657 const long long pend = min(u1, NUb - 1);                                             | math_pipe_throttle 92, not_selected 92, wait 32
+  0.4% L 2726 for (int i = tid; i < R * 8; i += blockDim.x) {   // gates of this request -> smem   | wait 114, not_selected 39, selected 31
+  0.4% L 2766 const int my_n = nt > li ? (nt - li + NL - 1) / NL : 0;                              | no_instructions 65, wait 58, not_selected 36
+  0.4% L 2701 if (spec) {   // host-precomputed guess (glo, gn1): window start and past tokens for | wait 55, not_selected 55, math_pipe_throttle 38
+  0.3% L 2773 for (int s2 = 0; s2 < NPRO; ++s2) prow[s2] = hit ? rowg[s2] : row_at(pos0l, npast, s | no_instructions 174, branch_resolving 25, selected 10
+  0.3% L 2636 const long long width = p.max_pages * p.page_size;   // positions the page-table row | no_instructions 98, selected 75, not_selected 32
+  0.3% L 2634 const bool last_part = part == (int)p.cpr - 1;                                       | wait 72, branch_resolving 51, selected 34
+  0.3% L 2764 const int ntp = (npast + DT - 1) / DT;                                               | math_pipe_throttle 81, not_selected 79, selected 33

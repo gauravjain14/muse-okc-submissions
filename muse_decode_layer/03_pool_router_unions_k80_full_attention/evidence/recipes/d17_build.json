@@ -1,0 +1,7 @@
+{
+  "base": "muse-opt-codex/muse_decode_layer/variants/d16_stack.py",
+  "output": "muse-opt-codex/muse_decode_layer/variants/d17_expert_partial_norm.py",
+  "sha256": "d5efec336726b9d8c653e27492d61e7191126678b942377f373ebefa4993dd97",
+  "bytes": 980834,
+  "change": "Each WGS phase-B epilogue writes 256 sum-of-squares partials per routed token; column-parallel final reduction reads partials and outputs once. Separate workspace covers every route up to MMAX=384."
+}

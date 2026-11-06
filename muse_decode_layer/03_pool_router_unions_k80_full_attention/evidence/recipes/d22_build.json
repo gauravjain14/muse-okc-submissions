@@ -1,0 +1,7 @@
+{
+  "base": "muse-opt-codex/muse_decode_layer/variants/d21_single_decode.py",
+  "output": "muse-opt-codex/muse_decode_layer/variants/d22_single_decode.py",
+  "bytes": 981245,
+  "sha256": "5c7f72f396ae72d125c9b253af5a4ffce0b1a9308a7f4adc7146c13912750fa8",
+  "change": "Correct d21 source pruning: preserve compile-time GPU-derived grid size. Exact preprocessor equality verified for 128/132/144/160 SMs."
+}

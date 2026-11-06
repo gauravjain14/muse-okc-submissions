@@ -1,0 +1,72 @@
+✓ Initialized. View run at 
+<modal-run-url>
+✓ Created objects.
+├── 🔨 Created mount 
+│   <scratch>
+│   5-ce57afd4da60/scratchpad/snap.wBrgQp/dev/modal_run.py
+├── 🔨 Created mount 
+│   <scratch>
+│   5-ce57afd4da60/scratchpad/snap.wBrgQp
+└── 🔨 Created function run.
+prepared v8 in 62.2 s
+prepared v9 in 44.2 s
+prepared v9pad in 22.5 s
+prepared v10 in 44.0 s
+M   753 seed 0: routes 1462 distinct 14 top [501, 364, 154, 109, 107, 71]
+    v8: rel err 2.871e-03
+    v9: rel err 2.871e-03
+    v9pad: rel err 2.871e-03
+    v10: rel err 2.871e-03
+    v8                312.2 us  vs v8 x1.000
+    v9                304.0 us  vs v8 x1.029
+    v9pad             308.4 us  vs v8 x1.013
+    v10               311.3 us  vs v8 x1.003
+M   753 seed 1: routes 1449 distinct 12 top [519, 359, 160, 114, 108, 64]
+    v8: rel err 2.874e-03
+    v9: rel err 2.874e-03
+    v9pad: rel err 2.874e-03
+    v10: rel err 2.874e-03
+    v8                303.6 us  vs v8 x1.000
+    v9                294.1 us  vs v8 x1.036
+    v9pad             294.2 us  vs v8 x1.032
+    v10               301.1 us  vs v8 x1.010
+M  3012 seed 0: routes 5747 distinct 14 top [2025, 1371, 610, 468, 411, 303]
+    v8: rel err 2.871e-03
+    v9: rel err 2.871e-03
+    v9pad: rel err 2.871e-03
+    v10: rel err 2.871e-03
+    v8                891.5 us  vs v8 x1.000
+    v9                874.7 us  vs v8 x1.019
+    v9pad             874.0 us  vs v8 x1.018
+    v10               893.2 us  vs v8 x0.998
+M  3012 seed 1: routes 5776 distinct 14 top [1980, 1366, 577, 481, 455, 327]
+    v8: rel err 2.870e-03
+    v9: rel err 2.870e-03
+    v9pad: rel err 2.870e-03
+    v10: rel err 2.870e-03
+    v8                891.2 us  vs v8 x1.000
+    v9                874.9 us  vs v8 x1.019
+    v9pad             881.2 us  vs v8 x1.009
+    v10               894.2 us  vs v8 x0.996
+M 16384 seed 0: routes 31687 distinct 15 top [11050, 7419, 3364, 2539, 2499, 1767]
+    v8: rel err 2.870e-03
+    v9: rel err 2.870e-03
+    v9pad: rel err 2.870e-03
+    v10: rel err 2.870e-03
+    v8               4688.3 us  vs v8 x1.000
+    v9               4689.3 us  vs v8 x0.999
+    v9pad            4841.6 us  vs v8 x1.003
+    v10              4959.3 us  vs v8 x0.982
+M 16384 seed 1: routes 31377 distinct 15 top [10949, 7438, 3345, 2472, 2427, 1674]
+    v8: rel err 2.870e-03
+    v9: rel err 2.870e-03
+    v9pad: rel err 2.870e-03
+    v10: rel err 2.870e-03
+    v8               4820.3 us  vs v8 x1.000
+    v9               4823.4 us  vs v8 x1.000
+    v9pad            4812.0 us  vs v8 x1.002
+    v10              4938.4 us  vs v8 x0.981
+Stopping app - local entrypoint completed.
+✓ App completed. View run at 
+<modal-run-url>
+done

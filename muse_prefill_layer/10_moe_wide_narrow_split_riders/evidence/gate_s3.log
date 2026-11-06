@@ -1,0 +1,4 @@
+PASS edges/07 replay=0 {'batch': 2, 'ctx': 1000, 'layer': 'full', 'q_len': 512, 'page': 64}: update relative L2 error 6.740e-02 (worst row 1.238e-01) [bound 0.150]; attention input relative L2 error 4.369e-02 (worst row 8.347e-02) [bound 0.106]
+PASS edges/07 replay=1 {'batch': 2, 'ctx': 1000, 'layer': 'full', 'q_len': 512, 'page': 64}: update relative L2 error 6.559e-02 (worst row 1.277e-01) [bound 0.150]; attention input relative L2 error 4.267e-02 (worst row 7.938e-02) [bound 0.106]
+CHECK_RC=0 PASS=42 CASES=21
+REMOTE_EXIT 0

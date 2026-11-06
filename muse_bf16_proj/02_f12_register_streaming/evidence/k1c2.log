@@ -1,0 +1,70 @@
+[gate] slot 0 at 11:13:32 (0 running)
+✓ Initialized. View run at 
+<modal-run-url>
+✓ Created objects.
+├── 🔨 Created mount 
+│   muse-opt-codex/muse_bf16_proj/claude/modal_run.p
+│   y
+├── 🔨 Created mount muse-opt-codex/muse_bf16_proj
+└── 🔨 Created function run.
+[gpu-before]
+NVIDIA H200, 0 %, 110 MiB, 345 MHz, 1980 MHz, 75.20 W
+0
+[k1c] qkv_gate: 28.31 MB, escapes 1351, base 107
+[k1c] o: 12.58 MB, escapes 830, base 109
+[k1c] pooler: 50.33 MB, escapes 2306, base 107
+[k1c] unpooler: 50.33 MB, escapes 3299, base 108
+[k1c] unpslice: 6.29 MB, escapes 391, base 108
+all ok
+[k1c] qkv_gate: 28.31 MB, escapes 1351, base 107
+[k1c] o: 12.58 MB, escapes 830, base 109
+[k1c] pooler: 50.33 MB, escapes 2306, base 107
+[k1c] unpooler: 50.33 MB, escapes 3299, base 108
+[k1c] unpslice: 6.29 MB, escapes 391, base 108
+[c12] prepare 0.3s
+[k1c] qkv_gate: 37.75 MB, escapes 0, base None
+[k1c] o: 16.78 MB, escapes 0, base None
+[k1c] pooler: 67.11 MB, escapes 0, base None
+[k1c] unpooler: 67.11 MB, escapes 0, base None
+[k1c] unpslice: 8.39 MB, escapes 0, base None
+[bf] prepare 0.1s
+[k1c] qkv_gate: 28.31 MB, escapes 1351, base 107
+[k1c] o: 12.58 MB, escapes 830, base 109
+[k1c] pooler: 50.33 MB, escapes 2306, base 107
+[k1c] unpooler: 50.33 MB, escapes 3299, base 108
+[k1c] unpslice: 6.29 MB, escapes 391, base 108
+[abl] prepare 1.6s
+fixed graph cost 5.86 us
+decode 1  m=1    qkv_gate  sglang   12.83 | c12   13.19 x0.973 | bf   12.27 x1.046 | abl   10.04 x1.278   sol   7.87
+decode 1  m=1    o         sglang    5.12 | c12    7.11 x0.720 | bf    5.83 x0.878 | abl    5.63 x0.909   sol   3.50
+decode 1  m=1    pooler    sglang   19.84 | c12   17.26 x1.149 | bf   16.91 x1.173 | abl   14.40 x1.378   sol  13.99
+decode 1  m=1    unpooler  sglang    5.66 | c12    7.00 x0.809 | bf    5.89 x0.961 | abl    5.75 x0.985   sol   1.75
+decode 16 m=16   qkv_gate  sglang   13.34 | c12   13.75 x0.971 | bf   11.98 x1.114 | abl   10.03 x1.330   sol   7.93
+decode 16 m=16   o         sglang    5.47 | c12    9.09 x0.602 | bf    5.97 x0.916 | abl    7.54 x0.726   sol   3.56
+decode 16 m=16   pooler    sglang   19.90 | c12   21.34 x0.933 | bf   17.57 x1.133 | abl   18.39 x1.082   sol  14.06
+decode 16 m=16   unpooler  sglang   16.80 | c12   23.74 x0.708 | bf   16.41 x1.024 | abl   20.34 x0.826   sol  14.06
+decode 32 m=32   qkv_gate  sglang   13.97 | c12   16.57 x0.843 | bf   13.07 x1.069 | abl   11.85 x1.179   sol   8.00
+decode 32 m=32   o         sglang    5.47 | c12   14.06 x0.389 | bf    7.62 x0.718 | abl   12.15 x0.450   sol   3.62
+decode 32 m=32   pooler    sglang   20.93 | c12   33.48 x0.625 | bf   19.79 x1.058 | abl   27.54 x0.760   sol  14.14
+decode 32 m=32   unpooler  sglang   17.07 | c12   35.57 x0.480 | bf   17.79 x0.960 | abl   31.40 x0.544   sol  14.14
+verify 1  m=8    qkv_gate  sglang   13.06 | c12   13.39 x0.975 | bf   12.05 x1.084 | abl    9.68 x1.349   sol   7.90
+verify 1  m=8    o         sglang    5.09 | c12    8.16 x0.624 | bf    5.80 x0.878 | abl    6.34 x0.802   sol   3.53
+verify 1  m=8    pooler    sglang   19.87 | c12   18.42 x1.079 | bf   18.04 x1.102 | abl   15.70 x1.265   sol  14.02
+verify 1  m=8    unpooler  sglang    5.90 | c12    6.26 x0.943 | bf    4.62 x1.278 | abl    5.20 x1.136   sol   1.76
+
+per-load speedups:
+  decode 1  sglang   43.46 | c12   44.56 x0.975 | bf   40.90 x1.062 | abl   35.83 x1.213
+  decode 16 sglang   55.52 | c12   67.92 x0.817 | bf   51.93 x1.069 | abl   56.31 x0.986
+  decode 32 sglang   57.44 | c12   99.68 x0.576 | bf   58.27 x0.986 | abl   82.93 x0.693
+  verify 1  sglang   43.92 | c12   46.23 x0.950 | bf   40.51 x1.084 | abl   36.92 x1.189
+GEOMEAN c12: x0.8128 over 4 loads   judge-projected (+1.0 us/shape) x0.8223
+GEOMEAN bf: x1.0497 over 4 loads   judge-projected (+1.0 us/shape) x1.0455
+GEOMEAN abl: x0.9963 over 4 loads   judge-projected (+1.0 us/shape) x0.9932
+[gpu-after]
+NVIDIA H200, 0 %, 110 MiB, 1980 MHz, 1980 MHz, 120.18 W
+0
+
+[exit 0]
+Stopping app - local entrypoint completed.
+✓ App completed. View run at 
+<modal-run-url>

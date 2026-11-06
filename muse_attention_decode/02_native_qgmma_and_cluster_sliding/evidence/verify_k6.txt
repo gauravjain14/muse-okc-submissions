@@ -1,0 +1,29 @@
+[gate] slot 0 at 01:13:37 (1 running)
+<modal-run-url>
+│   autoresearch-kernels/attn/tools/modal_run.py
+0 failures
+decode 1  sliding w46 sglang    18.98 | k5     9.59 x1.978 | k6     6.51 x2.913   sol    0.11
+decode 1  full    w16 sglang    30.18 | k5    15.26 x1.978 | k6    15.34 x1.967   sol    4.27
+decode 16 sliding w46 sglang    25.52 | k5    10.38 x2.458 | k6     9.51 x2.682   sol    1.65
+decode 16 full    w16 sglang   199.04 | k5    97.16 x2.049 | k6    90.31 x2.204   sol   63.18
+decode 32 sliding w46 sglang    30.29 | k5    12.58 x2.407 | k6    11.98 x2.529   sol    3.29
+decode 32 full    w16 sglang   383.50 | k5   176.29 x2.175 | k6   168.49 x2.276   sol  126.35
+verify 1  sliding w46 sglang    21.86 | k5    17.20 x1.271 | k6    15.01 x1.456   sol    0.12
+verify 1  full    w16 sglang    35.38 | k5    21.88 x1.617 | k6    19.62 x1.803   sol    4.28
+verify 16 sliding w46 sglang    27.97 | k5    18.13 x1.543 | k6    15.12 x1.850   sol    1.86
+verify 16 full    w16 sglang   202.50 | k5   142.05 x1.426 | k6   142.66 x1.419   sol   63.39
+verify 32 sliding w46 sglang    33.26 | k5    21.79 x1.527 | k6    18.69 x1.779   sol    3.72
+verify 32 full    w16 sglang   388.18 | k5   255.37 x1.520 | k6   253.78 x1.530   sol  126.78
+per-load (weighted sums, us):
+  decode 1  sglang    1355.7 | k5     685.3 x1.978 | k6     545.2 x2.487
+  decode 16 sglang    4358.6 | k5    2032.1 x2.145 | k6    1882.5 x2.315
+  decode 32 sglang    7529.3 | k5    3399.4 x2.215 | k6    3246.7 x2.319
+  verify 1  sglang    1571.4 | k5    1141.3 x1.377 | k6    1004.2 x1.565
+  verify 16 sglang    4526.5 | k5    3106.6 x1.457 | k6    2978.1 x1.520
+  verify 32 sglang    7741.0 | k5    5088.1 x1.521 | k6    4920.5 x1.573
+GEOMEAN k5: x1.7496 (board time 2098.5 us)   judge-projected (+1.0 us/call) x1.7229 (board 2176.7 us)
+GEOMEAN k6: x1.9191 (board time 1913.1 us)   judge-projected (+1.0 us/call) x1.8796 (board 1995.2 us)
+fetched into autoresearch-kernels/attn/out/20261028T011528_verify_k6
+[exit 0]
+Runner terminated.
+<modal-run-url>

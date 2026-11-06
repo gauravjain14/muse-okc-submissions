@@ -1,0 +1,50 @@
+✓ Initialized. View run at 
+<modal-run-url>
+✓ Created objects.
+├── 🔨 Created mount 
+│   <scratch>
+│   5-ce57afd4da60/scratchpad/snap.qotD67/dev/modal_run.py
+├── 🔨 Created mount 
+│   <scratch>
+│   5-ce57afd4da60/scratchpad/snap.qotD67
+└── 🔨 Created function run.
+compiled
+0 {'batch': 1, 'ctx': 80000, 'layer': 'sliding', 'q_len': 753, 'page': 1, 'dist': 'soft'}
+   cache vs sglang: k 1.63e-02 v 0.00e+00;  out vs sglang 6.686e-02
+   time: mine     46.0 us  sglang     48.4 us  x1.051
+   post            7.8 us
+   pack            9.3 us
+   attn_fwd       36.5 us
+1 {'batch': 1, 'ctx': 80000, 'layer': 'full', 'q_len': 753, 'page': 1, 'dist': 'soft'}
+   cache vs sglang: k 1.60e-02 v 0.00e+00;  out vs sglang 8.261e-02
+   time: mine    376.4 us  sglang    441.1 us  x1.172
+   post            7.3 us
+   pack           24.1 us
+   attn_fwd      351.4 us
+2 {'batch': 4, 'ctx': 80000, 'layer': 'sliding', 'q_len': 753, 'page': 1, 'dist': 'soft', 'spread': 'agentic'}
+   cache vs sglang: k 1.65e-02 v 0.00e+00;  out vs sglang 7.803e-02
+   time: mine     81.2 us  sglang     90.2 us  x1.110
+   post            9.8 us
+   pack           10.5 us
+   attn_fwd       66.2 us
+3 {'batch': 4, 'ctx': 80000, 'layer': 'full', 'q_len': 753, 'page': 1, 'dist': 'soft', 'spread': 'agentic'}
+   cache vs sglang: k 1.63e-02 v 0.00e+00;  out vs sglang 8.552e-02
+   time: mine   1443.7 us  sglang   1663.6 us  x1.152
+   post            9.1 us
+   pack           71.5 us
+   attn_fwd     1368.2 us
+4 {'batch': 1, 'ctx': 0, 'layer': 'full', 'q_len': 16384, 'page': 1, 'dist': 'soft'}
+   cache vs sglang: k 1.63e-02 v 0.00e+00;  out vs sglang 2.570e-02
+   time: mine    848.9 us  sglang    984.6 us  x1.160
+   post           20.7 us
+   pack           10.7 us
+   attn_fwd      824.3 us
+5 {'batch': 1, 'ctx': 32768, 'layer': 'sliding', 'q_len': 16384, 'page': 1, 'dist': 'soft'}
+   cache vs sglang: k 1.63e-02 v 0.00e+00;  out vs sglang 4.471e-02
+   time: mine    340.9 us  sglang    399.8 us  x1.173
+   post           23.1 us
+   pack           11.9 us
+   attn_fwd      310.3 us
+Stopping app - local entrypoint completed.
+✓ App completed. View run at 
+<modal-run-url>

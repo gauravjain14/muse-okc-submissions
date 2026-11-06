@@ -1,0 +1,7 @@
+{
+  "base": "muse-opt-codex/muse_decode_layer/variants/d05_vector_boundaries.py",
+  "output": "muse-opt-codex/muse_decode_layer/variants/d06_parallel_route.py",
+  "sha256": "b9c5eddc41e7d4f947f3a9dd3ab730d8621b24faa553d79c7fd15459d6f75ba4",
+  "bytes": 873524,
+  "change": "Two independent CTAs per row: pooler RMS normalization and exact top8 selection; ordered score bits preserve tie order."
+}

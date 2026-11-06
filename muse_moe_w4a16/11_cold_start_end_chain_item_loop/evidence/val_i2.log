@@ -1,0 +1,34 @@
+[sbx] waited 14s for a GPU
+[sbx] box 0
+GPU_BEFORE NVIDIA H200, 345 MHz, 85.38 W, 31, 0 %, 78 MiB
+hang1 ok=16 of 16
+M 512 skewed seed 2 call 1: ok  relative L2 error 3.079e-03 (worst row 3.493e-03)
+M 512 skewed seed 3 call 0: ok  relative L2 error 3.095e-03 (worst row 3.461e-03)
+M 512 skewed seed 3 call 1: ok  relative L2 error 3.095e-03 (worst row 3.461e-03)
+FAILURES 0
+geomean fA: x2.6253 over 6 shapes
+geomean a1: x2.5910 over 6 shapes
+geomean b1: x2.6154 over 6 shapes
+geomean c1: x2.6227 over 6 shapes
+geomean b2: x2.6065 over 6 shapes
+geomean c2: x2.6245 over 6 shapes
+geomean a2: x2.5901 over 6 shapes
+geomean fB: x2.6147 over 6 shapes
+bs1: i2 vs v4111 +1.11%  copies +1.63 +1.59 | v4111 ctl -0.12 +0.12
+bs8: i2 vs v4111 +1.55%  copies +1.30 +1.76 | v4111 ctl +0.01 -0.01
+bs16: i2 vs v4111 +1.59%  copies +1.48 +1.57 | v4111 ctl -0.16 +0.16
+bs32: i2 vs v4111 -0.08%  copies -0.14 +0.08 | v4111 ctl +0.05 -0.05
+bs128: i2 vs v4111 -0.15%  copies -0.10 -0.01 | v4111 ctl +0.12 -0.12
+bs256: i2 vs v4111 +0.04%  copies -0.01 +0.05 | v4111 ctl +0.07 -0.07
+geomean i2 vs v4111: +0.67%
+anchor a1 = v1504 scored: 5157.1 us   (c = 0.0 us)
+  fA               projected  5075.5 us  rank ~ 5  (bs1:1.0038 bs8:1.0353 bs16:1.0220 bs32:1.0108 bs128:1.0114 bs256:1.0133)
+  a1               projected  5157.1 us  rank ~ 6  (bs1:1.0000 bs8:1.0000 bs16:1.0000 bs32:1.0000 bs128:1.0000 bs256:1.0000)
+  b1               projected  5118.9 us  rank ~ 6  (bs1:0.9956 bs8:1.0084 bs16:1.0092 bs32:1.0110 bs128:1.0113 bs256:1.0095)
+  c1               projected  5083.4 us  rank ~ 5  (bs1:1.0053 bs8:1.0258 bs16:1.0298 bs32:1.0094 bs128:1.0088 bs256:1.0081)
+  b2               projected  5115.6 us  rank ~ 6  (bs1:0.9991 bs8:1.0086 bs16:1.0117 bs32:1.0106 bs128:1.0095 bs256:1.0093)
+  c2               projected  5088.6 us  rank ~ 5  (bs1:1.0047 bs8:1.0229 bs16:1.0250 bs32:1.0093 bs128:1.0107 bs256:1.0083)
+  a2               projected  5150.6 us  rank ~ 6  (bs1:0.9981 bs8:1.0043 bs16:1.0008 bs32:1.0007 bs128:1.0017 bs256:1.0021)
+  fB               projected  5100.1 us  rank ~ 6  (bs1:0.9991 bs8:1.0123 bs16:1.0152 bs32:1.0123 bs128:1.0149 bs256:1.0134)
+GPU_AFTER NVIDIA H200, 1980 MHz, 126.12 W, 33, 97 %, 78 MiB
+REMOTE_EXIT 0

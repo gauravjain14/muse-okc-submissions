@@ -1,0 +1,133 @@
+✓ Initialized. View run at 
+<modal-run-url>
+✓ Created objects.
+├── 🔨 Created mount 
+│   <scratch>
+│   5-ce57afd4da60/scratchpad/snap.ecm1cd/dev/modal_run.py
+├── 🔨 Created mount 
+│   <scratch>
+│   5-ce57afd4da60/scratchpad/snap.ecm1cd
+└── 🔨 Created function run.
+/usr/local/cuda/bin/ncu
+Version 2025.3.1.0 (build 36398880) (public-release)
+==WARNING== Note: Running with unmodified GPU clocks. If not controlled otherwise, profiling results may be inconsistent.
+[57] python3.12@127.0.0.1
+  attn_fwd (132, 1, 1)x(512, 1, 1), Context 1, Stream 7, Device 0, CC 9.0
+    Warning: Data collection happened without fixed GPU frequencies. Profiling results may be inconsistent.
+    Section: GPU Speed Of Light Throughput
+    ----------------------- ----------- ------------
+    Metric Name             Metric Unit Metric Value
+    ----------------------- ----------- ------------
+    DRAM Frequency                  Ghz         3.20
+    SM Frequency                    Ghz         1.79
+    Elapsed Cycles                cycle      709,194
+    Memory Throughput                 %        21.25
+    DRAM Throughput                   %         1.46
+    Duration                         us       394.43
+    L1/TEX Cache Throughput           %        22.22
+    L2 Cache Throughput               %        16.52
+    SM Active Cycles              cycle   676,407.61
+    Compute (SM) Throughput           %        66.80
+    ----------------------- ----------- ------------
+
+    OPT   Compute is more heavily utilized than Memory: Look at the Compute Workload Analysis section to see what the
+          compute pipelines are spending their time doing. Also, consider whether any computation is redundant and
+          could be reduced or moved to look-up tables.                          
+
+    Section: Compute Workload Analysis
+    -------------------- ----------- ------------
+    Metric Name          Metric Unit Metric Value
+    -------------------- ----------- ------------
+    Executed Ipc Active   inst/cycle         1.99
+    Executed Ipc Elapsed  inst/cycle         1.91
+    Issue Slots Busy               %        47.78
+    Issued Ipc Active     inst/cycle         2.00
+    SM Busy                        %        66.80
+    -------------------- ----------- ------------
+
+    INF   ALU is the highest-utilized pipeline (43.5%) based on elapsed cycles in the workload, taking into account the
+          rates of its different instructions. It executes integer and logic operations. It is well-utilized, but
+          should not be a bottleneck.                                           
+
+    Section: Memory Workload Analysis
+    -------------------------------------- ----------- ------------
+    Metric Name                            Metric Unit Metric Value
+    -------------------------------------- ----------- ------------
+Stopping app - local entrypoint completed.
+    Local Memory Spilling Requests                                0
+    Local Memory Spilling Request Overhead           %      no data
+    Memory Throughput                          Gbyte/s        70.29
+    Mem Busy                                         %        21.25
+    Max Bandwidth                                    %        19.77
+    L1/TEX Hit Rate                                  %        26.71
+    L2 Persisting Size                           Mbyte        11.80
+    L2 Compression Success Rate                      %            0
+    L2 Compression Ratio                             %            0
+    L2 Compression Input Sectors                sector      197,262
+    L2 Hit Rate                                      %        93.61
+    Mem Pipes Busy                                   %        18.26
+    -------------------------------------- ----------- ------------
+
+    Section: Scheduler Statistics
+    ---------------------------- ----------- ------------
+    Metric Name                  Metric Unit Metric Value
+    ---------------------------- ----------- ------------
+    One or More Eligible                   %        49.96
+    Issued Warp Per Scheduler                        0.50
+    No Eligible                            %        50.04
+    Active Warps Per Scheduler          warp         3.23
+    Eligible Warps Per Scheduler        warp         0.76
+    ---------------------------- ----------- ------------
+
+    OPT   Est. Local Speedup: 33.2%                                             
+          Every scheduler is capable of issuing one instruction per cycle, but for this workload each scheduler only
+          issues an instruction every 2.0 cycles. This might leave hardware resources underutilized and may lead to
+          less optimal performance. Out of the maximum of 16 warps per scheduler, this workload allocates an average
+          of 3.23 active warps per scheduler, but only an average of 0.76 warps were eligible per cycle. Eligible
+          warps are the subset of active warps that are ready to issue their next instruction. Every cycle with no
+          eligible warp results in no instruction being issued and the issue slot remains unused. To increase the
+          number of eligible warps, avoid possible load imbalances due to highly different execution durations per
+          warp. Reducing stalls indicated on the Warp State Statistics and Source Counters sections can help, too.
+
+    Section: Warp State Statistics
+    ---------------------------------------- ----------- ------------
+    Metric Name                              Metric Unit Metric Value
+    ---------------------------------------- ----------- ------------
+    Warp Cycles Per Issued Instruction             cycle         6.47
+    Warp Cycles Per Executed Instruction           cycle         6.49
+    Avg. Active Threads Per Warp                                31.70
+    Avg. Not Predicated Off Threads Per Warp                    31.47
+    ---------------------------------------- ----------- ------------
+
+    OPT   Est. Speedup: 33.2%                                                   
+          On average, each warp of this workload spends 2.6 cycles being stalled waiting on a fixed latency execution
+          dependency. Typically, this stall reason should be very low and only shows up as a top contributor in
+          already highly optimized kernels. Try to hide the corresponding instruction latencies by increasing the
+          number of active warps, restructuring the code or unrolling loops. Furthermore, consider switching to
+          lower-latency instructions, e.g. by making use of fast math compiler options. This stall type represents
+          about 39.8% of the total average of 6.5 cycles between issuing two instructions.
+    ----- --------------------------------------------------------------------------------------------------------------
+    INF   Check the Warp Stall Sampling (All Samples) table for the top stall locations in your source based on
+          sampling data. The Profiling Guide                                    
+          (https://docs.nvidia.com/nsight-compute/ProfilingGuide/index.html#metrics-reference) provides more details
+          on each stall reason.                                                 
+
+    Section: Source Counters
+    ------------------------- ----------- ------------
+    Metric Name               Metric Unit Metric Value
+    ------------------------- ----------- ------------
+    Branch Instructions Ratio           %         0.03
+    Branch Instructions              inst    4,762,958
+    Branch Efficiency                   %        99.86
+    Avg. Divergent Branches      branches         7.22
+    ------------------------- ----------- ------------
+
+    OPT   Est. Speedup: 14.62%                                                  
+          This kernel has uncoalesced global accesses resulting in a total of 169440 excessive sectors (20% of the
+          total 857764 sectors). Check the L2 Theoretical Sectors Global Excessive table for the primary source
+          locations. The CUDA Programming Guide                                 
+          (https://docs.nvidia.com/cuda/cuda-c-programming-guide/index.html#device-memory-accesses) has additional
+          information on reducing uncoalesced device memory accesses.           
+
+✓ App completed. View run at 
+<modal-run-url>

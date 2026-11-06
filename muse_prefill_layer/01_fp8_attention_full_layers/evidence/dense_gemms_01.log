@@ -1,0 +1,59 @@
+✓ Initialized. View run at 
+<modal-run-url>
+✓ Created objects.
+├── 🔨 Created mount 
+│   muse-opt/muse_prefill_layer/dev/modal_run.py
+├── 🔨 Created mount muse-opt/muse_prefill_layer
+└── 🔨 Created function run.
+cublasLt 130101 2.14.1+cu130 NVIDIA H200
+M   753 qkv      F.linear     42.9 us ( 663.1 TF/s) | best     42.7 us ( 666.1 TF/s) x1.004  ltN 0 {'id': 66, 'tile': 165, 'split': 1, 'red': 0, 'swz': 0, 'custom': 2, 'stages': 35}
+          42.9  F.linear
+          46.8  ltN 1 {'id': 66, 'tile': 20, 'split': 1, 'red': 0, 'swz': 0, 'custom': 3, 'stages': 35}
+          47.0  ltT 1 {'id': 66, 'tile': 19, 'split': 1, 'red': 0, 'swz': 0, 'custom': 0, 'stages': 35}
+M   753 o        F.linear     24.9 us ( 507.4 TF/s) | best     24.3 us ( 520.8 TF/s) x1.026  ltN 2 {'id': 66, 'tile': 495, 'split': 1, 'red': 0, 'swz': 0, 'custom': 7, 'stages': 35}
+          24.3  ltT 2 {'id': 66, 'tile': 495, 'split': 1, 'red': 0, 'swz': 0, 'custom': 7, 'stages': 35}
+          24.4  ltT 1 {'id': 66, 'tile': 31, 'split': 1, 'red': 0, 'swz': 0, 'custom': 7, 'stages': 35}
+          24.4  ltN 4 {'id': 66, 'tile': 20, 'split': 1, 'red': 0, 'swz': 0, 'custom': 3, 'stages': 35}
+M   753 pooler   F.linear     70.2 us ( 720.3 TF/s) | best     69.4 us ( 727.7 TF/s) x1.010  ltT 3 {'id': 66, 'tile': 495, 'split': 1, 'red': 0, 'swz': 0, 'custom': 7, 'stages': 35}
+          69.8  ltT 0 {'id': 66, 'tile': 32, 'split': 1, 'red': 0, 'swz': 0, 'custom': 4, 'stages': 35}
+          69.9  ltN 3 {'id': 66, 'tile': 495, 'split': 1, 'red': 0, 'swz': 0, 'custom': 7, 'stages': 35}
+          70.1  ltN 0 {'id': 66, 'tile': 32, 'split': 1, 'red': 0, 'swz': 0, 'custom': 4, 'stages': 35}
+M   753 unpooler F.linear     71.6 us ( 705.5 TF/s) | best     71.5 us ( 707.0 TF/s) x1.002  ltN 0 {'id': 66, 'tile': 32, 'split': 1, 'red': 0, 'swz': 0, 'custom': 4, 'stages': 35}
+          71.6  F.linear
+          71.7  ltT 3 {'id': 66, 'tile': 495, 'split': 1, 'red': 0, 'swz': 0, 'custom': 7, 'stages': 35}
+          71.7  ltN 2 {'id': 66, 'tile': 495, 'split': 1, 'red': 0, 'swz': 0, 'custom': 7, 'stages': 35}
+M  3012 qkv      F.linear    150.7 us ( 754.3 TF/s) | best    148.3 us ( 766.7 TF/s) x1.017  ltN 2 {'id': 66, 'tile': 496, 'split': 1, 'red': 0, 'swz': 0, 'custom': 7, 'stages': 35}
+         148.7  ltT 2 {'id': 66, 'tile': 496, 'split': 1, 'red': 0, 'swz': 0, 'custom': 7, 'stages': 35}
+         149.6  ltN 1 {'id': 66, 'tile': 413, 'split': 1, 'red': 0, 'swz': 0, 'custom': 5, 'stages': 35}
+         149.7  ltT 1 {'id': 66, 'tile': 413, 'split': 1, 'red': 0, 'swz': 0, 'custom': 5, 'stages': 35}
+M  3012 o        F.linear     76.4 us ( 661.3 TF/s) | best     76.4 us ( 661.4 TF/s) x1.000  ltN 0 {'id': 66, 'tile': 501, 'split': 1, 'red': 0, 'swz': 0, 'custom': 7, 'stages': 35}
+          76.4  F.linear
+          76.6  ltT 1 {'id': 66, 'tile': 501, 'split': 1, 'red': 0, 'swz': 0, 'custom': 7, 'stages': 35}
+          76.9  ltN 1 {'id': 66, 'tile': 423, 'split': 1, 'red': 0, 'swz': 0, 'custom': 5, 'stages': 35}
+M  3012 pooler   F.linear    260.7 us ( 775.2 TF/s) | best    257.5 us ( 784.9 TF/s) x1.012  ltT 1 {'id': 66, 'tile': 24, 'split': 1, 'red': 0, 'swz': 0, 'custom': 7, 'stages': 35}
+         258.2  ltN 1 {'id': 66, 'tile': 24, 'split': 1, 'red': 0, 'swz': 0, 'custom': 7, 'stages': 35}
+         260.7  F.linear
+         260.8  ltT 0 {'id': 66, 'tile': 23, 'split': 1, 'red': 0, 'swz': 0, 'custom': 4, 'stages': 35}
+M  3012 unpooler F.linear    260.3 us ( 776.4 TF/s) | best    260.3 us ( 776.4 TF/s) x1.000  F.linear
+         260.4  ltT 1 {'id': 66, 'tile': 501, 'split': 1, 'red': 0, 'swz': 0, 'custom': 7, 'stages': 35}
+         260.5  ltT 0 {'id': 66, 'tile': 423, 'split': 1, 'red': 0, 'swz': 0, 'custom': 5, 'stages': 35}
+         260.6  ltN 1 {'id': 66, 'tile': 423, 'split': 1, 'red': 0, 'swz': 0, 'custom': 5, 'stages': 35}
+M 16384 qkv      F.linear    783.1 us ( 789.7 TF/s) | best    776.8 us ( 796.2 TF/s) x1.008  ltN 1 {'id': 66, 'tile': 24, 'split': 1, 'red': 0, 'swz': 0, 'custom': 7, 'stages': 35}
+         778.1  ltT 1 {'id': 66, 'tile': 24, 'split': 1, 'red': 0, 'swz': 0, 'custom': 7, 'stages': 35}
+         783.1  F.linear
+         783.2  ltN 0 {'id': 66, 'tile': 209, 'split': 1, 'red': 0, 'swz': 0, 'custom': 4, 'stages': 35}
+M 16384 o        F.linear    382.2 us ( 719.2 TF/s) | best    343.0 us ( 801.4 TF/s) x1.114  ltT 6 {'id': 66, 'tile': 29, 'split': 1, 'red': 0, 'swz': 0, 'custom': 1, 'stages': 35}
+         344.2  ltN 6 {'id': 66, 'tile': 201, 'split': 1, 'red': 0, 'swz': 0, 'custom': 2, 'stages': 35}
+         348.4  ltN 7 {'id': 66, 'tile': 197, 'split': 1, 'red': 0, 'swz': 0, 'custom': 2, 'stages': 35}
+         371.1  ltT 1 {'id': 66, 'tile': 24, 'split': 1, 'red': 0, 'swz': 0, 'custom': 7, 'stages': 35}
+M 16384 pooler   F.linear   1413.1 us ( 778.1 TF/s) | best   1380.8 us ( 796.3 TF/s) x1.023  ltT 1 {'id': 66, 'tile': 24, 'split': 1, 'red': 0, 'swz': 0, 'custom': 7, 'stages': 35}
+        1382.0  ltN 1 {'id': 66, 'tile': 24, 'split': 1, 'red': 0, 'swz': 0, 'custom': 7, 'stages': 35}
+        1385.7  ltN 5 {'id': 66, 'tile': 29, 'split': 1, 'red': 0, 'swz': 0, 'custom': 1, 'stages': 35}
+        1386.8  ltT 5 {'id': 66, 'tile': 29, 'split': 1, 'red': 0, 'swz': 0, 'custom': 1, 'stages': 35}
+M 16384 unpooler F.linear   1429.6 us ( 769.1 TF/s) | best   1361.8 us ( 807.4 TF/s) x1.050  ltN 6 {'id': 66, 'tile': 201, 'split': 1, 'red': 0, 'swz': 0, 'custom': 2, 'stages': 35}
+        1368.2  ltN 7 {'id': 66, 'tile': 197, 'split': 1, 'red': 0, 'swz': 0, 'custom': 2, 'stages': 35}
+        1368.8  ltT 6 {'id': 66, 'tile': 29, 'split': 1, 'red': 0, 'swz': 0, 'custom': 1, 'stages': 35}
+        1399.4  ltT 2 {'id': 66, 'tile': 24, 'split': 1, 'red': 0, 'swz': 0, 'custom': 7, 'stages': 35}
+Stopping app - local entrypoint completed.
+✓ App completed. View run at 
+<modal-run-url>

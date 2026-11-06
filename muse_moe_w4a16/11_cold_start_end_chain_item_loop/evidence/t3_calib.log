@@ -1,0 +1,32 @@
+[sbx] box 0
+GPU_BEFORE NVIDIA H200, 345 MHz, 3201 MHz, 77.70 W, 27, 0 %, 90 MiB
+bs 1: finished in 0.00 s
+bs 1: ok relative L2 error 2.515e-03 (worst row 2.515e-03)
+bs 8: finished in 0.00 s
+bs 8: ok relative L2 error 3.204e-03 (worst row 3.398e-03)
+bs 16: finished in 0.00 s
+bs 16: ok relative L2 error 3.206e-03 (worst row 3.398e-03)
+bs 32: finished in 0.00 s
+bs 32: ok relative L2 error 3.077e-03 (worst row 3.399e-03)
+geomean fA: x2.6044 over 6 shapes
+geomean a1: x2.5829 over 6 shapes
+geomean b1: x2.6056 over 6 shapes
+geomean a2: x2.5873 over 6 shapes
+geomean b2: x2.6090 over 6 shapes
+geomean fB: x2.5831 over 6 shapes
+bs1: v4111 vs v1504 +0.05%  v4111 median 24.30 us
+bs8: v4111 vs v1504 +1.65%  v4111 median 62.58 us
+bs16: v4111 vs v1504 +1.16%  v4111 median 84.21 us
+bs32: v4111 vs v1504 +0.90%  v4111 median 110.46 us
+bs128: v4111 vs v1504 +1.02%  v4111 median 160.90 us
+bs256: v4111 vs v1504 +0.90%  v4111 median 196.76 us
+geomean vs v1504: +0.94%
+anchor a1 = v1504 scored: 5157.1 us   (c = 0.0 us)
+  fA               projected  5106.7 us  rank ~ 6  (bs1:0.9978 bs8:1.0152 bs16:1.0127 bs32:1.0082 bs128:1.0127 bs256:1.0128)
+  a1               projected  5157.1 us  rank ~ 6  (bs1:1.0000 bs8:1.0000 bs16:1.0000 bs32:1.0000 bs128:1.0000 bs256:1.0000)
+  b1               projected  5109.5 us  rank ~ 6  (bs1:0.9985 bs8:1.0179 bs16:1.0124 bs32:1.0078 bs128:1.0106 bs256:1.0088)
+  a2               projected  5150.9 us  rank ~ 6  (bs1:1.0069 bs8:1.0002 bs16:1.0003 bs32:0.9992 bs128:1.0003 bs256:1.0003)
+  b2               projected  5094.8 us  rank ~ 5  (bs1:1.0095 bs8:1.0166 bs16:1.0163 bs32:1.0115 bs128:1.0094 bs256:1.0100)
+  fB               projected  5149.1 us  rank ~ 6  (bs1:1.0000 bs8:0.9995 bs16:1.0027 bs32:1.0008 bs128:1.0018 bs256:1.0045)
+GPU_AFTER NVIDIA H200, 1980 MHz, 3201 MHz, 131.00 W, 30, 42 %, 90 MiB
+REMOTE_EXIT 0

@@ -1,0 +1,15 @@
+{
+  "output": "variants/d01_dense21.py",
+  "sha256": "9bfbf6e0a4e9d852d154a4a96299a92bf4d72bcc362ab1574e58b0ab820e87d3",
+  "sources": [
+    {
+      "path": "muse-opt-codex/muse_decode_layer/variants/public_native.py",
+      "sha256": "cf4a75ee6e4a5cd9e33b82b5347c47abcdc7b81d80dc6a8b5262dea7388f849c"
+    },
+    {
+      "path": "muse-opt-codex/muse_bf16_proj/claude/t3/bo21L.py",
+      "sha256": "e0b57002a3733842ea4cfc64eee68870b09a0af338d49fcbd72da35897026d4b"
+    }
+  ],
+  "change": "bo21L projections, force all tuned matrices, single-CTA boundaries"
+}

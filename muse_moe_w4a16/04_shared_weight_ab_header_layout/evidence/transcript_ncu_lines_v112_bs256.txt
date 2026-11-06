@@ -1,0 +1,66 @@
+===== [2026-10-24T08:27:57.578Z UTC] List the hottest CUDA source lines at bs256
+$ head -12 dev/ncu_lines.py; python3 dev/ncu_lines.py dev/remote_out/cs256.csv dev/remote_out/moe112.cu 2>&1 | head -45 | cut -c1-180
+----- output
+"""Stall samples per CUDA source line from an ncu source-page CSV (--print-source cuda,sass).
+
+    python3 dev/ncu_lines.py cs.csv [top]
+"""
+import csv, sys, collections
+
+rows = list(csv.reader(open(sys.argv[1], newline="")))
+top = int(sys.argv[2]) if len(sys.argv) > 2 else 60
+hdr_i = next(i for i, r in enumerate(rows) if r and r[0] == "Line No")
+hdr = rows[hdr_i]
+ci = {}
+for i, h in enumerate(hdr):
+Traceback (most recent call last):
+  File "muse-opt/muse_moe_w4a16/dev/ncu_lines.py", line 8, in <module>
+    top = int(sys.argv[2]) if len(sys.argv) > 2 else 60
+          ^^^^^^^^^^^^^^^^
+ValueError: invalid literal for int() with base 10: 'dev/remote_out/moe112.cu'
+
+===== [2026-10-24T08:28:05.487Z UTC] List the hottest CUDA source lines at bs256
+$ python3 dev/ncu_lines.py dev/remote_out/cs256.csv 40 2>&1 | head -50 | cut -c1-200
+----- output
+total samples 19303
+ 17.6%  L  180  u32 o3 = ((q * c_shl[1]) & 0x80C080C0u) | (rotl(q, 14) & 0x01000100u);                   selected:5.4 math:2.9 wait:2.8
+  8.9%  L 1263  mbar_sleep(smem_addr(&epi[j]), (q / NSIG) & 1);                                          long_sb:8.8 branch_resolving:0.1 not_selected:0.0
+  8.2%  L  178  u32 o2 = rotl(q, 10) & M_BF;                                                             selected:2.4 math:1.5 not_selected:1.3
+  7.9%  L   54  while (!mbar_try_s(bar, parity)) {}                                                      long_sb:6.6 sleep:0.9 branch_resolving:0.2
+  7.6%  L  174  u32 o1 = (q * c_shl[0]) & M_BF;                                                          selected:2.4 math:1.3 not_selected:1.2
+  3.3%  L  172  u32 o0 = q & M_BF;                                                                       selected:1.4 wait:0.5 dispatch:0.5
+  2.7%  L 1532  const float gsc = gsm[f.e];                                                              barrier:2.6 no_inst:0.1 branch_resolving:0.0
+  2.4%  L 1298  const int g = lane >> 2, tig = lane & 3;                                                 branch_resolving:1.6 wait:0.2 not_selected:0.2
+  2.3%  L 1420  case 1: MOE_RUN_ITEM(1) break;                                                           wait:1.0 selected:0.5 not_selected:0.2
+  2.1%  L 1421  case 2: if constexpr (NT >= 2) { MOE_RUN_ITEM(2) } break;                                wait:1.0 selected:0.4 not_selected:0.2
+  1.8%  L 1147  __syncwarp();                                                                            branch_resolving:0.7 sleep:0.5 wait:0.2
+  1.7%  L 1523  stg[(kw * T + b * 8 + 2 * tig + (c & 1)) * SP + 16 * (2 * rw + a) + g + 8 * (c >> 1)] =  mio:0.7 wait:0.6 selected:0.2
+  1.6%  L  371  const u32 sg81 = (kk & 1) ? scale_of<3, SIM>(sw1) : scale_of<1, SIM>(sw1);               not_selected:0.4 math:0.4 selected:0.4
+  1.1%  L  368  const u32 sg0 = (kk & 1) ? scale_of<2, SIM>(sw0) : scale_of<0, SIM>(sw0);                selected:0.3 wait:0.3 math:0.2
+  1.0%  L  369  const u32 sg80 = (kk & 1) ? scale_of<3, SIM>(sw0) : scale_of<1, SIM>(sw0);               selected:0.3 not_selected:0.2 math:0.2
+  0.8%  L  196  DEVI void wg_fence() { asm volatile(wgmma.fence.sync.aligned;" ::: "memory"); }"         wait:0.1 no_inst:0.1 selected:0.1
+  0.8%  L  198  template <int N> DEVI void wg_wait() { asm volatile(wgmma.wait_group.sync.aligned %0;" : barrier:0.7 dispatch:0.1 not_selected:0.0
+  0.8%  L  370  const u32 sg1 = (kk & 1) ? scale_of<2, SIM>(sw1) : scale_of<0, SIM>(sw1);                selected:0.3 math:0.1 wait:0.1
+  0.8%  L  322  wg_wait<0>();                                                                            barrier:0.7 dispatch:0.0 not_selected:0.0
+  0.7%  L  186  a2 = bmul2(o2, sg);                                                                      selected:0.3 wait:0.2 dispatch:0.1
+  0.7%  L  187  a3 = bmul2(o3, sg8);                                                                     selected:0.3 not_selected:0.1 dispatch:0.1
+  0.6%  L 1719  const int v = scal[8];                                                                   barrier:0.6 wait:0.0 branch_resolving:0.0
+  0.6%  L 1413  case 6: if constexpr (NT >= 6) { MOE_RUN_ITEM(106) } break;                              no_inst:0.2 wait:0.1 branch_resolving:0.1
+  0.6%  L 1124  mbar_sleep(smem_addr(&bars[NS + s]), ph ^ 1);                                            long_sb:0.2 not_selected:0.1 wait:0.1
+  0.6%  L  185  a1 = bmul2(o1, sg8);                                                                     selected:0.4 dispatch:0.1 not_selected:0.0
+  0.6%  L 1415  default: if constexpr (NT >= 8) { MOE_RUN_ITEM(108) } break;                             wait:0.2 branch_resolving:0.1 selected:0.1
+  0.5%  L  184  a0 = bmul2(o0, sg);                                                                      selected:0.3 dispatch:0.2 math:0.1
+  0.5%  L 1422  case 3: if constexpr (NT >= 3) { MOE_RUN_ITEM(3) } break;                                wait:0.2 selected:0.1 branch_resolving:0.1
+  0.5%  L  335  qw[0][kk] = *reinterpret_cast<const uint4*>(wbase + kk * 512);                           wait:0.2 selected:0.2 not_selected:0.1
+  0.5%  L  702  if constexpr (EARLY) consumer_sync(); else __syncthreads();                              barrier:0.5 wait:0.0 not_selected:0.0
+  0.5%  L 1210  bulk_g2s(smem_addr(sbase + WB + SB), xreg + (size_t)(kc0 / KW) * T * XP, n * XP, full, p wait:0.1 not_selected:0.1 math:0.1
+  0.4%  L  336  qw[1][kk] = *reinterpret_cast<const uint4*>(wbase + 2048 + kk * 512);                    selected:0.2 wait:0.1 not_selected:0.1
+  0.4%  L 1760  for (int q0 = 0; q0 < np; q0 += CG, ++rnd) {                                             barrier:0.3 no_inst:0.0 wait:0.0
+  0.4%  L  361  bx[(kk + 1) & 1][nt][1] = *reinterpret_cast<const uint4*>(xp + 16);                      selected:0.2 dispatch:0.1 wait:0.0
+  0.4%  L 1069  const size_t cstep = (size_t)KW * nrg_tot * (pscl ? 256 : 2048);                         branch_resolving:0.2 not_selected:0.1 dispatch:0.1
+  0.4%  L 1542  return (u32)f2bf(__fdividef(g0, 1.f + __expf(-g0)) * u0) | ((u32)f2bf(__fdividef(g1, 1.f no_inst:0.1 selected:0.1 wait:0.0
+  0.4%  L 1419  switch (ntl) {                                                                           short_sb:0.1 wait:0.1 branch_resolving:0.1
+  0.4%  L   47  DEVI void mbar_wait(u32 bar, u32 parity) { while (!mbar_try(bar, parity)) {} }           wait:0.2 selected:0.1 not_selected:0.1
+  0.3%  L 1947  if (scal[9]) {                                                                           barrier:0.3 wait:0.0 short_sb:0.0
+  0.3%  L  631  const u32 b = __ballot_sync(0xffffffffu, (em >> e) & 1u);                                wait:0.2 math:0.1 selected:0.1
+

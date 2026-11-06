@@ -1,0 +1,28 @@
+✓ Initialized. View run at 
+<modal-run-url>
+✓ Created objects.
+├── 🔨 Created mount 
+│   <scratch>
+│   5-ce57afd4da60/scratchpad/snap.Ml4ELz/dev/modal_run.py
+├── 🔨 Created mount 
+│   <scratch>
+│   5-ce57afd4da60/scratchpad/snap.Ml4ELz
+└── 🔨 Created function run.
+router seed 728034927264498030 (2 s)
+prepared full6 (cand_full6.py) in 75.0 s
+prepared full7 (cand_full7.py) in 0.7 s
+prepared full7i (cand_full7i.py) in 0.8 s
+0 turn 1     b1 ctx80000 sliding q753  sglang    1104.1  full6     620.8 x1.773  full7     621.5 x1.785 (vs full6 x1.0009)  full7i     620.8 x1.779 (vs full6 x0.9996)
+1 turn 1     b1 ctx80000 full    q753  sglang    1537.7  full6     961.3 x1.597  full7     962.5 x1.597 (vs full6 x0.9985)  full7i     958.6 x1.597 (vs full6 x0.9980)
+2 turn 4     b4 ctx80000 sliding q753  sglang    3438.5  full6    1917.0 x1.794  full7    1916.0 x1.797 (vs full6 x1.0002)  full7i    1916.3 x1.797 (vs full6 x1.0007)
+3 turn 4     b4 ctx80000 full    q753  sglang    5056.2  full6    3309.7 x1.527  full7    3310.8 x1.527 (vs full6 x1.0000)  full7i    3310.3 x1.528 (vs full6 x1.0005)
+4 first turn b1 ctx0 full    q16384  sglang   19733.5  full6   10831.2 x1.820  full7   10442.6 x1.864 (vs full6 x1.0228)  full7i   10413.4 x1.881 (vs full6 x1.0369)
+5 first turn b1 ctx32768 sliding q16384  sglang   18619.2  full6   10046.2 x1.873  full7    9752.8 x1.906 (vs full6 x1.0113)  full7i    9704.2 x1.906 (vs full6 x1.0167)
+6 first turn b1 ctx32768 full    q16384  sglang   22990.6  full6   13612.1 x1.682  full7   13349.6 x1.711 (vs full6 x1.0135)  full7i   13321.9 x1.727 (vs full6 x1.0219)
+7 first turn b1 ctx65536 full    q16384  sglang   27257.8  full6   16344.2 x1.648  full7   16205.7 x1.683 (vs full6 x1.0074)  full7i   16156.9 x1.663 (vs full6 x1.0076)
+full6: turn 1 x1.711  turn 4 x1.693  first turn x1.819  geomean x1.7403
+full7: turn 1 x1.719  turn 4 x1.695  first turn x1.852  geomean x1.7541
+full7i: turn 1 x1.715  turn 4 x1.696  first turn x1.852  geomean x1.7532
+Stopping app - local entrypoint completed.
+✓ App completed. View run at 
+<modal-run-url>

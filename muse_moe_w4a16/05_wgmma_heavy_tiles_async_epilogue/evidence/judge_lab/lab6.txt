@@ -1,0 +1,5 @@
+[
+    {"bs": [256], "variants": [("v141", [], {}), ("w3", ["MOE_WGMIN=3"], {}), ("w3k1", ["MOE_WGMIN=3", "MOE_KSX8=1"], {}),
+                               ("w3k1s5", ["MOE_WGMIN=3", "MOE_KSX8=1", "MOE_SUSPEND=100000"], {}), ("w3k1s4", ["MOE_WGMIN=3", "MOE_KSX8=1", "MOE_SUSPEND=10000"], {}),
+                               ("w3k1b", ["MOE_WGMIN=3", "MOE_KSX8=1"], {}), ("v141b", [], {})], "seeds": 24, "reps": 3},
+]

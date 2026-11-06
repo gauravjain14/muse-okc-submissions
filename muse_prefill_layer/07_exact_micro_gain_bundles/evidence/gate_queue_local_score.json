@@ -1,0 +1,26 @@
+{
+  "benchmark": "research/gate_queue_full.json",
+  "benchmark_sha256": "c7969fc7141669d2ad47d893e905a116fe66d77208c6b5209c6b138f717e388c",
+  "source": {
+    "path": "/root/okc/research/integrated/bundle23_gate_queue.py",
+    "sha256": "bd39eec310c038765888ba0ad8938d7dee9aa9d16abb14b43a7a22e6ea45d6cc"
+  },
+  "label": "gate8",
+  "metric": "geometric mean of measured weighted local load latencies",
+  "local_score_us": 197708.45648869907,
+  "local_score_ms": 197.70845648869906,
+  "weighted_loads_us": {
+    "turn 1": 36881.08259949278,
+    "turn 4": 122265.2773058042,
+    "first turn": 1713834.727774371
+  },
+  "scored_cases": 8,
+  "scored_checks": 16,
+  "repetitions_per_case": 64,
+  "passed": true,
+  "relative_to_control": 1.0003211881010647,
+  "judge_score": false,
+  "projection": false,
+  "below_194ms": false,
+  "caveat": "Judge normalized score also depends on paired SGLang timings; local latency is not interchangeable with an official result."
+}

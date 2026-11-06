@@ -1,0 +1,20 @@
+test {'bs': 4}: PASS relative L2 error 2.524e-03 (worst row 2.577e-03)
+test {'bs': 33}: PASS relative L2 error 2.550e-03 (worst row 2.777e-03)
+test {'bs': 257}: PASS relative L2 error 2.545e-03 (worst row 2.758e-03)
+test {'bs': 128, 'dist': 'skewed'}: PASS relative L2 error 2.546e-03 (worst row 2.723e-03)
+test {'bs': 1}: PASS relative L2 error 2.472e-03 (worst row 2.472e-03)
+test {'bs': 4}: PASS relative L2 error 2.524e-03 (worst row 2.577e-03)
+test {'bs': 33}: PASS relative L2 error 2.550e-03 (worst row 2.777e-03)
+test {'bs': 257}: PASS relative L2 error 2.545e-03 (worst row 2.758e-03)
+test {'bs': 128, 'dist': 'skewed'}: PASS relative L2 error 2.546e-03 (worst row 2.723e-03)
+test {'bs': 1}: PASS relative L2 error 2.472e-03 (worst row 2.472e-03)
+  last epilogue: min 87.9 med 89.3 max 91.0; combine start med 89.6 max 91.4; end max 96.5 us
+  CTAs computing per 2us bin: 0 0 21 130 132 132 132 68 115 132 132 118 77 132 132 132 66 130 132 132 79 117 132 132 132 88 108 132 132 118 73 125 132 132 78 93 105 118 103 64 95 92 78 93 60 2 0 0 0
+v66                           : 16:91.2(2.053x) 8:70.2(2.119x) 2.086x
+v68 ksx4                      : 16:99.0(1.896x) 8:77.0(1.951x) 1.923x
+v68 ksx2                      : 16:96.8(1.936x) 8:74.4(2.001x) 1.968x
+v68 ksx4 splw0.5              : 16:98.0(1.917x) 8:75.9(1.961x) 1.939x
+v68 ksx4 splw2                : 16:101.6(1.853x) 8:78.0(1.901x) 1.877x
+v66                           : 16:91.4(2.057x) 8:69.8(2.137x) 2.097x
+v68 ksx4                      : 16:99.0(1.895x) 8:76.2(1.979x) 1.937x
+v68 ksx2                      : 16:97.1(1.930x) 8:74.4(2.003x) 1.966x

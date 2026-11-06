@@ -1,0 +1,24 @@
+[gate] slot 1 at 14:56:33 (1 running)
+✓ Initialized. View run at 
+<modal-run-url>
+✓ Created objects.
+├── 🔨 Created mount 
+│   muse-opt-codex/muse_bf16_proj/claude/modal_run.p
+│   y
+├── 🔨 Created mount muse-opt-codex/muse_bf16_proj
+└── 🔨 Created function run.
+[gpu-before]
+NVIDIA H200, 0 %, 4 MiB, 345 MHz, 1980 MHz, 79.36 W
+0
+all ok
+decode 16 m=16   o         | a    5.52 | b    4.96 | c    6.11 | d    5.09 | v5    5.09   sol   3.56
+decode 32 m=32   o         | a    7.52 | b    6.94 | c    8.77 | d    7.15 | v5    5.33   sol   3.62
+verify 1  m=8    o         | a    4.74 | b    4.45 | c    4.51 | d    4.30 | v5    5.09   sol   3.53
+[gpu-after]
+NVIDIA H200, 0 %, 4 MiB, 1980 MHz, 1980 MHz, 157.09 W
+0
+
+[exit 0]
+Stopping app - local entrypoint completed.
+✓ App completed. View run at 
+<modal-run-url>

@@ -1,0 +1,29 @@
+[gate] slot 2 at 01:46:15 (2 running)
+<modal-run-url>
+│   autoresearch-kernels/attn/tools/modal_run.py
+0 failures
+decode 1  sliding w46 sglang    19.36 | k8     6.79 x2.852 | k9     6.36 x3.042 | k10     6.38 x3.034   sol    0.11
+decode 1  full    w16 sglang    30.40 | k8    15.57 x1.952 | k9    14.61 x2.081 | k10    14.67 x2.072   sol    4.27
+decode 16 sliding w46 sglang    25.63 | k8     9.69 x2.644 | k9     9.33 x2.747 | k10     9.26 x2.769   sol    1.65
+decode 16 full    w16 sglang   198.03 | k8    90.27 x2.194 | k9    89.71 x2.208 | k10    89.97 x2.201   sol   63.18
+decode 32 sliding w46 sglang    29.92 | k8    11.73 x2.550 | k9    11.21 x2.668 | k10    11.10 x2.695   sol    3.29
+decode 32 full    w16 sglang   381.58 | k8   169.30 x2.254 | k9   168.95 x2.259 | k10   168.95 x2.259   sol  126.35
+verify 1  sliding w46 sglang    22.05 | k8    10.35 x2.130 | k9    10.25 x2.150 | k10    10.13 x2.177   sol    0.12
+verify 1  full    w16 sglang    35.63 | k8    19.17 x1.859 | k9    19.77 x1.803 | k10    19.31 x1.845   sol    4.28
+verify 16 sliding w46 sglang    28.02 | k8    13.21 x2.121 | k9    13.30 x2.107 | k10    12.63 x2.218   sol    1.86
+verify 16 full    w16 sglang   201.63 | k8   123.94 x1.627 | k9   123.97 x1.627 | k10   120.36 x1.675   sol   63.39
+verify 32 sliding w46 sglang    33.12 | k8    15.97 x2.074 | k9    16.15 x2.050 | k10    15.63 x2.120   sol    3.72
+verify 32 full    w16 sglang   386.34 | k8   223.18 x1.731 | k9   223.50 x1.729 | k10   219.39 x1.761   sol  126.78
+per-load (weighted sums, us):
+  decode 1  sglang    1377.0 | k8     561.3 x2.453 | k9     526.5 x2.615 | k10     528.2 x2.607
+  decode 16 sglang    4347.6 | k8    1890.1 x2.300 | k9    1864.5 x2.332 | k10    1865.2 x2.331
+  decode 32 sglang    7481.7 | k8    3248.4 x2.303 | k9    3219.0 x2.324 | k10    3213.9 x2.328
+  verify 1  sglang    1584.3 | k8     782.7 x2.024 | k9     788.0 x2.011 | k10     774.9 x2.045
+  verify 16 sglang    4514.8 | k8    2590.8 x1.743 | k9    2595.1 x1.740 | k10    2506.8 x1.801
+  verify 32 sglang    7704.9 | k8    4305.4 x1.790 | k9    4319.0 x1.784 | k10    4229.0 x1.822
+GEOMEAN k8: x2.0845 (board time 1763.6 us)   judge-projected (+1.0 us/call) x1.9839 (board 1892.5 us)
+GEOMEAN k9: x2.1108 (board time 1741.6 us)   judge-projected (+1.0 us/call) x2.0066 (board 1871.1 us)
+GEOMEAN k10: x2.1357 (board time 1721.3 us)   judge-projected (+1.0 us/call) x2.0294 (board 1850.1 us)
+fetched into autoresearch-kernels/attn/out/20261028T014847_verify_k10
+[exit 0]
+<modal-run-url>

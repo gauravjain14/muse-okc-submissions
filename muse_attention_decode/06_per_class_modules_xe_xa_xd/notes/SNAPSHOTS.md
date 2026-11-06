@@ -1,0 +1,60 @@
+# Frozen worker deliverables used for integration (never build from live worker files: workers keep editing them)
+- snap/xe_mod.py  = dev/coord/k35.py minus dev/k34.py (XE round 1, k34xe md5 ae167cd3)
+- snap/xa_mod.py  = dev/xa/k34xa.py minus dev/k34.py (XA round 2, k34xa md5 7ccee3bc; d1f on xa_b1f_1L, v1f -> k34)
+- k35 = k34 + xe ; k36 = k35 + xa
+- snap/xd_mod.py = dev/xd/deliver_r1/k34xd.py minus dev/k34.py (XD r1, k34xd md5 7f8049f4; attn_xd_v8f verify full B>1)
+- k37 = k36 + xd
+- snap/xe2_mod.py = dev/xe/deliver_r2/k34xe.py minus k34 (XE r2: v1s on 8-CTA clusters; d1s = r1 verbatim)
+- k38 = k34 + xe2 + xa + xd
+- snap/xa3_mod.py = dev/xa/deliver_r3/k34xa_r3.py minus k34 (XA r3: d1f r2 + v1f xa_b1f_8 on)
+- k39 = k34 + xe2 + xa3 + xd
+- snap/xd2_mod.py = dev/xd/deliver_r2/k34xd.py minus k34 (XD r2: XD_START, verify full -0.5..-1 us vs r1)
+- snap/k34xf.py = build_ec(k34) XFE_PUB=1 XFE_RCK=1 XFE_PK=1 (XF r3b: run1f end chain -0.75 us nsys d16f/d32f)
+- k40 = k34xf (XF run1f end chain) + xe2 + xa3 + xd2
+- snap/xd3_mod.py = dev/xd/deliver_r3/k34xd.py minus k34 (XD r3: OVH 1024 / NEWW 512 weights; v16f -1.1 vs r2)
+- snap/xe4_mod.py = dev/xe/deliver_r4/k34xe.py minus k34 (XE r4: b1 r2 + decode sliding 2<=B<=16)
+- k41 = k34xf + xe4 + xa3 + xd3
+- snap/xa4_mod.py = dev/xa/deliver_r4/k34xa_r4.py minus k34 (XA r4: v1f T128 + QLATE + MBP, nsys 14.4)
+- k42 = k34xf + xe4 + xa4 + xd3
+- snap/xc4_mod.py = dev/xc/deliver_r4/k34xc.py minus k34 (XC r4 = XD r2 + XC_END: v16f -0.7, v32f -3.3 bench vs XD r2)
+- k43 = k34xf + xe4 + xa4 + xc4 (XD r2 + XC_END instead of XD r3)
+- snap/xa5_mod.py = XA r5 (v1f DEFER 4 waves); snap/xc5_mod.py = XC r5 (XD r3 + XC_END)
+- k44 = k34xf + xe4 + xa5 + xc5
+- snap/xc6_mod.py = XC r6 hybrid (XD r3 path at B<22, XC_END at B>=22: v32f -3.4 nsys vs XD r3)
+- snap/xb7_mod.py = dev/xb/deliver_r7/k38d1f.py minus dev/coord/k38.py (XB r7: d1f TORD+NTE, -0.45 nsys)
+- k45 = k34xf + xe4 + xa5 + xc6 + xb7 (xb7 wrapper last: d1f)
+- snap/xg1_mod.py = dev/xg/deliver_r1/k44xg.py minus k44 (XG r1: v1f tagged end chain, -0.83 nsys)
+- k46 = k45 + xg1 (xg wrapper last: v1f)
+- snap/xc8_mod.py = XC r8 (r6 + XC_XDF B=16 combine: v16f -1.6 nsys)
+- k47 = k34xf + xe4 + xa5 + xc8 + xb7 + xg1
+- snap/xg2_mod.py = dev/xg/deliver_r2/k46xg2.py minus k46 (XG r2: v1f -0.66 nsys vs k46)
+- k48 = k34xf + xe4 + xa5 + xc8 + xb7 + xg2
+- snap/xg3_mod.py = dev/xg/deliver_r3/k34xg3.py minus k34 (XG r3: v1f nsys 12.37)
+- k49 = k34xf + xe4 + xa5 + xc8 + xb7 + xg3
+- snap/xe4b_mod.py = xe4 with XE_BMAX default 24 (XC audit: removes the decode-sliding B 16->20 cliff)
+- k50 = k49 with xe4b (only B 17..24 decode sliding changes)
+- k51 = build_vs(XD r5 deliver_r5, md5 42c634a1)(k50): v16s owner-pull combine
+- snap/xg5_mod.py = dev/xg/deliver_r5/k34xg5.py minus k34 (XG r5 = r3 + PFT150 + ASK: v1f -0.11 nsys); replaces xg3 in the next stack
+- snap/xc10_mod.py = dev/xc/deliver_r10/k34xc.py minus k34 (XC r10 = r8 + XC_RND=1: v32f -0.12 nsys mean); replaces xc8
+- k53 = mk_k52(--v1s c6)(build_vs(k34xf + xe4b + xa5 + xc10 + xb7 + xg5)) = k52 with XC r10 + XG r5
+- k54 = build_r10 (XF r10: run8w WH_NAP 128 -> 64, v32s -0.08 nsys)(k53)
+- k55 = XB r15 build.py (verify-full section -> r8 + VSTART=2) on k54, with XC_RND default flipped to 1 (keeps XC r10)
+- k56 = k55 + snap/p1r1 (XE: compile-time cluster dims + xe_dm K-first) + snap/p2r1 (d1f XB1_HD + HDPV). verify_k56: check 56/56; raw x3.1077 vs k55 x3.0895 / x3.0931 (+0.5%). BEST = k56 (md5 427cc112)
+- k59 = dev/orch/k59.py (orchestrator: k56 + S1 r1+r2 d1f PW=2/PWB + S2 r2 v1f MFREE+ALB+KF). verify_k59: check 56/56; raw x3.1560 vs k55 x3.1106 / x3.1100 (+1.47%): d1f -0.80, d16s -0.48, v1f -0.31. BEST = k59 (md5 9269382e)
+- k60 = dev/orch/k60.py (k59 + S5 r1: xe cold-code-behind-branches + prep-warp sincosf, v1s). verify_k60: check 56/56; raw x3.0899 vs k55 x3.0270 / x3.0403 (+1.86%): d1f -0.75, d16s -0.55, v1f -0.25, v1s -0.23 (noisy controls). BEST = k60 (md5 152a09bb)
+- k61 = k60 + W4 r1 TP (d1s xe_r1_1: one predicated L2 prefetch per 2-MB page of K / V cache + out after the page-table loads; cold-TLB judge-faithful bench d1s 4.37 -> 4.0 us). xe_r1_1 SASS == tp1 (check 56/56), other kernels == k60. BEST = k61 (md5 92d088c4). verify_k61: check 56/56; std bench x3.0467 vs k55 x2.9820 / x2.9900 (+1.75%); judge-faithful (tlbcold 1) x2.7491 vs x2.6865 / x2.7007 (+2.0%)
+- k62 = k61 + W2 r2 (verify full XD: PB pb[] in smem + EE1 mask-free hot pair loop / peeled last pair / early election + LT last pair as two T64 steps). verify_k62: check 56/56; std bench x3.1394 vs k55 x3.0666 / x3.0835 (+2.09%): v16f -1.45, v32f -0.6. Submit copy dev/coord/k62s.py (839,585 B). BEST = k62 (md5 996fed8e)
+- k63 = k62 + W3 r1 (v32s w4 LAY line-aligned slots + TPG early TLB touch; v16s x6 EA early cluster arrive). verify_k63: check 56/56; std x3.0797 vs k55 x3.0255 / x3.0443 (+1.48%, small-shape noise; k61/k62 jobs read +2.03/+2.09); judge-faithful x2.7520 vs x2.6739 / x2.6833 (+2.74%; k61 +2.06). Submit copy dev/coord/k63s.py (847,633 B). BEST = k63 (md5 4c4ed5f0)
+- k64 = k63 + W3 x6 TPC (v16s early TLB touch; section 0 from dev/w3/qa.py). check 56/56. A/B vs k63 (out/ab_k64c.txt, bench_jt v16s, 2 copies): tlbcold 1 (judge pairs) 11.15 / 11.12 vs 11.87 / 11.39 (-0.5 us); all-warm +0.26. BEST = k64 (md5 f693d5bb); submit copy k64s.py 847,633 B
+- k65 = k64 + W2 r3 (verify-full XD TP early TLB touch on top of PB/EE1/LT). check 56/56, xcheck 24/0; bench_jt tlbcold 1 vs k64 (same job): v16f -0.3/-0.5, v32f -1.2/-0.8. BEST = k65 (md5 b76344ec)
+- k66 = k65 + W5 r1 TKMF (run1f decode full: mask-free hot loop, peeled last tile, last-ticket lane folds without its own reds/atomic; nsys d16f -0.18 / d32f -0.21; check 56/0 on k64w5). Pending stacked check. **REJECTED: hangs on the judge (d16f timed replay > 60 s at rep 13, check f86c925c); do not stack TKMF.**
+- k67 = k65 + W7 r1 (d32s e3 v87 TLB touch) + W8 r1 (run8w A16 + CH). check 56/0; t_rep 60 replays x3 shapes 0 hangs; bench_jt sliding vs k65b (slot 3): v16s -0.46, v32s -0.70, d32s ~0 (node without the d32s cold penalty). BEST = k67 (md5 50806e22)
+- k69 = k67 + W11 r1 (verify-full XD evict_first on K/V copies) + W12 r1 (v16s x3 K/V-before-Q-prep + d32s E3CD). check 56/0; t_rep 60 x4 shapes 0 hangs; bench_jt all 12 vs k67: pair means +0.99% (matched +1.77 / +0.21; slot-4 d32f artifact 187.75 vs 177.5). Est. vs k55 ~+4.2-4.5%. BEST = k69 (md5 df7dad27)
+- k70 = k69 + W9 r1 NS (XE: RMSNorm sum via one smem round + rsqrt.approx; d1s -0.026 / v1s -0.031 nsys) + W10 r1 (gated kernel attn_1_0_1_0g, CT2 start fix for decode full B<=16; d16f -0.17 nsys; d32f code identical). md5 13d5ca11, 870,294 B stripped. PENDING verify. VERIFIED (out/verify_k70.txt): check 56/0, t_rep x3 0 hangs; bench_jt all 12 DIRECTLY vs k55: +3.40% (matched +3.84 / +2.96). BEST = k70.
+- k71 = k70 + W19 deliver_r1 (v32s role-split start: warps 0-7 issue K/V right after the length, warps 8-15 build RoPE/Q):
+  nsys v32s -0.33 us (6/6 runs), ncu instr -4.4%, pre-first-LDGSTS barrier stalls -82%; gates check 56/0, t_v8w, t_rep 60x4,
+  edge_sw 16/0, t_once19 52/0 (worker job w19_j5). Expected judge ~+0.07%. Only attn_8_1_1_1w4 / attn_8_1_0_1w4 differ.
+- k72 = k71 + W21 deliver_r1 QG=3 (v1s xe_b1s_8c6: native FP8 wgmma m64n16k32 for Q.K^T, Q rounded to E4M3 like the
+  reference's FP8 path): v1s kernel span -0.11 cold / -0.11 warm (13 copies, 4 containers), judge-us -0.11..-0.18; ncu instr
+  -3.1%, long_sb 3.22 -> 2.50. v1s err 4.5e-3 -> 7.0e-2 (bound 0.150); worst err/bound 0.585. md5 b2c5a13f; stripped 875,212 B.
+  Sections: base SRC from k71, XE_SRC from W21 qg3a, rest = k70 (verified section-by-section).

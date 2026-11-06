@@ -1,0 +1,1473 @@
+{
+ "o753": {
+  "shape_MNK": [
+   753,
+   8192,
+   1024
+  ],
+  "out32": false,
+  "sm_count_target": 0,
+  "n_configs_screened": 101452,
+  "incumbent": {
+   "desc": "sk2 nwg=3,rm=1,bn=128,ns=4,epi=2|dp|m|1|0|128",
+   "settings": null,
+   "median_us": 20.43,
+   "kernels": [
+    "sk2_3_1_128_128_4_1_0_0_2_0[128, 1, 1]"
+   ]
+  },
+  "best": {
+   "layout": "nn",
+   "settings": [
+    66,
+    20,
+    1,
+    0,
+    0,
+    0,
+    35,
+    0,
+    2
+   ],
+   "tile": "128x128",
+   "ws_bytes": 0,
+   "median_us": 18.61,
+   "paired_speedup_vs_incumbent": 1.1038,
+   "kernels": [
+    "nvjet_sm90_tst_128x128_64x6_1x1_v_ssched_bz_NNN[1, 132, 1]"
+   ]
+  },
+  "gain_us": 1.82,
+  "source": "r2_mid.json",
+  "top3": [
+   {
+    "layout": "nn",
+    "settings": [
+     66,
+     20,
+     1,
+     0,
+     0,
+     0,
+     35,
+     0,
+     2
+    ],
+    "tile": "128x128",
+    "ws_bytes": 0,
+    "median_us": 18.61,
+    "paired": 1.1038,
+    "kernels": [
+     "nvjet_sm90_tst_128x128_64x6_1x1_v_ssched_bz_NNN[1, 132, 1]"
+    ]
+   },
+   {
+    "layout": "nn",
+    "settings": [
+     66,
+     20,
+     1,
+     0,
+     0,
+     3,
+     35,
+     0,
+     5
+    ],
+    "tile": "128x128",
+    "ws_bytes": 0,
+    "median_us": 18.62,
+    "paired": 1.0967,
+    "kernels": [
+     "nvjet_sm90_tst_128x128_64x6_1x2_h_ssched_bz_NNT[2, 66, 1]"
+    ]
+   },
+   {
+    "layout": "tn",
+    "settings": [
+     66,
+     33,
+     1,
+     0,
+     0,
+     1,
+     35,
+     0,
+     2
+    ],
+    "tile": "128x96",
+    "ws_bytes": 0,
+    "median_us": 18.62,
+    "paired": 1.0967,
+    "kernels": [
+     "nvjet_sm90_tst_128x96_64x7_1x1_v_ssched_bz_TNT[1, 132, 1]"
+    ]
+   }
+  ]
+ },
+ "q753": {
+  "shape_MNK": [
+   753,
+   2304,
+   8192
+  ],
+  "out32": false,
+  "sm_count_target": 0,
+  "n_configs_screened": 88420,
+  "incumbent": {
+   "desc": "sglang _bf16_gemm_dispatch_impl",
+   "settings": null,
+   "median_us": 38.48,
+   "kernels": [
+    "nvjet_sm90_tst_112x128_64x7_1x2_h_bz_TNN[2, 63, 1]"
+   ]
+  },
+  "best": {
+   "layout": "tn",
+   "settings": [
+    66,
+    165,
+    1,
+    0,
+    0,
+    6,
+    35,
+    0,
+    5
+   ],
+   "tile": "112x128",
+   "ws_bytes": 0,
+   "median_us": 38.46,
+   "paired_speedup_vs_incumbent": 1.0029,
+   "kernels": [
+    "nvjet_sm90_tst_112x128_64x7_1x2_h_bz_coopA_TNN[2, 63, 1]"
+   ]
+  },
+  "gain_us": 0.02,
+  "source": "r2_mid.json",
+  "top3": [
+   {
+    "layout": "tn",
+    "settings": [
+     66,
+     165,
+     1,
+     0,
+     0,
+     6,
+     35,
+     0,
+     5
+    ],
+    "tile": "112x128",
+    "ws_bytes": 0,
+    "median_us": 38.46,
+    "paired": 1.0029,
+    "kernels": [
+     "nvjet_sm90_tst_112x128_64x7_1x2_h_bz_coopA_TNN[2, 63, 1]"
+    ]
+   },
+   {
+    "layout": "tn",
+    "settings": [
+     66,
+     165,
+     1,
+     0,
+     0,
+     0,
+     35,
+     0,
+     2
+    ],
+    "tile": "112x128",
+    "ws_bytes": 0,
+    "median_us": 38.56,
+    "paired": 1.0008,
+    "kernels": [
+     "nvjet_sm90_tst_112x128_64x7_1x1_v_bz_TNN[1, 126, 1]"
+    ]
+   },
+   {
+    "layout": "tn",
+    "settings": [
+     66,
+     455,
+     1,
+     0,
+     0,
+     1,
+     35,
+     0,
+     2
+    ],
+    "tile": "192x72",
+    "ws_bytes": 0,
+    "median_us": 38.64,
+    "paired": 1.0004,
+    "kernels": [
+     "nvjet_sm90_tst_192x72_64x6_1x1_v_bz_TNT[1, 132, 1]"
+    ]
+   }
+  ]
+ },
+ "q753c": {
+  "shape_MNK": [
+   753,
+   2304,
+   8192
+  ],
+  "out32": false,
+  "sm_count_target": 112,
+  "n_configs_screened": 84384,
+  "incumbent": {
+   "desc": "DenseLt heuristic #0 ws=67108864",
+   "settings": [
+    66,
+    20,
+    1,
+    0,
+    0,
+    3,
+    35,
+    0,
+    6
+   ],
+   "median_us": 41.5,
+   "kernels": [
+    "nvjet_sm90_tst_128x128_64x6_2x2_h_bz_TNT[4, 27, 1]"
+   ]
+  },
+  "best": {
+   "layout": "nn",
+   "settings": [
+    66,
+    20,
+    1,
+    0,
+    0,
+    6,
+    35,
+    0,
+    5
+   ],
+   "tile": "128x128",
+   "ws_bytes": 0,
+   "median_us": 41.14,
+   "paired_speedup_vs_incumbent": 1.0101,
+   "kernels": [
+    "nvjet_sm90_tst_128x128_64x6_1x2_h_bz_coopA_NNN[2, 54, 1]"
+   ]
+  },
+  "gain_us": 0.37,
+  "source": "v1/r753.json",
+  "top3": [
+   {
+    "layout": "nn",
+    "settings": [
+     66,
+     20,
+     1,
+     0,
+     0,
+     6,
+     35,
+     0,
+     5
+    ],
+    "tile": "128x128",
+    "ws_bytes": 0,
+    "median_us": 41.14,
+    "paired": 1.0101,
+    "kernels": [
+     "nvjet_sm90_tst_128x128_64x6_1x2_h_bz_coopA_NNN[2, 54, 1]"
+    ]
+   },
+   {
+    "layout": "nn",
+    "settings": [
+     66,
+     20,
+     1,
+     0,
+     0,
+     7,
+     35,
+     0,
+     5
+    ],
+    "tile": "128x128",
+    "ws_bytes": 0,
+    "median_us": 41.14,
+    "paired": 1.0144,
+    "kernels": [
+     "nvjet_sm90_tst_128x128_64x6_1x2_h_bz_coopA_NNT[2, 54, 1]"
+    ]
+   },
+   {
+    "layout": "nn",
+    "settings": [
+     66,
+     20,
+     1,
+     0,
+     0,
+     4,
+     35,
+     0,
+     2
+    ],
+    "tile": "128x128",
+    "ws_bytes": 0,
+    "median_us": 41.17,
+    "paired": 1.0007,
+    "kernels": [
+     "nvjet_sm90_tst_128x128_64x6_1x1_v_bz_coopA_NNN[1, 108, 1]"
+    ]
+   }
+  ]
+ },
+ "u753": {
+  "shape_MNK": [
+   753,
+   8192,
+   4096
+  ],
+  "out32": false,
+  "sm_count_target": 0,
+  "n_configs_screened": 101452,
+  "incumbent": {
+   "desc": "sglang _bf16_gemm_dispatch_impl",
+   "settings": null,
+   "median_us": 66.62,
+   "kernels": [
+    "nvjet_sm90_tst_128x192_64x5_2x1_v_bz_coopB_TNN[2, 66, 1]"
+   ]
+  },
+  "best": {
+   "layout": "nn",
+   "settings": [
+    66,
+    20,
+    1,
+    0,
+    0,
+    1,
+    35,
+    0,
+    2
+   ],
+   "tile": "128x128",
+   "ws_bytes": 0,
+   "median_us": 64.77,
+   "paired_speedup_vs_incumbent": 1.0314,
+   "kernels": [
+    "nvjet_sm90_tst_128x128_64x6_1x1_v_ssched_bz_NNT[1, 132, 1]"
+   ]
+  },
+  "gain_us": 1.86,
+  "source": "r2_mid.json",
+  "top3": [
+   {
+    "layout": "nn",
+    "settings": [
+     66,
+     20,
+     1,
+     0,
+     0,
+     1,
+     35,
+     0,
+     2
+    ],
+    "tile": "128x128",
+    "ws_bytes": 0,
+    "median_us": 64.77,
+    "paired": 1.0314,
+    "kernels": [
+     "nvjet_sm90_tst_128x128_64x6_1x1_v_ssched_bz_NNT[1, 132, 1]"
+    ]
+   },
+   {
+    "layout": "nn",
+    "settings": [
+     66,
+     32,
+     1,
+     0,
+     0,
+     5,
+     35,
+     0,
+     3
+    ],
+    "tile": "128x192",
+    "ws_bytes": 0,
+    "median_us": 65.14,
+    "paired": 1.0235,
+    "kernels": [
+     "nvjet_sm90_tst_128x192_64x5_2x1_v_bz_coopA_NNT[2, 66, 1]"
+    ]
+   },
+   {
+    "layout": "tn",
+    "settings": [
+     66,
+     20,
+     1,
+     0,
+     0,
+     1,
+     35,
+     0,
+     5
+    ],
+    "tile": "128x128",
+    "ws_bytes": 0,
+    "median_us": 65.14,
+    "paired": 1.0216,
+    "kernels": [
+     "nvjet_sm90_tst_128x128_64x6_1x2_v_ssched_bz_TNT[2, 66, 1]"
+    ]
+   }
+  ]
+ },
+ "f753": {
+  "shape_MNK": [
+   753,
+   4608,
+   8192
+  ],
+  "out32": true,
+  "sm_count_target": 0,
+  "n_configs_screened": 95068,
+  "incumbent": {
+   "desc": "DenseLt heuristic #0 ws=67108864",
+   "settings": [
+    66,
+    497,
+    1,
+    0,
+    0,
+    5,
+    35,
+    0,
+    3
+   ],
+   "median_us": 76.78,
+   "kernels": [
+    "nvjet_sm90_tss_256x112_64x4_2x1_v_bz_coopA_TNT[2, 63, 1]"
+   ]
+  },
+  "best": {
+   "layout": "tn",
+   "settings": [
+    66,
+    185,
+    1,
+    0,
+    0,
+    4,
+    35,
+    0,
+    3
+   ],
+   "tile": "144x192",
+   "ws_bytes": 0,
+   "median_us": 74.16,
+   "paired_speedup_vs_incumbent": 1.0339,
+   "kernels": [
+    "nvjet_sm90_tss_144x192_64x5_2x1_v_bz_coopB_TNN[2, 64, 1]"
+   ]
+  },
+  "gain_us": 2.62,
+  "source": "r2_mid.json",
+  "top3": [
+   {
+    "layout": "tn",
+    "settings": [
+     66,
+     185,
+     1,
+     0,
+     0,
+     4,
+     35,
+     0,
+     3
+    ],
+    "tile": "144x192",
+    "ws_bytes": 0,
+    "median_us": 74.16,
+    "paired": 1.0339,
+    "kernels": [
+     "nvjet_sm90_tss_144x192_64x5_2x1_v_bz_coopB_TNN[2, 64, 1]"
+    ]
+   },
+   {
+    "layout": "tn",
+    "settings": [
+     66,
+     218,
+     1,
+     0,
+     0,
+     4,
+     35,
+     0,
+     2
+    ],
+    "tile": "216x128",
+    "ws_bytes": 0,
+    "median_us": 74.19,
+    "paired": 1.0364,
+    "kernels": [
+     "nvjet_sm90_tss_216x128_64x4_1x1_v_bz_coopA_TNN[1, 132, 1]"
+    ]
+   },
+   {
+    "layout": "tn",
+    "settings": [
+     66,
+     185,
+     1,
+     0,
+     0,
+     4,
+     35,
+     0,
+     2
+    ],
+    "tile": "144x192",
+    "ws_bytes": 0,
+    "median_us": 74.21,
+    "paired": 1.0351,
+    "kernels": [
+     "nvjet_sm90_tss_144x192_64x5_1x1_v_bz_coopB_TNN[1, 128, 1]"
+    ]
+   }
+  ]
+ },
+ "q3012": {
+  "shape_MNK": [
+   3012,
+   2304,
+   8192
+  ],
+  "out32": false,
+  "sm_count_target": 0,
+  "n_configs_screened": 59408,
+  "incumbent": {
+   "desc": "DenseLt heuristic #2 ws=67108864",
+   "settings": [
+    66,
+    496,
+    1,
+    0,
+    0,
+    7,
+    35,
+    0,
+    2
+   ],
+   "median_us": 144.91,
+   "kernels": [
+    "nvjet_sm90_tst_256x104_64x4_1x1_h_bz_coopA_TNT[1, 132, 1]"
+   ]
+  },
+  "best": {
+   "layout": "tn",
+   "settings": [
+    66,
+    496,
+    1,
+    0,
+    0,
+    5,
+    35,
+    0,
+    2
+   ],
+   "tile": "256x104",
+   "ws_bytes": 0,
+   "median_us": 143.38,
+   "paired_speedup_vs_incumbent": 1.0108,
+   "kernels": [
+    "nvjet_sm90_tst_256x104_64x4_1x1_v_bz_coopA_TNT[1, 132, 1]"
+   ]
+  },
+  "gain_us": 1.54,
+  "source": "r2_mid.json",
+  "top3": [
+   {
+    "layout": "tn",
+    "settings": [
+     66,
+     496,
+     1,
+     0,
+     0,
+     5,
+     35,
+     0,
+     2
+    ],
+    "tile": "256x104",
+    "ws_bytes": 0,
+    "median_us": 143.38,
+    "paired": 1.0108,
+    "kernels": [
+     "nvjet_sm90_tst_256x104_64x4_1x1_v_bz_coopA_TNT[1, 132, 1]"
+    ]
+   },
+   {
+    "layout": "nn",
+    "settings": [
+     66,
+     496,
+     1,
+     0,
+     0,
+     5,
+     35,
+     0,
+     2
+    ],
+    "tile": "256x104",
+    "ws_bytes": 0,
+    "median_us": 143.47,
+    "paired": 1.0105,
+    "kernels": [
+     "nvjet_sm90_tst_256x104_64x4_1x1_v_bz_coopA_NNT[1, 132, 1]"
+    ]
+   },
+   {
+    "layout": "nn",
+    "settings": [
+     66,
+     496,
+     1,
+     0,
+     0,
+     7,
+     35,
+     0,
+     2
+    ],
+    "tile": "256x104",
+    "ws_bytes": 0,
+    "median_us": 144.5,
+    "paired": 1.0033,
+    "kernels": [
+     "nvjet_sm90_tst_256x104_64x4_1x1_h_bz_coopA_NNT[1, 132, 1]"
+    ]
+   }
+  ]
+ },
+ "o3012": {
+  "shape_MNK": [
+   3012,
+   8192,
+   1024
+  ],
+  "out32": false,
+  "sm_count_target": 0,
+  "n_configs_screened": 63288,
+  "incumbent": {
+   "desc": "sk2 nwg=2,rm=1,bn=256,ns=3,epi=2|dp|m|1|0|128",
+   "settings": null,
+   "median_us": 69.58,
+   "kernels": [
+    "sk2_2_1_256_256_3_1_0_0_2_0[128, 1, 1]"
+   ]
+  },
+  "best": {
+   "layout": "tn",
+   "settings": [
+    66,
+    408,
+    1,
+    0,
+    0,
+    1,
+    35,
+    0,
+    3
+   ],
+   "tile": "128x168",
+   "ws_bytes": 0,
+   "median_us": 64.34,
+   "paired_speedup_vs_incumbent": 1.0807,
+   "kernels": [
+    "nvjet_sm90_tst_128x168_64x5_2x1_v_ssched_bz_TNT[2, 66, 1]"
+   ]
+  },
+  "gain_us": 5.25,
+  "source": "r2_mid.json",
+  "top3": [
+   {
+    "layout": "tn",
+    "settings": [
+     66,
+     408,
+     1,
+     0,
+     0,
+     1,
+     35,
+     0,
+     3
+    ],
+    "tile": "128x168",
+    "ws_bytes": 0,
+    "median_us": 64.34,
+    "paired": 1.0807,
+    "kernels": [
+     "nvjet_sm90_tst_128x168_64x5_2x1_v_ssched_bz_TNT[2, 66, 1]"
+    ]
+   },
+   {
+    "layout": "tn",
+    "settings": [
+     66,
+     408,
+     1,
+     0,
+     0,
+     3,
+     35,
+     0,
+     5
+    ],
+    "tile": "128x168",
+    "ws_bytes": 0,
+    "median_us": 64.37,
+    "paired": 1.0838,
+    "kernels": [
+     "nvjet_sm90_tst_128x168_64x5_1x2_h_ssched_bz_TNT[2, 66, 1]"
+    ]
+   },
+   {
+    "layout": "tn",
+    "settings": [
+     66,
+     408,
+     1,
+     0,
+     0,
+     3,
+     35,
+     0,
+     2
+    ],
+    "tile": "128x168",
+    "ws_bytes": 0,
+    "median_us": 64.45,
+    "paired": 1.0807,
+    "kernels": [
+     "nvjet_sm90_tst_128x168_64x5_1x1_h_ssched_bz_TNT[1, 132, 1]"
+    ]
+   }
+  ]
+ },
+ "f3012": {
+  "shape_MNK": [
+   3012,
+   4608,
+   8192
+  ],
+  "out32": true,
+  "sm_count_target": 0,
+  "n_configs_screened": 63288,
+  "incumbent": {
+   "desc": "DenseLt heuristic #1 ws=0",
+   "settings": [
+    66,
+    500,
+    1,
+    0,
+    0,
+    7,
+    35,
+    0,
+    5
+   ],
+   "median_us": 295.66,
+   "kernels": [
+    "nvjet_sm90_tss_256x144_64x4_1x2_h_ssched_bz_coopA_TNT[2, 66, 1]"
+   ]
+  },
+  "best": {
+   "layout": "nn",
+   "settings": [
+    66,
+    420,
+    1,
+    0,
+    0,
+    5,
+    35,
+    0,
+    3
+   ],
+   "tile": "128x280",
+   "ws_bytes": 0,
+   "median_us": 290.85,
+   "paired_speedup_vs_incumbent": 1.0179,
+   "kernels": [
+    "nvjet_sm90_tss_128x280_64x4_2x1_v_ssched_bz_coopA_NNT[2, 66, 1]"
+   ]
+  },
+  "gain_us": 4.82,
+  "source": "r2_mid.json",
+  "top3": [
+   {
+    "layout": "nn",
+    "settings": [
+     66,
+     420,
+     1,
+     0,
+     0,
+     5,
+     35,
+     0,
+     3
+    ],
+    "tile": "128x280",
+    "ws_bytes": 0,
+    "median_us": 290.85,
+    "paired": 1.0179,
+    "kernels": [
+     "nvjet_sm90_tss_128x280_64x4_2x1_v_ssched_bz_coopA_NNT[2, 66, 1]"
+    ]
+   },
+   {
+    "layout": "nn",
+    "settings": [
+     66,
+     408,
+     1,
+     0,
+     0,
+     3,
+     35,
+     0,
+     5
+    ],
+    "tile": "128x168",
+    "ws_bytes": 0,
+    "median_us": 290.98,
+    "paired": 1.0183,
+    "kernels": [
+     "nvjet_sm90_tss_128x168_64x5_1x2_h_ssched_bz_NNT[2, 66, 1]"
+    ]
+   },
+   {
+    "layout": "tn",
+    "settings": [
+     66,
+     408,
+     1,
+     0,
+     0,
+     3,
+     35,
+     0,
+     5
+    ],
+    "tile": "128x168",
+    "ws_bytes": 0,
+    "median_us": 291.31,
+    "paired": 1.0162,
+    "kernels": [
+     "nvjet_sm90_tss_128x168_64x5_1x2_h_ssched_bz_TNT[2, 66, 1]"
+    ]
+   }
+  ]
+ },
+ "u3012": {
+  "shape_MNK": [
+   3012,
+   8192,
+   4096
+  ],
+  "out32": false,
+  "sm_count_target": 0,
+  "n_configs_screened": 63288,
+  "incumbent": {
+   "desc": "DenseLt heuristic #1 ws=0",
+   "settings": [
+    66,
+    423,
+    1,
+    0,
+    0,
+    5,
+    35,
+    0,
+    3
+   ],
+   "median_us": 257.01,
+   "kernels": [
+    "nvjet_sm90_tst_128x304_64x3_2x1_v_ssched_bz_coopA_TNT[2, 66, 1]"
+   ]
+  },
+  "best": {
+   "layout": "tn",
+   "settings": [
+    66,
+    408,
+    1,
+    0,
+    0,
+    1,
+    35,
+    0,
+    3
+   ],
+   "tile": "128x168",
+   "ws_bytes": 0,
+   "median_us": 253.81,
+   "paired_speedup_vs_incumbent": 1.0121,
+   "kernels": [
+    "nvjet_sm90_tst_128x168_64x5_2x1_v_ssched_bz_TNT[2, 66, 1]"
+   ]
+  },
+  "gain_us": 3.2,
+  "source": "r2_mid.json",
+  "top3": [
+   {
+    "layout": "tn",
+    "settings": [
+     66,
+     408,
+     1,
+     0,
+     0,
+     1,
+     35,
+     0,
+     3
+    ],
+    "tile": "128x168",
+    "ws_bytes": 0,
+    "median_us": 253.81,
+    "paired": 1.0121,
+    "kernels": [
+     "nvjet_sm90_tst_128x168_64x5_2x1_v_ssched_bz_TNT[2, 66, 1]"
+    ]
+   },
+   {
+    "layout": "nn",
+    "settings": [
+     66,
+     408,
+     1,
+     0,
+     0,
+     1,
+     35,
+     0,
+     3
+    ],
+    "tile": "128x168",
+    "ws_bytes": 0,
+    "median_us": 254.21,
+    "paired": 1.0117,
+    "kernels": [
+     "nvjet_sm90_tst_128x168_64x5_2x1_v_ssched_bz_NNT[2, 66, 1]"
+    ]
+   },
+   {
+    "layout": "tn",
+    "settings": [
+     66,
+     166,
+     1,
+     0,
+     0,
+     2,
+     35,
+     0,
+     5
+    ],
+    "tile": "112x192",
+    "ws_bytes": 0,
+    "median_us": 256.37,
+    "paired": 1.0017,
+    "kernels": [
+     "nvjet_sm90_tst_112x192_64x5_1x2_h_ssched_bz_TNN[2, 66, 1]"
+    ]
+   }
+  ]
+ },
+ "q3012c": {
+  "shape_MNK": [
+   3012,
+   2304,
+   8192
+  ],
+  "out32": false,
+  "sm_count_target": 108,
+  "n_configs_screened": 60608,
+  "incumbent": {
+   "desc": "DenseLt heuristic #0 ws=67108864",
+   "settings": [
+    66,
+    23,
+    1,
+    0,
+    0,
+    6,
+    35,
+    0,
+    6
+   ],
+   "median_us": 163.82,
+   "kernels": [
+    "nvjet_sm90_tst_128x256_64x4_2x2_h_bz_coopA_TNN[4, 27, 1]"
+   ]
+  },
+  "best": {
+   "layout": "nn",
+   "settings": [
+    66,
+    408,
+    1,
+    0,
+    0,
+    3,
+    35,
+    0,
+    6
+   ],
+   "tile": "128x168",
+   "ws_bytes": 0,
+   "median_us": 161.94,
+   "paired_speedup_vs_incumbent": 1.0128,
+   "kernels": [
+    "nvjet_sm90_tst_128x168_64x5_2x2_h_ssched_bz_NNT[4, 27, 1]"
+   ]
+  },
+  "gain_us": 1.89,
+  "source": "r2_mid.json",
+  "top3": [
+   {
+    "layout": "nn",
+    "settings": [
+     66,
+     408,
+     1,
+     0,
+     0,
+     3,
+     35,
+     0,
+     6
+    ],
+    "tile": "128x168",
+    "ws_bytes": 0,
+    "median_us": 161.94,
+    "paired": 1.0128,
+    "kernels": [
+     "nvjet_sm90_tst_128x168_64x5_2x2_h_ssched_bz_NNT[4, 27, 1]"
+    ]
+   },
+   {
+    "layout": "nn",
+    "settings": [
+     66,
+     408,
+     1,
+     0,
+     0,
+     1,
+     35,
+     0,
+     6
+    ],
+    "tile": "128x168",
+    "ws_bytes": 0,
+    "median_us": 161.98,
+    "paired": 1.0132,
+    "kernels": [
+     "nvjet_sm90_tst_128x168_64x5_2x2_v_ssched_bz_NNT[4, 27, 1]"
+    ]
+   },
+   {
+    "layout": "tn",
+    "settings": [
+     66,
+     408,
+     1,
+     0,
+     0,
+     3,
+     35,
+     0,
+     6
+    ],
+    "tile": "128x168",
+    "ws_bytes": 0,
+    "median_us": 162.0,
+    "paired": 1.0131,
+    "kernels": [
+     "nvjet_sm90_tst_128x168_64x5_2x2_h_ssched_bz_TNT[4, 27, 1]"
+    ]
+   }
+  ]
+ },
+ "q16k": {
+  "shape_MNK": [
+   16384,
+   2304,
+   8192
+  ],
+  "out32": false,
+  "sm_count_target": 0,
+  "n_configs_screened": 36000,
+  "incumbent": {
+   "desc": "DenseLt heuristic #1 ws=67108864",
+   "settings": [
+    66,
+    24,
+    1,
+    0,
+    0,
+    7,
+    35,
+    0,
+    5
+   ],
+   "median_us": 850.16,
+   "kernels": [
+    "Memset (Device)None",
+    "nvjet_sm90_tst_256x128_64x4_1x2_h_bz_coopA_TNT[2, 66, 1]"
+   ]
+  },
+  "best": {
+   "layout": "nn",
+   "settings": [
+    66,
+    409,
+    1,
+    0,
+    0,
+    3,
+    35,
+    0,
+    2
+   ],
+   "tile": "128x176",
+   "ws_bytes": 0,
+   "median_us": 833.33,
+   "paired_speedup_vs_incumbent": 1.021,
+   "kernels": [
+    "nvjet_sm90_tst_128x176_64x5_1x1_h_ssched_bz_NNT[1, 132, 1]"
+   ]
+  },
+  "gain_us": 16.83,
+  "source": "r2_16k.json",
+  "top3": [
+   {
+    "layout": "nn",
+    "settings": [
+     66,
+     409,
+     1,
+     0,
+     0,
+     3,
+     35,
+     0,
+     2
+    ],
+    "tile": "128x176",
+    "ws_bytes": 0,
+    "median_us": 833.33,
+    "paired": 1.021,
+    "kernels": [
+     "nvjet_sm90_tst_128x176_64x5_1x1_h_ssched_bz_NNT[1, 132, 1]"
+    ]
+   },
+   {
+    "layout": "nn",
+    "settings": [
+     66,
+     409,
+     1,
+     0,
+     0,
+     1,
+     35,
+     0,
+     3
+    ],
+    "tile": "128x176",
+    "ws_bytes": 4,
+    "median_us": 833.44,
+    "paired": 1.0188,
+    "kernels": [
+     "Memset (Device)None",
+     "nvjet_sm90_tst_128x176_64x5_2x1_v_bz_NNT[2, 66, 1]"
+    ]
+   },
+   {
+    "layout": "tn",
+    "settings": [
+     66,
+     409,
+     1,
+     0,
+     0,
+     1,
+     35,
+     0,
+     3
+    ],
+    "tile": "128x176",
+    "ws_bytes": 0,
+    "median_us": 833.82,
+    "paired": 1.0224,
+    "kernels": [
+     "nvjet_sm90_tst_128x176_64x5_2x1_v_ssched_bz_TNT[2, 66, 1]"
+    ]
+   }
+  ]
+ },
+ "p16k": {
+  "shape_MNK": [
+   16384,
+   4096,
+   8192
+  ],
+  "out32": false,
+  "sm_count_target": 0,
+  "n_configs_screened": 36000,
+  "incumbent": {
+   "desc": "LtMatmul heuristic #2",
+   "settings": [
+    66,
+    23,
+    1,
+    0,
+    0,
+    4,
+    35,
+    0,
+    3
+   ],
+   "median_us": 1614.02,
+   "kernels": [
+    "Memset (Device)None",
+    "nvjet_sm90_tst_128x256_64x4_2x1_v_bz_coopA_TNN[2, 66, 1]"
+   ]
+  },
+  "best": {
+   "layout": "tn",
+   "settings": [
+    66,
+    29,
+    1,
+    0,
+    0,
+    1,
+    35,
+    0,
+    3
+   ],
+   "tile": "128x160",
+   "ws_bytes": 0,
+   "median_us": 1548.48,
+   "paired_speedup_vs_incumbent": 1.0405,
+   "kernels": [
+    "nvjet_sm90_tst_128x160_64x5_2x1_v_ssched_bz_TNT[2, 66, 1]"
+   ]
+  },
+  "gain_us": 65.54,
+  "source": "r2_16k.json",
+  "top3": [
+   {
+    "layout": "tn",
+    "settings": [
+     66,
+     29,
+     1,
+     0,
+     0,
+     1,
+     35,
+     0,
+     3
+    ],
+    "tile": "128x160",
+    "ws_bytes": 0,
+    "median_us": 1548.48,
+    "paired": 1.0405,
+    "kernels": [
+     "nvjet_sm90_tst_128x160_64x5_2x1_v_ssched_bz_TNT[2, 66, 1]"
+    ]
+   },
+   {
+    "layout": "nn",
+    "settings": [
+     66,
+     29,
+     1,
+     0,
+     0,
+     1,
+     35,
+     0,
+     2
+    ],
+    "tile": "128x160",
+    "ws_bytes": 0,
+    "median_us": 1549.87,
+    "paired": 1.0373,
+    "kernels": [
+     "nvjet_sm90_tst_128x160_64x5_1x1_v_ssched_bz_NNT[1, 132, 1]"
+    ]
+   },
+   {
+    "layout": "nn",
+    "settings": [
+     66,
+     29,
+     1,
+     0,
+     0,
+     3,
+     35,
+     0,
+     2
+    ],
+    "tile": "128x160",
+    "ws_bytes": 0,
+    "median_us": 1550.21,
+    "paired": 1.0403,
+    "kernels": [
+     "nvjet_sm90_tst_128x160_64x5_1x1_h_ssched_bz_NNT[1, 132, 1]"
+    ]
+   }
+  ]
+ },
+ "r16k": {
+  "shape_MNK": [
+   16384,
+   512,
+   8192
+  ],
+  "out32": true,
+  "sm_count_target": 0,
+  "n_configs_screened": 34260,
+  "incumbent": {
+   "desc": "DenseLt heuristic #0 ws=67108864",
+   "settings": [
+    66,
+    24,
+    1,
+    0,
+    0,
+    7,
+    35,
+    0,
+    5
+   ],
+   "median_us": 179.9,
+   "kernels": [
+    "nvjet_sm90_tss_256x128_64x4_1x2_h_bz_coopA_TNT[2, 66, 1]"
+   ]
+  },
+  "best": {
+   "layout": "nn",
+   "settings": [
+    66,
+    408,
+    1,
+    0,
+    0,
+    3,
+    35,
+    0,
+    2
+   ],
+   "tile": "128x168",
+   "ws_bytes": 0,
+   "median_us": 176.4,
+   "paired_speedup_vs_incumbent": 1.0194,
+   "kernels": [
+    "nvjet_sm90_tss_128x168_64x5_1x1_h_ssched_bz_NNT[1, 132, 1]"
+   ]
+  },
+  "gain_us": 3.5,
+  "source": "r2_16k.json",
+  "top3": [
+   {
+    "layout": "nn",
+    "settings": [
+     66,
+     408,
+     1,
+     0,
+     0,
+     3,
+     35,
+     0,
+     2
+    ],
+    "tile": "128x168",
+    "ws_bytes": 0,
+    "median_us": 176.4,
+    "paired": 1.0194,
+    "kernels": [
+     "nvjet_sm90_tss_128x168_64x5_1x1_h_ssched_bz_NNT[1, 132, 1]"
+    ]
+   },
+   {
+    "layout": "tn",
+    "settings": [
+     66,
+     408,
+     1,
+     0,
+     0,
+     3,
+     35,
+     0,
+     5
+    ],
+    "tile": "128x168",
+    "ws_bytes": 0,
+    "median_us": 176.46,
+    "paired": 1.0182,
+    "kernels": [
+     "nvjet_sm90_tss_128x168_64x5_1x2_h_ssched_bz_TNT[2, 66, 1]"
+    ]
+   },
+   {
+    "layout": "nn",
+    "settings": [
+     66,
+     408,
+     1,
+     0,
+     0,
+     3,
+     35,
+     0,
+     5
+    ],
+    "tile": "128x168",
+    "ws_bytes": 0,
+    "median_us": 176.58,
+    "paired": 1.0185,
+    "kernels": [
+     "nvjet_sm90_tss_128x168_64x5_1x2_h_ssched_bz_NNT[2, 66, 1]"
+    ]
+   }
+  ]
+ }
+}

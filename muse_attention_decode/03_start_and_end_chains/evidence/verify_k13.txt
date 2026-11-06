@@ -1,0 +1,28 @@
+[gate] slot 1 at 03:09:19 (1 running)
+<modal-run-url>
+│   autoresearch-kernels/attn/tools/modal_run.py
+0 failures
+decode 1  sliding w46 sglang    19.86 | k12     5.64 x3.521 | k13     6.01 x3.303   sol    0.11
+decode 1  full    w16 sglang    30.61 | k12    14.10 x2.171 | k13    13.97 x2.190   sol    4.27
+decode 16 sliding w46 sglang    25.73 | k12     8.82 x2.919 | k13     9.00 x2.858   sol    1.65
+decode 16 full    w16 sglang   197.73 | k12    87.58 x2.258 | k13    87.18 x2.268   sol   63.18
+decode 32 sliding w46 sglang    29.98 | k12    10.66 x2.812 | k13    10.88 x2.755   sol    3.29
+decode 32 full    w16 sglang   380.99 | k12   166.32 x2.291 | k13   167.08 x2.280   sol  126.35
+verify 1  sliding w46 sglang    21.86 | k12     9.50 x2.300 | k13     9.40 x2.324   sol    0.12
+verify 1  full    w16 sglang    34.94 | k12    18.77 x1.862 | k13    18.69 x1.870   sol    4.28
+verify 16 sliding w46 sglang    28.02 | k12    12.40 x2.260 | k13    12.43 x2.254   sol    1.86
+verify 16 full    w16 sglang   202.13 | k12   121.44 x1.664 | k13   114.78 x1.761   sol   63.39
+verify 32 sliding w46 sglang    33.50 | k12    15.72 x2.131 | k13    16.01 x2.093   sol    3.72
+verify 32 full    w16 sglang   386.18 | k12   220.19 x1.754 | k13   211.70 x1.824   sol  126.78
+per-load (weighted sums, us):
+  decode 1  sglang    1403.1 | k12     485.0 x2.893 | k13     500.2 x2.805
+  decode 16 sglang    4347.1 | k12    1806.7 x2.406 | k13    1809.0 x2.403
+  decode 32 sglang    7475.1 | k12    3151.6 x2.372 | k13    3173.8 x2.355
+  verify 1  sglang    1564.5 | k12     737.4 x2.122 | k13     731.6 x2.138
+  verify 16 sglang    4522.8 | k12    2513.3 x1.800 | k13    2408.3 x1.878
+  verify 32 sglang    7720.0 | k12    4246.2 x1.818 | k13    4123.7 x1.872
+GEOMEAN k12: x2.2039 (board time 1670.5 us)   judge-projected (+1.0 us/call) x2.0890 (board 1799.9 us)
+GEOMEAN k13: x2.2190 (board time 1659.2 us)   judge-projected (+1.0 us/call) x2.1042 (board 1786.9 us)
+fetched into autoresearch-kernels/attn/out/20261028T031125_verify_k13
+[exit 0]
+<modal-run-url>

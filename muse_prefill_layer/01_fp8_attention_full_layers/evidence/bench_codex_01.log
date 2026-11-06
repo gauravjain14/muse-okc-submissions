@@ -1,0 +1,21 @@
+✓ Initialized. View run at 
+<modal-run-url>
+✓ Created objects.
+├── 🔨 Created mount 
+│   muse-opt/muse_prefill_layer/dev/modal_run.py
+├── 🔨 Created mount muse-opt/muse_prefill_layer
+└── 🔨 Created function run.
+router seed 728034927264498030 (2 s)
+prepared codex (codex_best.py) in 62.8 s
+0 turn 1     b1 ctx80000 sliding q753  sglang    1107.3  codex     661.7 x1.678
+1 turn 1     b1 ctx80000 full    q753  sglang    1532.9  codex    1051.7 x1.458
+2 turn 4     b4 ctx80000 sliding q753  sglang    3486.5  codex    2056.5 x1.695
+3 turn 4     b4 ctx80000 full    q753  sglang    5040.7  codex    3599.2 x1.401
+4 first turn b1 ctx0 full    q16384  sglang   18553.0  codex   11146.5 x1.677
+5 first turn b1 ctx32768 sliding q16384  sglang   18053.1  codex   10361.1 x1.742
+6 first turn b1 ctx32768 full    q16384  sglang   22461.2  codex   14629.1 x1.543
+7 first turn b1 ctx65536 full    q16384  sglang   26177.9  codex   18497.1 x1.413
+codex: turn 1 x1.599  turn 4 x1.584  first turn x1.669  geomean x1.6171
+Stopping app - local entrypoint completed.
+✓ App completed. View run at 
+<modal-run-url>

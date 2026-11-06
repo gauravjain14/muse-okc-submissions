@@ -1,0 +1,4 @@
+v51|moe_v51|||
+v51 no-compute|moe_v51|MOE_NO_COMPUTE||
+v51 no-compute no-combine|moe_v51|MOE_NO_COMPUTE,MOE_NO_COMBINE||
+v51 no-load (compute only)|moe_v51|MOE_NO_LOAD||

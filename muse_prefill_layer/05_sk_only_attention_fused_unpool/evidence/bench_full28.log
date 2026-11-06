@@ -1,0 +1,46 @@
+✓ Initialized. View run at 
+<modal-run-url>
+✓ Created objects.
+├── 🔨 Created mount 
+│   <scratch>
+│   5-ce57afd4da60/scratchpad/snap.bnZAQv/dev/modal_run.py
+├── 🔨 Created mount 
+│   <scratch>
+│   5-ce57afd4da60/scratchpad/snap.bnZAQv
+└── 🔨 Created function run.
+[gpu before]
+0 %, 4 MiB, 345 MHz, 77.68 W, 31
+compute procs: 0
+router seed 728034927264498030 (2 s)
+prepared full25a (cand_full25a.py) in 63.8 s
+prepared full28 (cand_full28.py) in 3.9 s
+test 0 {'batch': 1, 'ctx': 0, 'layer': 'sliding', 'q_len': 300, 'page': 1, 'seed': 2000} full25a: pass update relative L2 error 3.228e-02 (worst row 6.277e-02) [bound 0.068]; attention input relative L2 error 2.123e-02 (worst row 3.971e-02) [bound 0.045]
+test 0 {'batch': 1, 'ctx': 0, 'layer': 'sliding', 'q_len': 300, 'page': 1, 'seed': 2000} full28: pass update relative L2 error 3.228e-02 (worst row 6.277e-02) [bound 0.068]; attention input relative L2 error 2.123e-02 (worst row 3.971e-02) [bound 0.045]
+test 1 {'batch': 1, 'ctx': 3000, 'layer': 'full', 'q_len': 753, 'page': 1, 'seed': 106729} full25a: pass update relative L2 error 7.037e-02 (worst row 1.351e-01) [bound 0.150]; attention input relative L2 error 4.625e-02 (worst row 8.575e-02) [bound 0.112]
+test 1 {'batch': 1, 'ctx': 3000, 'layer': 'full', 'q_len': 753, 'page': 1, 'seed': 106729} full28: pass update relative L2 error 7.037e-02 (worst row 1.351e-01) [bound 0.150]; attention input relative L2 error 4.625e-02 (worst row 8.575e-02) [bound 0.112]
+test 2 {'batch': 2, 'ctx': 2500, 'layer': 'sliding', 'q_len': 753, 'page': 1, 'seed': 211458} full25a: pass update relative L2 error 6.799e-02 (worst row 1.364e-01) [bound 0.150]; attention input relative L2 error 4.442e-02 (worst row 8.843e-02) [bound 0.108]
+test 2 {'batch': 2, 'ctx': 2500, 'layer': 'sliding', 'q_len': 753, 'page': 1, 'seed': 211458} full28: pass update relative L2 error 6.799e-02 (worst row 1.364e-01) [bound 0.150]; attention input relative L2 error 4.442e-02 (worst row 8.843e-02) [bound 0.108]
+test 3 {'batch': 3, 'ctx': 5000, 'layer': 'full', 'q_len': 200, 'dist': 'outliers', 'seed': 316187} full25a: pass update relative L2 error 6.625e-02 (worst row 1.234e-01) [bound 0.150]; attention input relative L2 error 3.477e-02 (worst row 6.585e-02) [bound 0.085]
+test 3 {'batch': 3, 'ctx': 5000, 'layer': 'full', 'q_len': 200, 'dist': 'outliers', 'seed': 316187} full28: pass update relative L2 error 6.625e-02 (worst row 1.234e-01) [bound 0.150]; attention input relative L2 error 3.477e-02 (worst row 6.585e-02) [bound 0.085]
+test 4 {'batch': 1, 'ctx': 4096, 'layer': 'sliding', 'q_len': 4096, 'page': 1, 'seed': 420916} full25a: pass update relative L2 error 4.862e-02 (worst row 1.498e-01) [bound 0.114]; attention input relative L2 error 3.202e-02 (worst row 9.010e-02) [bound 0.075]
+test 4 {'batch': 1, 'ctx': 4096, 'layer': 'sliding', 'q_len': 4096, 'page': 1, 'seed': 420916} full28: pass update relative L2 error 4.862e-02 (worst row 1.498e-01) [bound 0.114]; attention input relative L2 error 3.202e-02 (worst row 9.010e-02) [bound 0.075]
+  full25a case 4: pass update relative L2 error 2.119e-02 (worst row 5.979e-02) [bound 0.044]; attention input relative L2 error 1.404e-02 (worst row 3.340e-02) [bound 0.030]
+  full28 case 4: pass update relative L2 error 2.119e-02 (worst row 5.979e-02) [bound 0.044]; attention input relative L2 error 1.404e-02 (worst row 3.340e-02) [bound 0.030]
+4 first turn b1 ctx0 full    q16384  sglang   19200.7  full25a   10009.7 x1.928  full28    9883.5 x1.965 (vs full25a x1.0152)
+  full25a case 5: pass update relative L2 error 3.219e-02 (worst row 1.114e-01) [bound 0.069]; attention input relative L2 error 2.126e-02 (worst row 6.751e-02) [bound 0.046]
+  full28 case 5: pass update relative L2 error 3.219e-02 (worst row 1.114e-01) [bound 0.069]; attention input relative L2 error 2.126e-02 (worst row 6.751e-02) [bound 0.046]
+5 first turn b1 ctx32768 sliding q16384  sglang   18752.9  full25a    9656.3 x1.935  full28    9485.7 x1.953 (vs full25a x1.0195)
+  full25a case 6: pass update relative L2 error 5.356e-02 (worst row 1.262e-01) [bound 0.123]; attention input relative L2 error 3.490e-02 (worst row 7.867e-02) [bound 0.080]
+  full28 case 6: pass update relative L2 error 5.356e-02 (worst row 1.262e-01) [bound 0.123]; attention input relative L2 error 3.490e-02 (worst row 7.867e-02) [bound 0.080]
+6 first turn b1 ctx32768 full    q16384  sglang   23315.3  full25a   11803.8 x1.992  full28   11752.3 x2.001 (vs full25a x1.0024)
+  full25a case 7: pass update relative L2 error 6.108e-02 (worst row 1.197e-01) [bound 0.142]; attention input relative L2 error 3.998e-02 (worst row 8.612e-02) [bound 0.093]
+  full28 case 7: pass update relative L2 error 6.108e-02 (worst row 1.197e-01) [bound 0.142]; attention input relative L2 error 3.998e-02 (worst row 8.612e-02) [bound 0.093]
+7 first turn b1 ctx65536 full    q16384  sglang   27923.3  full25a   13796.3 x2.046  full28   13510.4 x2.063 (vs full25a x1.0063)
+full25a: first turn x1.953  geomean x1.9530 (partial)
+full28: first turn x1.971  geomean x1.9711 (partial)
+[gpu after]
+1 %, 4 MiB, 1980 MHz, 131.94 W, 36
+compute procs: 0
+Stopping app - local entrypoint completed.
+✓ App completed. View run at 
+<modal-run-url>

@@ -1,0 +1,6 @@
+[
+    {"check": [4, 8, 16], "variants": [("ea", ["MOE_EARLY_ALL"], {})], "seeds": 2},
+    {"bs": [8, 16], "variants": [("v150", [], {}), ("ea", ["MOE_EARLY_ALL"], {}), ("eab", ["MOE_EARLY_ALL"], {}), ("nowc", ["MOE_NO_WARMC"], {}), ("v150b", [], {})], "seeds": 16, "reps": 3},
+    {"bs": [32], "variants": [("v150", [], {}), ("nodepi", ["MOE_NO_DEPI"], {}), ("nowc", ["MOE_NO_WARMC"], {}), ("v150b", [], {})], "seeds": 16, "reps": 3},
+    {"trace": [8], "variants": [("ea", ["MOE_EARLY_ALL"], {})], "seeds": [9000]},
+]

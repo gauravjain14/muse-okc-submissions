@@ -1,0 +1,45 @@
+[gate] slot 0 at 02:29:33 (0 running)
+✓ Initialized. View run at 
+<modal-run-url>
+✓ Created objects.
+├── 🔨 Created mount 
+│   autoresearch-kernels/attn/tools/modal_run.py
+├── 🔨 Created mount autoresearch-kernels/attn
+└── 🔨 Created function run.
+[gpu-before]
+NVIDIA H200, 0 %, 4 MiB, 345 MHz, 1980 MHz, 79.44 W
+0
+CHECK_RC=0
+CHECK_PASS=56
+
+0 failures
+t_rep: 0 failures
+t_rep: 0 failures
+t_rep: 0 failures
+== JT tlbcold 1 (all 12, vs k55)
+one 5.18 two 6.77 us -> subtracted fixed cost 3.60 us (judge); tlbcold 1
+decode 1  sliding w46 sglang    20.94 | k55     4.18 x5.015 | k70     4.07 x5.141 | k55b     4.32 x4.853 | k70b     4.01 x5.225 | dummy     4.16 x5.040   sol    0.11
+decode 1  full    w16 sglang    31.74 | k55    11.60 x2.737 | k70    10.85 x2.925 | k55b    11.71 x2.711 | k70b    10.79 x2.942 | dummy    11.76 x2.699   sol    4.27
+decode 16 sliding w46 sglang    28.51 | k55     8.82 x3.231 | k70     8.12 x3.510 | k55b     8.74 x3.263 | k70b     8.01 x3.558 | dummy     8.68 x3.283   sol    1.65
+decode 16 full    w16 sglang   216.34 | k55    93.40 x2.316 | k70    92.89 x2.329 | k55b    94.21 x2.296 | k70b    97.33 x2.223 | dummy    97.73 x2.214   sol   63.18
+decode 32 sliding w46 sglang    33.76 | k55    12.89 x2.620 | k70    11.74 x2.876 | k55b    11.76 x2.871 | k70b    11.68 x2.890 | dummy    11.75 x2.874   sol    3.29
+decode 32 full    w16 sglang   419.54 | k55   177.98 x2.357 | k70   177.40 x2.365 | k55b   176.66 x2.375 | k70b   176.98 x2.370 | dummy   187.76 x2.234   sol  126.35
+verify 1  sliding w46 sglang    23.57 | k55     5.28 x4.460 | k70     4.97 x4.746 | k55b     5.14 x4.584 | k70b     4.84 x4.874 | dummy     5.12 x4.601   sol    0.12
+verify 1  full    w16 sglang    36.94 | k55    13.12 x2.815 | k70    12.94 x2.855 | k55b    13.18 x2.802 | k70b    12.72 x2.903 | dummy    12.97 x2.849   sol    4.28
+verify 16 sliding w46 sglang    31.39 | k55    12.08 x2.598 | k70    10.60 x2.961 | k55b    11.62 x2.701 | k70b    10.46 x3.002 | dummy    11.72 x2.678   sol    1.86
+verify 16 full    w16 sglang   221.12 | k55   102.05 x2.167 | k70    98.54 x2.244 | k55b   102.41 x2.159 | k70b   102.23 x2.163 | dummy   104.02 x2.126   sol   63.39
+verify 32 sliding w46 sglang    37.20 | k55    16.91 x2.199 | k70    14.97 x2.485 | k55b    16.39 x2.270 | k70b    14.89 x2.498 | dummy    16.10 x2.311   sol    3.72
+verify 32 full    w16 sglang   391.26 | k55   180.19 x2.171 | k70   176.08 x2.222 | k55b   177.89 x2.199 | k70b   175.29 x2.232 | dummy   178.48 x2.192   sol  126.78
+GEOMEAN k55: x2.7482 (board time 1441.3 us)   judge-projected (+0.0 us/call) x2.6784 (board 1478.8 us)
+GEOMEAN k70: x2.8538 (board time 1388.0 us)   judge-projected (+0.0 us/call) x2.7800 (board 1424.8 us)
+GEOMEAN k55b: x2.7627 (board time 1433.7 us)   judge-projected (+0.0 us/call) x2.6920 (board 1471.4 us)
+GEOMEAN k70b: x2.8445 (board time 1392.5 us)   judge-projected (+0.0 us/call) x2.7705 (board 1429.7 us)
+GEOMEAN dummy: x2.7329 (board time 1449.3 us)   judge-projected (+0.0 us/call) x2.6626 (board 1487.6 us)
+[gpu-after]
+NVIDIA H200, 0 %, 4 MiB, 1980 MHz, 1980 MHz, 124.66 W
+0
+
+[exit 0]
+Stopping app - local entrypoint completed.
+✓ App completed. View run at 
+<modal-run-url>

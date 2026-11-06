@@ -1,0 +1,15 @@
+test {'bs': 4}: PASS relative L2 error 2.524e-03 (worst row 2.577e-03)
+test {'bs': 33}: PASS relative L2 error 2.550e-03 (worst row 2.777e-03)
+test {'bs': 257}: PASS relative L2 error 2.545e-03 (worst row 2.758e-03)
+test {'bs': 128, 'dist': 'skewed'}: PASS relative L2 error 2.546e-03 (worst row 2.723e-03)
+test {'bs': 1}: PASS relative L2 error 2.472e-03 (worst row 2.472e-03)
+seed 11 (3 local experts): start 0.1/0.1  x-ready 0.6/0.6  u0-g1 11.7/12.4  u0-inter 11.9/12.5  u0-done 15.0/15.7  u1-g1 19.9/20.6  u1-inter 20.1/20.8  u1-done 23.2/23.9  atom 32.5/33.6  combine-end 39.9 us  last CTA: atom 33.60 flag 33.70 loads 38.98 reduced 39.10 end 39.94
+seed 12 (2 local experts): start 0.1/0.1  x-ready 0.6/0.6  u0-g1 12.1/12.6  u0-inter 12.3/12.8  u0-done 15.5/16.0  u1-g1 20.2/20.7  u1-inter 20.3/20.8  u1-done 23.4/23.9  atom 24.7/25.2  combine-end 30.0 us  last CTA: atom 25.18 flag 25.28 loads 29.38 reduced 29.54 end 30.02
+v82a                          : 1:28.4(3.082x) 3.082x
+v82 yr4                       : 1:31.3(2.792x) 2.792x
+v82 yr1                       : 1:28.8(3.053x) 3.053x
+v82 yr8                       : 1:34.4(2.547x) 2.547x
+v82a                          : 1:28.5(3.080x) 3.080x
+v82 yr4                       : 1:31.2(2.793x) 2.793x
+v82 yr1                       : 1:28.7(3.070x) 3.070x
+v82 yr8                       : 1:34.3(2.552x) 2.552x

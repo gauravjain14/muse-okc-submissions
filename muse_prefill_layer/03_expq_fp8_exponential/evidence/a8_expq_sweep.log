@@ -1,0 +1,98 @@
+✓ Initialized. View run at 
+<modal-run-url>
+✓ Created objects.
+├── 🔨 Created mount 
+│   <scratch>
+│   5-ce57afd4da60/scratchpad/snap.3HUdQy/dev/modal_run.py
+├── 🔨 Created mount 
+│   <scratch>
+│   5-ce57afd4da60/scratchpad/snap.3HUdQy
+└── 🔨 Created function run.
+compiled
+0 {'batch': 1, 'ctx': 80000, 'layer': 'sliding', 'q_len': 753, 'page': 1, 'dist': 'soft'}
+   cache vs sglang: k 1.63e-02 v 0.00e+00;  out vs sglang 6.818e-02
+   time: mine     34.9 us  sglang     48.3 us  x1.384
+   post            8.0 us
+   pack            8.8 us
+   attn_fwd       25.5 us
+   pp0        vs mine 0.00e+00
+   pp0            25.5 us
+   pp1        vs mine 0.00e+00
+   pp1            25.8 us
+   ns6        vs mine 0.00e+00
+   ns6            25.8 us
+   ns4        vs mine 0.00e+00
+   ns4            26.5 us
+1 {'batch': 1, 'ctx': 80000, 'layer': 'full', 'q_len': 753, 'page': 1, 'dist': 'soft'}
+   cache vs sglang: k 1.60e-02 v 0.00e+00;  out vs sglang 8.509e-02
+   time: mine    273.4 us  sglang    436.5 us  x1.596
+   post            7.5 us
+   pack           16.7 us
+   attn_fwd      254.5 us
+   pp0        vs mine 0.00e+00
+   pp0           252.4 us
+   pp1        vs mine 0.00e+00
+   pp1           256.1 us
+   ns6        vs mine 0.00e+00
+   ns6           261.5 us
+   ns4        vs mine 0.00e+00
+   ns4           254.0 us
+2 {'batch': 4, 'ctx': 80000, 'layer': 'sliding', 'q_len': 753, 'page': 1, 'dist': 'soft', 'spread': 'agentic'}
+   cache vs sglang: k 1.65e-02 v 0.00e+00;  out vs sglang 7.949e-02
+   time: mine     66.7 us  sglang     90.5 us  x1.357
+   post            9.9 us
+   pack            8.9 us
+   attn_fwd       55.0 us
+   pp0        vs mine 0.00e+00
+   pp0            53.8 us
+   pp1        vs mine 0.00e+00
+   pp1            54.0 us
+   ns6        vs mine 0.00e+00
+   ns6            55.0 us
+   ns4        vs mine 0.00e+00
+   ns4            53.8 us
+3 {'batch': 4, 'ctx': 80000, 'layer': 'full', 'q_len': 753, 'page': 1, 'dist': 'soft', 'spread': 'agentic'}
+   cache vs sglang: k 1.63e-02 v 0.00e+00;  out vs sglang 8.790e-02
+   time: mine   1032.5 us  sglang   1662.4 us  x1.610
+   post            9.1 us
+   pack           53.0 us
+   attn_fwd      979.3 us
+   pp0        vs mine 2.93e-06
+   pp0           963.3 us
+   pp1        vs mine 0.00e+00
+   pp1           987.5 us
+   ns6        vs mine 2.93e-06
+   ns6          1007.8 us
+   ns4        vs mine 0.00e+00
+   ns4           977.4 us
+5 {'batch': 1, 'ctx': 32768, 'layer': 'sliding', 'q_len': 16384, 'page': 1, 'dist': 'soft'}
+   cache vs sglang: k 1.63e-02 v 0.00e+00;  out vs sglang 4.525e-02
+   time: mine    277.9 us  sglang    398.0 us  x1.432
+   post           23.3 us
+   pack            9.4 us
+   attn_fwd      248.4 us
+   pp0        vs mine 0.00e+00
+   pp0           243.6 us
+   pp1        vs mine 0.00e+00
+   pp1           248.4 us
+   ns6        vs mine 0.00e+00
+   ns6           251.5 us
+   ns4        vs mine 0.00e+00
+   ns4           247.1 us
+6 {'batch': 1, 'ctx': 32768, 'layer': 'full', 'q_len': 16384, 'page': 1, 'dist': 'soft'}
+   cache vs sglang: k 1.62e-02 v 0.00e+00;  out vs sglang 7.814e-02
+   time: mine   2460.6 us  sglang   4578.6 us  x1.861
+   post           21.2 us
+   pack           12.4 us
+   attn_fwd     2433.9 us
+   pp0        vs mine 0.00e+00
+   pp0          2386.2 us
+   pp1        vs mine 0.00e+00
+   pp1          2459.7 us
+   ns6        vs mine 0.00e+00
+   ns6          2506.2 us
+   ns4        vs mine 0.00e+00
+   ns4          2418.7 us
+Stopping app - local entrypoint completed.
+✓ App completed. View run at 
+<modal-run-url>

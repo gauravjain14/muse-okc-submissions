@@ -1,0 +1,132 @@
+CASE 0: nsys graph span 75.57 us
+  n2_qkv_gate                                   8.32 us    27.5 MB  3.30 TB/s tensor   0.0% issue  52.7% occ  64.0% long_scoreboard 58.2%; barrier 10.8%; not_selected 7.0%
+  attn_kernel                                   4.64 us     0.2 MB  0.04 TB/s tensor   3.0% issue  13.6% occ   6.2% barrier 29.6%; wait 18.0%; long_scoreboard 13.3%
+  nk_o1_16_1_1_1_2_2_0_1                        4.54 us    12.7 MB  2.80 TB/s tensor   5.6% issue  37.0% occ  60.8% long_scoreboard 76.0%; barrier 20.0%; not_selected 7.8%
+  _boundary1                                    5.22 us     0.1 MB  0.02 TB/s tensor   0.1% issue  38.6% occ  24.5% long_scoreboard 26.0%; mio_throttle 19.0%; short_scoreboard 15.3%
+  n2_pooler                                    12.67 us    48.7 MB  3.84 TB/s tensor   0.0% issue  56.5% occ  64.8% long_scoreboard 57.4%; barrier 9.7%; not_selected 8.7%
+  _router_fp32_exact                            3.94 us     8.4 MB  2.14 TB/s tensor   0.0% issue  14.7% occ  23.4% long_scoreboard 133.3%; barrier 14.5%; short_scoreboard 7.0%
+  _route_split                                  4.37 us     0.0 MB  0.01 TB/s tensor   0.0% issue  29.0% occ  12.4% short_scoreboard 35.7%; wait 26.2%; long_scoreboard 14.8%
+  moe_fused                                    25.42 us    65.0 MB  2.56 TB/s tensor  10.7% issue  36.8% occ  14.0% long_scoreboard 23.3%; barrier 18.4%; wait 11.3%
+  sm5_cgemv                                     3.49 us     6.3 MB  1.82 TB/s tensor   0.0% issue  59.0% occ  53.0% long_scoreboard 78.1%; barrier 19.7%; not_selected 9.4%
+  _boundary2                                    4.83 us     0.1 MB  0.02 TB/s tensor   0.2% issue  48.0% occ  24.4% long_scoreboard 25.8%; not_selected 18.2%; barrier 15.5%
+CASE 1: nsys graph span 81.31 us
+  n2_qkv_gate                                   8.45 us    27.5 MB  3.25 TB/s tensor   0.0% issue  52.8% occ  63.2% long_scoreboard 59.1%; barrier 10.2%; not_selected 6.9%
+  attn_kernel                                  10.72 us    10.8 MB  1.01 TB/s tensor  10.4% issue  26.8% occ  11.8% barrier 28.4%; wait 23.0%; short_scoreboard 10.3%
+  nk_o1_16_1_1_1_2_2_0_1                        4.35 us    12.7 MB  2.92 TB/s tensor   5.3% issue  37.1% occ  61.8% long_scoreboard 74.2%; barrier 20.5%; not_selected 8.0%
+  _boundary1                                    5.28 us     0.1 MB  0.02 TB/s tensor   0.1% issue  38.5% occ  24.5% long_scoreboard 29.0%; mio_throttle 18.6%; short_scoreboard 15.4%
+  n2_pooler                                    12.67 us    48.7 MB  3.84 TB/s tensor   0.0% issue  56.7% occ  64.7% long_scoreboard 58.2%; barrier 9.3%; not_selected 8.3%
+  _router_fp32_exact                            3.95 us     8.4 MB  2.13 TB/s tensor   0.0% issue  14.7% occ  23.5% long_scoreboard 137.2%; barrier 13.2%; short_scoreboard 7.0%
+  _route_split                                  4.21 us     0.0 MB  0.01 TB/s tensor   0.0% issue  29.0% occ  12.4% short_scoreboard 35.5%; wait 26.1%; long_scoreboard 16.4%
+  moe_fused                                    25.18 us    65.0 MB  2.58 TB/s tensor  10.8% issue  37.1% occ  14.0% long_scoreboard 22.9%; barrier 17.7%; wait 11.3%
+  sm5_cgemv                                     3.23 us     6.3 MB  1.96 TB/s tensor   0.0% issue  59.0% occ  53.3% long_scoreboard 78.6%; barrier 20.4%; not_selected 9.6%
+  _boundary2                                    4.77 us     0.1 MB  0.02 TB/s tensor   0.2% issue  48.2% occ  24.4% long_scoreboard 23.6%; not_selected 18.5%; barrier 15.7%
+CASE 2: nsys graph span 120.72 us
+  qkvb_qkv_gate_16                              8.93 us    28.7 MB  3.22 TB/s tensor  15.8% issue  36.5% occ  12.0% long_scoreboard 63.4%; wait 28.6%; short_scoreboard 7.0%
+  attn_kernel                                   7.89 us    10.7 MB  1.36 TB/s tensor   6.0% issue  20.2% occ  11.9% barrier 22.3%; long_scoreboard 20.6%; wait 17.3%
+  sk11_o_16                                     5.26 us    12.7 MB  2.42 TB/s tensor   9.8% issue  34.9% occ  25.2% long_scoreboard 77.0%; wait 18.4%; barrier 9.3%
+  _boundary1                                    4.59 us     0.6 MB  0.12 TB/s tensor   0.1% issue  45.6% occ  24.5% long_scoreboard 28.9%; not_selected 17.5%; mio_throttle 16.7%
+  pu5_pooler_16                                14.64 us    54.6 MB  3.73 TB/s tensor  12.8% issue  28.0% occ  13.7% long_scoreboard 51.6%; wait 24.5%; short_scoreboard 3.2%
+  ya_1_8_2_17_0                                 4.27 us     8.4 MB  1.97 TB/s tensor   6.6% issue   8.7% occ  13.1% long_scoreboard 74.3%; barrier 9.6%; wait 9.0%
+  _route_split                                  4.38 us     0.0 MB  0.01 TB/s tensor   0.0% issue  29.6% occ  12.4% short_scoreboard 36.5%; wait 26.7%; long_scoreboard 14.0%
+  moe_fused                                    53.84 us   171.9 MB  3.19 TB/s tensor  14.6% issue  46.7% occ  13.9% barrier 16.9%; wait 13.8%; not_selected 10.7%
+  pu5_unpooler_16                              13.92 us    54.6 MB  3.92 TB/s tensor  12.8% issue  39.9% occ  26.6% long_scoreboard 50.3%; wait 18.9%; not_selected 5.0%
+  _boundary2                                    4.99 us     0.1 MB  0.01 TB/s tensor   0.1% issue  49.1% occ  24.3% long_scoreboard 21.7%; short_scoreboard 18.6%; not_selected 17.4%
+CASE 3: nsys graph span 213.26 us
+  qkvb_qkv_gate_16                              8.85 us    28.7 MB  3.24 TB/s tensor  16.2% issue  36.7% occ  12.0% long_scoreboard 60.4%; wait 28.8%; short_scoreboard 7.0%
+  attn_kernel                                  86.59 us   350.4 MB  4.05 TB/s tensor  18.8% issue  41.9% occ  24.8% long_scoreboard 57.2%; wait 14.7%; barrier 4.5%
+  sk11_o_16                                     5.47 us    12.7 MB  2.33 TB/s tensor   9.8% issue  35.0% occ  25.3% long_scoreboard 77.9%; wait 18.4%; barrier 9.4%
+  _boundary1                                    4.80 us     0.8 MB  0.17 TB/s tensor   0.1% issue  44.5% occ  24.5% long_scoreboard 29.5%; not_selected 17.2%; mio_throttle 16.5%
+  pu5_pooler_16                                14.53 us    53.3 MB  3.67 TB/s tensor  13.1% issue  28.6% occ  13.7% long_scoreboard 50.3%; wait 25.0%; short_scoreboard 3.1%
+  ya_1_8_2_17_0                                 4.26 us     8.4 MB  1.97 TB/s tensor   6.7% issue   9.0% occ  13.1% long_scoreboard 78.2%; wait 9.4%; barrier 9.4%
+  _route_split                                  4.40 us     0.0 MB  0.01 TB/s tensor   0.0% issue  29.6% occ  12.4% short_scoreboard 36.4%; wait 26.7%; long_scoreboard 14.0%
+  moe_fused                                    67.10 us   227.3 MB  3.39 TB/s tensor  15.9% issue  49.6% occ  14.0% barrier 15.2%; wait 14.2%; not_selected 11.6%
+  pu5_unpooler_16                              13.92 us    54.9 MB  3.94 TB/s tensor  12.6% issue  42.9% occ  26.6% long_scoreboard 55.8%; wait 20.4%; not_selected 5.4%
+  _boundary2                                    4.91 us     0.1 MB  0.01 TB/s tensor   0.1% issue  49.5% occ  24.3% long_scoreboard 22.4%; short_scoreboard 18.6%; not_selected 17.8%
+CASE 4: nsys graph span 145.62 us
+  sk11_qkv_gate_32                              9.44 us    29.0 MB  3.07 TB/s tensor  29.6% issue  32.1% occ  11.9% long_scoreboard 53.3%; wait 25.7%; short_scoreboard 7.2%
+  attn_kernel                                   9.62 us    22.1 MB  2.30 TB/s tensor   8.7% issue  23.0% occ  11.9% long_scoreboard 21.2%; barrier 20.5%; wait 19.7%
+  o3_o_32                                       5.50 us    12.7 MB  2.30 TB/s tensor  12.7% issue  29.4% occ  13.6% long_scoreboard 49.5%; wait 24.6%; barrier 21.1%
+  _boundary1                                    4.58 us     1.6 MB  0.35 TB/s tensor   0.1% issue  44.7% occ  24.5% long_scoreboard 30.6%; not_selected 17.2%; mio_throttle 16.5%
+  pu5_pooler_32                                15.17 us    53.8 MB  3.55 TB/s tensor  24.5% issue  29.7% occ  13.6% long_scoreboard 50.1%; wait 25.2%; short_scoreboard 6.4%
+  ya_1_8_4_17_0                                 4.54 us     8.4 MB  1.85 TB/s tensor  11.9% issue  11.0% occ  13.3% long_scoreboard 67.3%; wait 11.9%; lg_throttle 11.0%
+  _route_split                                  4.45 us     0.0 MB  0.01 TB/s tensor   0.0% issue  29.4% occ  12.4% short_scoreboard 36.2%; wait 26.5%; long_scoreboard 10.6%
+  moe_fused                                    73.42 us   203.3 MB  2.77 TB/s tensor  10.9% issue  54.7% occ  27.7% long_scoreboard 22.2%; not_selected 15.2%; barrier 12.2%
+  skh_unpooler_32                              15.47 us    54.5 MB  3.52 TB/s tensor  25.4% issue  21.0% occ   9.2% long_scoreboard 37.8%; wait 19.5%; short_scoreboard 9.3%
+  _boundary2                                    4.98 us     1.1 MB  0.22 TB/s tensor   0.1% issue  48.6% occ  24.3% long_scoreboard 21.7%; short_scoreboard 18.2%; not_selected 17.4%
+CASE 5: nsys graph span 313.74 us
+  sk11_qkv_gate_32                              9.60 us    29.0 MB  3.02 TB/s tensor  28.9% issue  32.0% occ  11.8% long_scoreboard 55.5%; wait 25.6%; short_scoreboard 7.0%
+  attn_kernel                                 166.82 us   688.0 MB  4.12 TB/s tensor  20.3% issue  43.8% occ  24.8% long_scoreboard 55.4%; wait 15.2%; short_scoreboard 4.8%
+  o3_o_32                                       5.65 us    12.7 MB  2.24 TB/s tensor  12.2% issue  29.4% occ  13.7% long_scoreboard 50.9%; wait 24.6%; barrier 21.1%
+  _boundary1                                    4.58 us     1.6 MB  0.35 TB/s tensor   0.1% issue  45.8% occ  24.5% long_scoreboard 31.4%; not_selected 17.5%; mio_throttle 16.8%
+  pu5_pooler_32                                15.14 us    55.1 MB  3.64 TB/s tensor  25.0% issue  30.7% occ  13.6% long_scoreboard 50.4%; wait 25.6%; short_scoreboard 6.6%
+  ya_1_8_4_17_0                                 4.61 us     8.4 MB  1.82 TB/s tensor  11.6% issue  11.1% occ  13.3% long_scoreboard 67.1%; wait 11.9%; lg_throttle 11.0%
+  _route_split                                  4.22 us     0.0 MB  0.01 TB/s tensor   0.0% issue  29.3% occ  12.4% short_scoreboard 36.1%; wait 26.4%; barrier 9.4%
+  moe_fused                                    84.13 us   268.7 MB  3.19 TB/s tensor  11.4% issue  54.0% occ  27.8% long_scoreboard 20.9%; not_selected 15.1%; wait 9.6%
+  skh_unpooler_32                              16.05 us    54.9 MB  3.42 TB/s tensor  25.4% issue  22.5% occ   9.2% long_scoreboard 40.2%; wait 21.0%; short_scoreboard 10.0%
+  _boundary2                                    4.91 us     1.1 MB  0.23 TB/s tensor   0.1% issue  48.8% occ  24.3% long_scoreboard 26.4%; short_scoreboard 18.4%; not_selected 17.5%
+CASE 6: nsys graph span 124.43 us
+  qkvb_qkv_gate_8                               8.69 us    28.5 MB  3.28 TB/s tensor  16.8% issue  37.9% occ  12.0% long_scoreboard 58.9%; wait 30.0%; short_scoreboard 6.0%
+  attn_kernel                                   7.10 us     0.3 MB  0.04 TB/s tensor   2.3% issue  22.8% occ  12.5% barrier 28.8%; short_scoreboard 18.2%; wait 13.4%
+  nk_o8_16_1_1_0_2_2_0_8                        5.04 us    12.7 MB  2.52 TB/s tensor   5.4% issue  38.9% occ  63.5% long_scoreboard 63.3%; barrier 20.3%; not_selected 6.9%
+  _boundary1                                    5.34 us     0.3 MB  0.06 TB/s tensor   0.1% issue  38.4% occ  24.5% long_scoreboard 21.7%; mio_throttle 18.9%; short_scoreboard 15.9%
+  m8_pooler                                    13.20 us    50.4 MB  3.82 TB/s tensor   7.0% issue  15.5% occ  50.3% long_scoreboard 83.4%; barrier 5.3%; wait 3.1%
+  _router_fp32_exact                            8.94 us     8.4 MB  0.94 TB/s tensor   0.0% issue  29.5% occ  63.3% long_scoreboard 81.4%; short_scoreboard 8.7%; barrier 7.7%
+  _route_split                                  4.38 us     0.0 MB  0.01 TB/s tensor   0.0% issue  29.6% occ  12.4% short_scoreboard 36.6%; wait 26.7%; long_scoreboard 11.1%
+  moe_fused                                    64.27 us   229.5 MB  3.57 TB/s tensor  15.9% issue  50.2% occ  14.0% wait 13.4%; barrier 13.1%; long_scoreboard 12.3%
+  unps_8_1_32_1                                 3.98 us     6.3 MB  1.59 TB/s tensor   7.3% issue  34.0% occ  47.2% lg_throttle 31.9%; long_scoreboard 31.1%; barrier 12.7%
+  _boundary2                                    5.10 us     0.1 MB  0.01 TB/s tensor   0.2% issue  48.3% occ  24.3% long_scoreboard 20.7%; not_selected 18.4%; mio_throttle 14.1%
+CASE 7: nsys graph span 118.37 us
+  qkvb_qkv_gate_8                               8.53 us    28.5 MB  3.34 TB/s tensor  15.9% issue  37.9% occ  11.9% long_scoreboard 65.3%; wait 30.0%; short_scoreboard 6.0%
+  attn_kernel                                  14.24 us     6.7 MB  0.47 TB/s tensor  10.4% issue  39.1% occ  23.1% barrier 26.7%; wait 15.8%; short_scoreboard 13.4%
+  nk_o8_16_1_1_0_2_2_0_8                        4.94 us    12.7 MB  2.58 TB/s tensor   5.4% issue  39.0% occ  63.4% long_scoreboard 63.7%; barrier 20.4%; not_selected 7.0%
+  _boundary1                                    5.23 us     0.4 MB  0.08 TB/s tensor   0.1% issue  37.6% occ  24.5% long_scoreboard 25.8%; mio_throttle 18.5%; short_scoreboard 15.6%
+  m8_pooler                                    13.09 us    50.6 MB  3.86 TB/s tensor   6.9% issue  15.3% occ  50.3% long_scoreboard 83.8%; barrier 5.7%; wait 3.1%
+  _router_fp32_exact                            8.91 us     8.7 MB  0.97 TB/s tensor   0.0% issue  28.7% occ  65.0% long_scoreboard 84.8%; short_scoreboard 8.6%; barrier 5.0%
+  _route_split                                  4.26 us     0.0 MB  0.01 TB/s tensor   0.0% issue  29.5% occ  12.4% short_scoreboard 36.5%; wait 26.6%; long_scoreboard 14.0%
+  moe_fused                                    52.16 us   170.7 MB  3.27 TB/s tensor  15.6% issue  48.2% occ  14.0% barrier 14.3%; wait 13.2%; not_selected 11.3%
+  unps_8_1_32_1                                 3.90 us     6.3 MB  1.62 TB/s tensor   7.3% issue  34.2% occ  47.3% lg_throttle 31.5%; long_scoreboard 31.0%; barrier 13.0%
+  _boundary2                                    5.01 us     0.3 MB  0.07 TB/s tensor   0.2% issue  47.8% occ  24.4% long_scoreboard 22.5%; not_selected 17.9%; mio_throttle 13.9%
+CASE 8: nsys graph span 222.70 us
+  kg_qkv_gate_64_72_2_2_12_0_9_0_14...         13.60 us    42.1 MB  3.09 TB/s tensor  44.6% issue  21.4% occ  13.9% long_scoreboard 57.1%; wait 20.9%; barrier 16.2%
+  attn_kernel                                  11.63 us    13.1 MB  1.12 TB/s tensor   6.5% issue  27.2% occ  12.5% barrier 22.5%; wait 19.4%; short_scoreboard 13.0%
+  q5_o                                          6.54 us    17.1 MB  2.61 TB/s tensor  43.8% issue  27.1% occ  14.7% long_scoreboard 37.5%; barrier 28.1%; wait 23.3%
+  _boundary1                                    5.39 us     4.2 MB  0.79 TB/s tensor   0.1% issue  44.8% occ  24.2% long_scoreboard 27.6%; barrier 21.6%; mio_throttle 18.0%
+  kg_pooler_64_64_2_1_14_0_0_0_0_15...         20.45 us    74.1 MB  3.62 TB/s tensor  50.2% issue  23.5% occ  14.3% long_scoreboard 55.7%; wait 20.4%; barrier 10.0%
+  r5_32_8_2_5                                   5.41 us    10.5 MB  1.94 TB/s tensor  26.2% issue  24.5% occ   8.5% long_scoreboard 40.0%; wait 26.0%; barrier 24.3%
+  _route_split                                  4.34 us     0.0 MB  0.01 TB/s tensor   0.0% issue  29.5% occ  12.4% short_scoreboard 35.6%; wait 26.6%; barrier 9.6%
+  moe_fused                                   129.20 us   442.6 MB  3.43 TB/s tensor  17.9% issue  56.2% occ  27.8% long_scoreboard 16.3%; not_selected 15.9%; math_pipe_throttle 10.1%
+  u128_unpooler                                19.38 us    58.2 MB  3.00 TB/s tensor  52.9% issue  24.6% occ  17.8% long_scoreboard 41.0%; wait 17.4%; math_pipe_throttle 6.9%
+  _boundary2                                    5.86 us     6.4 MB  1.09 TB/s tensor   0.3% issue  46.3% occ  24.4% long_scoreboard 24.9%; barrier 17.5%; mio_throttle 17.0%
+CASE 9: nsys graph span 341.79 us
+  kg_qkv_gate_64_72_2_2_12_0_9_0_14...         12.99 us    41.7 MB  3.21 TB/s tensor  41.8% issue  21.4% occ  13.9% long_scoreboard 64.5%; wait 20.8%; barrier 16.0%
+  attn_kernel                                 100.13 us   348.2 MB  3.48 TB/s tensor  23.1% issue  48.1% occ  36.4% long_scoreboard 31.3%; wait 17.2%; barrier 10.7%
+  q5_o                                          6.61 us    17.1 MB  2.58 TB/s tensor  44.2% issue  27.1% occ  14.7% long_scoreboard 36.6%; barrier 28.3%; wait 23.3%
+  _boundary1                                    5.49 us     4.2 MB  0.77 TB/s tensor   0.1% issue  45.0% occ  24.2% long_scoreboard 26.9%; barrier 21.2%; mio_throttle 18.3%
+  kg_pooler_64_64_2_1_14_0_0_0_0_15...         20.35 us    74.5 MB  3.66 TB/s tensor  50.0% issue  23.3% occ  14.3% long_scoreboard 55.5%; wait 20.3%; barrier 9.9%
+  r5_32_8_2_5                                   5.33 us    10.5 MB  1.97 TB/s tensor  26.1% issue  24.5% occ   8.5% long_scoreboard 40.6%; wait 26.1%; barrier 24.4%
+  _route_split                                  4.37 us     0.0 MB  0.01 TB/s tensor   0.0% issue  29.4% occ  12.4% short_scoreboard 35.5%; wait 26.6%; barrier 9.3%
+  moe_fused                                   159.95 us   584.5 MB  3.65 TB/s tensor  17.9% issue  58.7% occ  27.8% not_selected 16.7%; long_scoreboard 15.7%; math_pipe_throttle 10.5%
+  u128_unpooler                                18.82 us    58.2 MB  3.09 TB/s tensor  52.7% issue  24.9% occ  17.7% long_scoreboard 42.0%; wait 17.8%; math_pipe_throttle 7.0%
+  _boundary2                                    5.82 us     6.4 MB  1.09 TB/s tensor   0.3% issue  46.4% occ  24.4% long_scoreboard 25.0%; barrier 17.0%; mio_throttle 16.8%
+CASE 10: nsys graph span 309.15 us
+  ph_qkv_9_64_1_0_0_0_0_0_0_0_1__18...         16.08 us    44.7 MB  2.78 TB/s tensor  73.1% issue  30.5% occ  14.2% barrier 23.6%; wait 23.0%; long_scoreboard 18.7%
+  attn_kernel                                  14.74 us    27.3 MB  1.85 TB/s tensor   8.9% issue  29.6% occ  12.5% wait 21.9%; barrier 19.2%; short_scoreboard 12.3%
+  kg_o_128_128_0_1_6_0_0_0_0_0_0_19...          8.42 us    18.1 MB  2.15 TB/s tensor  66.0% issue  21.1% occ  14.0% barrier 35.1%; long_scoreboard 18.4%; wait 17.7%
+  _boundary1                                    9.60 us    12.7 MB  1.32 TB/s tensor   0.1% issue  45.4% occ  24.2% long_scoreboard 26.5%; barrier 20.2%; mio_throttle 18.3%
+  kg_pooler_64_128_1_1_9_0_0_0_0_20...         26.61 us    74.1 MB  2.79 TB/s tensor  87.1% issue  35.3% occ  14.2% wait 33.6%; barrier 13.3%; long_scoreboard 13.1%
+  r4_64_1_8_8_1_4_1_0_0_1_0_0_3                 6.67 us    12.6 MB  1.89 TB/s tensor  41.3% issue  23.5% occ   8.3% barrier 26.6%; wait 25.8%; long_scoreboard 25.7%
+  _route_split                                  5.28 us     2.1 MB  0.40 TB/s tensor   0.0% issue  47.2% occ  23.3% short_scoreboard 36.5%; wait 23.0%; barrier 10.5%
+  moe_fused                                   188.82 us   635.4 MB  3.36 TB/s tensor  23.9% issue  58.5% occ  27.8% not_selected 16.6%; long_scoreboard 14.7%; math_pipe_throttle 10.8%
+  kg_unpooler_128_128_0_1_6_0_0__21...         24.67 us    76.3 MB  3.09 TB/s tensor  86.0% issue  21.9% occ  14.0% long_scoreboard 27.0%; barrier 25.8%; wait 19.8%
+  _boundary2                                    8.00 us    13.9 MB  1.74 TB/s tensor   0.4% issue  50.8% occ  42.2% mio_throttle 18.8%; not_selected 18.6%; long_scoreboard 17.8%
+CASE 11: nsys graph span 495.62 us
+  ph_qkv_9_64_1_0_0_0_0_0_0_0_1__18...         16.05 us    44.5 MB  2.77 TB/s tensor  74.9% issue  30.5% occ  14.1% barrier 24.4%; wait 22.9%; long_scoreboard 16.8%
+  attn_kernel                                 184.48 us   694.6 MB  3.77 TB/s tensor  26.0% issue  51.3% occ  36.6% long_scoreboard 30.6%; wait 18.4%; barrier 8.9%
+  kg_o_128_128_0_1_6_0_0_0_0_0_0_19...          8.66 us    18.1 MB  2.09 TB/s tensor  65.3% issue  21.1% occ  14.0% barrier 35.0%; long_scoreboard 18.9%; wait 17.7%
+  _boundary1                                    9.50 us    11.6 MB  1.22 TB/s tensor   0.1% issue  43.8% occ  24.2% long_scoreboard 22.7%; barrier 19.5%; mio_throttle 15.7%
+  kg_pooler_64_128_1_1_9_0_0_0_0_20...         26.21 us    78.9 MB  3.01 TB/s tensor  83.4% issue  34.4% occ  14.2% wait 32.8%; long_scoreboard 19.2%; barrier 11.9%
+  r4_64_1_8_8_1_4_1_0_0_1_0_0_3                 6.46 us    12.6 MB  1.95 TB/s tensor  39.8% issue  23.5% occ   8.4% long_scoreboard 33.1%; barrier 26.5%; wait 25.7%
+  _route_split                                  5.02 us     2.1 MB  0.42 TB/s tensor   0.0% issue  47.2% occ  23.3% short_scoreboard 36.5%; wait 23.0%; barrier 9.6%
+  moe_fused                                   205.02 us   728.8 MB  3.55 TB/s tensor  23.9% issue  59.6% occ  27.8% not_selected 16.9%; long_scoreboard 15.0%; math_pipe_throttle 11.0%
+  kg_unpooler_128_128_0_1_6_0_0__21...         24.77 us    76.2 MB  3.08 TB/s tensor  86.3% issue  21.9% occ  14.0% long_scoreboard 26.4%; barrier 25.8%; wait 19.8%
+  _boundary2                                    7.97 us    13.7 MB  1.71 TB/s tensor   0.4% issue  51.7% occ  41.9% mio_throttle 19.2%; not_selected 19.0%; long_scoreboard 18.4%

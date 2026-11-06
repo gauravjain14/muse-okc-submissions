@@ -1,0 +1,42 @@
+✓ submitted runs/k80.py to muse_attention_decode  job 667297c395fb4309
+› received
+› running the tests, then timing against SGLang  0:10
+› running the tests, then timing against SGLang  0:20
+› running the tests, then timing against SGLang  0:50
+› running the tests, then timing against SGLang  1:20
+› running the tests, then timing against SGLang  1:50
+› running the tests, then timing against SGLang  2:20
+› running the tests, then timing against SGLang  2:50
+› running the tests, then timing against SGLang  3:20
+› running the tests, then timing against SGLang  3:50
+› running the tests, then timing against SGLang  4:20
+› running the tests, then timing against SGLang  4:50
+› running the tests, then timing against SGLang  5:20
+
+ran for 5:28 · queued 0:07
+
+✓ muse_attention_decode  passed  job 667297c395fb4309
+
+  3.018×  ━━━━━━━━━╋━━━━━━━━━━━━━━────  faster than SGLang  95%: 2.959–3.063×
+
+  time        1,247.9 µs
+  tests       16/16 passed
+  profile     runs/profiles/k80.667297c395fb4309.txt  and .json
+  output      runs/profiles/k80.667297c395fb4309.log
+
+  CASE                    SGLANG      YOURS   SPEEDUP
+  ──────────────────────────────────────────────────────────────────
+  decode 1 · sliding     21.0 µs     3.4 µs    6.104×   ━━━━━━╋━━━━━
+  decode 1 · full        31.4 µs    10.3 µs    3.065×   ━━━━━━╋━━━━━
+  decode 16 · sliding    27.1 µs     6.8 µs    3.975×   ━━━━━━╋━━━━━
+  decode 16 · full      200.4 µs    86.8 µs    2.308×   ━━━━━━╋━━━━━
+  decode 32 · sliding    31.1 µs    10.2 µs    3.047×   ━━━━━━╋━━━━━
+  decode 32 · full      385.0 µs   144.8 µs    2.659×   ━━━━━━╋━━━━━
+  verify 1 · sliding     22.7 µs     4.4 µs    5.204×   ━━━━━━╋━━━━━
+  verify 1 · full        36.4 µs    12.2 µs    2.979×   ━━━━━━╋━━━━━
+  verify 16 · sliding    29.1 µs     9.2 µs    3.153×   ━━━━━━╋━━━━━
+  verify 16 · full      205.1 µs    93.4 µs    2.197×   ━━━━━━╋━━━━━
+  verify 32 · sliding    34.3 µs    12.1 µs    2.825×   ━━━━━━╋━━━━━
+  verify 32 · full      389.7 µs   172.4 µs    2.261×   ━━━━━━╋━━━━━
+
+next  okc leaderboard muse_attention_decode

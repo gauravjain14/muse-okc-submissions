@@ -1,0 +1,11 @@
+test {'bs': 4}: PASS relative L2 error 2.524e-03 (worst row 2.577e-03)
+test {'bs': 33}: PASS relative L2 error 2.550e-03 (worst row 2.777e-03)
+test {'bs': 257}: PASS relative L2 error 2.545e-03 (worst row 2.758e-03)
+test {'bs': 128, 'dist': 'skewed'}: PASS relative L2 error 2.546e-03 (worst row 2.723e-03)
+test {'bs': 1}: PASS relative L2 error 2.472e-03 (worst row 2.472e-03)
+v89                           : 32:159.6(1.532x) 128:238.4(2.409x) 256:283.2(2.680x) 2.147x
+v89 gearly2                   : 32:163.6(1.515x) 128:242.9(2.369x) 256:284.3(2.658x) 2.121x
+v89                           : 32:160.0(1.549x) 128:237.6(2.406x) 256:282.0(2.666x) 2.150x
+v89 gearly2                   : 32:162.2(1.547x) 128:240.9(2.362x) 256:285.3(2.687x) 2.141x
+v89                           : 32:159.8(1.568x) 128:237.9(2.395x) 256:285.6(2.696x) 2.163x
+v89 gearly2                   : 32:162.9(1.537x) 128:242.9(2.403x) 256:284.8(2.660x) 2.142x

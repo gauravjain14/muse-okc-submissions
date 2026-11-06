@@ -1,0 +1,18 @@
+test {'bs': 4}: PASS relative L2 error 2.524e-03 (worst row 2.577e-03)
+test {'bs': 33}: PASS relative L2 error 2.550e-03 (worst row 2.777e-03)
+test {'bs': 257}: PASS relative L2 error 2.545e-03 (worst row 2.758e-03)
+test {'bs': 128, 'dist': 'skewed'}: PASS relative L2 error 2.546e-03 (worst row 2.723e-03)
+test {'bs': 1}: PASS relative L2 error 2.472e-03 (worst row 2.472e-03)
+test {'bs': 4}: PASS relative L2 error 2.524e-03 (worst row 2.577e-03)
+test {'bs': 33}: PASS relative L2 error 2.550e-03 (worst row 2.777e-03)
+test {'bs': 257}: PASS relative L2 error 2.545e-03 (worst row 2.758e-03)
+test {'bs': 128, 'dist': 'skewed'}: PASS relative L2 error 2.546e-03 (worst row 2.723e-03)
+test {'bs': 1}: PASS relative L2 error 2.472e-03 (worst row 2.472e-03)
+v84                           : 16:123.6(1.830x) 8:95.2(1.847x) 1.839x
+v85 ns5                       : 16:125.2(1.770x) 8:97.3(1.803x) 1.786x
+v85 ns5 early                 : 16:126.2(1.756x) 8:98.4(1.792x) 1.774x
+v84                           : 16:123.8(1.797x) 8:94.9(1.853x) 1.825x
+v85 ns5                       : 16:125.1(1.782x) 8:96.8(1.819x) 1.801x
+v85 ns5 early                 : 16:125.6(1.766x) 8:97.7(1.802x) 1.784x
+v84                           : 16:123.6(1.802x) 8:95.4(1.849x) 1.825x
+error: couldn't read cmd-k4w6s's log on okc-sglang; the container may have just stopped; retry in a moment (get_node shows the node's state)

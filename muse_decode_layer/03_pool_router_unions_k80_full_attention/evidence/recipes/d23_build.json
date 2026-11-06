@@ -1,0 +1,8 @@
+{
+  "base": "muse-opt-codex/muse_decode_layer/variants/d22_single_decode.py",
+  "donor": "opt-muse-decode/runs/k80.py",
+  "output": "muse-opt-codex/muse_decode_layer/variants/d23_single_verify.py",
+  "bytes": 994930,
+  "sha256": "46c28049235612e6d3fb68eae09d7b3d699f346c2eb5cd263ab45cb2e9304042",
+  "change": "k80 XG5 full verify B1 with original shape guard and general fallback. Production source branches retained; Python comments removed with exact AST equality, licenses retained."
+}

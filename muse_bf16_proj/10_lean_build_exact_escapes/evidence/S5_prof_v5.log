@@ -1,0 +1,22 @@
+[sbx] box 1
+base     m=1    router    span   3.68 us | rs1_i 3.68
+sm5      m=1    router    span   3.54 us | sm5_rz1 3.54
+base     m=1    unpooler  span   3.39 us | g1_unpslice_g311 3.39
+sm5      m=1    unpooler  span   3.28 us | sm5_cgemv 3.28
+base     m=8    router    span   3.90 us | ys_2_8_1_1_0_0 3.90
+sm5      m=8    router    span   3.60 us | sm5_rz1 3.60
+base     m=8    unpooler  span   3.70 us | g1m_unpslice 3.70
+sm5      m=8    unpooler  span   3.81 us | unps_8_1_32_1 3.81
+base     m=16   router    span   4.00 us | ya_1_8_2_17_0 4.00
+sm5      m=16   router    span   3.94 us | sm5_rz2 3.94
+base     m=16   unpooler  span  13.23 us | pu5_unpooler_16 13.23
+sm5      m=16   unpooler  span  13.15 us | pu5_unpooler_16 13.15
+[s5rz1]   dramRd=6.383104Mbyte  dur=4.640000us  block=288  grid=260  occRegLim=4.000000block  regs=55register/thread  dsmem=13.696000Kbyte/block  clk=1.811814Ghz  hmma%=1.261824  sm%=11.609129  occ%=25.666536  issue%=18.037515  elig/clk=0.274144warp
+[s5rz1]   stalls: long_scoreboard 48%, barrier 14%, wait 11%, selected 7%, no_instructions 7%, short_scoreboard 6%, not_selected 2%
+[s5rz16]   dramRd=6.629888Mbyte  dur=5.120000us  block=288  grid=260  occRegLim=3.000000block  regs=63register/thread  dsmem=27.136000Kbyte/block  clk=1.868649Ghz  hmma%=2.165437  sm%=11.546486  occ%=25.565455  issue%=18.121717  elig/clk=0.276668warp
+[s5rz16]   stalls: long_scoreboard 51%, wait 11%, barrier 10%, short_scoreboard 7%, no_instructions 6%, selected 5%, imc_miss 2%
+[b14ya16]   dramRd=8.660480Mbyte  dur=5.120000us  block=288  grid=132  occRegLim=1.000000block  regs=111register/thread  dsmem=9.488000Kbyte/block  clk=1.826039Ghz  hmma%=2.211983  sm%=4.063536  occ%=13.291181  issue%=6.942283  elig/clk=0.087300warp
+[b14ya16]   stalls: long_scoreboard 61%, no_instructions 9%, lg_throttle 7%, wait 7%, barrier 5%, selected 4%, short_scoreboard 3%
+[s5cg1]   dramRd=6.343424Mbyte  dur=4.224000us  block=160  grid=1,024  occRegLim=12.000000block  regs=32register/thread  dsmem=0byte/block  clk=2.002403Ghz  hmma%=0  sm%=21.612511  occ%=53.667224  issue%=38.595919  elig/clk=0.758853warp
+[s5cg1]   stalls: long_scoreboard 52%, short_scoreboard 13%, barrier 8%, wait 6%, selected 6%, no_instructions 5%, not_selected 2%
+REMOTE_EXIT 0

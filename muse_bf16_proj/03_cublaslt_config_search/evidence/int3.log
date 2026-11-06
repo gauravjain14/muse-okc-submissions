@@ -1,0 +1,48 @@
+[gate] slot 0 at 13:13:15 (0 running)
+✓ Initialized. View run at 
+<modal-run-url>
+✓ Created objects.
+├── 🔨 Created mount 
+│   muse-opt-codex/muse_bf16_proj/claude/modal_run.p
+│   y
+├── 🔨 Created mount muse-opt-codex/muse_bf16_proj
+└── 🔨 Created function run.
+[gpu-before]
+NVIDIA H200, 0 %, 4 MiB, 345 MHz, 1980 MHz, 76.80 W
+0
+
+all ok
+verify 16 m=128  qkv_gate  sglang   16.10 | int3   15.37 x1.047 | int1   15.39 x1.046   sol   8.42
+verify 16 m=128  o         sglang    5.98 | int3    6.01 x0.996 | int1    6.20 x0.965   sol   3.99
+verify 16 m=128  pooler    sglang   24.22 | int3   24.65 x0.983 | int1   24.83 x0.976   sol  14.64
+verify 16 m=128  unpooler  sglang   18.93 | int3   17.73 x1.067 | int1   17.40 x1.088   sol  14.64
+verify 16 m=128  router    sglang   15.23 | int3    6.66 x2.287 | int1    6.79 x2.243   sol   2.21
+verify 32 m=256  qkv_gate  sglang   18.29 | int3   18.36 x0.996 | int1   19.56 x0.935   sol   9.77
+verify 32 m=256  o         sglang    8.30 | int3    8.11 x1.024 | int1    7.70 x1.078   sol   4.48
+verify 32 m=256  pooler    sglang   30.54 | int3   28.42 x1.075 | int1   28.52 x1.071   sol  17.37
+verify 32 m=256  unpooler  sglang   23.17 | int3   23.49 x0.986 | int1   23.31 x0.994   sol  17.37
+verify 32 m=256  router    sglang   16.45 | int3    8.75 x1.880 | int1    8.70 x1.890   sol   2.68
+
+per-load speedups:
+  verify 16 sglang   80.46 | int3   70.42 x1.143 | int1   70.60 x1.140
+  verify 32 sglang   96.75 | int3   87.12 x1.111 | int1   87.79 x1.102
+GEOMEAN int3: x1.1265 over 2 loads   judge-projected (+1.0 us/shape) x1.1188
+GEOMEAN int1: x1.1207 over 2 loads   judge-projected (+1.0 us/shape) x1.1134
+per-load speedups:
+  decode 1  sglang   55.55 | int3   36.97 x1.503 | int1   36.34 x1.529
+  decode 16 sglang   70.58 | int3   51.27 x1.377 | int1   50.59 x1.395
+  decode 32 sglang   72.40 | int3   56.02 x1.292 | int1   57.40 x1.261
+  verify 1  sglang   71.09 | int3   39.33 x1.808 | int1   39.17 x1.815
+  verify 16 sglang   81.68 | int3   71.16 x1.148 | int1   71.57 x1.141
+  verify 32 sglang   97.49 | int3   87.17 x1.118 | int1   87.64 x1.112
+GEOMEAN int3: x1.3555 over 6 loads   judge-projected (+1.0 us/shape) x1.3221
+GEOMEAN int1: x1.3553 over 6 loads   judge-projected (+1.0 us/shape) x1.3216
+[gpu-after]
+NVIDIA H200, 3 %, 4 MiB, 1980 MHz, 1980 MHz, 119.48 W
+0
+
+[exit 0]
+Stopping app - local entrypoint completed.
+Runner terminated.
+✓ App completed. View run at 
+<modal-run-url>

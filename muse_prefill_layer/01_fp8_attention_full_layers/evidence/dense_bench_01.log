@@ -1,0 +1,23 @@
+✓ Initialized. View run at 
+<modal-run-url>
+✓ Created objects.
+├── 🔨 Created mount 
+│   muse-opt/muse_prefill_layer/dev/modal_run.py
+├── 🔨 Created mount muse-opt/muse_prefill_layer
+└── 🔨 Created function run.
+router seed 728034927264498030 (2 s)
+prepared codex (codex_best.py) in 84.4 s
+prepared dense (cand_dense.py) in 2.0 s
+0 turn 1     b1 ctx80000 sliding q753  sglang    1105.8  codex     667.3 x1.657  dense     655.8 x1.683 (vs codex x1.0198)
+1 turn 1     b1 ctx80000 full    q753  sglang    1538.2  codex    1059.6 x1.457  dense    1041.1 x1.477 (vs codex x1.0150)
+2 turn 4     b4 ctx80000 sliding q753  sglang    3448.9  codex    2034.4 x1.700  dense    2011.6 x1.718 (vs codex x1.0105)
+3 turn 4     b4 ctx80000 full    q753  sglang    5044.4  codex    3592.6 x1.404  dense    3573.1 x1.412 (vs codex x1.0055)
+4 first turn b1 ctx0 full    q16384  sglang   19392.0  codex   10967.4 x1.747  dense   10847.2 x1.768 (vs codex x1.0100)
+5 first turn b1 ctx32768 sliding q16384  sglang   18853.2  codex   10427.8 x1.794  dense   10265.4 x1.835 (vs codex x1.0198)
+6 first turn b1 ctx32768 full    q16384  sglang   22734.0  codex   14828.5 x1.546  dense   14621.3 x1.556 (vs codex x1.0123)
+7 first turn b1 ctx65536 full    q16384  sglang   26648.2  codex   18896.2 x1.422  dense   18390.5 x1.449 (vs codex x1.0201)
+codex: turn 1 x1.586  turn 4 x1.587  first turn x1.711  geomean x1.6270
+dense: turn 1 x1.609  turn 4 x1.601  first turn x1.745  geomean x1.6506
+Stopping app - local entrypoint completed.
+✓ App completed. View run at 
+<modal-run-url>

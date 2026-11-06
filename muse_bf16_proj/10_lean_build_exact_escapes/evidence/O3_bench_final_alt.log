@@ -1,0 +1,9 @@
+[sbx] waited 12s for a GPU
+[sbx] box 0
+decode 32 m=32   o         sglang    5.92 | bo14    4.96 x1.192   sol   3.62
+decode 32 m=32   o         sglang    6.02 | o3    5.02 x1.200   sol   3.62
+decode 32 m=32   o         sglang    5.92 | bo14    4.92 x1.204   sol   3.62
+decode 32 m=32   o         sglang    5.92 | o3    4.94 x1.199   sol   3.62
+decode 32 m=32   o         sglang    5.97 | bo14    5.06 x1.180   sol   3.62
+decode 32 m=32   o         sglang    5.97 | o3    4.91 x1.215   sol   3.62
+REMOTE_EXIT 0

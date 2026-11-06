@@ -1,0 +1,29 @@
+[gate] slot 0 at 13:06:16 (0 running)
+✓ Initialized. View run at 
+<modal-run-url>
+✓ Created objects.
+├── 🔨 Created mount 
+│   muse-opt-codex/muse_bf16_proj/claude/modal_run.p
+│   y
+├── 🔨 Created mount muse-opt-codex/muse_bf16_proj
+└── 🔨 Created function run.
+[gpu-before]
+NVIDIA H200, 0 %, 4 MiB, 345 MHz, 1980 MHz, 77.59 W
+0
+all ok
+decode 1  m=1    o         sglang    5.71 | gv    6.23 x0.917 | cx    4.72 x1.209   sol   3.50
+decode 1  m=1    pooler    sglang   20.08 | gv   15.64 x1.284 | cx   15.98 x1.257   sol  13.99
+decode 1  m=1    unpooler  sglang    6.13 | gv    4.26 x1.440 | cx    2.94 x2.086   sol   1.75
+
+per-load speedups:
+  decode 1  sglang   45.57 | gv   37.08 x1.229 | cx   33.70 x1.352
+GEOMEAN gv: x1.2290 over 1 loads   judge-projected (+1.0 us/shape) x1.2067
+GEOMEAN cx: x1.3521 over 1 loads   judge-projected (+1.0 us/shape) x1.3148
+[gpu-after]
+NVIDIA H200, 0 %, 4 MiB, 1980 MHz, 1980 MHz, 128.64 W
+0
+
+[exit 0]
+Stopping app - local entrypoint completed.
+✓ App completed. View run at 
+<modal-run-url>

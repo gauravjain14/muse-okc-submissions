@@ -1,0 +1,83 @@
+{
+  "diagnostic_only": true,
+  "seeds": [
+    {
+      "seed": 0,
+      "base": {
+        "consumer_span_us": 262.592,
+        "average_cta_main_us": 239.7730909090909,
+        "average_cta_tail_us": 15.32460606060606,
+        "average_cta_between_item_gap_us": 1.9692121212121227,
+        "idle_us": 7.494303030303014
+      },
+      "mix1": {
+        "consumer_span_us": 288.32,
+        "average_cta_main_us": 250.48460606060607,
+        "average_cta_tail_us": 10.63539393939394,
+        "average_cta_between_item_gap_us": 1.8785454545454594,
+        "idle_us": 27.199999999999985
+      },
+      "mix8": {
+        "consumer_span_us": 273.664,
+        "average_cta_main_us": 245.52872727272728,
+        "average_cta_tail_us": 12.176727272727273,
+        "average_cta_between_item_gap_us": 2.1066666666666642,
+        "idle_us": 15.958545454545433
+      }
+    },
+    {
+      "seed": 1,
+      "base": {
+        "consumer_span_us": 256.928,
+        "average_cta_main_us": 234.24218181818182,
+        "average_cta_tail_us": 13.674424242424243,
+        "average_cta_between_item_gap_us": 1.9546666666666668,
+        "idle_us": 9.011393939393935
+      },
+      "mix1": {
+        "consumer_span_us": 285.152,
+        "average_cta_main_us": 246.4138181818182,
+        "average_cta_tail_us": 10.51369696969697,
+        "average_cta_between_item_gap_us": 1.8242424242424273,
+        "idle_us": 28.22448484848483
+      },
+      "mix8": {
+        "consumer_span_us": 267.168,
+        "average_cta_main_us": 240.29939393939395,
+        "average_cta_tail_us": 11.666181818181817,
+        "average_cta_between_item_gap_us": 2.060606060606064,
+        "idle_us": 15.202424242424238
+      }
+    },
+    {
+      "seed": 2,
+      "base": {
+        "consumer_span_us": 276.0,
+        "average_cta_main_us": 253.34545454545454,
+        "average_cta_tail_us": 15.584000000000001,
+        "average_cta_between_item_gap_us": 2.3103030303030336,
+        "idle_us": 7.070545454545455
+      },
+      "mix1": {
+        "consumer_span_us": 304.224,
+        "average_cta_main_us": 265.8157575757576,
+        "average_cta_tail_us": 11.608484848484848,
+        "average_cta_between_item_gap_us": 2.1798787878787813,
+        "idle_us": 26.799757575757567
+      },
+      "mix8": {
+        "consumer_span_us": 290.144,
+        "average_cta_main_us": 261.0945454545455,
+        "average_cta_tail_us": 12.902303030303031,
+        "average_cta_between_item_gap_us": 2.4661818181818256,
+        "idle_us": 16.147151515151492
+      }
+    }
+  ],
+  "source": "research/queue_item_trace_{base,mix1,mix8}.json",
+  "findings": [
+    "Fine interleaving raises end-of-kernel idle capacity from about7-9us/CTA to27-28us/CTA. Coarse interleaving raises it to15-16us/CTA.",
+    "Fine interleaving reduces epilogue tail by3-5us/CTA but adds11-12us/CTA mainloop time. Interleaving alone does not improve this kernel.",
+    "The tail experiment preserves a largest-first final section while mixing earlier work. No positive result claimed."
+  ]
+}

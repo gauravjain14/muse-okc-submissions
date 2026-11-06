@@ -1,0 +1,8 @@
+FUSED_TIMING {"case": 0, "seed": 0, "label": "gate1", "bit_identical": true, "control_us": 283.00800919532776, "candidate_us": 283.488005399704, "paired_saving_us": -0.568002462387085, "speedup": 0.9979952455665552, "positive_pairs": 9, "pairs": 40}
+FUSED_TIMING {"case": 0, "seed": 0, "label": "gate8", "bit_identical": true, "control_us": 283.00800919532776, "candidate_us": 280.94398975372314, "paired_saving_us": 1.896008849143982, "speedup": 1.0067470189789867, "positive_pairs": 40, "pairs": 40}
+FUSED_TIMING {"case": 0, "seed": 1, "label": "gate1", "bit_identical": true, "control_us": 306.5280020236969, "candidate_us": 305.9200048446655, "paired_saving_us": 0.5439966917037964, "speedup": 1.001780386744222, "positive_pairs": 30, "pairs": 40}
+FUSED_TIMING {"case": 0, "seed": 1, "label": "gate8", "bit_identical": true, "control_us": 306.5280020236969, "candidate_us": 303.6479949951172, "paired_saving_us": 2.9840096831321716, "speedup": 1.0098420780943282, "positive_pairs": 40, "pairs": 40}
+FUSED_TIMING {"case": 0, "seed": 2, "label": "gate1", "bit_identical": true, "control_us": 274.52799677848816, "candidate_us": 275.0239968299866, "paired_saving_us": -0.639989972114563, "speedup": 0.997667926227945, "positive_pairs": 7, "pairs": 40}
+FUSED_TIMING {"case": 0, "seed": 2, "label": "gate8", "bit_identical": true, "control_us": 274.52799677848816, "candidate_us": 273.74400198459625, "paired_saving_us": 0.7520020008087158, "speedup": 1.0027488898093293, "positive_pairs": 36, "pairs": 40}
+FUSED_ALL_OK
+REMOTE_EXIT 0

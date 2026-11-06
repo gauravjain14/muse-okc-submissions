@@ -1,0 +1,44 @@
+✓ Initialized. View run at 
+<modal-run-url>
+✓ Created objects.
+├── 🔨 Created mount 
+│   <scratch>
+│   5-ce57afd4da60/scratchpad/snap.2SiP0f/dev/modal_run.py
+├── 🔨 Created mount 
+│   <scratch>
+│   5-ce57afd4da60/scratchpad/snap.2SiP0f
+└── 🔨 Created function run.
+compiled
+0 {'batch': 1, 'ctx': 80000, 'layer': 'sliding', 'q_len': 753, 'page': 1, 'dist': 'soft'}
+   cache vs sglang: k 1.63e-02 v 0.00e+00;  out vs sglang 6.686e-02
+   time: mine     47.0 us  sglang     48.3 us  x1.027
+   post            7.7 us
+   pack            9.1 us
+   attn_fwd       37.1 us
+2 {'batch': 4, 'ctx': 80000, 'layer': 'sliding', 'q_len': 753, 'page': 1, 'dist': 'soft', 'spread': 'agentic'}
+   cache vs sglang: k 1.65e-02 v 0.00e+00;  out vs sglang 7.802e-02
+   time: mine     84.4 us  sglang     91.0 us  x1.078
+   post            9.8 us
+   pack           10.6 us
+   attn_fwd       67.9 us
+5 {'batch': 1, 'ctx': 32768, 'layer': 'sliding', 'q_len': 16384, 'page': 1, 'dist': 'soft'}
+   cache vs sglang: k 1.63e-02 v 0.00e+00;  out vs sglang 4.471e-02
+   time: mine    363.8 us  sglang    400.7 us  x1.101
+   post           22.6 us
+   pack           11.9 us
+   attn_fwd      312.0 us
+10 {'batch': 2, 'ctx': 2500, 'layer': 'sliding', 'q_len': 753, 'page': 1}
+   cache vs sglang: k 1.61e-02 v 0.00e+00;  out vs sglang 9.269e-02
+   time: mine     50.4 us  sglang     56.7 us  x1.125
+   post            8.4 us
+   pack            9.2 us
+   attn_fwd       38.3 us
+12 {'batch': 1, 'ctx': 4096, 'layer': 'sliding', 'q_len': 4096, 'page': 1}
+   cache vs sglang: k 1.64e-02 v 0.00e+00;  out vs sglang 6.680e-02
+   time: mine    110.3 us  sglang    121.7 us  x1.104
+   post           10.9 us
+   pack            9.2 us
+   attn_fwd       92.0 us
+Stopping app - local entrypoint completed.
+✓ App completed. View run at 
+<modal-run-url>

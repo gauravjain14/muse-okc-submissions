@@ -1,0 +1,74 @@
+✓ Initialized. View run at 
+<modal-run-url>
+✓ Created objects.
+├── 🔨 Created mount 
+│   <scratch>
+│   5-ce57afd4da60/scratchpad/snap.TIZQnR/dev/modal_run.py
+├── 🔨 Created mount 
+│   <scratch>
+│   5-ce57afd4da60/scratchpad/snap.TIZQnR
+└── 🔨 Created function run.
+compiled
+0 {'batch': 1, 'ctx': 80000, 'layer': 'sliding', 'q_len': 753, 'page': 1, 'dist': 'soft'}
+   cache vs sglang: k 1.63e-02 v 0.00e+00;  out vs sglang 6.686e-02
+   time: mine     45.6 us  sglang     48.4 us  x1.061
+   post            7.9 us
+   pack            9.4 us
+   attn_fwd       36.8 us
+   p3         vs mine 1.89e-03
+   p3             36.6 us
+   p5         vs mine 1.89e-03
+   p5             36.8 us
+   p0         vs mine 1.72e-03
+   p0             38.6 us
+1 {'batch': 1, 'ctx': 80000, 'layer': 'full', 'q_len': 753, 'page': 1, 'dist': 'soft'}
+   cache vs sglang: k 1.60e-02 v 0.00e+00;  out vs sglang 8.261e-02
+   time: mine    376.9 us  sglang    437.0 us  x1.160
+   post            7.5 us
+   pack           24.4 us
+   attn_fwd      355.0 us
+   p3         vs mine 2.55e-03
+   p3            351.6 us
+   p5         vs mine 2.56e-03
+   p5            352.7 us
+   p0         vs mine 2.33e-03
+   p0            369.6 us
+2 {'batch': 4, 'ctx': 80000, 'layer': 'sliding', 'q_len': 753, 'page': 1, 'dist': 'soft', 'spread': 'agentic'}
+   cache vs sglang: k 1.65e-02 v 0.00e+00;  out vs sglang 7.802e-02
+   time: mine     78.7 us  sglang     90.8 us  x1.153
+   post           10.0 us
+   pack           10.8 us
+   attn_fwd       66.9 us
+   p3         vs mine 1.81e-03
+   p3             66.5 us
+   p5         vs mine 1.83e-03
+   p5             67.6 us
+   p0         vs mine 1.67e-03
+   p0             69.9 us
+3 {'batch': 4, 'ctx': 80000, 'layer': 'full', 'q_len': 753, 'page': 1, 'dist': 'soft', 'spread': 'agentic'}
+   cache vs sglang: k 1.63e-02 v 0.00e+00;  out vs sglang 8.552e-02
+   time: mine   1448.9 us  sglang   1664.5 us  x1.149
+   post            9.3 us
+   pack           72.3 us
+   attn_fwd     1376.1 us
+   p3         vs mine 2.46e-03
+   p3           1366.6 us
+   p5         vs mine 2.45e-03
+   p5           1369.3 us
+   p0         vs mine 2.26e-03
+   p0           1441.4 us
+5 {'batch': 1, 'ctx': 32768, 'layer': 'sliding', 'q_len': 16384, 'page': 1, 'dist': 'soft'}
+   cache vs sglang: k 1.63e-02 v 0.00e+00;  out vs sglang 4.471e-02
+   time: mine    339.1 us  sglang    399.3 us  x1.178
+   post           23.9 us
+   pack           12.1 us
+   attn_fwd      312.7 us
+   p3         vs mine 1.01e-03
+   p3            311.6 us
+   p5         vs mine 9.98e-04
+   p5            312.7 us
+   p0         vs mine 9.15e-04
+   p0            322.4 us
+Stopping app - local entrypoint completed.
+✓ App completed. View run at 
+<modal-run-url>

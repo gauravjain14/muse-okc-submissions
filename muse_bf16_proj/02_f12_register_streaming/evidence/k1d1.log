@@ -1,0 +1,59 @@
+[gate] slot 0 at 11:22:28 (0 running)
+✓ Initialized. View run at 
+<modal-run-url>
+✓ Created objects.
+├── 🔨 Created mount 
+│   muse-opt-codex/muse_bf16_proj/claude/modal_run.p
+│   y
+├── 🔨 Created mount muse-opt-codex/muse_bf16_proj
+└── 🔨 Created function run.
+[gpu-before]
+NVIDIA H200, 0 %, 4 MiB, 345 MHz, 1980 MHz, 78.09 W
+0
+FAIL pooler m=5 normal: relative L2 error 1.078e-02 > 0.01
+1 failures
+qkv_gate  m=1   CTAs 132 | start  0.10/ 0.16 first  1.41/ 1.92 loopend 11.55/13.63 sync 11.65/13.73 sums 12.51/14.53 end 12.74/14.69
+o         m=1   CTAs 132 | start  0.10/ 0.16 first  1.76/ 2.14 loopend  5.60/ 6.18 sync  5.70/ 6.24 sums  6.30/ 6.88 end  6.50/ 7.07
+pooler    m=1   CTAs 132 | start  0.13/ 0.19 first  2.24/ 3.14 loopend 18.27/19.68 sync 18.37/19.74 sums 19.58/20.67 end 19.78/20.86
+unpooler  m=1   CTAs 128 | start  0.06/ 0.10 first  1.31/ 1.54 loopend  4.38/ 5.44 sync  4.45/ 5.50 sums  4.70/ 5.76 end  4.90/ 5.95
+o         m=32  CTAs 132 | start  0.10/ 0.13 first  1.82/ 2.05 loopend  7.36/ 8.06 sync  7.46/ 8.13 sums  8.48/ 9.12 end  8.77/ 9.41
+pooler    m=32  CTAs 132 | start  0.10/ 0.16 first  1.70/ 1.92 loopend 23.23/25.98 sync 23.33/26.11 sums 25.02/27.26 end 25.28/27.46
+unpooler  m=32  CTAs 132 | start  0.10/ 0.16 first  1.73/ 1.86 loopend 23.90/26.40 sync 24.03/26.50 sums 25.02/27.46 end 25.34/27.74
+qkv_gate  m=32  CTAs 132 | start  0.10/ 0.16 first  1.44/ 1.82 loopend 19.52/26.46 sync 19.58/26.56 sums 21.82/27.94 end 22.02/28.13
+[c12] prepare 0.4s
+[bf] prepare 0.1s
+[cx] prepare 80.9s
+fixed graph cost 5.31 us
+decode 1  m=1    qkv_gate  sglang   13.30 | c12   15.53 x0.856 | bf   12.56 x1.059 | cx    9.97 x1.333   sol   7.87
+decode 1  m=1    o         sglang    6.08 | c12    7.20 x0.844 | bf    6.50 x0.936 | cx    4.77 x1.275   sol   3.50
+decode 1  m=1    pooler    sglang   20.34 | c12   22.28 x0.913 | bf   17.59 x1.156 | cx   16.27 x1.250   sol  13.99
+decode 1  m=1    unpooler  sglang    6.78 | c12    7.55 x0.899 | bf    4.69 x1.448 | cx    2.81 x2.410   sol   1.75
+decode 16 m=16   qkv_gate  sglang   13.74 | c12   20.72 x0.663 | bf   12.17 x1.129 | cx   11.90 x1.155   sol   7.93
+decode 16 m=16   o         sglang    6.32 | c12    9.23 x0.684 | bf    6.74 x0.938 | cx    5.16 x1.224   sol   3.56
+decode 16 m=16   pooler    sglang   20.61 | c12   24.89 x0.828 | bf   18.91 x1.090 | cx   18.60 x1.108   sol  14.06
+decode 16 m=16   unpooler  sglang   18.38 | c12   23.61 x0.779 | bf   17.69 x1.039 | cx   18.39 x1.000   sol  14.06
+decode 32 m=32   qkv_gate  sglang   14.35 | c12   30.47 x0.471 | bf   13.05 x1.100 | cx   12.39 x1.158   sol   8.00
+decode 32 m=32   o         sglang    6.18 | c12   11.40 x0.542 | bf    7.74 x0.798 | cx    5.64 x1.095   sol   3.62
+decode 32 m=32   pooler    sglang   21.63 | c12   24.31 x0.890 | bf   20.06 x1.078 | cx   18.64 x1.160   sol  14.14
+decode 32 m=32   unpooler  sglang   17.71 | c12   28.94 x0.612 | bf   18.08 x0.979 | cx   17.77 x0.997   sol  14.14
+verify 1  m=8    qkv_gate  sglang   13.92 | c12   17.81 x0.781 | bf   12.17 x1.144 | cx   12.75 x1.092   sol   7.90
+verify 1  m=8    o         sglang    5.94 | c12    8.48 x0.700 | bf    6.46 x0.919 | cx    5.43 x1.094   sol   3.53
+verify 1  m=8    pooler    sglang   21.15 | c12   23.61 x0.896 | bf   18.37 x1.151 | cx   18.30 x1.156   sol  14.02
+verify 1  m=8    unpooler  sglang    6.37 | c12    7.58 x0.840 | bf    4.47 x1.424 | cx    4.30 x1.480   sol   1.76
+
+per-load speedups:
+  decode 1  sglang   46.50 | c12   52.55 x0.885 | bf   41.33 x1.125 | cx   33.82 x1.375
+  decode 16 sglang   59.06 | c12   78.45 x0.753 | bf   55.51 x1.064 | cx   54.05 x1.093
+  decode 32 sglang   59.87 | c12   95.12 x0.629 | bf   58.93 x1.016 | cx   54.44 x1.100
+  verify 1  sglang   47.38 | c12   57.48 x0.824 | bf   41.47 x1.142 | cx   40.78 x1.162
+GEOMEAN c12: x0.7667 over 4 loads   judge-projected (+1.0 us/shape) x0.7787
+GEOMEAN bf: x1.0856 over 4 loads   judge-projected (+1.0 us/shape) x1.0786
+GEOMEAN cx: x1.1770 over 4 loads   judge-projected (+1.0 us/shape) x1.1612
+[gpu-after]
+NVIDIA H200, 0 %, 4 MiB, 1980 MHz, 1980 MHz, 121.86 W
+0
+
+[exit 0]
+Stopping app - local entrypoint completed.
+✓ App completed. View run at 
+<modal-run-url>

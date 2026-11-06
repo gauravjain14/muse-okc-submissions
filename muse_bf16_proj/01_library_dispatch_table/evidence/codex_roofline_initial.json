@@ -1,0 +1,302 @@
+[
+  {
+    "m": 1,
+    "layer": "qkv_gate",
+    "bytes": 37769728,
+    "flops": 37748736,
+    "arithmetic_intensity": 0.9994442109829332,
+    "hbm_floor_us": 7.868693333333334,
+    "compute_floor_us": 0.03816859049544995,
+    "floor_us": 7.868693333333334
+  },
+  {
+    "m": 1,
+    "layer": "o",
+    "bytes": 16795648,
+    "flops": 16777216,
+    "arithmetic_intensity": 0.9989025728569687,
+    "hbm_floor_us": 3.499093333333333,
+    "compute_floor_us": 0.016963817997977755,
+    "floor_us": 3.499093333333333
+  },
+  {
+    "m": 1,
+    "layer": "pooler",
+    "bytes": 67133440,
+    "flops": 67108864,
+    "arithmetic_intensity": 0.999633923123856,
+    "hbm_floor_us": 13.986133333333333,
+    "compute_floor_us": 0.06785527199191102,
+    "floor_us": 13.986133333333333
+  },
+  {
+    "m": 1,
+    "layer": "unpooler",
+    "bytes": 8398848,
+    "flops": 8388608,
+    "arithmetic_intensity": 0.9987807851743478,
+    "hbm_floor_us": 1.74976,
+    "compute_floor_us": 0.008481908998988878,
+    "floor_us": 1.74976
+  },
+  {
+    "m": 1,
+    "layer": "router",
+    "bytes": 8406016,
+    "flops": 4194304,
+    "arithmetic_intensity": 0.49896455110244853,
+    "hbm_floor_us": 1.7512533333333333,
+    "compute_floor_us": 0.004240954499494439,
+    "floor_us": 1.7512533333333333
+  },
+  {
+    "m": 8,
+    "layer": "qkv_gate",
+    "bytes": 37916672,
+    "flops": 301989888,
+    "arithmetic_intensity": 7.964567354434482,
+    "hbm_floor_us": 7.899306666666667,
+    "compute_floor_us": 0.3053487239635996,
+    "floor_us": 7.899306666666667
+  },
+  {
+    "m": 8,
+    "layer": "o",
+    "bytes": 16924672,
+    "flops": 134217728,
+    "arithmetic_intensity": 7.930300096805421,
+    "hbm_floor_us": 3.5259733333333334,
+    "compute_floor_us": 0.13571054398382204,
+    "floor_us": 3.5259733333333334
+  },
+  {
+    "m": 8,
+    "layer": "pooler",
+    "bytes": 67305472,
+    "flops": 536870912,
+    "arithmetic_intensity": 7.976630963972736,
+    "hbm_floor_us": 14.021973333333333,
+    "compute_floor_us": 0.5428421759352882,
+    "floor_us": 14.021973333333333
+  },
+  {
+    "m": 8,
+    "layer": "unpooler",
+    "bytes": 8470528,
+    "flops": 67108864,
+    "arithmetic_intensity": 7.922630560928433,
+    "hbm_floor_us": 1.7646933333333332,
+    "compute_floor_us": 0.06785527199191102,
+    "floor_us": 1.7646933333333332
+  },
+  {
+    "m": 8,
+    "layer": "router",
+    "bytes": 8527872,
+    "flops": 33554432,
+    "arithmetic_intensity": 3.934678194044188,
+    "hbm_floor_us": 1.77664,
+    "compute_floor_us": 0.03392763599595551,
+    "floor_us": 1.77664
+  },
+  {
+    "m": 16,
+    "layer": "qkv_gate",
+    "bytes": 38084608,
+    "flops": 603979776,
+    "arithmetic_intensity": 15.858894385889439,
+    "hbm_floor_us": 7.934293333333334,
+    "compute_floor_us": 0.6106974479271992,
+    "floor_us": 7.934293333333334
+  },
+  {
+    "m": 16,
+    "layer": "o",
+    "bytes": 17072128,
+    "flops": 268435456,
+    "arithmetic_intensity": 15.723608445297504,
+    "hbm_floor_us": 3.5566933333333335,
+    "compute_floor_us": 0.2714210879676441,
+    "floor_us": 3.5566933333333335
+  },
+  {
+    "m": 16,
+    "layer": "pooler",
+    "bytes": 67502080,
+    "flops": 1073741824,
+    "arithmetic_intensity": 15.906796116504854,
+    "hbm_floor_us": 14.062933333333334,
+    "compute_floor_us": 1.0856843518705763,
+    "floor_us": 14.062933333333334
+  },
+  {
+    "m": 16,
+    "layer": "unpooler",
+    "bytes": 67502080,
+    "flops": 1073741824,
+    "arithmetic_intensity": 15.906796116504854,
+    "hbm_floor_us": 14.062933333333334,
+    "compute_floor_us": 1.0856843518705763,
+    "floor_us": 14.062933333333334
+  },
+  {
+    "m": 16,
+    "layer": "router",
+    "bytes": 8667136,
+    "flops": 67108864,
+    "arithmetic_intensity": 7.742911153119093,
+    "hbm_floor_us": 1.8056533333333333,
+    "compute_floor_us": 0.06785527199191102,
+    "floor_us": 1.8056533333333333
+  },
+  {
+    "m": 32,
+    "layer": "qkv_gate",
+    "bytes": 38420480,
+    "flops": 1207959552,
+    "arithmetic_intensity": 31.440511727078892,
+    "hbm_floor_us": 8.004266666666666,
+    "compute_floor_us": 1.2213948958543983,
+    "floor_us": 8.004266666666666
+  },
+  {
+    "m": 32,
+    "layer": "o",
+    "bytes": 17367040,
+    "flops": 536870912,
+    "arithmetic_intensity": 30.91320754716981,
+    "hbm_floor_us": 3.618133333333333,
+    "compute_floor_us": 0.5428421759352882,
+    "floor_us": 3.618133333333333
+  },
+  {
+    "m": 32,
+    "layer": "pooler",
+    "bytes": 67895296,
+    "flops": 2147483648,
+    "arithmetic_intensity": 31.62934362934363,
+    "hbm_floor_us": 14.144853333333334,
+    "compute_floor_us": 2.1713687037411527,
+    "floor_us": 14.144853333333334
+  },
+  {
+    "m": 32,
+    "layer": "unpooler",
+    "bytes": 67895296,
+    "flops": 2147483648,
+    "arithmetic_intensity": 31.62934362934363,
+    "hbm_floor_us": 14.144853333333334,
+    "compute_floor_us": 2.1713687037411527,
+    "floor_us": 14.144853333333334
+  },
+  {
+    "m": 32,
+    "layer": "router",
+    "bytes": 8945664,
+    "flops": 134217728,
+    "arithmetic_intensity": 15.003663003663004,
+    "hbm_floor_us": 1.86368,
+    "compute_floor_us": 0.13571054398382204,
+    "floor_us": 1.86368
+  },
+  {
+    "m": 128,
+    "layer": "qkv_gate",
+    "bytes": 40435712,
+    "flops": 4831838208,
+    "arithmetic_intensity": 119.49432739059968,
+    "hbm_floor_us": 8.424106666666667,
+    "compute_floor_us": 4.885579583417593,
+    "floor_us": 8.424106666666667
+  },
+  {
+    "m": 128,
+    "layer": "o",
+    "bytes": 19136512,
+    "flops": 2147483648,
+    "arithmetic_intensity": 112.21917808219177,
+    "hbm_floor_us": 3.9867733333333333,
+    "compute_floor_us": 2.1713687037411527,
+    "floor_us": 3.9867733333333333
+  },
+  {
+    "m": 128,
+    "layer": "pooler",
+    "bytes": 70254592,
+    "flops": 8589934592,
+    "arithmetic_intensity": 122.26865671641791,
+    "hbm_floor_us": 14.636373333333333,
+    "compute_floor_us": 8.68547481496461,
+    "floor_us": 14.636373333333333
+  },
+  {
+    "m": 128,
+    "layer": "unpooler",
+    "bytes": 70254592,
+    "flops": 8589934592,
+    "arithmetic_intensity": 122.26865671641791,
+    "hbm_floor_us": 14.636373333333333,
+    "compute_floor_us": 8.68547481496461,
+    "floor_us": 14.636373333333333
+  },
+  {
+    "m": 128,
+    "layer": "router",
+    "bytes": 10616832,
+    "flops": 536870912,
+    "arithmetic_intensity": 50.5679012345679,
+    "hbm_floor_us": 2.21184,
+    "compute_floor_us": 0.5428421759352882,
+    "floor_us": 2.21184
+  },
+  {
+    "m": 256,
+    "layer": "qkv_gate",
+    "bytes": 43122688,
+    "flops": 9663676416,
+    "arithmetic_intensity": 224.09726443768997,
+    "hbm_floor_us": 8.983893333333333,
+    "compute_floor_us": 9.771159166835186,
+    "floor_us": 9.771159166835186
+  },
+  {
+    "m": 256,
+    "layer": "o",
+    "bytes": 21495808,
+    "flops": 4294967296,
+    "arithmetic_intensity": 199.8048780487805,
+    "hbm_floor_us": 4.478293333333333,
+    "compute_floor_us": 4.342737407482305,
+    "floor_us": 4.478293333333333
+  },
+  {
+    "m": 256,
+    "layer": "pooler",
+    "bytes": 73400320,
+    "flops": 17179869184,
+    "arithmetic_intensity": 234.05714285714285,
+    "hbm_floor_us": 15.291733333333333,
+    "compute_floor_us": 17.37094962992922,
+    "floor_us": 17.37094962992922
+  },
+  {
+    "m": 256,
+    "layer": "unpooler",
+    "bytes": 73400320,
+    "flops": 17179869184,
+    "arithmetic_intensity": 234.05714285714285,
+    "hbm_floor_us": 15.291733333333333,
+    "compute_floor_us": 17.37094962992922,
+    "floor_us": 17.37094962992922
+  },
+  {
+    "m": 256,
+    "layer": "router",
+    "bytes": 12845056,
+    "flops": 1073741824,
+    "arithmetic_intensity": 83.59183673469387,
+    "hbm_floor_us": 2.6760533333333334,
+    "compute_floor_us": 1.0856843518705763,
+    "floor_us": 2.6760533333333334
+  }
+]

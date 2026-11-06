@@ -1,0 +1,48 @@
+[gate] slot 1 at 11:15:22 (1 running)
+✓ Initialized. View run at 
+<modal-run-url>
+✓ Created objects.
+├── 🔨 Created mount 
+│   muse-opt-codex/muse_bf16_proj/claude/modal_run.p
+│   y
+├── 🔨 Created mount muse-opt-codex/muse_bf16_proj
+└── 🔨 Created function run.
+[gpu-before]
+NVIDIA H200, 0 %, 126 MiB, 345 MHz, 1980 MHz, 79.58 W
+0
+[k1c] qkv_gate: 28.31 MB, escapes 1351, base 107
+[k1c] o: 12.58 MB, escapes 830, base 109
+[k1c] pooler: 50.33 MB, escapes 2306, base 107
+[k1c] unpooler: 50.33 MB, escapes 3299, base 108
+[k1c] unpslice: 6.29 MB, escapes 391, base 108
+[c12] prepare 2.8s
+[k1c] qkv_gate: 28.31 MB, escapes 1351, base 107
+[k1c] o: 12.58 MB, escapes 830, base 109
+[k1c] pooler: 50.33 MB, escapes 2306, base 107
+[k1c] unpooler: 50.33 MB, escapes 3299, base 108
+[k1c] unpslice: 6.29 MB, escapes 391, base 108
+[noesc] prepare 0.1s
+[k1c] qkv_gate: 37.75 MB, escapes 0, base None
+[k1c] o: 16.78 MB, escapes 0, base None
+[k1c] pooler: 67.11 MB, escapes 0, base None
+[k1c] unpooler: 67.11 MB, escapes 0, base None
+[k1c] unpslice: 8.39 MB, escapes 0, base None
+[bf] prepare 0.1s
+fixed graph cost 5.18 us
+decode 1  m=1    o         | c12    7.68 | noesc    7.18 | bf    6.37   sol   3.50
+decode 1  m=1    pooler    | c12   18.16 | noesc   17.50 | bf   18.13   sol  13.99
+decode 1  m=1    unpooler  | c12    6.80 | noesc    6.50 | bf    5.97   sol   1.75
+decode 16 m=16   o         | c12    9.73 | noesc    7.22 | bf    6.37   sol   3.56
+decode 16 m=16   pooler    | c12   22.10 | noesc   17.10 | bf   18.45   sol  14.06
+decode 16 m=16   unpooler  | c12   24.13 | noesc   16.88 | bf   17.36   sol  14.06
+decode 32 m=32   o         | c12   14.59 | noesc    8.45 | bf    8.38   sol   3.62
+decode 32 m=32   pooler    | c12   33.95 | noesc   21.17 | bf   20.38   sol  14.14
+decode 32 m=32   unpooler  | c12   35.97 | noesc   18.75 | bf   18.80   sol  14.14
+[gpu-after]
+NVIDIA H200, 0 %, 126 MiB, 1980 MHz, 1980 MHz, 174.41 W
+0
+
+[exit 0]
+Stopping app - local entrypoint completed.
+✓ App completed. View run at 
+<modal-run-url>

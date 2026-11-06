@@ -1,0 +1,16 @@
+[sbx] box 1
+decode 1  m=1    o         sglang    5.34 | bo6    3.73 x1.433 | n    3.54 x1.509   sol   3.50
+decode 1  m=1    unpooler  sglang    5.76 | bo6    2.26 x2.543 | n    2.33 x2.472   sol   1.75
+decode 1  m=1    router    sglang    9.25 | bo6    2.45 x3.771 | n    2.42 x3.822   sol   1.75
+verify 1  m=8    o         sglang    5.31 | bo6    4.03 x1.317 | n    3.81 x1.395   sol   3.53
+verify 1  m=8    unpooler  sglang    5.95 | bo6    2.66 x2.238 | n    2.64 x2.253   sol   1.76
+verify 1  m=8    router    sglang   25.42 | bo6    2.84 x8.940 | n    2.91 x8.736   sol   1.78
+
+per-load speedups:
+  decode 1  sglang   20.35 | bo6    8.45 x2.410 | n    8.29 x2.455
+  verify 1  sglang   36.69 | bo6    9.54 x3.847 | n    9.36 x3.920
+GEOMEAN bo6: x3.0447 over 2 loads   judge-projected (+1.0 us/shape) x2.5414
+GEOMEAN n: x3.1018 over 2 loads   judge-projected (+1.0 us/shape) x2.5770
+m=1   o         | bo6  3.74 [3.65-3.87] d+0.000 | n  3.55 [3.50-3.65] d-0.116
+m=8   o         | bo6  4.06 [4.00-4.11] d+0.000 | n  4.03 [3.94-4.11] d-0.044
+REMOTE_EXIT 0

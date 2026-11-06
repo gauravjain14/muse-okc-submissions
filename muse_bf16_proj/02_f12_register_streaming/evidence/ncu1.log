@@ -1,0 +1,88 @@
+[gate] slot 1 at 12:42:05 (1 running)
+✓ Initialized. View run at 
+<modal-run-url>
+✓ Created objects.
+├── 🔨 Created mount 
+│   muse-opt-codex/muse_bf16_proj/claude/modal_run.p
+│   y
+├── 🔨 Created mount muse-opt-codex/muse_bf16_proj
+└── 🔨 Created function run.
+[gpu-before]
+NVIDIA H200, 0 %, 110 MiB, 345 MHz, 1980 MHz, 81.11 W
+0
+/usr/local/cuda/bin/ncu
+Version 2025.3.1.0 (build 36398880) (public-release)
+done
+==PROF== Disconnected from process 65
+==PROF== Report: /tmp/k1s_qkv8.ncu-rep
+    DRAM Frequency                   hz 3,192,721,257.24
+    SM Frequency                     hz 1,825,633,917.49
+    Elapsed Cycles                cycle           23,701
+    Memory Throughput                 %            47.25
+    DRAM Throughput                   %            47.25
+    Duration                         ns           12,896
+    Executed Ipc Active   inst/cycle         1.27
+    Executed Ipc Elapsed  inst/cycle         1.03
+    Issue Slots Busy               %        25.78
+    Memory Throughput                           byte/s 2,268,823,821,339.95
+    Mem Busy                                         %                34.40
+    Max Bandwidth                                    %                47.25
+    L1/TEX Hit Rate                                  %                 0.12
+    L2 Hit Rate                                      %                 9.91
+    No Eligible                            %        67.93
+    Active Warps Per Scheduler          warp         3.95
+    Eligible Warps Per Scheduler        warp         0.50
+    Warp Cycles Per Issued Instruction             cycle        12.31
+    Registers Per Thread             register/thread             128
+    Block Limit Registers                 block            1
+    Theoretical Active Warps per SM        warp           16
+    Achieved Occupancy                        %        24.77
+    Achieved Active Warps Per SM           warp        15.85
+    Total DRAM Elapsed Cycles        cycle    1,976,320
+    Total L1 Elapsed Cycles          cycle    3,090,282
+    Total L2 Elapsed Cycles          cycle    2,060,574
+    Total SM Elapsed Cycles          cycle    3,090,282
+    Total SMSP Elapsed Cycles        cycle   12,361,128
+  smsp__pcsamp_warps_issue_stalled_barrier                                                                                  warp                  112
+  smsp__pcsamp_warps_issue_stalled_barrier_not_issued                                                                       warp                  100
+  smsp__pcsamp_warps_issue_stalled_branch_resolving                                                                     branches                   28
+  smsp__pcsamp_warps_issue_stalled_branch_resolving_not_issued                                                          branches                   16
+  smsp__pcsamp_warps_issue_stalled_dispatch_stall                                                                           warp                   15
+  smsp__pcsamp_warps_issue_stalled_dispatch_stall_not_issued                                                                warp                    2
+  smsp__pcsamp_warps_issue_stalled_drain                                                                                    warp                    0
+  smsp__pcsamp_warps_issue_stalled_drain_not_issued                                                                         warp                    0
+  smsp__pcsamp_warps_issue_stalled_imc_miss                                                                                 warp                   36
+  smsp__pcsamp_warps_issue_stalled_imc_miss_not_issued                                                                      warp                   36
+  smsp__pcsamp_warps_issue_stalled_lg_throttle                                                                              warp                   25
+  smsp__pcsamp_warps_issue_stalled_lg_throttle_not_issued                                                                   warp                   23
+  smsp__pcsamp_warps_issue_stalled_long_scoreboard                                                                          warp                  440
+  smsp__pcsamp_warps_issue_stalled_long_scoreboard_not_issued                                                               warp                  372
+  smsp__pcsamp_warps_issue_stalled_math_pipe_throttle                                                                       warp                   38
+  smsp__pcsamp_warps_issue_stalled_math_pipe_throttle_not_issued                                                            warp                   21
+  smsp__pcsamp_warps_issue_stalled_membar                                                                                   warp                   37
+  smsp__pcsamp_warps_issue_stalled_membar_not_issued                                                                        warp                   30
+  smsp__pcsamp_warps_issue_stalled_mio_throttle                                                                             warp                   43
+  smsp__pcsamp_warps_issue_stalled_mio_throttle_not_issued                                                                  warp                   36
+  smsp__pcsamp_warps_issue_stalled_no_instructions                                                                          inst                   45
+  smsp__pcsamp_warps_issue_stalled_no_instructions_not_issued                                                               inst                   32
+  smsp__pcsamp_warps_issue_stalled_not_selected                                                                             warp                   59
+  smsp__pcsamp_warps_issue_stalled_not_selected_not_issued                                                                  warp                    0
+  smsp__pcsamp_warps_issue_stalled_selected                                                                                 warp                   97
+  smsp__pcsamp_warps_issue_stalled_selected_not_issued                                                                      warp                    0
+  smsp__pcsamp_warps_issue_stalled_short_scoreboard                                                                         warp                   30
+  smsp__pcsamp_warps_issue_stalled_short_scoreboard_not_issued                                                              warp                   14
+  smsp__pcsamp_warps_issue_stalled_sleeping                                                                                 warp                    0
+  smsp__pcsamp_warps_issue_stalled_sleeping_not_issued                                                                      warp                    0
+  smsp__pcsamp_warps_issue_stalled_tex_throttle                                                                             warp                    0
+  smsp__pcsamp_warps_issue_stalled_tex_throttle_not_issued                                                                  warp                    0
+  smsp__pcsamp_warps_issue_stalled_wait                                                                                     warp                  216
+  smsp__pcsamp_warps_issue_stalled_wait_not_issued                                                                          warp                  118
+[gpu-after]
+NVIDIA H200, 0 %, 108 MiB, 345 MHz, 1980 MHz, 81.17 W
+0
+
+fetched into muse-opt-codex/muse_bf16_proj/claude/out/20261027T124249_ncu1
+[exit 0]
+Stopping app - local entrypoint completed.
+✓ App completed. View run at 
+<modal-run-url>

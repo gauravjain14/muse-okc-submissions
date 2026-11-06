@@ -1,0 +1,16 @@
+✓ Initialized. View run at 
+<modal-run-url>
+✓ Created objects.
+├── 🔨 Created mount 
+│   muse-opt/muse_prefill_layer/dev/modal_run.py
+├── 🔨 Created mount muse-opt/muse_prefill_layer
+└── 🔨 Created function run.
+compiled
+1 {'batch': 1, 'ctx': 80000, 'layer': 'full', 'q_len': 753, 'page': 1, 'dist': 'soft'}
+   cache vs sglang: k 1.60e-02 v 0.00e+00;  out vs sglang 8.186e-02
+   time: mine    560.1 us  sglang    437.3 us  x0.781
+   attn_fwd      538.0 us
+   nosoft        315.1 us
+Stopping app - local entrypoint completed.
+✓ App completed. View run at 
+<modal-run-url>

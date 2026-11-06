@@ -1,0 +1,33 @@
+== ns 4
+  first item ready: min 3.3 med 3.8 max 4.5 us
+  last epilogue: min 15.1 med 20.3 max 24.4; combine start med 20.6 max 24.6; end max 26.7 us
+  tile 0 chunk done: 9.9 9.7 9.7 9.7 9.7 10.0 10.0 9.7 9.6 9.7 9.6 9.6 9.9 9.9 9.8 9.5
+  tile 1 chunk done: 15.3 15.5 15.6 15.4 15.5 15.4 15.6 15.4 15.4 15.4 15.4 15.5 15.6 15.6 15.4 15.5
+  dep item 260 cta 74: wait 10.0 ok 14.0  first-stage chunks done 9.9  all chunks 10.0
+  dep item 257 cta 89: wait 10.0 ok 14.0  first-stage chunks done 9.9  all chunks 10.0
+  dep item 261 cta 94: wait 10.0 ok 14.0  first-stage chunks done 9.9  all chunks 10.0
+  dep item 256 cta 98: wait 10.0 ok 14.0  first-stage chunks done 9.9  all chunks 10.0
+== ns 3
+  first item ready: min 3.1 med 3.6 max 4.2 us
+  last epilogue: min 15.1 med 20.2 max 23.8; combine start med 20.5 max 24.1; end max 26.0 us
+  tile 0 chunk done: 9.8 9.8 9.6 9.7 9.6 9.7 9.6 9.7 9.6 9.7 9.7 9.6 9.6 9.7 9.7 9.7
+  tile 1 chunk done: 14.9 15.1 15.1 15.0 15.1 15.1 15.2 15.1 15.2 15.2 15.4 15.6 15.4 15.6 15.5 15.6
+  dep item 263 cta 1: wait 10.5 ok 13.6  first-stage chunks done 9.8  all chunks 9.8
+  dep item 256 cta 27: wait 10.5 ok 13.5  first-stage chunks done 9.8  all chunks 9.8
+  dep item 261 cta 119: wait 10.5 ok 13.6  first-stage chunks done 9.8  all chunks 9.8
+  dep item 262 cta 2: wait 10.6 ok 13.8  first-stage chunks done 9.8  all chunks 9.8
+== ns 2
+  first item ready: min 3.0 med 3.6 max 4.4 us
+  last epilogue: min 15.9 med 22.9 max 26.6; combine start med 23.2 max 26.9; end max 29.2 us
+  tile 0 chunk done: 11.0 10.5 10.5 10.5 10.7 10.8 10.8 10.5 10.7 10.7 10.7 10.7 11.1 11.0 10.9 10.5
+  tile 1 chunk done: 17.4 17.5 17.5 17.5 17.4 16.0 17.5 17.5 17.4 17.4 17.4 17.5 17.5 17.4 17.5 17.5
+  dep item 258 cta 85: wait 10.3 ok 13.9  first-stage chunks done 11.0  all chunks 11.1
+  dep item 256 cta 96: wait 10.3 ok 13.9  first-stage chunks done 11.0  all chunks 11.1
+  dep item 261 cta 35: wait 10.5 ok 13.8  first-stage chunks done 11.0  all chunks 11.1
+  dep item 262 cta 40: wait 10.5 ok 13.9  first-stage chunks done 11.0  all chunks 11.1
+v78                           : 1:28.3(2.661x) 16:90.0(2.071x) 8:68.9(2.150x) 2.280x
+v78 ns3                       : 1:28.0(2.719x) 16:93.3(2.002x) 8:72.0(2.062x) 2.239x
+v78 ns2                       : 1:29.8(2.547x) 16:102.4(1.836x) 8:77.9(1.910x) 2.075x
+v78                           : 1:28.1(2.677x) 16:90.3(2.080x) 8:69.0(2.167x) 2.294x
+v78 ns3                       : 1:27.9(2.700x) 16:93.3(2.006x) 8:71.8(2.070x) 2.238x
+v78 ns2                       : 1:29.1(2.581x) 16:101.5(1.850x) 8:78.2(1.896x) 2.084x

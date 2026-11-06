@@ -1,0 +1,38 @@
+✓ Initialized. View run at 
+<modal-run-url>
+✓ Created objects.
+├── 🔨 Created mount 
+│   <scratch>
+│   5-ce57afd4da60/scratchpad/snap.EzV11s/dev/modal_run.py
+├── 🔨 Created mount 
+│   <scratch>
+│   5-ce57afd4da60/scratchpad/snap.EzV11s
+└── 🔨 Created function run.
+compiled
+1 {'batch': 1, 'ctx': 80000, 'layer': 'full', 'q_len': 753, 'page': 1, 'dist': 'soft'}
+   cache vs sglang: k 1.60e-02 v 0.00e+00;  out vs sglang 8.260e-02
+   time: mine    409.5 us  sglang    437.6 us  x1.069
+   attn_fwd      386.8 us
+   cw2p0      vs mine 9.67e-03
+   cw2p0         565.8 us
+   cw2p1      vs mine 9.70e-03
+   cw2p1         556.7 us
+   cw2p2      vs mine 9.69e-03
+   cw2p2         561.2 us
+   cw2p3      vs mine 9.71e-03
+   cw2p3         564.7 us
+6 {'batch': 1, 'ctx': 32768, 'layer': 'full', 'q_len': 16384, 'page': 1, 'dist': 'soft'}
+   cache vs sglang: k 1.62e-02 v 0.00e+00;  out vs sglang 7.624e-02
+   time: mine   3990.4 us  sglang   4582.4 us  x1.148
+   attn_fwd     3917.2 us
+   cw2p0      vs mine 3.52e-03
+   cw2p0        5910.4 us
+   cw2p1      vs mine 3.64e-03
+   cw2p1        5824.9 us
+   cw2p2      vs mine 3.59e-03
+   cw2p2        5862.2 us
+   cw2p3      vs mine 3.67e-03
+   cw2p3        5910.6 us
+Stopping app - local entrypoint completed.
+✓ App completed. View run at 
+<modal-run-url>

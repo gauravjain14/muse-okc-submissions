@@ -1,0 +1,5 @@
+[
+    {"check": [65, 100, 128], "variants": [("aw4", ["MOE_AEPI_NT=4", "MOE_WSC_NT=4"], {})], "seeds": 2},
+    {"bs": [128], "variants": [("v146", [], {}), ("a4", ["MOE_AEPI_NT=4"], {}), ("w4", ["MOE_WSC_NT=4"], {}), ("aw4", ["MOE_AEPI_NT=4", "MOE_WSC_NT=4"], {}),
+                               ("k2", ["MOE_KSX1=2"], {}), ("k1", ["MOE_KSX1=1"], {}), ("aw4b", ["MOE_AEPI_NT=4", "MOE_WSC_NT=4"], {}), ("v146b", [], {})], "seeds": 16, "reps": 3},
+]

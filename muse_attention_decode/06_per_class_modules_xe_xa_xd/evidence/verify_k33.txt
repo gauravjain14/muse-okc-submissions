@@ -1,0 +1,26 @@
+[gate] slot 0 at 10:53:12 (0 running)
+0 failures
+0 failures
+decode 1  sliding w46 sglang    19.65 | k32     3.29 x5.964 | k33     3.31 x5.934 | k32b     3.31 x5.939   sol    0.11
+decode 1  full    w16 sglang    30.70 | k32    13.08 x2.347 | k33    12.60 x2.437 | k32b    12.92 x2.376   sol    4.27
+decode 16 sliding w46 sglang    25.68 | k32     6.77 x3.794 | k33     6.67 x3.848 | k32b     6.66 x3.857   sol    1.65
+decode 16 full    w16 sglang   199.28 | k32    86.68 x2.299 | k33    86.39 x2.307 | k32b    86.56 x2.302   sol   63.18
+decode 32 sliding w46 sglang    30.32 | k32     8.66 x3.503 | k33     8.70 x3.485 | k32b     8.81 x3.441   sol    3.29
+decode 32 full    w16 sglang   382.75 | k32   165.51 x2.313 | k33   164.45 x2.328 | k32b   164.81 x2.322   sol  126.35
+verify 1  sliding w46 sglang    21.90 | k32     5.04 x4.348 | k33     4.94 x4.436 | k32b     4.97 x4.406   sol    0.12
+verify 1  full    w16 sglang    35.18 | k32    16.56 x2.124 | k33    16.34 x2.154 | k32b    16.09 x2.186   sol    4.28
+verify 16 sliding w46 sglang    28.42 | k32     9.53 x2.983 | k33     9.50 x2.990 | k32b     9.41 x3.019   sol    1.86
+verify 16 full    w16 sglang   202.86 | k32   101.66 x1.996 | k33   100.46 x2.019 | k32b   100.48 x2.019   sol   63.39
+verify 32 sliding w46 sglang    33.54 | k32    13.11 x2.558 | k33    13.21 x2.538 | k32b    13.24 x2.532   sol    3.72
+verify 32 full    w16 sglang   388.02 | k32   182.79 x2.123 | k33   182.26 x2.129 | k32b   183.25 x2.117   sol  126.78
+  decode 1  sglang    1395.1 | k32     360.8 x3.866 | k33     353.9 x3.942 | k32b     358.9 x3.887
+  decode 16 sglang    4369.8 | k32    1698.3 x2.573 | k33    1689.1 x2.587 | k32b    1691.3 x2.584
+  decode 32 sglang    7518.8 | k32    3046.3 x2.468 | k33    3031.3 x2.480 | k32b    3042.3 x2.471
+  verify 1  sglang    1570.5 | k32     496.8 x3.162 | k33     488.5 x3.215 | k32b     486.2 x3.230
+  verify 16 sglang    4553.0 | k32    2064.7 x2.205 | k33    2044.6 x2.227 | k32b    2040.7 x2.231
+  verify 32 sglang    7750.9 | k32    3527.6 x2.197 | k33    3524.0 x2.199 | k32b    3541.1 x2.189
+GEOMEAN k32: x2.6867 (board time 1374.9 us)   judge-projected (+1.0 us/call) x2.5088 (board 1503.6 us)
+GEOMEAN k33: x2.7124 (board time 1361.8 us)   judge-projected (+1.0 us/call) x2.5307 (board 1490.6 us)
+GEOMEAN k32b: x2.7048 (board time 1365.7 us)   judge-projected (+1.0 us/call) x2.5242 (board 1494.4 us)
+
+[exit 0]

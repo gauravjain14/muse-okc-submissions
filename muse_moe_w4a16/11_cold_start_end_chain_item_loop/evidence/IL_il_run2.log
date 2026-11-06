@@ -1,0 +1,28 @@
+[sbx] box 0
+GPU_BEFORE NVIDIA H200, 345 MHz, 76.32 W, 26, 0 %, 78 MiB
+hang1 MOE_IL,MOE_IL_K=8192: 10 finished, 10 ok
+hang1 MOE_IL,MOE_IL_K=4096: 10 finished, 10 ok
+hang1 MOE_IL,MOE_IL_K=12288: 10 finished, 10 ok
+hang1 MOE_IL,MOE_IL_K=20480: 10 finished, 10 ok
+check_mt MOE_IL,MOE_IL_K=12288: 
+check_mt MOE_IL,MOE_IL_K=20480: FAILURES 0
+bs128: control mean 160.58 us (60 routings); % = time vs control mean (+ = slower)
+   fA    fA:-0.25  mean -0.25  each-vs-each-ctrl -0.44..-0.16
+   a     a1:-0.06 a2:+0.19 a3:-0.07  mean +0.02  each-vs-each-ctrl -0.22..+0.22
+   x     x1:-0.11 x2:-0.21  mean -0.16  each-vs-each-ctrl -0.33..-0.06
+   p     p1:-0.04 p2:-0.08  mean -0.06  each-vs-each-ctrl -0.36..+0.07
+   e     e1:+0.02 e2:+0.14  mean +0.08  each-vs-each-ctrl -0.13..+0.31
+   q     q1:+0.20 q2:+0.25  mean +0.22  each-vs-each-ctrl -0.01..+0.29
+   w     w1:+0.32 w2:+0.13  mean +0.23  each-vs-each-ctrl -0.08..+0.47
+   fB    fB:-0.19  mean -0.19  each-vs-each-ctrl -0.31..-0.15
+bs256: control mean 196.63 us (60 routings); % = time vs control mean (+ = slower)
+   fA    fA:-0.25  mean -0.25  each-vs-each-ctrl -0.47..-0.28
+   a     a1:+0.04 a2:+0.08 a3:-0.14  mean -0.00  each-vs-each-ctrl -0.24..+0.24
+   x     x1:-0.48 x2:-0.35  mean -0.41  each-vs-each-ctrl -0.64..-0.23
+   p     p1:-0.41 p2:-0.40  mean -0.41  each-vs-each-ctrl -0.54..-0.22
+   e     e1:-0.81 e2:-0.71  mean -0.76  each-vs-each-ctrl -0.86..-0.59
+   q     q1:-0.23 q2:-0.48  mean -0.36  each-vs-each-ctrl -0.62..-0.08
+   w     w1:-0.77 w2:-0.73  mean -0.75  each-vs-each-ctrl -0.90..-0.57
+   fB    fB:-0.34  mean -0.34  each-vs-each-ctrl -0.60..-0.23
+GPU_AFTER NVIDIA H200, 1980 MHz, 125.99 W, 32, 55 %, 78 MiB
+REMOTE_EXIT 0

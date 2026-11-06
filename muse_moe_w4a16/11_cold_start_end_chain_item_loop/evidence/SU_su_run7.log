@@ -1,0 +1,71 @@
+[sbx] box 0
+GPU_BEFORE NVIDIA H200, 345 MHz, 77.44 W, 30, 0 %, 78 MiB
+[hang1 t3/SU/moe_su_7.py] 16 finished 16 ok
+[hang1 t3/SU/moe_su_8.py] 16 finished 16 ok
+geomean fA: x2.6187 over 6 shapes
+geomean a1: x2.6128 over 6 shapes
+geomean d1: x2.6187 over 6 shapes
+geomean o1: x2.6215 over 6 shapes
+geomean z1: x2.5869 over 6 shapes
+geomean a2: x2.6110 over 6 shapes
+geomean d2: x2.6203 over 6 shapes
+geomean o2: x2.6269 over 6 shapes
+geomean fB: x2.6206 over 6 shapes
+bs1: control mean 24.02 us (60 routings); % = time change vs control mean (negative = faster)
+   fA     fA:-0.30   mean -0.30   each-vs-each-ctrl: +0.37/-0.13
+   a      a1:+0.31  a2:-0.31   mean +0.00   each-vs-each-ctrl: +0.00/+0.62 -0.62/+0.00
+   d      d1:-0.71  d2:-0.45   mean -0.58   each-vs-each-ctrl: -0.07/-0.11 -0.53/-0.10
+   o      o1:-0.57  o2:-1.15   mean -0.86   each-vs-each-ctrl: -0.07/+0.19 -0.58/+0.07
+   z      z1:-0.54   mean -0.54   each-vs-each-ctrl: -0.07/+0.00
+   fB     fB:-1.22   mean -1.22   each-vs-each-ctrl: -0.73/-0.54
+bs8: control mean 62.42 us (60 routings); % = time change vs control mean (negative = faster)
+   fA     fA:-0.08   mean -0.08   each-vs-each-ctrl: -0.17/-0.05
+   a      a1:+0.08  a2:-0.08   mean +0.00   each-vs-each-ctrl: +0.00/+0.16 -0.16/+0.00
+   d      d1:-1.01  d2:-0.50   mean -0.75   each-vs-each-ctrl: -0.87/-0.85 -0.39/-0.61
+   o      o1:-1.53  o2:-1.10   mean -1.31   each-vs-each-ctrl: -1.32/-1.22 -1.35/-0.82
+   z      z1:+1.67   mean +1.67   each-vs-each-ctrl: +1.60/+1.55
+   fB     fB:+0.31   mean +0.31   each-vs-each-ctrl: +0.00/+0.34
+bs16: control mean 83.50 us (60 routings); % = time change vs control mean (negative = faster)
+   fA     fA:-0.14   mean -0.14   each-vs-each-ctrl: -0.08/-0.31
+   a      a1:-0.02  a2:+0.02   mean +0.00   each-vs-each-ctrl: +0.00/-0.04 +0.04/+0.00
+   d      d1:-1.08  d2:-1.15   mean -1.11   each-vs-each-ctrl: -1.12/-1.12 -1.11/-1.23
+   o      o1:-1.34  o2:-1.18   mean -1.26   each-vs-each-ctrl: -1.45/-1.51 -1.13/-1.25
+   z      z1:+0.81   mean +0.81   each-vs-each-ctrl: +1.02/+1.05
+   fB     fB:-0.48   mean -0.48   each-vs-each-ctrl: -0.60/-0.57
+bs32: control mean 110.56 us (60 routings); % = time change vs control mean (negative = faster)
+   fA     fA:+0.02   mean +0.02   each-vs-each-ctrl: +0.15/-0.12
+   a      a1:-0.01  a2:+0.01   mean +0.00   each-vs-each-ctrl: +0.00/-0.02 +0.02/+0.00
+   d      d1:+0.23  d2:+0.01   mean +0.12   each-vs-each-ctrl: +0.18/+0.23 +0.09/+0.15
+   o      o1:+0.18  o2:-0.03   mean +0.08   each-vs-each-ctrl: +0.17/+0.28 -0.16/+0.11
+   z      z1:+1.09   mean +1.09   each-vs-each-ctrl: +1.18/+1.09
+   fB     fB:-0.21   mean -0.21   each-vs-each-ctrl: -0.22/-0.24
+bs128: control mean 161.03 us (60 routings); % = time change vs control mean (negative = faster)
+   fA     fA:-0.40   mean -0.40   each-vs-each-ctrl: -0.21/-0.41
+   a      a1:+0.02  a2:-0.02   mean +0.00   each-vs-each-ctrl: +0.00/+0.04 -0.04/+0.00
+   d      d1:-0.17  d2:-0.10   mean -0.14   each-vs-each-ctrl: -0.12/-0.12 -0.02/-0.24
+   o      o1:+0.02  o2:-0.28   mean -0.13   each-vs-each-ctrl: +0.03/-0.08 -0.13/-0.16
+   z      z1:+1.11   mean +1.11   each-vs-each-ctrl: +1.06/+1.09
+   fB     fB:-0.50   mean -0.50   each-vs-each-ctrl: -0.31/-0.37
+bs256: control mean 196.48 us (60 routings); % = time change vs control mean (negative = faster)
+   fA     fA:-0.34   mean -0.34   each-vs-each-ctrl: -0.34/-0.34
+   a      a1:-0.03  a2:+0.03   mean +0.00   each-vs-each-ctrl: +0.00/-0.06 +0.06/+0.00
+   d      d1:+0.04  d2:-0.00   mean +0.02   each-vs-each-ctrl: +0.02/+0.05 +0.03/-0.07
+   o      o1:+0.07  o2:-0.06   mean +0.01   each-vs-each-ctrl: +0.08/+0.12 +0.00/-0.12
+   z      z1:+1.15   mean +1.15   each-vs-each-ctrl: +1.22/+1.04
+   fB     fB:-0.54   mean -0.54   each-vs-each-ctrl: -0.35/-0.56
+anchor z1 = v1504 scored: 5157.1 us   (c = 0.0 us)
+  fA               projected  5097.4 us  rank ~ 6  (bs1:0.9987 bs8:1.0165 bs16:1.0147 bs32:1.0120 bs128:1.0145 bs256:1.0140)
+  a1               projected  5106.0 us  rank ~ 6  (bs1:0.9993 bs8:1.0160 bs16:1.0102 bs32:1.0118 bs128:1.0106 bs256:1.0122)
+  d1               projected  5090.3 us  rank ~ 5  (bs1:1.0000 bs8:1.0263 bs16:1.0235 bs32:1.0095 bs128:1.0106 bs256:1.0091)
+  o1               projected  5086.8 us  rank ~ 5  (bs1:0.9987 bs8:1.0286 bs16:1.0285 bs32:1.0085 bs128:1.0097 bs256:1.0092)
+  z1               projected  5157.1 us  rank ~ 6  (bs1:1.0000 bs8:1.0000 bs16:1.0000 bs32:1.0000 bs128:1.0000 bs256:1.0000)
+  a2               projected  5107.5 us  rank ~ 6  (bs1:1.0000 bs8:1.0155 bs16:1.0105 bs32:1.0109 bs128:1.0109 bs256:1.0104)
+  d2               projected  5092.2 us  rank ~ 5  (bs1:1.0036 bs8:1.0224 bs16:1.0199 bs32:1.0080 bs128:1.0117 bs256:1.0110)
+  o2               projected  5084.1 us  rank ~ 5  (bs1:1.0022 bs8:1.0269 bs16:1.0228 bs32:1.0109 bs128:1.0122 bs256:1.0113)
+  fB               projected  5091.8 us  rank ~ 5  (bs1:1.0074 bs8:1.0107 bs16:1.0158 bs32:1.0135 bs128:1.0153 bs256:1.0143)
+[check_mt t3/SU/moe_su_7.py]
+FAILURES 0
+[check_mt t3/SU/moe_su_8.py]
+FAILURES 0
+GPU_AFTER NVIDIA H200, 1980 MHz, 290.04 W, 35, 0 %, 78 MiB
+REMOTE_EXIT 0

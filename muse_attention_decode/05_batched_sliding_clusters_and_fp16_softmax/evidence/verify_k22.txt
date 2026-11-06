@@ -1,0 +1,27 @@
+[gate] slot 1 at 06:01:53 (2 running)
+0 failures
+decode 1  sliding w46 sglang    19.44 | k21     3.25 x5.975 | k22     3.27 x5.947 | k21c     3.16 x6.144   sol    0.11
+decode 1  full    w16 sglang    30.02 | k21    13.36 x2.247 | k22    13.36 x2.246 | k21c    13.27 x2.262   sol    4.27
+decode 16 sliding w46 sglang    25.90 | k21     8.73 x2.967 | k22     8.47 x3.059 | k21c     8.66 x2.993   sol    1.65
+decode 16 full    w16 sglang   198.51 | k21    87.69 x2.264 | k22    87.73 x2.263 | k21c    87.26 x2.275   sol   63.18
+decode 32 sliding w46 sglang    30.02 | k21    10.68 x2.810 | k22    10.69 x2.807 | k21c    10.72 x2.799   sol    3.29
+decode 32 full    w16 sglang   383.17 | k21   166.80 x2.297 | k22   166.57 x2.300 | k21c   166.26 x2.305   sol  126.35
+verify 1  sliding w46 sglang    21.46 | k21     4.99 x4.298 | k22     4.90 x4.378 | k21c     4.80 x4.468   sol    0.12
+verify 1  full    w16 sglang    34.98 | k21    18.16 x1.926 | k22    18.12 x1.930 | k21c    18.24 x1.918   sol    4.28
+verify 16 sliding w46 sglang    27.98 | k21    11.94 x2.343 | k22    12.07 x2.319 | k21c    11.98 x2.335   sol    1.86
+verify 16 full    w16 sglang   202.56 | k21   109.54 x1.849 | k22   107.00 x1.893 | k21c   109.05 x1.857   sol   63.39
+verify 32 sliding w46 sglang    33.25 | k21    14.20 x2.341 | k22    14.16 x2.349 | k21c    14.35 x2.318   sol    3.72
+verify 32 full    w16 sglang   387.74 | k21   198.80 x1.950 | k22   197.32 x1.965 | k21c   199.59 x1.943   sol  126.78
+per-load (weighted sums, us):
+  decode 1  sglang    1374.5 | k21     363.4 x3.783 | k22     364.2 x3.775 | k21c     357.9 x3.841
+  decode 16 sglang    4367.8 | k21    1804.7 x2.420 | k22    1793.3 x2.436 | k21c    1794.3 x2.434
+  decode 32 sglang    7511.4 | k21    3160.2 x2.377 | k22    3157.0 x2.379 | k21c    3153.6 x2.382
+  verify 1  sglang    1546.6 | k21     520.2 x2.973 | k22     515.4 x3.001 | k21c     512.7 x3.016
+  verify 16 sglang    4528.2 | k21    2302.1 x1.967 | k22    2267.2 x1.997 | k21c    2296.1 x1.972
+  verify 32 sglang    7733.3 | k21    3834.3 x2.017 | k22    3808.4 x2.031 | k21c    3853.4 x2.007
+GEOMEAN k21: x2.5209 (board time 1455.7 us)   judge-projected (+1.0 us/call) x2.3613 (board 1587.5 us)
+GEOMEAN k22: x2.5363 (board time 1446.9 us)   judge-projected (+1.0 us/call) x2.3752 (board 1578.2 us)
+GEOMEAN k21c: x2.5358 (board time 1447.2 us)   judge-projected (+1.0 us/call) x2.3737 (board 1579.2 us)
+
+fetched into autoresearch-kernels/attn/out/20261028T060405_verify_k22
+[exit 0]

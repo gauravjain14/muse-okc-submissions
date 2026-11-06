@@ -1,0 +1,11 @@
+test {'bs': 4}: PASS relative L2 error 2.524e-03 (worst row 2.577e-03)
+test {'bs': 33}: PASS relative L2 error 2.550e-03 (worst row 2.777e-03)
+test {'bs': 257}: PASS relative L2 error 2.545e-03 (worst row 2.758e-03)
+test {'bs': 128, 'dist': 'skewed'}: PASS relative L2 error 2.546e-03 (worst row 2.723e-03)
+test {'bs': 1}: PASS relative L2 error 2.472e-03 (worst row 2.472e-03)
+v72                           : 1:29.6(2.533x) 16:90.7(2.070x) 8:68.1(2.177x) 2.252x
+v74                           : 1:29.8(2.502x) 16:89.6(2.075x) 8:67.9(2.184x) 2.247x
+v72                           : 1:29.0(2.583x) 16:90.7(2.069x) 8:68.2(2.175x) 2.265x
+v74                           : 1:30.3(2.495x) 16:89.5(2.078x) 8:67.9(2.174x) 2.242x
+v72                           : 1:29.2(2.568x) 16:91.0(2.074x) 8:68.3(2.167x) 2.260x
+v74                           : 1:29.9(2.524x) 16:89.7(2.071x) 8:67.6(2.194x) 2.255x

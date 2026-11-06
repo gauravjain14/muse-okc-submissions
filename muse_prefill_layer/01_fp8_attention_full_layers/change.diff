@@ -1,0 +1,1071 @@
+--- codex candidate_native_parallel_lt.py (md5 acae6549)
++++ 01_fp8_attention_full_layers/build.py (att8c, md5 04b318ac)
+@@ -268,8 +268,10 @@
+     hq, hkv, d = cfg["num_q_heads"], cfg["num_kv_heads"], cfg["head_dim"]
+     dense = state["dense"]
+     # Attention: MuseSpark1xAttention.forward.
++    if ATT_SLIDING or not cfg["window"]:
++        state["att"].pre(data)  # cached-key packing beside the projection
+     qkv = _gemm(data["attn_input"], dense["qkv_gate"])
+-    o = optimized_attention(data, qkv, custom_window=CUSTOM_WINDOW).reshape(tokens, hq * d)
++    o = (state["att"](data, qkv) if (ATT_SLIDING or not cfg["window"]) else optimized_attention(data, qkv, custom_window=CUSTOM_WINDOW).reshape(tokens, hq * d))
+     attn_output = _gemm(o, dense["o"])  # all-reduce: identity
+ 
+     # Post-attention boundary, router and MoE block: MuseSpark1xMoE._forward_experts.
+@@ -4174,3 +4176,1056 @@
+         plan, index = selected
+         return plan.run(x, w, index)
+     return _native_layer_dense_without_lt(x, w)
++
++"""Dense path: measured cuBLASLt algorithms per scored shape, and for up to 4096 tokens the router
++folded into the pooler GEMM (one FP32-output GEMM over [pooler; router_hi; router_lo]) with the
++pre-expert RMSNorm and the router's hi + lo sum in one pass over its output."""
++
++import ctypes as _ct
++
++
++class _DAlgo(_ct.Structure):
++    _fields_ = [("data", _ct.c_uint64 * 8)]
++
++
++class _DHeur(_ct.Structure):
++    _fields_ = [("algo", _DAlgo), ("ws", _ct.c_size_t), ("state", _ct.c_int), ("waves", _ct.c_float), ("r", _ct.c_int * 4)]
++
++
++class DenseLt:
++    """out[m, n] (+)= x[m, k] @ W^T (W [n, k] BF16), FP32 accumulation, BF16 or FP32 output."""
++
++    def __init__(self, library, m, n, k, workspace, out32=False, beta=0.0, count=64):
++        lib = library.lib
++        self.library, self.ws, self.m, self.n, self.k, self.out32 = library, workspace, m, n, k, out32
++        self.desc, self.a, self.b, self.c, self.pref = [_ct.c_void_p() for _ in range(5)]
++        library.check(lib.cublasLtMatmulDescCreate(_ct.byref(self.desc), 68, 0), "descriptor")
++        ta = _ct.c_int(1)
++        lib.cublasLtMatmulDescSetAttribute(self.desc, 3, _ct.byref(ta), _ct.sizeof(ta))
++        library.check(lib.cublasLtMatrixLayoutCreate(_ct.byref(self.a), 14, k, n, k), "A layout")
++        library.check(lib.cublasLtMatrixLayoutCreate(_ct.byref(self.b), 14, k, m, k), "B layout")
++        library.check(lib.cublasLtMatrixLayoutCreate(_ct.byref(self.c), 0 if out32 else 14, n, m, n), "C layout")
++        lib.cublasLtMatmulPreferenceCreate(_ct.byref(self.pref))
++        size = _ct.c_size_t(workspace.numel())
++        lib.cublasLtMatmulPreferenceSetAttribute(self.pref, 1, _ct.byref(size), _ct.sizeof(size))
++        red = _ct.c_uint32(2)  # split reductions keep FP32 intermediates
++        lib.cublasLtMatmulPreferenceSetAttribute(self.pref, 3, _ct.byref(red), _ct.sizeof(red))
++        res = (_DHeur * count)()
++        got = _ct.c_int()
++        library.check(lib.cublasLtMatmulAlgoGetHeuristic(library.handle, self.desc, self.a, self.b, self.c, self.c,
++                                                        self.pref, count, res, _ct.byref(got)), "heuristics")
++        self.algorithms, self.info = [], []
++        for j in range(got.value):
++            r = res[j]
++            if r.state != 0 or r.ws > workspace.numel():
++                continue
++            algo = _DAlgo.from_buffer_copy(r.algo)
++            attrs = {}
++            for key, attr in [("id", 0), ("tile", 1), ("split_k", 2), ("reduction", 3), ("swizzle", 4), ("custom", 5), ("stages", 6)]:
++                v, w_ = _ct.c_int(), _ct.c_size_t()
++                st = lib.cublasLtMatmulAlgoConfigGetAttribute(_ct.byref(algo), attr, _ct.byref(v), _ct.sizeof(v), _ct.byref(w_))
++                attrs[key] = v.value if st == 0 else None
++            if attrs["reduction"] not in (0, 2):
++                continue
++            self.algorithms.append(algo)
++            self.info.append(attrs)
++        if not self.algorithms:
++            raise RuntimeError("no cuBLASLt algorithm")
++        self.alpha, self.beta = _ct.c_float(1.0), _ct.c_float(beta)
++
++    def find(self, tile, custom):
++        for i, a in enumerate(self.info):
++            if a["id"] == 66 and a["tile"] == tile and a["custom"] == custom and a["split_k"] == 1:
++                return i
++        return None
++
++    def run(self, x, weight, index=0, out=None):
++        if out is None:
++            out = torch.empty((self.m, self.n), device=x.device, dtype=torch.float32 if self.out32 else torch.bfloat16)
++        st = self.library.lib.cublasLtMatmul(
++            self.library.handle, self.desc, _ct.byref(self.alpha), weight.data_ptr(), self.a, x.data_ptr(), self.b,
++            _ct.byref(self.beta), out.data_ptr(), self.c, out.data_ptr(), self.c, _ct.byref(self.algorithms[index]),
++            self.ws.data_ptr(), self.ws.numel(), torch.cuda.current_stream(x.device).cuda_stream)
++        self.library.check(st, "matmul")
++        return out
++
++
++@triton.jit
++def _pooled_norm_route(Y, W, P, LOG, NP: tl.constexpr, NR: tl.constexpr, LD: tl.constexpr, EPS: tl.constexpr,
++                       BLOCK: tl.constexpr):
++    """Per row of Y [M, NP + 2 NR] FP32 (pooler | router hi | router lo): P = rmsnorm(Y[:, :NP]) * W
++    in BF16 and LOG = hi + lo."""
++    row = tl.program_id(0).to(tl.int64)
++    base = Y + row * LD
++    offs = tl.arange(0, BLOCK)
++    acc = tl.zeros((BLOCK,), dtype=tl.float32)
++    for c in range(0, NP, BLOCK):
++        y = tl.load(base + c + offs)
++        acc += y * y
++    r = tl.rsqrt(tl.sum(acc, 0) / NP + EPS)
++    for c in range(0, NP, BLOCK):
++        y = tl.load(base + c + offs)
++        w = tl.load(W + c + offs)
++        tl.store(P + row * NP + c + offs, (y * r * w).to(tl.bfloat16))
++    ro = tl.arange(0, NR)
++    tl.store(LOG + row * NR + ro, tl.load(base + NP + ro) + tl.load(base + NP + NR + ro))
++
++
++# (tokens, layer) -> (tile, custom) of the measured fastest cuBLASLt algorithm (H200, cuBLASLt 13.1)
++DENSE_ALGOS = {
++    (16384, "o"): (201, 2),
++    (16384, "qkv_gate"): (24, 7),
++    (3012, "qkv_gate"): (496, 7),
++}
++FUSED_ROUTER_MAX = 4096           # tokens up to which the router rides in the pooler GEMM
++FUSED_ALGOS = {753: (497, 5), 3012: (500, 7)}
++ROUTER_ALGOS = {16384: (23, 4)}   # the separate router: two N = 256 GEMMs, the second accumulating
++
++_codex_prepare = prepare
++
++
++def prepare(weights):
++    state = _codex_prepare(weights)
++    library, workspace = state["prefill_lt_library"], state["prefill_lt_workspace"]
++    dense = state["dense"]
++    for (m, name), (tile, custom) in DENSE_ALGOS.items():
++        w = dense[name]
++        n, k = w.shape
++        plan = DenseLt(library, m, n, k, workspace)
++        i = plan.find(tile, custom)
++        if i is not None:
++            _PREFILL_LT_PLANS[(m, n, k, w.data_ptr())] = (plan, i)
++    router = weights["router"]
++    hi = router.to(torch.bfloat16)
++    lo = (router - hi.float()).to(torch.bfloat16)
++    state["router_hi"], state["router_lo"] = hi.contiguous(), lo.contiguous()
++    state["pool_route_w"] = torch.cat([dense["pooler"], hi, lo], 0).contiguous()   # [4608, 8192], lossless
++    state["pre_expert_w32"] = (1.0 + weights["pre_expert_norm"].float()).contiguous()
++    state["fused_plans"] = {}
++    state["router_plans"] = {}
++    for m, (tile, custom) in ROUTER_ALGOS.items():
++        p1 = DenseLt(library, m, 256, HIDDEN, workspace, out32=True)
++        p2 = DenseLt(library, m, 256, HIDDEN, workspace, out32=True, beta=1.0)
++        i1, i2 = p1.find(tile, custom), p2.find(tile, custom)
++        if i1 is not None and i2 is not None:
++            state["router_plans"][m] = (p1, i1, p2, i2)
++    for m in FUSED_ALGOS:
++        _fused_plan(state, m)
++    # compile the norm pass once, outside any capture
++    y = torch.zeros((2, D_EXPERT + 512), dtype=torch.float32, device=router.device)
++    pn = torch.empty((2, D_EXPERT), dtype=torch.bfloat16, device=router.device)
++    lg = torch.empty((2, 256), dtype=torch.float32, device=router.device)
++    _pooled_norm_route[(2,)](y, state["pre_expert_w32"], pn, lg, D_EXPERT, 256, D_EXPERT + 512, RMS_EPS, 1024, num_warps=8)
++    torch.cuda.synchronize()
++    return state
++
++
++def _fused_plan(state, m):
++    if m not in state["fused_plans"]:
++        plan = DenseLt(state["prefill_lt_library"], m, D_EXPERT + 512, HIDDEN, state["prefill_lt_workspace"], out32=True)
++        i = plan.find(*FUSED_ALGOS[m]) if m in FUSED_ALGOS else None
++        state["fused_plans"][m] = (plan, 0 if i is None else i)
++    return state["fused_plans"][m]
++
++
++
++
++
++ATT_HD, ATT_HQ, ATT_HKV, ATT_GRP = 64, 16, 2, 8
++ATT_QKV_N = 2 * ATT_HQ * ATT_HD + 2 * ATT_HKV * ATT_HD
++ATT_KT = 128          # keys per tile
++ATT_QB_DEF = 16           # tokens per CTA block (8 per consumer warpgroup; set from ATT_CW)
++ATT_NS_DEF = 8            # ring stages
++ATT_LOG2E = 1.4426950408889634
++
++ATT_CUDA_SRC = r"""
++typedef unsigned int u32;
++typedef unsigned short u16;
++typedef unsigned long long u64;
++typedef unsigned char u8;
++#define DEVI __device__ __forceinline__
++#include <cuda_bf16.h>
++#include <cuda_fp16.h>
++
++#ifndef ATT_NS
++#define ATT_NS 8
++#endif
++#ifndef ATT_POLY
++#define ATT_POLY 1
++#endif
++#ifndef ATT_CW
++#define ATT_CW 2            // consumer warpgroups: 8 tokens (64 rows) each
++#endif
++#define ATT_QB (8 * ATT_CW)  // tokens per CTA block
++#ifndef ATT_PP
++#define ATT_PP 0            // ping-pong: consumer warpgroups issue their wgmmas in turn
++#endif
++#if ATT_CW == 2
++#define ATT_CREG 240
++#else
++#define ATT_CREG 160
++#endif
++
++DEVI u32 smem_addr(const void* p) {
++  u32 r;
++  asm volatile("{ .reg .u64 t; cvta.to.shared.u64 t, %1; cvt.u32.u64 %0, t; }" : "=r"(r) : "l"(p));
++  return r;
++}
++DEVI void mbar_init(u32 bar, u32 count) {
++  asm volatile("mbarrier.init.shared::cta.b64 [%0], %1;" :: "r"(bar), "r"(count) : "memory");
++}
++DEVI void mbar_arrive_tx(u32 bar, u32 bytes) {
++  asm volatile("mbarrier.arrive.expect_tx.shared::cta.b64 _, [%0], %1;" :: "r"(bar), "r"(bytes) : "memory");
++}
++DEVI void mbar_arrive(u32 bar) { asm volatile("mbarrier.arrive.shared::cta.b64 _, [%0];" :: "r"(bar) : "memory"); }
++DEVI bool mbar_try(u32 bar, u32 parity) {
++  u32 ok;
++  asm volatile("{ .reg .pred p; mbarrier.try_wait.parity.shared::cta.b64 p, [%1], %2; selp.u32 %0, 1, 0, p; }"
++               : "=r"(ok) : "r"(bar), "r"(parity) : "memory");
++  return ok != 0;
++}
++// the spin loop lives inside the asm: no divergent control flow around the wgmmas
++DEVI void mbar_wait(u32 bar, u32 parity) {
++  asm volatile("{ .reg .pred P1; WAIT_%=: mbarrier.try_wait.parity.shared::cta.b64 P1, [%0], %1; @P1 bra DONE_%=; bra WAIT_%=; DONE_%=: }"
++               :: "r"(bar), "r"(parity) : "memory");
++}
++// arrive by one thread of the warpgroup, without a branch
++DEVI void mbar_arrive_if(u32 bar, int pred) {
++  asm volatile("{ .reg .pred P1; setp.ne.b32 P1, %1, 0; @P1 mbarrier.arrive.shared::cta.b64 _, [%0]; }"
++               :: "r"(bar), "r"(pred) : "memory");
++}
++DEVI void bulk_g2s(u32 dst, const void* src, u32 bytes, u32 bar) {
++  asm volatile("cp.async.bulk.shared::cluster.global.mbarrier::complete_tx::bytes [%0], [%1], %2, [%3];"
++               :: "r"(dst), "l"(src), "r"(bytes), "r"(bar) : "memory");
++}
++DEVI void wg_fence() { asm volatile("wgmma.fence.sync.aligned;" ::: "memory"); }
++DEVI void wg_commit() { asm volatile("wgmma.commit_group.sync.aligned;" ::: "memory"); }
++template <int N> DEVI void wg_wait() { asm volatile("wgmma.wait_group.sync.aligned %0;" :: "n"(N) : "memory"); }
++DEVI void named_sync(int id, int n) { asm volatile("bar.sync %0, %1;" :: "r"(id), "r"(n) : "memory"); }
++
++// K tile: [128 keys][64 B], 64-byte swizzle (16 B chunk c of row r at c ^ ((r >> 1) & 3)), 8-row groups 512 B apart
++DEVI u64 desc_k(u32 saddr) {
++  return (u64)((saddr & 0x3FFFF) >> 4) | ((u64)1 << 16) | ((u64)(512 >> 4) << 32) | ((u64)2 << 62);
++}
++// V^T tile: [72 rows (64 d + 8 ones)][128 B = 128 keys, permuted], 128-byte swizzle, 8-row groups 1024 B apart
++DEVI u64 desc_v(u32 saddr) {
++  return (u64)((saddr & 0x3FFFF) >> 4) | ((u64)1 << 16) | ((u64)(1024 >> 4) << 32) | ((u64)1 << 62);
++}
++
++#define ACC16(a) "+f"(a[0][0]), "+f"(a[0][1]), "+f"(a[0][2]), "+f"(a[0][3])
++// S[16][4] += Q (64 x 32 FP8, registers) * K^T (32 x 128, shared)
++DEVI void wgmma_qk(float (&s)[16][4], u32 a0, u32 a1, u32 a2, u32 a3, u64 desc, int accumulate) {
++  asm volatile("{ .reg .pred p; setp.ne.b32 p, %68, 0; wgmma.mma_async.sync.aligned.m64n128k32.f32.e4m3.e4m3 "
++               "{%0,%1,%2,%3,%4,%5,%6,%7,%8,%9,%10,%11,%12,%13,%14,%15,%16,%17,%18,%19,%20,%21,%22,%23,%24,%25,%26,%27,%28,%29,%30,%31,"
++               "%32,%33,%34,%35,%36,%37,%38,%39,%40,%41,%42,%43,%44,%45,%46,%47,%48,%49,%50,%51,%52,%53,%54,%55,%56,%57,%58,%59,%60,%61,%62,%63},"
++               " {%64,%65,%66,%67}, %69, p, 1, 1; }"
++               : "+f"(s[0][0]), "+f"(s[0][1]), "+f"(s[0][2]), "+f"(s[0][3]), "+f"(s[1][0]), "+f"(s[1][1]), "+f"(s[1][2]), "+f"(s[1][3]),
++                 "+f"(s[2][0]), "+f"(s[2][1]), "+f"(s[2][2]), "+f"(s[2][3]), "+f"(s[3][0]), "+f"(s[3][1]), "+f"(s[3][2]), "+f"(s[3][3]),
++                 "+f"(s[4][0]), "+f"(s[4][1]), "+f"(s[4][2]), "+f"(s[4][3]), "+f"(s[5][0]), "+f"(s[5][1]), "+f"(s[5][2]), "+f"(s[5][3]),
++                 "+f"(s[6][0]), "+f"(s[6][1]), "+f"(s[6][2]), "+f"(s[6][3]), "+f"(s[7][0]), "+f"(s[7][1]), "+f"(s[7][2]), "+f"(s[7][3]),
++                 "+f"(s[8][0]), "+f"(s[8][1]), "+f"(s[8][2]), "+f"(s[8][3]), "+f"(s[9][0]), "+f"(s[9][1]), "+f"(s[9][2]), "+f"(s[9][3]),
++                 "+f"(s[10][0]), "+f"(s[10][1]), "+f"(s[10][2]), "+f"(s[10][3]), "+f"(s[11][0]), "+f"(s[11][1]), "+f"(s[11][2]), "+f"(s[11][3]),
++                 "+f"(s[12][0]), "+f"(s[12][1]), "+f"(s[12][2]), "+f"(s[12][3]), "+f"(s[13][0]), "+f"(s[13][1]), "+f"(s[13][2]), "+f"(s[13][3]),
++                 "+f"(s[14][0]), "+f"(s[14][1]), "+f"(s[14][2]), "+f"(s[14][3]), "+f"(s[15][0]), "+f"(s[15][1]), "+f"(s[15][2]), "+f"(s[15][3])
++               : "r"(a0), "r"(a1), "r"(a2), "r"(a3), "r"(accumulate), "l"(desc));
++}
++// O[9][4] += P (64 x 32 FP8, registers) * V (32 keys x 72: 64 d + 8 ones rows, shared, K-major V^T)
++DEVI void wgmma_pv(float (&o)[9][4], u32 a0, u32 a1, u32 a2, u32 a3, u64 desc) {
++  asm volatile("{ .reg .pred p; setp.ne.b32 p, 1, 0; wgmma.mma_async.sync.aligned.m64n72k32.f32.e4m3.e4m3 "
++               "{%0,%1,%2,%3,%4,%5,%6,%7,%8,%9,%10,%11,%12,%13,%14,%15,%16,%17,%18,%19,%20,%21,%22,%23,%24,%25,%26,%27,%28,%29,%30,%31,%32,%33,%34,%35},"
++               " {%36,%37,%38,%39}, %40, p, 1, 1; }"
++               : "+f"(o[0][0]), "+f"(o[0][1]), "+f"(o[0][2]), "+f"(o[0][3]), "+f"(o[1][0]), "+f"(o[1][1]), "+f"(o[1][2]), "+f"(o[1][3]),
++                 "+f"(o[2][0]), "+f"(o[2][1]), "+f"(o[2][2]), "+f"(o[2][3]), "+f"(o[3][0]), "+f"(o[3][1]), "+f"(o[3][2]), "+f"(o[3][3]),
++                 "+f"(o[4][0]), "+f"(o[4][1]), "+f"(o[4][2]), "+f"(o[4][3]), "+f"(o[5][0]), "+f"(o[5][1]), "+f"(o[5][2]), "+f"(o[5][3]),
++                 "+f"(o[6][0]), "+f"(o[6][1]), "+f"(o[6][2]), "+f"(o[6][3]), "+f"(o[7][0]), "+f"(o[7][1]), "+f"(o[7][2]), "+f"(o[7][3]),
++                 "+f"(o[8][0]), "+f"(o[8][1]), "+f"(o[8][2]), "+f"(o[8][3])
++               : "r"(a0), "r"(a1), "r"(a2), "r"(a3), "l"(desc));
++}
++DEVI u32 pack_e4m3x4(float a, float b, float c, float d) {  // bytes a, b, c, d (low to high)
++  u16 lo, hi;
++  asm("cvt.rn.satfinite.e4m3x2.f32 %0, %1, %2;" : "=h"(lo) : "f"(b), "f"(a));
++  asm("cvt.rn.satfinite.e4m3x2.f32 %0, %1, %2;" : "=h"(hi) : "f"(d), "f"(c));
++  u32 r;
++  asm("mov.b32 %0, {%1, %2};" : "=r"(r) : "h"(lo), "h"(hi));
++  return r;
++}
++template <int NA> DEVI void pin(float (&a)[NA][4]) {
++#pragma unroll
++  for (int i = 0; i < NA; ++i)
++#pragma unroll
++    for (int j = 0; j < 4; ++j) asm volatile("" : "+f"(a[i][j]) :: "memory");
++}
++
++DEVI float ex2_mufu(float x) { float y; asm("ex2.approx.ftz.f32 %0, %1;" : "=f"(y) : "f"(x)); return y; }
++// 2^x on the FMA pipe: round-to-nearest split, degree-3 minimax for 2^f on [-0.5, 0.5], exponent add
++DEVI float ex2_poly(float x) {
++  const float t = x + 12582912.f;
++  const float f = x - (t - 12582912.f);
++  float p = fmaf(fmaf(fmaf(f, 0.0555041086648216f, 0.2402264923172690f), f, 0.6931471805599453f), f, 1.0f);
++  return __int_as_float(__float_as_int(p) + (__float_as_int(t) << 23));
++}
++// 2^x for x <= 9 feeding an FP8 P: the FMA pipe does the split and the polynomial, IMAD the exponent
++// add (no ALU work); x is floored at -32 by an FFMA-free trick: inputs below give a tiny positive value.
++DEVI float ex2_poly8(float x) {
++  x = fmaxf(x, -32.f);
++  const float t = x + 12582912.f;
++  const float f = x - (t - 12582912.f);
++  const float p = fmaf(fmaf(fmaf(f, 0.0555041086648216f, 0.2402264923172690f), f, 0.6931471805599453f), f, 1.0f);
++  int r;
++  asm("mad.lo.s32 %0, %1, 8388608, %2;" : "=r"(r) : "r"(__float_as_int(t)), "r"(__float_as_int(p)));
++  return __int_as_float(r);
++}
++DEVI u32 pack_bf16(float lo, float hi) {
++  u32 r;
++  asm("cvt.rn.bf16x2.f32 %0, %1, %2;" : "=r"(r) : "f"(hi), "f"(lo));
++  return r;
++}
++DEVI u16 f2_to_e4m3x2(float lo, float hi) {
++  u16 r;
++  asm("cvt.rn.satfinite.e4m3x2.f32 %0, %1, %2;" : "=h"(r) : "f"(hi), "f"(lo));
++  return r;
++}
++DEVI float e4m3_to_f(u8 b) {
++  u16 in = b;
++  u32 r;
++  asm("cvt.rn.f16x2.e4m3x2 %0, %1;" : "=r"(r) : "h"(in));
++  return __half2float(__ushort_as_half((u16)(r & 0xFFFF)));
++}
++
++struct Params {
++  const __nv_bfloat16* qkv;    // [T][2304]
++  u8* q8;                      // [T][16][64] FP8, pre-scaled
++  u8* k_cache;                 // flat rows [rows][2][64]
++  u8* v_cache;
++  const long long* cache_loc;  // [T]
++  const int* page_table;       // [B][max_pages]
++  const int* seq_lens;         // [B] cached tokens per request
++  const float* k_scale;
++  const float* v_scale;
++  const float* inv_freq;       // [32]
++  u8* kp;                      // [B][2][NTA][128][64] FP8 swizzled
++  u8* vp;                      // [B][2][NTA][64 d][128 keys] FP8 V^T, keys permuted per 16, 128B-swizzled
++  int* ctab;                   // [B][NQB + 1] tile prefix per request
++  __nv_bfloat16* out;          // [T][1024]
++  float* oacc;                 // [T][16][64]
++  float* lacc;                 // [T][16]
++  int* cnt;                    // [B][2][NQB][ATT_CW]
++  int B, L, window, rope, page, max_pages, nta, nqb;
++  float qscale;
++  int part;                    // kv_pack: 0 every tile, 1 tiles of cached keys only (+ ctab), 2 the rest                // sm_scale * qk_scale_factor * log2(e)
++};
++
++// ---------------------------------------------------------------------------------------------
++// qkv_post: one block per token, one warp per head vector (16 q, 2 k, 2 v), two elements per lane.
++extern "C" __global__ void __launch_bounds__(640) qkv_post(Params p) {
++  const int t = blockIdx.x, w = threadIdx.x >> 5, lane = threadIdx.x & 31;
++  const int b = t / p.L, i = t % p.L;
++  const int pos = p.seq_lens[b] + i;
++  const __nv_bfloat16* row = p.qkv + (size_t)t * 2304;
++  int col;
++  if (w < 16) col = w * 64;
++  else if (w < 18) col = 1024 + (w - 16) * 64;
++  else col = 1152 + (w - 18) * 64;
++  __nv_bfloat162 xv = *reinterpret_cast<const __nv_bfloat162*>(row + col + 2 * lane);
++  float x0 = __low2float(xv), x1 = __high2float(xv);
++  if (w < 18) {
++    float ss = x0 * x0 + x1 * x1;
++#pragma unroll
++    for (int o = 16; o; o >>= 1) ss += __shfl_xor_sync(0xffffffff, ss, o);
++    const float r = rsqrtf(ss * (1.f / 64.f) + 1e-5f);
++    x0 *= r; x1 *= r;
++    if (p.rope) {
++      const float ang = (float)pos * p.inv_freq[lane];
++      float sn, cs;
++      sincosf(ang, &sn, &cs);
++      const float y0 = x0 * cs - x1 * sn, y1 = x0 * sn + x1 * cs;
++      x0 = y0; x1 = y1;
++    }
++  }
++  if (w < 16) {
++    const float c = p.qscale * p.k_scale[0];
++    u16 q = f2_to_e4m3x2(x0 * c, x1 * c);
++    *reinterpret_cast<u16*>(p.q8 + (size_t)t * 1024 + w * 64 + 2 * lane) = q;
++  } else {
++    const long long rowi = p.cache_loc[t];
++    const int h = (w < 18) ? (w - 16) : (w - 18);
++    const float inv = 1.f / ((w < 18) ? p.k_scale[0] : p.v_scale[0]);
++    u16 q = f2_to_e4m3x2(x0 * inv, x1 * inv);
++    u8* dst = ((w < 18) ? p.k_cache : p.v_cache) + rowi * 128 + h * 64 + 2 * lane;
++    *reinterpret_cast<u16*>(dst) = q;
++  }
++}
++
++// Visible key range [lo, hi) of query block qb of request b (absolute positions), and the
++// request's first packed tile.
++DEVI void qb_range(const Params& p, int L0, int qb, int& lo, int& hi) {
++  const int i0 = qb * ATT_QB, i1 = min(qb * ATT_QB + ATT_QB, p.L);
++  hi = L0 + i1;
++  lo = p.window ? max(0, L0 + i0 - (p.window - 1)) : 0;
++}
++DEVI int base_tile(const Params& p, int L0) { return p.window ? max(0, L0 - (p.window - 1)) / 128 : 0; }
++// Work order of query blocks: short and long causal blocks alternate (0, n-1, 1, n-2, ...), so every
++// CTA's even share of tiles holds about as many blocks (and per-block costs) as any other.
++DEVI int qb_of(int i, int nqb) { return (i & 1) ? nqb - 1 - (i >> 1) : (i >> 1); }
++
++// ---------------------------------------------------------------------------------------------
++// kv_pack: blocks [0, B*2*nta) pack one (request, head, tile); the last B blocks build ctab.
++extern "C" __global__ void __launch_bounds__(256) kv_pack(Params p) {
++  __shared__ u8 vs[128][72];
++  const int nblk = p.B * 2 * p.nta;
++  const int tid = threadIdx.x;
++  if ((int)blockIdx.x >= nblk) {
++    if (p.part == 2) return;
++    const int b = blockIdx.x - nblk;
++    const int L0 = p.seq_lens[b];
++    const int bt = base_tile(p, L0);
++    // prefix over query blocks (sequential per 256-wide chunk with a block scan)
++    __shared__ int part[256];
++    int carry = 0;
++    for (int q0 = 0; q0 < p.nqb; q0 += 256) {
++      const int qi = q0 + tid;
++      int n = 0;
++      if (qi < p.nqb) {
++        int lo, hi;
++        qb_range(p, L0, qb_of(qi, p.nqb), lo, hi);
++        n = (hi + 127) / 128 - lo / 128;
++      }
++      part[tid] = n;
++      __syncthreads();
++      for (int o = 1; o < 256; o <<= 1) {
++        int v = tid >= o ? part[tid - o] : 0;
++        __syncthreads();
++        part[tid] += v;
++        __syncthreads();
++      }
++      if (qi < p.nqb) p.ctab[b * (p.nqb + 1) + qi + 1] = carry + part[tid];
++      carry += part[255];
++      __syncthreads();
++    }
++    if (tid == 0) p.ctab[b * (p.nqb + 1)] = 0;
++    (void)bt;
++    return;
++  }
++  const int tile = blockIdx.x % p.nta, h = (blockIdx.x / p.nta) & 1, b = blockIdx.x / (2 * p.nta);
++  const int L0 = p.seq_lens[b];
++  const int total = L0 + p.L;
++  const int lo_req = p.window ? max(0, L0 - (p.window - 1)) : 0;
++  const int k0 = (base_tile(p, L0) + tile) * 128;
++  u8* kd = p.kp + ((size_t)(b * 2 + h) * p.nta + tile) * 8192;
++  u8* vd = p.vp + ((size_t)(b * 2 + h) * p.nta + tile) * 8192;
++  if (k0 >= total) return;
++  // part 1 runs beside the QKV projection: only tiles of keys already in the cache
++  if ((p.part == 1 && k0 + 128 > L0) || (p.part == 2 && k0 + 128 <= L0)) return;
++  // K: 128 keys x 4 chunks of 16 B; V into shared memory
++  for (int u = tid; u < 512; u += 256) {
++    const int kk = u >> 2, c = u & 3, pos = k0 + kk;
++    uint4 kv = make_uint4(0, 0, 0, 0), vv = make_uint4(0, 0, 0, 0);
++    if (pos < total && pos >= lo_req) {
++      const long long rowi = (long long)p.page_table[b * p.max_pages + pos / p.page] * p.page + pos % p.page;
++      kv = *reinterpret_cast<const uint4*>(p.k_cache + rowi * 128 + h * 64 + c * 16);
++      vv = *reinterpret_cast<const uint4*>(p.v_cache + rowi * 128 + h * 64 + c * 16);
++    }
++    *reinterpret_cast<uint4*>(kd + kk * 64 + ((c ^ ((kk >> 1) & 3)) << 4)) = kv;
++    u32* vrow = reinterpret_cast<u32*>(&vs[kk][c * 16]);
++    vrow[0] = vv.x; vrow[1] = vv.y; vrow[2] = vv.z; vrow[3] = vv.w;
++  }
++  __syncthreads();
++  // V^T: row d, 16-byte unit un holds tile positions 16 un + e, e = 0..15, which carry key
++  // 16 un + pi(e), pi(e) = 2 (e >> 2) + (e & 1) + 8 ((e >> 1) & 1): the order a thread's FP8 P
++  // fragment takes the S accumulator's columns in. Unit un sits at (un ^ (d & 7)) (128B swizzle).
++  for (int u = tid; u < 512; u += 256) {
++    const int d = u >> 3, un = u & 7;
++    u32 w[4];
++#pragma unroll
++    for (int q = 0; q < 4; ++q) {
++      u32 x = 0;
++#pragma unroll
++      for (int e2 = 0; e2 < 4; ++e2) {
++        const int e = q * 4 + e2;
++        const int key = 16 * un + 2 * (e >> 2) + (e & 1) + 8 * ((e >> 1) & 1);
++        x |= (u32)vs[key][d] << (8 * e2);
++      }
++      w[q] = x;
++    }
++    *reinterpret_cast<uint4*>(vd + d * 128 + ((un ^ (d & 7)) << 4)) = make_uint4(w[0], w[1], w[2], w[3]);
++  }
++}
++
++// ---------------------------------------------------------------------------------------------
++// attn_fwd
++struct Seg { int b, h, qb, qi, t0, n, full; };
++
++// The CTA's work in request b: tiles [s, e) of the request's (head-major, block, tile) order.
++DEVI bool seg_at(const Params& p, int b, int x, int e, Seg& sg) {
++  const int* ct = p.ctab + b * (p.nqb + 1);
++  const int wh = ct[p.nqb];
++  sg.b = b;
++  sg.h = x >= wh;
++  const int xr = x - sg.h * wh;
++  // binary search: last qb with ct[qb] <= xr
++  int lo = 0, hi = p.nqb;
++  while (hi - lo > 1) {
++    const int mid = (lo + hi) >> 1;
++    if (ct[mid] <= xr) lo = mid; else hi = mid;
++  }
++  sg.qb = qb_of(lo, p.nqb);
++  sg.qi = lo;
++  const int u = xr - ct[lo], nt = ct[lo + 1] - ct[lo];
++  sg.t0 = u;
++  sg.n = min(e - x, nt - u);
++  sg.full = (u == 0 && sg.n == nt);
++  return true;
++}
++
++DEVI void named_arrive(int id, int n) { asm volatile("bar.arrive %0, %1;" :: "r"(id), "r"(n) : "memory"); }
++
++extern "C" __global__ void __launch_bounds__(128 * (1 + ATT_CW), 1) attn_fwd(Params p) {
++  extern __shared__ __align__(1024) u8 smem[];
++  // layout: stages [NS][K 8 KB | V^T 8 KB + 1 KB of ones rows] at 1024-aligned offsets, then barriers
++  const u32 sbase = smem_addr(smem);
++  const u32 bars = sbase + ATT_NS * 18432;
++  volatile int* flag = reinterpret_cast<volatile int*>(smem + ATT_NS * 18432 + 16 * ATT_NS);
++  const int tid = threadIdx.x, wg = tid >> 7, lt = tid & 127;
++  if (tid == 0) {
++    for (int s = 0; s < ATT_NS; ++s) {
++      mbar_init(bars + 16 * s, 1);
++      mbar_init(bars + 16 * s + 8, ATT_CW);
++    }
++    asm volatile("fence.mbarrier_init.release.cluster;" ::: "memory");
++  }
++  // the ones rows (V^T rows 64..71) of every stage: FP8 1.0 = 0x38
++  for (int i = tid; i < ATT_NS * 256; i += blockDim.x)
++    reinterpret_cast<u32*>(smem + (i >> 8) * 18432 + 16384)[i & 255] = 0x38383838u;
++  asm volatile("fence.proxy.async.shared::cta;" ::: "memory");
++  __syncthreads();
++  const int G = gridDim.x, cta = blockIdx.x;
++
++  if (wg == 0) {
++    asm volatile("setmaxnreg.dec.sync.aligned.u32 24;" ::: "memory");
++    if (tid != 0) return;
++    int it = 0;
++    for (int b = 0; b < p.B; ++b) {
++      const int W = 2 * p.ctab[b * (p.nqb + 1) + p.nqb];
++      const int s = (int)((long long)W * cta / G), e = (int)((long long)W * (cta + 1) / G);
++      const int L0 = p.seq_lens[b];
++      for (int x = s; x < e;) {
++        Seg sg;
++        seg_at(p, b, x, e, sg);
++        int lo, hi;
++        qb_range(p, L0, sg.qb, lo, hi);
++        const int tfirst = lo / 128 - base_tile(p, L0) + sg.t0;
++        for (int j = 0; j < sg.n; ++j, ++it) {
++          const int st = it % ATT_NS;
++          mbar_wait(bars + 16 * st + 8, ((it / ATT_NS) & 1) ^ 1);
++          const u32 full = bars + 16 * st;
++          mbar_arrive_tx(full, 16384);
++          const size_t tix = (size_t)(b * 2 + sg.h) * p.nta + tfirst + j;
++          bulk_g2s(sbase + st * 18432, p.kp + tix * 8192, 8192, full);
++          bulk_g2s(sbase + st * 18432 + 8192, p.vp + tix * 8192, 8192, full);
++        }
++        x += sg.n;
++      }
++    }
++    return;
++  }
++
++  // consumers: warpgroup c = wg - 1 handles tokens qb*16 + c*8 + (0..7); thread rows g, g+8
++  asm volatile("setmaxnreg.inc.sync.aligned.u32 %0;" :: "n"(ATT_CREG) : "memory");
++  const int c = wg - 1, warp = lt >> 5, lane = lt & 31;
++  if (ATT_PP && c == ATT_CW - 1) named_arrive(8, 256);
++  const int g = lane >> 2, tq = lane & 3;
++  // stage 0 descriptors; a stage's are these plus its offset (18432 B = 1152 descriptor units)
++  const u64 dk0 = desc_k(sbase), dv0 = desc_v(sbase + 8192);
++  const int tok_a = c * 8 + 2 * warp, tok_b = tok_a + 1;   // tokens of rows g and g+8 (within the block)
++  const int head = g;                                      // head within the KV group
++  int it = 0;
++  for (int b = 0; b < p.B; ++b) {
++    const int W = 2 * p.ctab[b * (p.nqb + 1) + p.nqb];
++    const int s = (int)((long long)W * cta / G), e = (int)((long long)W * (cta + 1) / G);
++    const int L0 = p.seq_lens[b];
++    for (int x = s; x < e;) {
++      Seg sg;
++      seg_at(p, b, x, e, sg);
++      x += sg.n;
++      int lo, hi;
++      qb_range(p, L0, sg.qb, lo, hi);
++      const int bt = base_tile(p, L0);
++      const int ia = sg.qb * ATT_QB + tok_a, ib = sg.qb * ATT_QB + tok_b;   // token index in the request
++      const bool va = ia < p.L, vb = ib < p.L;
++      const int pa = L0 + ia, pb = L0 + ib;                          // query positions
++      const int hg = sg.h * 8 + head;                                // global q head
++      // Q fragments: rows (tok_a, head), (tok_b, head); k = 32 ks + {4tq..4tq+3, 16+4tq..}
++      u32 qa[2][4];
++      {
++        const u8* ra = p.q8 + ((size_t)(b * p.L + ia) * 16 + hg) * 64;
++        const u8* rb = p.q8 + ((size_t)(b * p.L + ib) * 16 + hg) * 64;
++#pragma unroll
++        for (int ks = 0; ks < 2; ++ks) {
++          qa[ks][0] = va ? *reinterpret_cast<const u32*>(ra + 32 * ks + 4 * tq) : 0u;
++          qa[ks][1] = vb ? *reinterpret_cast<const u32*>(rb + 32 * ks + 4 * tq) : 0u;
++          qa[ks][2] = va ? *reinterpret_cast<const u32*>(ra + 32 * ks + 16 + 4 * tq) : 0u;
++          qa[ks][3] = vb ? *reinterpret_cast<const u32*>(rb + 32 * ks + 16 + 4 * tq) : 0u;
++        }
++      }
++      float o[9][4];
++#pragma unroll
++      for (int j = 0; j < 9; ++j) o[j][0] = o[j][1] = o[j][2] = o[j][3] = 0.f;
++      float la = 0.f, lb = 0.f;
++      float ma = -1e30f, mb = -1e30f;     // P = 2^(S - m): m trails the running row max by 8
++      float sca = 1.f, scb = 1.f;         // O rescale owed for the latest max change
++      bool resc = false;
++      const int tfirst = lo / 128 - bt + sg.t0;
++      // rows' visible key windows (absolute positions)
++      const int wa_lo = p.window ? pa - (p.window - 1) : 0, wb_lo = p.window ? pb - (p.window - 1) : 0;
++      const int it0 = it, n = sg.n;
++      it += n;
++      const int pmin = L0 + sg.qb * ATT_QB, pmax = L0 + min(sg.qb * ATT_QB + ATT_QB - 1, p.L - 1);
++      u32 pf[4][4];
++      auto issue_qk = [&](float (&sacc)[16][4], int jt) {
++        const u32 itj = (u32)(it0 + jt), st = itj % ATT_NS;
++        mbar_wait(bars + 16 * st, (itj / ATT_NS) & 1);
++        const u64 dk = dk0 + (u64)(st * (18432 >> 4));
++        wg_fence();
++        wgmma_qk(sacc, qa[0][0], qa[0][1], qa[0][2], qa[0][3], dk, 0);
++        wgmma_qk(sacc, qa[1][0], qa[1][1], qa[1][2], qa[1][3], dk + 2, 1);
++        wg_commit();
++      };
++      auto issue_pv = [&](int jt) {
++        const u64 dv = dv0 + (u64)(((u32)(it0 + jt) % ATT_NS) * (18432 >> 4));
++#pragma unroll
++        for (int kc = 0; kc < 4; ++kc)
++          wgmma_pv(o, pf[kc][0], pf[kc][1], pf[kc][2], pf[kc][3], dv + 2 * kc);
++        wg_commit();
++      };
++      // S -> P = 2^(S - m) in place (masked to 0), with the running max update
++      auto softmax = [&](float (&sacc)[16][4], int jt) {
++        const int k0 = (bt + tfirst + jt) * 128;
++        const bool masked = (k0 + 127 > pmin) || (p.window && k0 < pmax - (p.window - 1));
++        if (masked) {
++#pragma unroll
++          for (int n8 = 0; n8 < 16; ++n8) {
++            const int kc = k0 + n8 * 8 + 2 * tq;
++            if (!(kc <= pa && kc >= wa_lo)) sacc[n8][0] = -__int_as_float(0x7f800000);
++            if (!(kc + 1 <= pa && kc + 1 >= wa_lo)) sacc[n8][1] = -__int_as_float(0x7f800000);
++            if (!(kc <= pb && kc >= wb_lo)) sacc[n8][2] = -__int_as_float(0x7f800000);
++            if (!(kc + 1 <= pb && kc + 1 >= wb_lo)) sacc[n8][3] = -__int_as_float(0x7f800000);
++          }
++        }
++        float ta = fmaxf(sacc[0][0], sacc[0][1]), tb = fmaxf(sacc[0][2], sacc[0][3]);
++#pragma unroll
++        for (int n8 = 1; n8 < 16; ++n8) {
++          ta = fmaxf(ta, fmaxf(sacc[n8][0], sacc[n8][1]));
++          tb = fmaxf(tb, fmaxf(sacc[n8][2], sacc[n8][3]));
++        }
++        ta = fmaxf(ta, __shfl_xor_sync(0xffffffff, ta, 1)); ta = fmaxf(ta, __shfl_xor_sync(0xffffffff, ta, 2));
++        tb = fmaxf(tb, __shfl_xor_sync(0xffffffff, tb, 1)); tb = fmaxf(tb, __shfl_xor_sync(0xffffffff, tb, 2));
++        const bool na = ta > ma + 8.f, nb = tb > mb + 8.f;
++        resc = __any_sync(0xffffffff, na || nb);
++        if (resc) {
++          const float ma2 = na ? ta - 8.f : ma, mb2 = nb ? tb - 8.f : mb;
++          sca = ex2_mufu(ma - ma2); scb = ex2_mufu(mb - mb2);
++          ma = ma2; mb = mb2;
++        }
++        if (masked || !ATT_POLY) {
++#pragma unroll
++          for (int n8 = 0; n8 < 16; ++n8) {
++            sacc[n8][0] = ex2_mufu(sacc[n8][0] - ma); sacc[n8][1] = ex2_mufu(sacc[n8][1] - ma);
++            sacc[n8][2] = ex2_mufu(sacc[n8][2] - mb); sacc[n8][3] = ex2_mufu(sacc[n8][3] - mb);
++          }
++        } else {
++#pragma unroll
++          for (int n8 = 0; n8 < 16; ++n8) {
++            if (ATT_POLY == 2 ? (n8 & 7) == 7 : ATT_POLY == 3 ? (n8 % 3) == 2 : (n8 & 3) == 3) {
++              sacc[n8][0] = ex2_poly8(sacc[n8][0] - ma); sacc[n8][1] = ex2_poly8(sacc[n8][1] - ma);
++              sacc[n8][2] = ex2_poly8(sacc[n8][2] - mb); sacc[n8][3] = ex2_poly8(sacc[n8][3] - mb);
++            } else {
++              sacc[n8][0] = ex2_mufu(sacc[n8][0] - ma); sacc[n8][1] = ex2_mufu(sacc[n8][1] - ma);
++              sacc[n8][2] = ex2_mufu(sacc[n8][2] - mb); sacc[n8][3] = ex2_mufu(sacc[n8][3] - mb);
++            }
++          }
++        }
++      };
++      // O was accumulated at the previous max: rescale once its PV has retired
++      auto rescale_o = [&]() {
++        if (resc) {
++#pragma unroll
++          for (int j = 0; j < 9; ++j) { o[j][0] *= sca; o[j][1] *= sca; o[j][2] *= scb; o[j][3] *= scb; }
++          resc = false;
++        }
++      };
++      // FP8 A fragment of k32 chunk kc: tile positions 32 kc + {4tq..4tq+3} -> columns {2tq, 2tq+1, 8+2tq, 9+2tq}
++      auto to_p = [&](float (&sacc)[16][4]) {
++#pragma unroll
++        for (int kc = 0; kc < 4; ++kc) {
++          pf[kc][0] = pack_e4m3x4(sacc[4 * kc][0], sacc[4 * kc][1], sacc[4 * kc + 1][0], sacc[4 * kc + 1][1]);
++          pf[kc][1] = pack_e4m3x4(sacc[4 * kc][2], sacc[4 * kc][3], sacc[4 * kc + 1][2], sacc[4 * kc + 1][3]);
++          pf[kc][2] = pack_e4m3x4(sacc[4 * kc + 2][0], sacc[4 * kc + 2][1], sacc[4 * kc + 3][0], sacc[4 * kc + 3][1]);
++          pf[kc][3] = pack_e4m3x4(sacc[4 * kc + 2][2], sacc[4 * kc + 2][3], sacc[4 * kc + 3][2], sacc[4 * kc + 3][3]);
++        }
++      };
++      auto pin_p = [&]() {
++#pragma unroll
++        for (int i = 0; i < 4; ++i)
++#pragma unroll
++          for (int k = 0; k < 4; ++k) asm volatile("" : "+r"(pf[i][k]) :: "memory");
++      };
++#ifdef ATT_NOCOMP
++      for (int j = 0; j < n; ++j) {
++        mbar_wait(bars + 16 * ((it0 + j) % ATT_NS), ((it0 + j) / ATT_NS) & 1);
++        mbar_arrive_if(bars + 16 * ((it0 + j) % ATT_NS) + 8, lt == 0);
++      }
++      la = lb = 1.f;
++      if (false)
++#endif
++      // ping-pong: warpgroup c issues after c-1 (round robin over ATT_CW), named barriers 8 + c
++      auto turn_begin = [&]() { if (ATT_PP) named_sync(8 + c, 256); };
++      auto turn_end = [&]() { if (ATT_PP) named_arrive(8 + (c + 1) % ATT_CW, 256); };
++      {
++        float sacc[16][4];
++        // tile 0
++        turn_begin();
++        issue_qk(sacc, 0);
++        turn_end();
++        wg_wait<0>();
++        pin(sacc);
++        softmax(sacc, 0);
++        rescale_o();
++        to_p(sacc);
++        // tile j: QK(j) | PV(j-1) on P(j-1) | softmax(j) under PV(j-1) | P(j)
++        for (int j = 1; j < n; ++j) {
++          turn_begin();
++          issue_qk(sacc, j);
++          wg_fence();
++          issue_pv(j - 1);
++          turn_end();
++          wg_wait<1>();
++          pin(sacc);
++          softmax(sacc, j);
++          wg_wait<0>();
++          pin(o);
++          pin_p();
++          mbar_arrive_if(bars + 16 * ((u32)(it0 + j - 1) % ATT_NS) + 8, lt == 0);
++          rescale_o();
++          to_p(sacc);
++        }
++        turn_begin();
++        wg_fence();
++        issue_pv(n - 1);
++        turn_end();
++        wg_wait<0>();
++        pin(o);
++        pin_p();
++        mbar_arrive_if(bars + 16 * ((u32)(it0 + n - 1) % ATT_NS) + 8, lt == 0);
++      }
++      // row sums: the ones rows (columns 64..71 of O)
++      la = o[8][0]; lb = o[8][2];
++      const size_t ta = (size_t)(b * p.L + ia), tb = (size_t)(b * p.L + ib);
++      bool fin = sg.full != 0;
++      if (!fin) {
++        // partial sums meet at an absolute scale, 2^m (QK-norm keeps |S| far below 2^7)
++        const float fa = ex2_mufu(ma), fb = ex2_mufu(mb);
++#pragma unroll
++        for (int j = 0; j < 8; ++j) { o[j][0] *= fa; o[j][1] *= fa; o[j][2] *= fb; o[j][3] *= fb; }
++        la *= fa; lb *= fb;
++        float* oa = p.oacc + (ta * 16 + hg) * 64;
++        float* ob = p.oacc + (tb * 16 + hg) * 64;
++#pragma unroll
++        for (int j = 0; j < 8; ++j) {
++          const int d = j * 8 + 2 * tq;
++          if (va) asm volatile("red.global.add.v2.f32 [%0], {%1, %2};" :: "l"(oa + d), "f"(o[j][0]), "f"(o[j][1]) : "memory");
++          if (vb) asm volatile("red.global.add.v2.f32 [%0], {%1, %2};" :: "l"(ob + d), "f"(o[j][2]), "f"(o[j][3]) : "memory");
++        }
++        if (tq == 0) {
++          if (va) atomicAdd(p.lacc + ta * 16 + hg, la);
++          if (vb) atomicAdd(p.lacc + tb * 16 + hg, lb);
++        }
++        __threadfence();
++        named_sync(1 + c, 128);
++        if (lt == 0) {
++          int* cn = p.cnt + ((b * 2 + sg.h) * p.nqb + sg.qb) * ATT_CW + c;
++          const int nt = p.ctab[b * (p.nqb + 1) + sg.qi + 1] - p.ctab[b * (p.nqb + 1) + sg.qi];
++          const int old = atomicAdd(cn, sg.n);
++          const int last = (old + sg.n == nt);
++          if (last) *cn = 0;
++          flag[c] = last;
++        }
++        named_sync(1 + c, 128);
++        fin = flag[c] != 0;
++        if (fin) {
++          __threadfence();
++#pragma unroll
++          for (int j = 0; j < 8; ++j) {
++            const int d = j * 8 + 2 * tq;
++            if (va) {
++              float2 v = __ldcg(reinterpret_cast<const float2*>(oa + d));
++              o[j][0] = v.x; o[j][1] = v.y;
++              *reinterpret_cast<float2*>(oa + d) = make_float2(0.f, 0.f);
++            }
++            if (vb) {
++              float2 v = __ldcg(reinterpret_cast<const float2*>(ob + d));
++              o[j][2] = v.x; o[j][3] = v.y;
++              *reinterpret_cast<float2*>(ob + d) = make_float2(0.f, 0.f);
++            }
++          }
++          if (va) la = __ldcg(p.lacc + ta * 16 + hg);
++          if (vb) lb = __ldcg(p.lacc + tb * 16 + hg);
++          __syncwarp();
++          if (tq == 0) {
++            if (va) p.lacc[ta * 16 + hg] = 0.f;
++            if (vb) p.lacc[tb * 16 + hg] = 0.f;
++          }
++        }
++      }
++      if (fin) {
++        const float vsc = p.v_scale[0];
++        const float ra = vsc / la, rb = vsc / lb;
++        float sa = 0.f, sb = 0.f;
++#pragma unroll
++        for (int j = 0; j < 8; ++j) {
++          o[j][0] *= ra; o[j][1] *= ra; o[j][2] *= rb; o[j][3] *= rb;
++          sa += o[j][0] * o[j][0] + o[j][1] * o[j][1];
++          sb += o[j][2] * o[j][2] + o[j][3] * o[j][3];
++        }
++        sa += __shfl_xor_sync(0xffffffff, sa, 1); sa += __shfl_xor_sync(0xffffffff, sa, 2);
++        sb += __shfl_xor_sync(0xffffffff, sb, 1); sb += __shfl_xor_sync(0xffffffff, sb, 2);
++        const float na = rsqrtf(sa * (1.f / 64.f) + 1e-5f), nb = rsqrtf(sb * (1.f / 64.f) + 1e-5f);
++        const __nv_bfloat16* gra = p.qkv + ta * 2304 + 1280 + hg * 64;
++        const __nv_bfloat16* grb = p.qkv + tb * 2304 + 1280 + hg * 64;
++        __nv_bfloat16* oua = p.out + ta * 1024 + hg * 64;
++        __nv_bfloat16* oub = p.out + tb * 1024 + hg * 64;
++#pragma unroll
++        for (int j = 0; j < 8; ++j) {
++          const int d = j * 8 + 2 * tq;
++          if (va) {
++            const __nv_bfloat162 gt = *reinterpret_cast<const __nv_bfloat162*>(gra + d);
++            const float g0 = 1.f / (1.f + __expf(-__low2float(gt))), g1 = 1.f / (1.f + __expf(-__high2float(gt)));
++            *reinterpret_cast<__nv_bfloat162*>(oua + d) = __floats2bfloat162_rn(o[j][0] * na * g0, o[j][1] * na * g1);
++          }
++          if (vb) {
++            const __nv_bfloat162 gt = *reinterpret_cast<const __nv_bfloat162*>(grb + d);
++            const float g0 = 1.f / (1.f + __expf(-__low2float(gt))), g1 = 1.f / (1.f + __expf(-__high2float(gt)));
++            *reinterpret_cast<__nv_bfloat162*>(oub + d) = __floats2bfloat162_rn(o[j][2] * nb * g0, o[j][3] * nb * g1);
++          }
++        }
++      }
++    }
++  }
++}
++"""
++
++
++class _AttCuda:
++    """NVRTC-compiled module and driver-API launches on torch's current stream."""
++
++    def __init__(self, src, defines=()):
++        from cuda.bindings import driver, nvrtc
++        self.driver = driver
++        src = "".join(f"#define {d}\n" for d in defines) + src
++        err, prog = nvrtc.nvrtcCreateProgram(src.encode(), b"attn.cu", 0, [], [])
++        major, minor = torch.cuda.get_device_capability()
++        import os
++        inc = [f"-I{p}".encode() for p in ("/usr/local/cuda/include",) if os.path.isdir(p)]
++        opts = [f"--gpu-architecture=sm_{major}{minor}{'a' if major >= 9 else ''}".encode(), b"-std=c++17",
++                b"-default-device"] + inc
++        (err,) = nvrtc.nvrtcCompileProgram(prog, len(opts), opts)
++        if err != nvrtc.nvrtcResult.NVRTC_SUCCESS:
++            _, size = nvrtc.nvrtcGetProgramLogSize(prog)
++            log = b" " * size
++            nvrtc.nvrtcGetProgramLog(prog, log)
++            raise RuntimeError("NVRTC failed:\n" + log.decode(errors="replace"))
++        err, size = nvrtc.nvrtcGetCUBINSize(prog)
++        cubin = b" " * size
++        (err,) = nvrtc.nvrtcGetCUBIN(prog, cubin)
++        self.cubin = cubin
++        err, self.module = driver.cuModuleLoadData(cubin)
++        if int(err):
++            raise RuntimeError(f"cuModuleLoadData failed: {err}")
++        self.funcs = {}
++
++    def func(self, name, smem=0):
++        if name not in self.funcs:
++            d = self.driver
++            err, f = d.cuModuleGetFunction(self.module, name.encode())
++            if smem > 48 * 1024:
++                d.cuFuncSetAttribute(f, d.CUfunction_attribute.CU_FUNC_ATTRIBUTE_MAX_DYNAMIC_SHARED_SIZE_BYTES, smem)
++            self.funcs[name] = f
++        return self.funcs[name]
++
++    def launch(self, name, grid, block, smem, params):
++        f = self.func(name, smem)
++        stream = self.driver.CUstream(torch.cuda.current_stream().cuda_stream)
++        argv = (ctypes.c_void_p * 1)(ctypes.addressof(params))
++        (err,) = self.driver.cuLaunchKernel(f, grid, 1, 1, block, 1, 1, smem, stream, ctypes.addressof(argv), 0)
++        if int(err):
++            raise RuntimeError(f"launch {name} failed: {err}")
++
++
++class _AttP(ctypes.Structure):
++    _fields_ = [(n, ctypes.c_void_p) for n in (
++        "qkv", "q8", "k_cache", "v_cache", "cache_loc", "page_table", "seq_lens", "k_scale", "v_scale",
++        "inv_freq", "kp", "vp", "ctab", "out", "oacc", "lacc", "cnt")] + [
++        (n, ctypes.c_int) for n in ("B", "L", "window", "rope", "page", "max_pages", "nta", "nqb")] + [
++        ("qscale", ctypes.c_float), ("part", ctypes.c_int)]
++
++
++ATT_MAX_T = 16384
++
++
++class PrefillAttention:
++    """State for the prefill attention path (built once in prepare)."""
++
++    def __init__(self, device, defines=(), grid=None):
++        self.mod = _AttCuda(ATT_CUDA_SRC, defines)
++        self.ns = ATT_NS_DEF
++        self.cw = 2
++        for d in defines:
++            if d.startswith("ATT_NS "):
++                self.ns = int(d.split()[1])
++            if d.startswith("ATT_CW "):
++                self.cw = int(d.split()[1])
++        self.qb = 8 * self.cw
++        self.smem = self.ns * 18432 + 16 * self.ns + 64
++        self.grid = grid or torch.cuda.get_device_properties(device).multi_processor_count
++        self.oacc = torch.zeros((ATT_MAX_T, ATT_HQ, ATT_HD), dtype=torch.float32, device=device)
++        self.lacc = torch.zeros((ATT_MAX_T, ATT_HQ), dtype=torch.float32, device=device)
++        self.cnt = torch.zeros((4 * 2 * 1024 * 4,), dtype=torch.int32, device=device)
++        theta = 500_000.0
++        self.inv_freq = (1.0 / (theta ** (torch.arange(0, ATT_HD, 2, device=device).float() / ATT_HD))).contiguous()
++        self.bufs = {}
++
++    def _bufs(self, cfg, max_pages, page, device):
++        B, L = cfg["batch"], cfg["q_len"]
++        window = cfg["window"]
++        if window:
++            nta = (window - 1 + L + 127) // 128 + 1
++        else:
++            nta = (max_pages * page + 127) // 128 + 1
++        key = (B, L, window, nta)
++        if key not in self.bufs:
++            T = B * L
++            nqb = (L + self.qb - 1) // self.qb
++            self.bufs[key] = dict(
++                q8=torch.empty((T, ATT_HQ, ATT_HD), dtype=torch.uint8, device=device),
++                kp=torch.empty((B, ATT_HKV, nta, ATT_KT, ATT_HD), dtype=torch.uint8, device=device),
++                vp=torch.empty((B, ATT_HKV, nta, ATT_HD, ATT_KT), dtype=torch.uint8, device=device),
++                ctab=torch.empty((B, nqb + 1), dtype=torch.int32, device=device),
++                out=torch.empty((T, ATT_HQ * ATT_HD), dtype=torch.bfloat16, device=device),
++                nta=nta, nqb=nqb)
++        return self.bufs[key]
++
++    def pre(self, data):
++        """Pack the cached keys' tiles on a side stream, beside the QKV projection (inputs only)."""
++        self.side = getattr(self, "side", None) or torch.cuda.Stream(data["k_cache"].device)
++        main = torch.cuda.current_stream()
++        self.side.wait_stream(main)
++        with torch.cuda.stream(self.side):
++            prm, bf = self._params(data, None)
++            prm.part = 1
++            self.mod.launch("kv_pack", prm.B * 2 * bf["nta"] + prm.B, 256, 0, prm)
++        self.pre_done = True
++
++    def __call__(self, data, qkv):
++        """qkv [T, 2304] BF16 (the projection) -> gated attention output [T, 1024] BF16; writes the
++        new cache rows. After pre(data), only the tiles holding new keys are packed here."""
++        prm, bf = self._params(data, qkv)
++        T = prm.B * prm.L
++        split = getattr(self, "pre_done", False)
++        self.pre_done = False
++        if not getattr(self, "only_attn", False):
++            self.mod.launch("qkv_post", T, 640, 0, prm)
++            prm.part = 2 if split else 0
++            self.mod.launch("kv_pack", prm.B * 2 * bf["nta"] + prm.B, 256, 0, prm)
++        if split:
++            torch.cuda.current_stream().wait_stream(self.side)
++        self.mod.launch("attn_fwd", self.grid, 128 * (1 + self.cw), self.smem, prm)
++        return bf["out"]
++
++    def _params(self, data, qkv):
++        cfg = data["config"]
++        B, L = cfg["batch"], cfg["q_len"]
++        T = B * L
++        assert T <= ATT_MAX_T and B * 2 * ((L + self.qb - 1) // self.qb) * self.cw <= self.cnt.numel()
++        page = cfg["page_size"]
++        pt = data["page_table"]
++        bf = self._bufs(cfg, pt.shape[1], page, data["k_cache"].device)
++        prm = _AttP()
++        prm.qkv, prm.q8 = (qkv.data_ptr() if qkv is not None else 0), bf["q8"].data_ptr()
++        prm.k_cache, prm.v_cache = data["k_cache"].data_ptr(), data["v_cache"].data_ptr()
++        prm.cache_loc, prm.page_table = data["cache_loc"].data_ptr(), pt.data_ptr()
++        prm.seq_lens = data["seq_lens"].data_ptr()
++        prm.k_scale, prm.v_scale = data["k_scale"].data_ptr(), data["v_scale"].data_ptr()
++        prm.inv_freq = self.inv_freq.data_ptr()
++        prm.kp, prm.vp, prm.ctab, prm.out = bf["kp"].data_ptr(), bf["vp"].data_ptr(), bf["ctab"].data_ptr(), bf["out"].data_ptr()
++        prm.oacc, prm.lacc, prm.cnt = self.oacc.data_ptr(), self.lacc.data_ptr(), self.cnt.data_ptr()
++        prm.B, prm.L, prm.window, prm.rope = B, L, cfg["window"], 1 if cfg["rope_theta"] else 0
++        prm.page, prm.max_pages, prm.nta, prm.nqb = page, pt.shape[1], bf["nta"], bf["nqb"]
++        prm.qscale = float(cfg["sm_scale"] * cfg["qk_scale_factor"] * ATT_LOG2E)
++        assert cfg["rope_theta"] in (0.0, 500_000.0)
++        prm.part = 0
++        return prm, bf
++
++
++# ---------------------------------------------------------------------------------------------
++# Prefill attention (own kernels): replaces FA3 + the output norm/gate. QK-norm/RoPE/FP8 cache store,
++# KV packing and a wgmma attention kernel with the output norm and gate fused.
++ATT_DEFINES = ['ATT_CW 3', 'ATT_POLY 0', 'ATT_PP 1']
++ATT_SLIDING = False
++_att_base_prepare = prepare
++
++
++def prepare(weights):
++    state = _att_base_prepare(weights)
++    state["att"] = PrefillAttention(weights["qkv_gate"].device, ATT_DEFINES)
++    torch.cuda.synchronize()
++    return state
++
++def kernel_fn(data, state):
++    cfg = data["config"]
++    batch, length, tokens = cfg["batch"], cfg["q_len"], cfg["tokens"]
++    hq, hkv, d = cfg["num_q_heads"], cfg["num_kv_heads"], cfg["head_dim"]
++    dense = state["dense"]
++    # Attention: MuseSpark1xAttention.forward.
++    if ATT_SLIDING or not cfg["window"]:
++        state["att"].pre(data)  # cached-key packing beside the projection
++    qkv = _gemm(data["attn_input"], dense["qkv_gate"])
++    o = (state["att"](data, qkv) if (ATT_SLIDING or not cfg["window"]) else optimized_attention(data, qkv, custom_window=CUSTOM_WINDOW).reshape(tokens, hq * d))
++    attn_output = _gemm(o, dense["o"])  # all-reduce: identity
++
++    # Post-attention boundary, router and MoE block: MuseSpark1xMoE._forward_experts.
++    split_router = tokens > ROUTER_FP32_MAX_TOKENS
++    ffn_input, stream, router_input = state["attn_boundary"](
++        data["stream"], attn_output, branch_dtype=torch.bfloat16, router_dtype=None if split_router else torch.float32)
++    if split_router and tokens <= FUSED_ROUTER_MAX:
++        # one GEMM: pooler and router (hi, lo) columns, FP32 out; then the pre-expert norm and hi + lo
++        plan, index = _fused_plan(state, tokens)
++        y = plan.run(ffn_input.contiguous(), state["pool_route_w"], index)
++        expert_input = torch.empty((tokens, D_EXPERT), dtype=torch.bfloat16, device=y.device)
++        logits = torch.empty((tokens, 256), dtype=torch.float32, device=y.device)
++        _pooled_norm_route[(tokens,)](y, state["pre_expert_w32"], expert_input, logits, D_EXPERT, 256,
++                                      D_EXPERT + 512, RMS_EPS, 1024, num_warps=8)
++        topk_weights, topk_ids = state["routing"](None, logits, TOP_K, True)
++    else:
++        expert_input = _gemm(ffn_input, dense["pooler"])
++        if split_router and tokens in state["router_plans"]:
++            p1, i1, p2, i2 = state["router_plans"][tokens]
++            x = ffn_input.contiguous()
++            logits = p2.run(x, state["router_lo"], i2, p1.run(x, state["router_hi"], i1))
++        elif split_router:
++            logits = _layer_router(ffn_input, state)
++        else:
++            logits = F.linear(router_input, state["router"])
++        topk_weights, topk_ids = state["routing"](None, logits, TOP_K, True)
++        expert_input = state["pre_expert_norm"](expert_input)
++    # This GPU's experts start at local_start: as SGLang's expert_map on that EP rank.
++    local_ids = (topk_ids - data["local_start"]) % N_EXPERTS
++    # all-reduce: identity
++    expert_output = _experts(expert_input, topk_weights, local_ids, state)
++    if tokens <= SLICED_UNPOOL_MAX_TOKENS:
++        unpooled = _gemm(expert_output, dense["unpooler"][:UNPOOL_SLICE])
++        ffn_output = F.pad(unpooled, (0, HIDDEN - UNPOOL_SLICE))  # all-gather: identity
++    else:
++        ffn_output = _gemm(expert_output, dense["unpooler"])
++
++    # Post-FFN boundary, with the next layer's pre-attention norm.
++    next_attn_input, stream, _ = state["ffn_boundary"](stream, ffn_output, branch_dtype=torch.bfloat16)
++    return next_attn_input, stream, topk_ids

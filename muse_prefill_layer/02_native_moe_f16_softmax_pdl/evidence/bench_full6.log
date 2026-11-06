@@ -1,0 +1,26 @@
+✓ Initialized. View run at 
+<modal-run-url>
+✓ Created objects.
+├── 🔨 Created mount 
+│   <scratch>
+│   5-ce57afd4da60/scratchpad/snap.lSDrxw/dev/modal_run.py
+├── 🔨 Created mount 
+│   <scratch>
+│   5-ce57afd4da60/scratchpad/snap.lSDrxw
+└── 🔨 Created function run.
+router seed 728034927264498030 (2 s)
+prepared full5 (cand_full5.py) in 82.8 s
+prepared full6 (cand_full6.py) in 2.9 s
+0 turn 1     b1 ctx80000 sliding q753  sglang    1104.8  full5     623.2 x1.775  full6     621.8 x1.777 (vs full5 x1.0011)
+1 turn 1     b1 ctx80000 full    q753  sglang    1529.4  full5     959.1 x1.597  full6     957.3 x1.599 (vs full5 x1.0015)
+2 turn 4     b4 ctx80000 sliding q753  sglang    3455.1  full5    1930.4 x1.797  full6    1927.1 x1.800 (vs full5 x1.0009)
+3 turn 4     b4 ctx80000 full    q753  sglang    5104.7  full5    3338.4 x1.524  full6    3345.6 x1.523 (vs full5 x0.9992)
+4 first turn b1 ctx0 full    q16384  sglang   19145.0  full5   10493.2 x1.819  full6   10455.8 x1.835 (vs full5 x1.0022)
+5 first turn b1 ctx32768 sliding q16384  sglang   18907.9  full5    9903.8 x1.885  full6    9846.0 x1.894 (vs full5 x1.0016)
+6 first turn b1 ctx32768 full    q16384  sglang   23354.8  full5   13414.5 x1.716  full6   13436.9 x1.742 (vs full5 x1.0058)
+7 first turn b1 ctx65536 full    q16384  sglang   26487.8  full5   16281.2 x1.648  full6   16167.7 x1.662 (vs full5 x1.0131)
+full5: turn 1 x1.713  turn 4 x1.694  first turn x1.831  geomean x1.7450
+full6: turn 1 x1.715  turn 4 x1.695  first turn x1.844  geomean x1.7501
+Stopping app - local entrypoint completed.
+✓ App completed. View run at 
+<modal-run-url>

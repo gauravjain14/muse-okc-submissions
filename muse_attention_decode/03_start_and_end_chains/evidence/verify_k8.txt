@@ -1,0 +1,28 @@
+[gate] slot 2 at 01:27:34 (2 running)
+<modal-run-url>
+│   autoresearch-kernels/attn/tools/modal_run.py
+0 failures
+decode 1  sliding w46 sglang    20.03 | k6     6.74 x2.971 | k8     6.83 x2.931   sol    0.11
+decode 1  full    w16 sglang    30.86 | k6    15.71 x1.965 | k8    15.77 x1.958   sol    4.27
+decode 16 sliding w46 sglang    26.19 | k6     9.70 x2.701 | k8     9.66 x2.710   sol    1.65
+decode 16 full    w16 sglang   201.28 | k6    87.45 x2.302 | k8    87.55 x2.299   sol   63.18
+decode 32 sliding w46 sglang    30.40 | k6    11.92 x2.550 | k8    12.02 x2.530   sol    3.29
+decode 32 full    w16 sglang   385.76 | k6   163.03 x2.366 | k8   163.54 x2.359   sol  126.35
+verify 1  sliding w46 sglang    22.26 | k6    15.27 x1.458 | k8    10.25 x2.171   sol    0.12
+verify 1  full    w16 sglang    35.22 | k6    19.29 x1.825 | k8    19.26 x1.829   sol    4.28
+verify 16 sliding w46 sglang    28.37 | k6    15.30 x1.854 | k8    13.17 x2.155   sol    1.86
+verify 16 full    w16 sglang   204.06 | k6   141.05 x1.447 | k8   122.86 x1.661   sol   63.39
+verify 32 sliding w46 sglang    33.86 | k6    18.38 x1.842 | k8    16.51 x2.050   sol    3.72
+verify 32 full    w16 sglang   389.97 | k6   253.94 x1.536 | k8   223.88 x1.742   sol  126.78
+per-load (weighted sums, us):
+  decode 1  sglang    1415.3 | k6     561.5 x2.521 | k8     566.6 x2.498
+  decode 16 sglang    4425.3 | k6    1845.4 x2.398 | k8    1845.4 x2.398
+  decode 32 sglang    7570.6 | k6    3156.9 x2.398 | k8    3169.5 x2.389
+  verify 1  sglang    1587.2 | k6    1011.1 x1.570 | k8     779.8 x2.035
+  verify 16 sglang    4570.0 | k6    2960.7 x1.544 | k8    2571.5 x1.777
+  verify 32 sglang    7796.9 | k6    4908.7 x1.588 | k8    4341.7 x1.796
+GEOMEAN k6: x1.9548 (board time 1906.8 us)   judge-projected (+1.0 us/call) x1.9143 (board 1987.9 us)
+GEOMEAN k8: x2.1283 (board time 1751.3 us)   judge-projected (+1.0 us/call) x2.0771 (board 1832.2 us)
+fetched into autoresearch-kernels/attn/out/20261028T012938_verify_k8
+[exit 0]
+<modal-run-url>

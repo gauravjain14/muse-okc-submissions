@@ -1,0 +1,30 @@
+[gate] slot 2 at 04:15:06 (2 running)
+✓ Initialized. View run at 
+<modal-run-url>
+✓ Created objects.
+├── 🔨 Created mount 
+│   autoresearch-kernels/attn/tools/modal_run.py
+├── 🔨 Created mount autoresearch-kernels/attn
+└── 🔨 Created function run.
+[gpu-before]
+NVIDIA H200, 0 %, 4 MiB, 345 MHz, 1980 MHz, 75.53 W
+0
+[k15a] import 24.3s
+[xa] import 23.9s
+[k15b] import 0.6s
+[xb] import 0.6s
+fixed graph cost 5.38 us
+verify 1  sliding w46 | k15a     8.77 (min 8.54) | xa     8.77 (min 8.54) | k15b     8.93 (min 8.58) | xb     8.77 (min 8.54)   sol    0.12
+verify 1  full    w16 | k15a    18.58 (min 17.73) | xa    18.11 (min 17.66) | k15b    18.43 (min 17.38) | xb    18.03 (min 17.50)   sol    4.28
+verify 16 sliding w46 | k15a    12.48 (min 12.06) | xa    12.29 (min 12.00) | k15b    12.61 (min 12.19) | xb    12.13 (min 11.84)   sol    1.86
+verify 16 full    w16 | k15a   111.47 (min 106.98) | xa   116.40 (min 111.49) | k15b   112.22 (min 107.20) | xb   116.96 (min 111.17)   sol   63.39
+verify 32 sliding w46 | k15a    15.78 (min 15.39) | xa    15.10 (min 14.85) | k15b    15.90 (min 15.36) | xb    15.07 (min 14.78)   sol    3.72
+verify 32 full    w16 | k15a   208.82 (min 205.98) | xa   218.96 (min 216.16) | k15b   208.53 (min 205.44) | xb   219.15 (min 215.87)   sol  126.78
+[gpu-after]
+NVIDIA H200, 0 %, 4 MiB, 1980 MHz, 1980 MHz, 228.62 W
+0
+
+[exit 0]
+Stopping app - local entrypoint completed.
+✓ App completed. View run at 
+<modal-run-url>

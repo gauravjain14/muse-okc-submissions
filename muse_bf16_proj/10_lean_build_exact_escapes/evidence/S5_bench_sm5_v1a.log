@@ -1,0 +1,15 @@
+[sbx] box 1
+[bo13r] prepare 12.2s
+[sm5] prepare 12.4s
+fixed graph cost 5.22 us
+decode 1  m=1    unpooler  sglang    5.73 | bo13r    2.33 x2.457 | sm5    2.40 x2.386   sol   1.75
+decode 1  m=1    router    sglang    9.18 | bo13r    2.62 x3.499 | sm5    2.73 x3.366   sol   1.75
+verify 1  m=8    unpooler  sglang    5.89 | bo13r    2.75 x2.143 | sm5    2.76 x2.131   sol   1.76
+verify 1  m=8    router    sglang   25.25 | bo13r    2.96 x8.540 | sm5    2.94 x8.601   sol   1.78
+
+per-load speedups:
+  decode 1  sglang   14.91 | bo13r    4.96 x3.009 | sm5    5.13 x2.908
+  verify 1  sglang   31.14 | bo13r    5.70 x5.458 | sm5    5.70 x5.464
+GEOMEAN bo13r: x4.0526 over 2 loads   judge-projected (+1.0 us/shape) x3.2337
+GEOMEAN sm5: x3.9858 over 2 loads   judge-projected (+1.0 us/shape) x3.1955
+REMOTE_EXIT 0

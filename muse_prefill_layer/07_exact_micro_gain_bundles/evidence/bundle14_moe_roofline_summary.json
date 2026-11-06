@@ -1,0 +1,231 @@
+{
+  "source": "research/integrated/bundle14_fast_normalize.py",
+  "sha256": "ff4f9363395462c6ea4a749a54170ae37c950f57d096fa3347b9f2a7f509bb1f",
+  "profiler": "Nsight Compute2025.3.1",
+  "log": "research/bundle14_moe_roofline_ncu.log",
+  "raw": "research/bundle14_moe_roofline.csv",
+  "cases": [
+    {
+      "case": 0,
+      "kernel": "void moe_fused_persistent<1, 0>(FusedArgs)",
+      "metrics": {
+        "duration": {
+          "value": 275.36,
+          "unit": "us",
+          "metric": "gpu__time_duration.sum"
+        },
+        "sm_clock": {
+          "value": 1.68,
+          "unit": "Ghz",
+          "metric": "gpc__cycles_elapsed.avg.per_second"
+        },
+        "tensor_percent": {
+          "value": 63.02,
+          "unit": "%",
+          "metric": "sm__pipe_tensor_cycles_active.avg.pct_of_peak_sustained_elapsed"
+        },
+        "dram_bandwidth": {
+          "value": 1.9,
+          "unit": "Tbyte/s",
+          "metric": "dram__bytes.sum.per_second"
+        },
+        "dram_percent": {
+          "value": 39.54,
+          "unit": "%",
+          "metric": "gpu__dram_throughput.avg.pct_of_peak_sustained_elapsed"
+        },
+        "l2_percent": {
+          "value": 57.12,
+          "unit": "%",
+          "metric": "lts__throughput.avg.pct_of_peak_sustained_elapsed"
+        },
+        "issue_percent": {
+          "value": 37.49,
+          "unit": "%",
+          "metric": "smsp__issue_active.avg.pct_of_peak_sustained_active"
+        },
+        "eligible_warps": {
+          "value": 0.53,
+          "unit": "warp",
+          "metric": "smsp__warps_eligible.avg.per_cycle_active"
+        },
+        "active_warps": {
+          "value": 2.5,
+          "unit": "warp",
+          "metric": "smsp__warps_active.avg.per_cycle_active"
+        }
+      },
+      "stall_cycles_per_issue": {
+        "smsp__average_warps_issue_stalled_barrier_per_issue_active.ratio": 1.38,
+        "smsp__average_warps_issue_stalled_wait_per_issue_active.ratio": 1.02,
+        "smsp__average_warps_issue_stalled_selected_per_issue_active.ratio": 1.0,
+        "smsp__average_warps_issue_stalled_long_scoreboard_per_issue_active.ratio": 0.55,
+        "smsp__average_warps_issue_stalled_dispatch_stall_per_issue_active.ratio": 0.51,
+        "smsp__average_warps_issue_stalled_short_scoreboard_per_issue_active.ratio": 0.44,
+        "smsp__average_warps_issue_stalled_not_selected_per_issue_active.ratio": 0.41,
+        "smsp__average_warps_issue_stalled_gmma_per_issue_active.ratio": 0.4,
+        "smsp__average_warps_issue_stalled_math_pipe_throttle_per_issue_active.ratio": 0.3,
+        "smsp__average_warps_issue_stalled_no_instruction_per_issue_active.ratio": 0.27,
+        "smsp__average_warps_issue_stalled_sleeping_per_issue_active.ratio": 0.17,
+        "smsp__average_warps_issue_stalled_branch_resolving_per_issue_active.ratio": 0.16,
+        "smsp__average_warps_issue_stalled_imc_miss_per_issue_active.ratio": 0.01,
+        "smsp__average_warps_issue_stalled_membar_per_issue_active.ratio": 0.01,
+        "smsp__average_warps_issue_stalled_mio_throttle_per_issue_active.ratio": 0.01,
+        "smsp__average_warps_issue_stalled_misc_per_issue_active.ratio": 0.01,
+        "smsp__average_warps_issue_stalled_drain_per_issue_active.ratio": 0.0,
+        "smsp__average_warps_issue_stalled_lg_throttle_per_issue_active.ratio": 0.0,
+        "smsp__average_warps_issue_stalled_tex_throttle_per_issue_active.ratio": 0.0
+      }
+    },
+    {
+      "case": 2,
+      "kernel": "void moe_fused_persistent<1, 0>(FusedArgs)",
+      "metrics": {
+        "duration": {
+          "value": 819.04,
+          "unit": "us",
+          "metric": "gpu__time_duration.sum"
+        },
+        "sm_clock": {
+          "value": 1.68,
+          "unit": "Ghz",
+          "metric": "gpc__cycles_elapsed.avg.per_second"
+        },
+        "tensor_percent": {
+          "value": 81.58,
+          "unit": "%",
+          "metric": "sm__pipe_tensor_cycles_active.avg.pct_of_peak_sustained_elapsed"
+        },
+        "dram_bandwidth": {
+          "value": 1.11,
+          "unit": "Tbyte/s",
+          "metric": "dram__bytes.sum.per_second"
+        },
+        "dram_percent": {
+          "value": 23.01,
+          "unit": "%",
+          "metric": "gpu__dram_throughput.avg.pct_of_peak_sustained_elapsed"
+        },
+        "l2_percent": {
+          "value": 42.11,
+          "unit": "%",
+          "metric": "lts__throughput.avg.pct_of_peak_sustained_elapsed"
+        },
+        "issue_percent": {
+          "value": 30.51,
+          "unit": "%",
+          "metric": "smsp__issue_active.avg.pct_of_peak_sustained_active"
+        },
+        "eligible_warps": {
+          "value": 0.4,
+          "unit": "warp",
+          "metric": "smsp__warps_eligible.avg.per_cycle_active"
+        },
+        "active_warps": {
+          "value": 2.5,
+          "unit": "warp",
+          "metric": "smsp__warps_active.avg.per_cycle_active"
+        }
+      },
+      "stall_cycles_per_issue": {
+        "smsp__average_warps_issue_stalled_barrier_per_issue_active.ratio": 2.43,
+        "smsp__average_warps_issue_stalled_wait_per_issue_active.ratio": 1.27,
+        "smsp__average_warps_issue_stalled_selected_per_issue_active.ratio": 1.0,
+        "smsp__average_warps_issue_stalled_long_scoreboard_per_issue_active.ratio": 0.67,
+        "smsp__average_warps_issue_stalled_short_scoreboard_per_issue_active.ratio": 0.62,
+        "smsp__average_warps_issue_stalled_dispatch_stall_per_issue_active.ratio": 0.59,
+        "smsp__average_warps_issue_stalled_gmma_per_issue_active.ratio": 0.42,
+        "smsp__average_warps_issue_stalled_not_selected_per_issue_active.ratio": 0.32,
+        "smsp__average_warps_issue_stalled_math_pipe_throttle_per_issue_active.ratio": 0.25,
+        "smsp__average_warps_issue_stalled_sleeping_per_issue_active.ratio": 0.21,
+        "smsp__average_warps_issue_stalled_branch_resolving_per_issue_active.ratio": 0.2,
+        "smsp__average_warps_issue_stalled_no_instruction_per_issue_active.ratio": 0.18,
+        "smsp__average_warps_issue_stalled_mio_throttle_per_issue_active.ratio": 0.02,
+        "smsp__average_warps_issue_stalled_membar_per_issue_active.ratio": 0.01,
+        "smsp__average_warps_issue_stalled_misc_per_issue_active.ratio": 0.01,
+        "smsp__average_warps_issue_stalled_drain_per_issue_active.ratio": 0.0,
+        "smsp__average_warps_issue_stalled_imc_miss_per_issue_active.ratio": 0.0,
+        "smsp__average_warps_issue_stalled_lg_throttle_per_issue_active.ratio": 0.0,
+        "smsp__average_warps_issue_stalled_tex_throttle_per_issue_active.ratio": 0.0
+      }
+    },
+    {
+      "case": 5,
+      "kernel": "void moe_fused_persistent<1, 1>(FusedArgs)",
+      "metrics": {
+        "duration": {
+          "value": 3.68,
+          "unit": "ms",
+          "metric": "gpu__time_duration.sum"
+        },
+        "sm_clock": {
+          "value": 1.69,
+          "unit": "Ghz",
+          "metric": "gpc__cycles_elapsed.avg.per_second"
+        },
+        "tensor_percent": {
+          "value": 90.51,
+          "unit": "%",
+          "metric": "sm__pipe_tensor_cycles_active.avg.pct_of_peak_sustained_elapsed"
+        },
+        "dram_bandwidth": {
+          "value": 505.61,
+          "unit": "Gbyte/s",
+          "metric": "dram__bytes.sum.per_second"
+        },
+        "dram_percent": {
+          "value": 10.51,
+          "unit": "%",
+          "metric": "gpu__dram_throughput.avg.pct_of_peak_sustained_elapsed"
+        },
+        "l2_percent": {
+          "value": 39.72,
+          "unit": "%",
+          "metric": "lts__throughput.avg.pct_of_peak_sustained_elapsed"
+        },
+        "issue_percent": {
+          "value": 25.77,
+          "unit": "%",
+          "metric": "smsp__issue_active.avg.pct_of_peak_sustained_active"
+        },
+        "eligible_warps": {
+          "value": 0.33,
+          "unit": "warp",
+          "metric": "smsp__warps_eligible.avg.per_cycle_active"
+        },
+        "active_warps": {
+          "value": 2.5,
+          "unit": "warp",
+          "metric": "smsp__warps_active.avg.per_cycle_active"
+        }
+      },
+      "stall_cycles_per_issue": {
+        "smsp__average_warps_issue_stalled_barrier_per_issue_active.ratio": 3.18,
+        "smsp__average_warps_issue_stalled_wait_per_issue_active.ratio": 1.54,
+        "smsp__average_warps_issue_stalled_selected_per_issue_active.ratio": 1.0,
+        "smsp__average_warps_issue_stalled_dispatch_stall_per_issue_active.ratio": 0.86,
+        "smsp__average_warps_issue_stalled_short_scoreboard_per_issue_active.ratio": 0.73,
+        "smsp__average_warps_issue_stalled_long_scoreboard_per_issue_active.ratio": 0.72,
+        "smsp__average_warps_issue_stalled_gmma_per_issue_active.ratio": 0.59,
+        "smsp__average_warps_issue_stalled_not_selected_per_issue_active.ratio": 0.29,
+        "smsp__average_warps_issue_stalled_sleeping_per_issue_active.ratio": 0.25,
+        "smsp__average_warps_issue_stalled_branch_resolving_per_issue_active.ratio": 0.22,
+        "smsp__average_warps_issue_stalled_math_pipe_throttle_per_issue_active.ratio": 0.19,
+        "smsp__average_warps_issue_stalled_no_instruction_per_issue_active.ratio": 0.08,
+        "smsp__average_warps_issue_stalled_mio_throttle_per_issue_active.ratio": 0.02,
+        "smsp__average_warps_issue_stalled_membar_per_issue_active.ratio": 0.01,
+        "smsp__average_warps_issue_stalled_misc_per_issue_active.ratio": 0.01,
+        "smsp__average_warps_issue_stalled_drain_per_issue_active.ratio": 0.0,
+        "smsp__average_warps_issue_stalled_imc_miss_per_issue_active.ratio": 0.0,
+        "smsp__average_warps_issue_stalled_lg_throttle_per_issue_active.ratio": 0.0,
+        "smsp__average_warps_issue_stalled_tex_throttle_per_issue_active.ratio": 0.0
+      }
+    }
+  ],
+  "interpretation": [
+    "Tensor pipeline is the most utilized major resource in all three expert kernels.",
+    "Small expert padding and scheduling remain promising; large expert tensor utilization is already90.51%.",
+    "Barrier stalls are not independent removable time: producer and consumer warps intentionally synchronize.",
+    "NCU replays alter timing and caches. These are diagnostic counters, not official scores or full-layer speedup predictions."
+  ]
+}

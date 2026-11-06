@@ -1,0 +1,30 @@
+[gate] slot 1 at 06:09:39 (2 running)
+0 failures
+PASS {'batch': 2, 'ctx': 300, 'heads': 'tp8', 'layer': 'sliding', 'page': 1} seed 1 call 2: C 0: relative L2 error 7.752e-02 (worst row 8.459e-02) [bound 0.150: 2.5 x the reference's 0.076 with FP8 E4M3 queries + 0.015]
+
+0 failures
+decode 1  sliding w46 sglang    19.76 | k22     3.23 x6.111 | k23     3.16 x6.244 | k22c     3.22 x6.131   sol    0.11
+decode 1  full    w16 sglang    30.58 | k22    13.30 x2.298 | k23    13.12 x2.330 | k22c    13.45 x2.273   sol    4.27
+decode 16 sliding w46 sglang    25.82 | k22     8.57 x3.012 | k23     6.68 x3.864 | k22c     8.34 x3.098   sol    1.65
+decode 16 full    w16 sglang   201.07 | k22    84.80 x2.371 | k23    84.53 x2.379 | k22c    84.68 x2.374   sol   63.18
+decode 32 sliding w46 sglang    30.16 | k22    10.66 x2.830 | k23     8.39 x3.595 | k22c    10.50 x2.873   sol    3.29
+decode 32 full    w16 sglang   386.10 | k22   159.66 x2.418 | k23   159.98 x2.413 | k22c   159.62 x2.419   sol  126.35
+verify 1  sliding w46 sglang    22.18 | k22     5.00 x4.435 | k23     4.87 x4.552 | k22c     4.86 x4.562   sol    0.12
+verify 1  full    w16 sglang    35.52 | k22    17.96 x1.978 | k23    17.96 x1.978 | k22c    17.77 x1.998   sol    4.28
+verify 16 sliding w46 sglang    28.22 | k22    11.85 x2.381 | k23    11.74 x2.404 | k22c    11.84 x2.384   sol    1.86
+verify 16 full    w16 sglang   204.34 | k22   104.34 x1.958 | k23   104.40 x1.957 | k22c   104.66 x1.952   sol   63.39
+verify 32 sliding w46 sglang    33.22 | k22    14.18 x2.343 | k23    14.22 x2.335 | k22c    14.28 x2.326   sol    3.72
+verify 32 full    w16 sglang   390.86 | k22   191.63 x2.040 | k23   190.76 x2.049 | k22c   191.96 x2.036   sol  126.78
+per-load (weighted sums, us):
+  decode 1  sglang    1398.2 | k22     361.6 x3.867 | k23     355.5 x3.933 | k22c     363.5 x3.847
+  decode 16 sglang    4405.1 | k22    1751.3 x2.515 | k23    1659.8 x2.654 | k22c    1738.3 x2.534
+  decode 32 sglang    7564.9 | k22    3044.9 x2.484 | k23    2945.6 x2.568 | k22c    3036.9 x2.491
+  verify 1  sglang    1588.4 | k22     517.3 x3.071 | k23     511.4 x3.106 | k22c     508.0 x3.127
+  verify 16 sglang    4567.7 | k22    2214.7 x2.062 | k23    2210.4 x2.066 | k22c    2219.1 x2.058
+  verify 32 sglang    7781.8 | k22    3718.2 x2.093 | k23    3706.5 x2.099 | k22c    3728.2 x2.087
+GEOMEAN k22: x2.6157 (board time 1420.5 us)   judge-projected (+1.0 us/call) x2.4477 (board 1549.9 us)
+GEOMEAN k23: x2.6686 (board time 1392.3 us)   judge-projected (+1.0 us/call) x2.4933 (board 1521.6 us)
+GEOMEAN k22c: x2.6237 (board time 1416.1 us)   judge-projected (+1.0 us/call) x2.4546 (board 1545.6 us)
+
+fetched into autoresearch-kernels/attn/out/20261028T061210_verify_k23
+[exit 0]

@@ -1,0 +1,73 @@
+[gate] slot 0 at 22:54:38 (0 running)
+✓ Initialized. View run at 
+<modal-run-url>
+✓ Created objects.
+├── 🔨 Created mount 
+│   autoresearch-kernels/attn/tools/modal_run.py
+├── 🔨 Created mount autoresearch-kernels/attn
+└── 🔨 Created function run.
+[gpu-before]
+NVIDIA H200, 0 %, 114 MiB, 345 MHz, 1980 MHz, 75.44 W
+0
+
+1,1,sliding: G=16 aligned=True cpr=16  (us from first CTA start; median over 10 reps)
+  0 start     min    0.00  med    0.13  max    0.16   (CTAs 16)
+  1 seq       min    0.58  med    0.58  max    0.64   (CTAs 16)
+  2 q/new     min    3.42  med    3.50  max    4.56   (CTAs 16)
+  3 tile0     min    3.57  med    3.64  max    4.69   (CTAs 16)
+  4 tiles     min    4.48  med    4.59  max    5.73   (CTAs 16)
+  5 merged    min    5.54  med    5.63  max    6.88   (CTAs 16)
+  6 publish   min    5.95  med    6.06  max    7.33   (CTAs 16)
+  7 released  min    8.24  med    8.30  max    8.67   (CTAs 16)
+  8 combined  min   10.56  med   10.61  max   10.88   (CTAs 16)
+
+1,1,full: G=132 aligned=True cpr=132  (us from first CTA start; median over 10 reps)
+  0 start     min    0.00  med    0.06  max    0.18   (CTAs 132)
+  1 seq       min    0.61  med    0.66  max    0.70   (CTAs 132)
+  2 q/new     min    2.86  med    5.07  max    7.60   (CTAs 132)
+  3 tile0     min    5.26  med    6.82  max    8.51   (CTAs 132)
+  4 tiles     min    8.53  med    9.68  max   11.41   (CTAs 132)
+  5 merged    min   10.35  med   11.10  max   12.75   (CTAs 132)
+  6 publish   min   10.82  med   11.57  max   13.20   (CTAs 132)
+  7 released  min   14.05  med   14.18  max   14.54   (CTAs 16)
+  8 combined  min   17.07  med   17.19  max   17.66   (CTAs 16)
+
+32,1,sliding: G=128 aligned=True cpr=4  (us from first CTA start; median over 10 reps)
+  0 start     min    0.00  med    0.13  max    0.26   (CTAs 128)
+  1 seq       min    0.59  med    0.66  max    0.74   (CTAs 128)
+  2 q/new     min    5.06  med    7.10  max    9.23   (CTAs 128)
+  3 tile0     min    5.63  med    7.58  max    9.42   (CTAs 128)
+  4 tiles     min    7.55  med    9.71  max   12.75   (CTAs 128)
+  5 merged    min   10.05  med   11.02  max   13.78   (CTAs 128)
+  6 publish   min   10.48  med   11.47  max   14.19   (CTAs 128)
+  7 released  min   14.02  med   14.72  max   15.55   (CTAs 128)
+  8 combined  min   15.94  med   16.41  max   17.28   (CTAs 128)
+
+32,1,full: G=132 aligned=False cpr=1  (us from first CTA start; median over 10 reps)
+  0 start     min    0.00  med    0.08  max    0.22   (CTAs 132)
+  2 q/new     min    4.13  med    7.10  max  171.58   (CTAs 132)
+  3 tile0     min    5.63  med    8.33  max  172.16   (CTAs 132)
+  4 tiles     min  163.94  med  167.50  max  178.08   (CTAs 132)
+  5 merged    min  166.91  med  169.89  max  180.11   (CTAs 132)
+  6 publish   min  167.49  med  170.44  max  180.62   (CTAs 132)
+  7 released  min  176.99  med  180.34  max  186.02   (CTAs 107)
+  8 combined  min  179.33  med  182.53  max  188.03   (CTAs 107)
+
+1,8,sliding: G=16 aligned=True cpr=16  (us from first CTA start; median over 10 reps)
+  0 start     min    0.00  med    0.06  max    0.11   (CTAs 16)
+  1 seq       min    0.54  med    0.58  max    0.61   (CTAs 16)
+  2 q/new     min    4.82  med    4.86  max    5.31   (CTAs 16)
+  3 tile0     min    4.99  med    5.07  max    5.47   (CTAs 16)
+  4 tiles     min    8.34  med    8.50  max   10.61   (CTAs 16)
+  5 merged    min   10.80  med   10.98  max   13.12   (CTAs 16)
+  6 publish   min   11.20  med   11.38  max   13.49   (CTAs 16)
+  7 released  min   14.54  med   14.64  max   14.98   (CTAs 16)
+  8 combined  min   19.41  med   19.45  max   19.63   (CTAs 16)
+[gpu-after]
+NVIDIA H200, 8 %, 114 MiB, 1980 MHz, 1980 MHz, 137.64 W
+0
+
+[exit 0]
+Stopping app - local entrypoint completed.
+✓ App completed. View run at 
+<modal-run-url>

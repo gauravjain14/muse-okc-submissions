@@ -1,0 +1,16 @@
+[sbx] waited 6s for a GPU
+[sbx] box 0
+[compile 2.1s]
+plan 1 xe_r1_1 (16, 2) 160 16 co-resident clusters 7
+plan 8 xe_b1s_8c6 (6, 16) 384 6 co-resident clusters 17
+d1s 7 True relative L2 error 4.483e-03 (worst row 4.483e-03) [bound 0.150: 2.5 x the reference's 0.071 with FP8 E4M3 queries + 0.015]
+d1s 8 True relative L2 error 5.215e-03 (worst row 5.215e-03) [bound 0.150: 2.5 x the reference's 0.054 with FP8 E4M3 queries + 0.015]
+v1s 7 True relative L2 error 5.781e-02 (worst row 6.913e-02) [bound 0.150: 2.5 x the reference's 0.058 with FP8 E4M3 queries + 0.015]
+v1s 8 True relative L2 error 6.945e-02 (worst row 7.945e-02) [bound 0.150: 2.5 x the reference's 0.069 with FP8 E4M3 queries + 0.015]
+d16s 7 True relative L2 error 4.467e-03 (worst row 5.938e-03) [bound 0.150: 2.5 x the reference's 0.062 with FP8 E4M3 queries + 0.015]
+d16s 8 True relative L2 error 4.749e-03 (worst row 6.602e-03) [bound 0.150: 2.5 x the reference's 0.071 with FP8 E4M3 queries + 0.015]
+A:slim_xe.py  B:slim_fr.py  C:slim_fr.py[XE_FR=2]  D:slim_xe.py
+d1s   (6 inst) A 7.189  B 7.100 (d -0.089 +- 0.014)  C 7.129 (d -0.060 +- 0.023)  D 7.220 (d +0.031 +- 0.016)
+v1s   (6 inst) A 7.992  B 7.976 (d -0.016 +- 0.017)  C 8.005 (d +0.013 +- 0.022)  D 7.936 (d -0.056 +- 0.025)
+d16s  (6 inst) A 10.065  B 10.217 (d +0.152 +- 0.028)  C 10.215 (d +0.149 +- 0.043)  D 9.981 (d -0.084 +- 0.023)
+REMOTE_EXIT 0

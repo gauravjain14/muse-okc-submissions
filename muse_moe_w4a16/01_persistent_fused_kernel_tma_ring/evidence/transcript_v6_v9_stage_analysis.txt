@@ -1,0 +1,460 @@
+===== [2026-10-23T08:16:40.342Z UTC] Build v6 with the 9-op decode and benchmark
+$ cp dev/moe_v5.py dev/moe_v6.py && python3 - <<'EOF'
+p = "dev/moe_v6.py"
+s = open(p).read()
+def rep(old, new, cnt=1):
+    global s
+    assert s.count(old) == cnt, (s.count(old), old[:100])
+    s = s.replace(old, new)
+rep("""#define M_BF 0x81C081C0u
+DEVI void dequant(u32 q, u32 sg, u32 sg8, u32& a0, u32& a1, u32& a2, u32& a3) {""",
+"""#define M_BF 0x81C081C0u
+DEVI u32 rotl(u32 x, u32 r) { u32 d; asm("shf.l.wrap.b32 %0, %1, %1, %2;" : "=r"(d) : "r"(x), "r"(r)); return d; }
+DEVI void dequant(u32 q, u32 sg, u32 sg8, u32& a0, u32& a1, u32& a2, u32& a3) {""")
+rep("""  u32 o0 = q & M_BF;
+  u32 o1 = (q << 3) & M_BF;
+  u32 o2 = (q << 6) & M_BF;
+  u32 o3 = ((q >> 6) & 0x01800180u) | ((q >> 4) & 0x00400040u) | ((q << 4) & 0x80008000u);""",
+"""  // 9 integer ops for 8 codes: three rotations feed one output each, two more feed the fourth.
+  u32 o0 = q & M_BF;
+  u32 o1 = rotl(q, 4) & M_BF;
+  u32 o2 = rotl(q, 10) & M_BF;
+  u32 o3 = (rotl(q, 6) & 0x80C080C0u) | (rotl(q, 14) & 0x01000100u);""")
+rep("""_POS = [  # per A register (o) and half (h): bit positions of (sign, m2, m1, m0) in the packed word
+    [(15, 8, 7, 6), (31, 24, 23, 22)],
+    [(12, 5, 4, 3), (28, 21, 20, 19)],
+    [(9, 2, 1, 0), (25, 18, 17, 16)],
+    [(11, 14, 13, 10), (27, 30, 29, 26)],
+]""", """_POS = [  # per A register (o) and half (h): bit positions of (sign, m2, m1, m0) in the packed word
+    [(15, 8, 7, 6), (31, 24, 23, 22)],     # q & M
+    [(11, 4, 3, 2), (27, 20, 19, 18)],     # rotl(q, 4) & M
+    [(5, 30, 29, 28), (21, 14, 13, 12)],   # rotl(q, 10) & M
+    [(9, 26, 1, 0), (25, 10, 17, 16)],     # rotl(q, 6) & 0x80C080C0 | rotl(q, 14) & 0x01000100
+]""")
+open(p, "w").write(s)
+print("ok")
+EOF
+sed -i 's/^import moe_v5 as M  # noqa: E402/import moe_v6 as M  # noqa: E402/' dev/abl.py; sed -i 's/src = mod.CUDA_SRC + /src = ("#define MOE_FAST_SCALES\\n" if len(sys.argv) > 4 else "") + mod.CUDA_SRC + /' dev/sass.py; dev/sync.sh dev/moe_v6.py dev/abl.py dev/sass.py >/dev/null && timeout 1500 dev/remote.sh "python3 dev/bench.py dev/abl.py --tests-only --no-base 2>&1 | grep -E 'test|rror' ; python3 dev/bench.py dev/abl.py --reps 20 --no-tests 2>&1 | grep -E '^(decode|verify|geomean)|rror'; python3 dev/sass.py moe_v6 moe_8_4_2_4_8 0 fast 2>&1 | grep hot"
+----- output
+ok
+[cmd-5cpvh]
+test {'bs': 4}: PASS relative L2 error 2.523e-03 (worst row 2.577e-03)
+test {'bs': 33}: PASS relative L2 error 2.550e-03 (worst row 2.776e-03)
+test {'bs': 257}: PASS relative L2 error 2.545e-03 (worst row 2.759e-03)
+test {'bs': 128, 'dist': 'skewed'}: PASS relative L2 error 2.546e-03 (worst row 2.723e-03)
+test {'bs': 1}: PASS relative L2 error 2.473e-03 (worst row 2.473e-03)
+decode 1   bs   1  experts   2.6 pairs    2.6  sub     49.5 us (  1488 GB/s)  base     95.6 us  speedup 1.948x
+decode 16  bs  16  experts  11.8 pairs   25.2  sub    142.9 us (  2347 GB/s)  base    225.0 us  speedup 1.575x
+decode 32  bs  32  experts  16.2 pairs   50.1  sub    216.7 us (  2116 GB/s)  base    259.6 us  speedup 1.193x
+verify 1   bs   8  experts   9.1 pairs   13.8  sub    118.4 us (  2176 GB/s)  base    187.5 us  speedup 1.541x
+verify 16  bs 128  experts  22.9 pairs  206.7  sub    335.9 us (  1934 GB/s)  base    580.9 us  speedup 1.714x
+verify 32  bs 256  experts  24.9 pairs  383.6  sub    433.0 us (  1628 GB/s)  base    756.9 us  speedup 1.755x
+geomean speedup 1.603x over 6 loads
+hot region 775 [('LOP3', 167), ('SHF', 136), ('HMUL2', 128), ('HMMA', 128), ('NOP', 63), ('LDS', 45), ('IMAD', 24), ('BRA', 18), ('LEA', 17), ('PRMT', 16), ('WARPSYNC', 16), ('ISETP', 5), ('IADD3', 5), ('VIADD', 3), ('SYNCS', 1), ('BSYNC', 1), ('MOV', 1), ('S2R', 1)]
+cmd-5cpvh  exited  0     2026-10-23T08:16:45.664920+00:00
+
+===== [2026-10-23T08:17:36.147Z UTC] Collect stall counters for v6
+$ timeout 900 dev/remote.sh "python3 dev/timing.py 1,8,16,32,128,256 2>&1 | grep -E '^bs|per CTA|rror'"
+----- output
+[cmd-er3ta]
+bs   1: start    0.0-   0.2  routed by    2.1  work end    39.0 .. median    43.5 ..    46.6  combine end    51.1 us
+        per CTA (median): consumer wait    6.6  epilogue    5.8  items    6  producer empty-wait    3.8  dep-wait    2.4 us
+bs   8: start    0.0-   0.2  routed by    2.2  work end   118.0 .. median   121.5 ..   127.0  combine end   132.6 us
+        per CTA (median): consumer wait   11.0  epilogue   16.2  items   19  producer empty-wait   14.2  dep-wait    3.7 us
+bs  16: start    0.0-   0.2  routed by    2.2  work end   120.5 .. median   133.3 ..   136.7  combine end   141.6 us
+        per CTA (median): consumer wait   11.4  epilogue    3.7  items    6  producer empty-wait   33.1  dep-wait    1.1 us
+bs  32: start    0.0-   0.2  routed by    2.3  work end   162.2 .. median   167.5 ..   178.7  combine end   183.3 us
+        per CTA (median): consumer wait   12.6  epilogue    5.8  items    7  producer empty-wait   50.3  dep-wait    1.3 us
+bs 128: start    0.0-   0.1  routed by    2.9  work end   292.4 .. median   298.3 ..   308.0  combine end   314.0 us
+        per CTA (median): consumer wait   17.5  epilogue   10.9  items   12  producer empty-wait   79.8  dep-wait    2.1 us
+bs 256: start    0.0-   0.2  routed by    3.8  work end   366.2 .. median   373.9 ..   382.4  combine end   392.5 us
+        per CTA (median): consumer wait   19.4  epilogue   13.9  items   13  producer empty-wait   87.6  dep-wait    2.4 us
+cmd-er3ta  exited  0     2026-10-23T08:17:36.647590+00:00
+
+===== [2026-10-23T08:18:23.216Z UTC] Measure consumer-only throughput without memory traffic
+$ python3 - <<'EOF'
+p = "dev/moe_v6.py"
+s = open(p).read()
+def rep(old, new, cnt=1):
+    global s
+    assert s.count(old) == cnt, (s.count(old), old[:100])
+    s = s.replace(old, new)
+rep("""          mbar_arrive_tx(full, WB + SB + n * KST * 2);
+        }
+        __syncwarp();""", """#ifdef MOE_NO_LOAD
+          mbar_arrive(full);
+#else
+          mbar_arrive_tx(full, WB + SB + n * KST * 2);
+#endif
+        }
+        __syncwarp();
+#ifdef MOE_NO_LOAD
+        continue;
+#endif""")
+open(p, "w").write(s)
+EOF
+dev/sync.sh dev/moe_v6.py >/dev/null && timeout 1500 dev/remote.sh "for v in MOE_NO_LOAD MOE_NO_LOAD,MOE_NO_MMA MOE_NO_LOAD,MOE_NO_DEQ; do echo == \$v; MOE_DEFINES=\$v python3 dev/bench.py dev/abl.py --reps 10 --no-tests --no-base --no-check 2>&1 | grep -E '^(decode|verify)|rror'; done; python3 dev/kattrs.py dev/abl.py 2>&1 | tail -3"
+----- output
+[cmd-b5r33]
+== MOE_NO_LOAD
+decode 1   bs   1  experts   2.6 pairs    2.6  sub     43.0 us (  1710 GB/s)
+decode 16  bs  16  experts  11.9 pairs   25.2  sub    124.5 us (  2707 GB/s)
+decode 32  bs  32  experts  16.0 pairs   48.2  sub    206.3 us (  2195 GB/s)
+verify 1   bs   8  experts   9.1 pairs   14.6  sub    107.9 us (  2387 GB/s)
+verify 16  bs 128  experts  23.1 pairs  204.7  sub    323.2 us (  2023 GB/s)
+verify 32  bs 256  experts  25.2 pairs  393.1  sub    421.6 us (  1692 GB/s)
+== MOE_NO_LOAD,MOE_NO_MMA
+decode 1   bs   1  experts   2.6 pairs    2.6  sub     41.4 us (  1776 GB/s)
+decode 16  bs  16  experts  11.9 pairs   25.2  sub    120.8 us (  2788 GB/s)
+decode 32  bs  32  experts  16.0 pairs   48.2  sub    200.8 us (  2256 GB/s)
+verify 1   bs   8  experts   9.1 pairs   14.6  sub    104.0 us (  2478 GB/s)
+verify 16  bs 128  experts  23.1 pairs  204.7  sub    309.9 us (  2110 GB/s)
+verify 32  bs 256  experts  25.2 pairs  393.1  sub    400.8 us (  1780 GB/s)
+== MOE_NO_LOAD,MOE_NO_DEQ
+decode 1   bs   1  experts   2.6 pairs    2.6  sub     32.3 us (  2282 GB/s)
+decode 16  bs  16  experts  11.9 pairs   25.2  sub     80.3 us (  4197 GB/s)
+decode 32  bs  32  experts  16.0 pairs   48.2  sub    142.4 us (  3181 GB/s)
+verify 1   bs   8  experts   9.1 pairs   14.6  sub     77.5 us (  3326 GB/s)
+verify 16  bs 128  experts  23.1 pairs  204.7  sub    229.8 us (  2846 GB/s)
+verify 32  bs 256  experts  25.2 pairs  393.1  sub    305.7 us (  2334 GB/s)
+    mod = sub._module()
+          ^^^^^^^^^^^
+AttributeError: module 'sub' has no attribute '_module'
+cmd-b5r33  exited  0     2026-10-23T08:18:25.755397+00:00
+
+===== [2026-10-23T08:19:28.349Z UTC] Show the ordering of loads, HMUL2 and HMMA in SASS
+$ timeout 600 dev/remote.sh "python3 dev/sass.py moe_v6 moe_2_1_2_4_1 700 fast 2>&1 | grep -E 'HMMA|HMUL2|LDS|SYNCS|BAR|hot' | head -120"
+----- output
+[cmd-vzinh]
+[('IMAD', 666), ('ISETP', 366), ('SHFL', 362), ('FADD', 326), ('FFMA', 264), ('SHF', 245), ('LEA', 235), ('LOP3', 221), ('FMUL', 218), ('IADD3', 216), ('WARPSYNC', 201), ('MOV', 190), ('ENDCOLLECTIVE', 185), ('BRA', 165), ('SEL', 137), ('HMUL2', 128), ('VIADD', 115), ('LDG', 109), ('LDS', 103), ('BSSY', 64), ('BSYNC', 64), ('UMOV', 54), ('STG', 48), ('STS', 40), ('UIADD3', 34), ('SYNCS', 34), ('HMMA', 32), ('STL', 30), ('NOP', 28), ('LDC', 27)]
+hot region 569 [('LOP3', 164), ('SHF', 134), ('HMUL2', 128), ('HMMA', 32), ('LDS', 21), ('IMAD', 21), ('LEA', 19), ('PRMT', 16), ('IADD3', 7), ('BRA', 6), ('NOP', 6), ('S2R', 4), ('WARPSYNC', 4), ('VIADD', 3), ('ISETP', 2), ('SYNCS', 1), ('BSYNC', 1)]
+        /*3310*/                   SYNCS.PHASECHK.TRANS64.TRYWAIT P0, [R9+URZ], R10 ;             /* 0x0000000a090075a7 */
+        /*3340*/                   LDS.128 R12, [R30+0x80] ;                                      /* 0x000080001e0c7984 */
+        /*3430*/                   LDS.128 R36, [R12] ;                                           /* 0x000000000c247984 */
+        /*3440*/                   LDS.128 R32, [R12+0x800] ;                                     /* 0x000800000c207984 */
+        /*3450*/                   LDS.64 R8, [R60] ;                                             /* 0x000000003c087984 */
+        /*3720*/                   LDS.64 R10, [R60+0x100] ;                                      /* 0x000100003c0a7984 */
+        /*37d0*/                   LDS.128 R32, [R30+0x90] ;                                      /* 0x000090001e207984 */
+        /*3860*/                   HMUL2.BF16_V2 R36, R31, R69.reuse ;                            /* 0x000000451f247232 */
+        /*3880*/                   LDS.64 R30, [R30+0xa0] ;                                       /* 0x0000a0001e1e7984 */
+        /*38a0*/                   HMUL2.BF16_V2 R42, R50, R69.reuse ;                            /* 0x00000045322a7232 */
+        /*38c0*/                   HMUL2.BF16_V2 R38, R46, R69.reuse ;                            /* 0x000000452e267232 */
+        /*38e0*/                   HMUL2.BF16_V2 R40, R40, R69.reuse ;                            /* 0x0000004528287232 */
+        /*3900*/                   HMUL2.BF16_V2 R37, R45, R68.reuse ;                            /* 0x000000442d257232 */
+        /*3920*/                   HMUL2.BF16_V2 R44, R44, R69.reuse ;                            /* 0x000000452c2c7232 */
+        /*3940*/                   HMUL2.BF16_V2 R46, R70, R69.reuse ;                            /* 0x00000045462e7232 */
+        /*3960*/                   HMUL2.BF16_V2 R48, R48, R69.reuse ;                            /* 0x0000004530307232 */
+        /*3980*/                   HMUL2.BF16_V2 R50, R78, R69 ;                                  /* 0x000000454e327232 */
+        /*39a0*/                   HMUL2.BF16_V2 R41, R41, R68.reuse ;                            /* 0x0000004429297232 */
+        /*39c0*/                   HMUL2.BF16_V2 R45, R71, R68.reuse ;                            /* 0x00000044472d7232 */
+        /*39e0*/                   HMUL2.BF16_V2 R49, R49, R68.reuse ;                            /* 0x0000004431317232 */
+        /*3a00*/                   HMUL2.BF16_V2 R39, R39, R68.reuse ;                            /* 0x0000004427277232 */
+        /*3a20*/                   HMUL2.BF16_V2 R43, R43, R68.reuse ;                            /* 0x000000442b2b7232 */
+        /*3a40*/                   HMUL2.BF16_V2 R47, R47, R68.reuse ;                            /* 0x000000442f2f7232 */
+        /*3a60*/                   HMUL2.BF16_V2 R51, R51, R68 ;                                  /* 0x0000004433337232 */
+        /*3a80*/                   HMUL2.BF16_V2 R52, R52, R69.reuse ;                            /* 0x0000004534347232 */
+        /*3aa0*/                   HMUL2.BF16_V2 R54, R54, R69.reuse ;                            /* 0x0000004536367232 */
+        /*3ac0*/                   HMUL2.BF16_V2 R56, R56, R69 ;                                  /* 0x0000004538387232 */
+        /*3ad0*/                   HMUL2.BF16_V2 R58, R58, R69.reuse ;                            /* 0x000000453a3a7232 */
+        /*3ae0*/                   HMUL2.BF16_V2 R60, R60, R69.reuse ;                            /* 0x000000453c3c7232 */
+        /*3af0*/                   HMUL2.BF16_V2 R62, R62, R69.reuse ;                            /* 0x000000453e3e7232 */
+        /*3b00*/                   HMUL2.BF16_V2 R64, R64, R69.reuse ;                            /* 0x0000004540407232 */
+        /*3b10*/                   HMUL2.BF16_V2 R66, R66, R69 ;                                  /* 0x0000004542427232 */
+        /*3b20*/                   HMUL2.BF16_V2 R53, R53, R68 ;                                  /* 0x0000004435357232 */
+        /*3b30*/                   HMUL2.BF16_V2 R57, R57, R68.reuse ;                            /* 0x0000004439397232 */
+        /*3b40*/                   HMUL2.BF16_V2 R61, R61, R68.reuse ;                            /* 0x000000443d3d7232 */
+        /*3b50*/                   HMUL2.BF16_V2 R65, R65, R68.reuse ;                            /* 0x0000004441417232 */
+        /*3b60*/                   HMUL2.BF16_V2 R55, R55, R68.reuse ;                            /* 0x0000004437377232 */
+        /*3b70*/                   HMUL2.BF16_V2 R59, R59, R68.reuse ;                            /* 0x000000443b3b7232 */
+        /*3b80*/                   HMUL2.BF16_V2 R63, R63, R68 ;                                  /* 0x000000443f3f7232 */
+        /*3b90*/                   HMUL2.BF16_V2 R67, R67, R68 ;                                  /* 0x0000004443437232 */
+        /*3c50*/                   LDS.128 R68, [R33] ;                                           /* 0x0000000021447984 */
+        /*3c60*/                   HMMA.16816.F32.BF16 R36, R36, R68.reuse, R20 ;                 /* 0x000000442424723c */
+        /*3c70*/                   HMMA.16816.F32.BF16 R52, R52, R68, R16 ;                       /* 0x000000443434723c */
+        /*3c80*/                   LDS.128 R16, [R33+0x10] ;                                      /* 0x0000100021107984 */
+        /*3ca0*/                   HMMA.16816.F32.BF16 R36, R40, R70.reuse, R36 ;                 /* 0x000000462824723c */
+        /*3cb0*/                   HMMA.16816.F32.BF16 R52, R56, R70, R52 ;                       /* 0x000000463834723c */
+        /*3cd0*/                   HMMA.16816.F32.BF16 R36, R44, R16.reuse, R36 ;                 /* 0x000000102c24723c */
+        /*3ce0*/                   HMMA.16816.F32.BF16 R52, R60, R16, R52 ;                       /* 0x000000103c34723c */
+        /*3d00*/                   HMMA.16816.F32.BF16 R20, R48, R18.reuse, R36 ;                 /* 0x000000123014723c */
+        /*3d10*/                   HMMA.16816.F32.BF16 R16, R64, R18, R52 ;                       /* 0x000000124010723c */
+        /*3d70*/                   LDS.128 R36, [R12+0x200] ;                                     /* 0x000200000c247984 */
+        /*3d80*/                   LDS.128 R44, [R12+0xa00] ;                                     /* 0x000a00000c2c7984 */
+        /*3e80*/                   LDS.128 R40, [R56] ;                                           /* 0x0000000038287984 */
+        /*3f10*/                   HMUL2.BF16_V2 R48, R48, R33.reuse ;                            /* 0x0000002130307232 */
+        /*3f30*/                   HMUL2.BF16_V2 R51, R51, R8.reuse ;                             /* 0x0000000833337232 */
+        /*3f50*/                   HMUL2.BF16_V2 R49, R49, R8 ;                                   /* 0x0000000831317232 */
+        /*3f70*/                   HMUL2.BF16_V2 R50, R50, R33 ;                                  /* 0x0000002132327232 */
+        /*4000*/                   HMMA.16816.F32.BF16 R20, R48, R40, R20 ;                       /* 0x000000283014723c */
+        /*4010*/                   HMUL2.BF16_V2 R55, R55, R10 ;                                  /* 0x0000000a37377232 */
+        /*4080*/                   HMUL2.BF16_V2 R48, R48, R33 ;                                  /* 0x0000002130307232 */
+        /*40a0*/                   HMUL2.BF16_V2 R52, R52, R37.reuse ;                            /* 0x0000002534347232 */
+        /*40c0*/                   HMUL2.BF16_V2 R53, R51, R10 ;                                  /* 0x0000000a33357232 */
+        /*40e0*/                   HMUL2.BF16_V2 R54, R54, R37 ;                                  /* 0x0000002536367232 */
+        /*4100*/                   HMUL2.BF16_V2 R49, R49, R8 ;                                   /* 0x0000000831317232 */
+        /*4120*/                   HMUL2.BF16_V2 R50, R50, R33 ;                                  /* 0x0000002132327232 */
+        /*4130*/                   HMUL2.BF16_V2 R51, R57, R8 ;                                   /* 0x0000000839337232 */
+        /*4140*/                   HMMA.16816.F32.BF16 R52, R52, R40, R16 ;                       /* 0x000000283434723c */
+        /*4150*/                   LDS.128 R16, [R56+0x10] ;                                      /* 0x0000100038107984 */
+        /*4160*/                   HMMA.16816.F32.BF16 R20, R48, R42, R20 ;                       /* 0x0000002a3014723c */
+        /*41c0*/                   HMUL2.BF16_V2 R48, R48, R37.reuse ;                            /* 0x0000002530307232 */
+        /*41e0*/                   HMUL2.BF16_V2 R49, R49, R10.reuse ;                            /* 0x0000000a31317232 */
+        /*4200*/                   HMUL2.BF16_V2 R50, R50, R37 ;                                  /* 0x0000002532327232 */
+        /*4220*/                   HMUL2.BF16_V2 R51, R41, R10 ;                                  /* 0x0000000a29337232 */
+        /*4260*/                   HMMA.16816.F32.BF16 R48, R48, R42, R52 ;                       /* 0x0000002a3030723c */
+        /*4280*/                   HMUL2.BF16_V2 R40, R40, R33.reuse ;                            /* 0x0000002128287232 */
+        /*42c0*/                   HMUL2.BF16_V2 R43, R45, R8.reuse ;                             /* 0x000000082d2b7232 */
+        /*42e0*/                   HMUL2.BF16_V2 R41, R41, R8 ;                                   /* 0x0000000829297232 */
+        /*4300*/                   HMUL2.BF16_V2 R44, R44, R33 ;                                  /* 0x000000212c2c7232 */
+        /*4330*/                   HMUL2.BF16_V2 R42, R42, R33 ;                                  /* 0x000000212a2a7232 */
+        /*4370*/                   HMMA.16816.F32.BF16 R20, R40, R16, R20 ;                       /* 0x000000102814723c */
+        /*4390*/                   HMUL2.BF16_V2 R43, R53, R10 ;                                  /* 0x0000000a352b7232 */
+        /*43c0*/                   HMUL2.BF16_V2 R40, R40, R37.reuse ;                            /* 0x0000002528287232 */
+        /*43e0*/                   HMUL2.BF16_V2 R41, R41, R10 ;                                  /* 0x0000000a29297232 */
+        /*4400*/                   HMUL2.BF16_V2 R42, R42, R37 ;                                  /* 0x000000252a2a7232 */
+        /*4440*/                   HMMA.16816.F32.BF16 R40, R40, R16, R48 ;                       /* 0x000000102828723c */
+        /*44f0*/                   HMUL2.BF16_V2 R46, R36, R33 ;                                  /* 0x00000021242e7232 */
+        /*4510*/                   HMUL2.BF16_V2 R36, R16, R37 ;                                  /* 0x0000002510247232 */
+        /*4530*/                   HMUL2.BF16_V2 R45, R39, R8 ;                                   /* 0x00000008272d7232 */
+        /*4540*/                   HMUL2.BF16_V2 R47, R53, R8 ;                                   /* 0x00000008352f7232 */
+        /*4550*/                   HMUL2.BF16_V2 R38, R38, R37 ;                                  /* 0x0000002526267232 */
+        /*4560*/                   HMUL2.BF16_V2 R37, R17, R10.reuse ;                            /* 0x0000000a11257232 */
+        /*4570*/                   HMUL2.BF16_V2 R39, R49, R10 ;                                  /* 0x0000000a31277232 */
+        /*4580*/                   HMMA.16816.F32.BF16 R20, R44, R18.reuse, R20 ;                 /* 0x000000122c14723c */
+        /*4590*/                   HMMA.16816.F32.BF16 R16, R36, R18, R40 ;                       /* 0x000000122410723c */
+        /*45f0*/                   LDS.128 R36, [R12+0x400] ;                                     /* 0x000400000c247984 */
+        /*4600*/                   LDS.128 R44, [R12+0xc00] ;                                     /* 0x000c00000c2c7984 */
+        /*4700*/                   LDS.128 R40, [R56] ;                                           /* 0x0000000038287984 */
+        /*47b0*/                   HMUL2.BF16_V2 R48, R33, R10.reuse ;                            /* 0x0000000a21307232 */
+        /*47d0*/                   HMUL2.BF16_V2 R50, R51, R10 ;                                  /* 0x0000000a33327232 */
+        /*47f0*/                   HMUL2.BF16_V2 R49, R49, R8.reuse ;                             /* 0x0000000831317232 */
+        /*4810*/                   HMUL2.BF16_V2 R51, R53, R8 ;                                   /* 0x0000000835337232 */
+        /*4890*/                   HMMA.16816.F32.BF16 R20, R48, R40, R20 ;                       /* 0x000000283014723c */
+        /*48b0*/                   HMUL2.BF16_V2 R55, R58, R33 ;                                  /* 0x000000213a377232 */
+        /*4930*/                   HMUL2.BF16_V2 R52, R52, R37 ;                                  /* 0x0000002534347232 */
+        /*4950*/                   HMUL2.BF16_V2 R53, R36, R33 ;                                  /* 0x0000002124357232 */
+        /*4970*/                   HMUL2.BF16_V2 R54, R54, R37 ;                                  /* 0x0000002536367232 */
+        /*4980*/                   HMUL2.BF16_V2 R48, R49, R10 ;                                  /* 0x0000000a31307232 */
+        /*49a0*/                   HMUL2.BF16_V2 R49, R51, R8 ;                                   /* 0x0000000833317232 */
+        /*49b0*/                   HMUL2.BF16_V2 R50, R59, R10 ;                                  /* 0x0000000a3b327232 */
+        /*49c0*/                   HMMA.16816.F32.BF16 R52, R52, R40, R16 ;                       /* 0x000000283434723c */
+        /*49d0*/                   LDS.128 R16, [R56+0x10] ;                                      /* 0x0000100038107984 */
+        /*49e0*/                   HMUL2.BF16_V2 R51, R57, R8 ;                                   /* 0x0000000839337232 */
+        /*4a10*/                   HMMA.16816.F32.BF16 R20, R48, R42, R20 ;                       /* 0x0000002a3014723c */
+        /*4a40*/                   HMUL2.BF16_V2 R49, R36, R33.reuse ;                            /* 0x0000002124317232 */
+        /*4a60*/                   HMUL2.BF16_V2 R51, R44, R33 ;                                  /* 0x000000212c337232 */
+        /*4a80*/                   HMUL2.BF16_V2 R50, R50, R37.reuse ;                            /* 0x0000002532327232 */
+        /*4aa0*/                   HMUL2.BF16_V2 R48, R48, R37 ;                                  /* 0x0000002530307232 */
+        /*4af0*/                   HMMA.16816.F32.BF16 R48, R48, R42, R52 ;                       /* 0x0000002a3030723c */
+cmd-vzinh  exited  0     2026-10-23T08:19:29.310638+00:00
+
+===== [2026-10-23T08:21:16.415Z UTC] Compare register and spill usage of v6 and v7
+$ cat > dev/kattrs.py <<'EOF'
+"""Registers and local-memory (spill) bytes of each compiled kernel config: kattrs.py <module> [fast]."""
+import importlib, os, sys
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import torch
+torch.zeros(1, device="cuda")
+M = importlib.import_module(sys.argv[1])
+mod = M._module(len(sys.argv) > 2)
+d = mod.driver
+for cfg in M._all_cfgs():
+    f = mod.func(M._name(cfg))
+    regs = d.cuFuncGetAttribute(d.CUfunction_attribute.CU_FUNC_ATTRIBUTE_NUM_REGS, f)[1]
+    local = d.cuFuncGetAttribute(d.CUfunction_attribute.CU_FUNC_ATTRIBUTE_LOCAL_SIZE_BYTES, f)[1]
+    print(f"{M._name(cfg):24s} regs {regs:4d} local {local:6d} B")
+EOF
+dev/sync.sh dev/kattrs.py >/dev/null && timeout 600 dev/remote.sh "cd dev && python3 kattrs.py moe_v7 fast 2>&1 | tail -6; python3 kattrs.py moe_v6 fast 2>&1 | tail -6"
+----- output
+[cmd-j4a7i]
+moe_8_2_2_4_1            regs  129 local     64 B
+moe_8_4_2_3_16           regs  168 local    160 B
+moe_8_4_2_4_1            regs  163 local     64 B
+moe_8_4_2_4_2            regs  163 local     64 B
+moe_8_4_2_4_4            regs  163 local     64 B
+moe_8_4_2_4_8            regs  163 local     64 B
+moe_8_2_2_4_1            regs  103 local     64 B
+moe_8_4_2_3_16           regs  152 local     64 B
+moe_8_4_2_4_1            regs  118 local     64 B
+moe_8_4_2_4_2            regs  118 local     64 B
+moe_8_4_2_4_4            regs  118 local     64 B
+moe_8_4_2_4_8            regs  118 local     64 B
+cmd-j4a7i  exited  0     2026-10-23T08:21:18.536466+00:00
+
+===== [2026-10-23T08:24:57.194Z UTC] Build v8 with FMA-pipe shifts and benchmark
+$ cd muse-opt/muse_moe_w4a16 && cp dev/moe_v7.py dev/moe_v8.py && python3 - <<'EOF'
+p = "dev/moe_v8.py"
+s = open(p).read()
+def rep(old, new, cnt=1):
+    global s
+    assert s.count(old) == cnt, (s.count(old), old[:100])
+    s = s.replace(old, new)
+rep("""  // 9 integer ops for 8 codes: three rotations feed one output each, two more feed the fourth.
+  u32 o0 = q & M_BF;
+  u32 o1 = rotl(q, 4) & M_BF;
+  u32 o2 = rotl(q, 10) & M_BF;
+  u32 o3 = (rotl(q, 6) & 0x80C080C0u) | (rotl(q, 14) & 0x01000100u);""",
+"""  // Six masks on the ALU pipe; the five shifts are multiplies (low or high word), which issue on
+  // the FMA pipe instead.
+  u32 o0 = q & M_BF;
+  u32 o1 = shl_fma<3>(q) & M_BF;
+  u32 o2 = shl_fma<6>(q) & M_BF;
+  u32 o3 = (shr_fma<6>(q) & 0x01800180u) | (shr_fma<4>(q) & 0x00400040u) | (shl_fma<4>(q) & 0x80008000u);""")
+rep("""DEVI u32 rotl(u32 x, u32 r) { u32 d; asm("shf.l.wrap.b32 %0, %1, %1, %2;" : "=r"(d) : "r"(x), "r"(r)); return d; }""",
+"""template <int R> DEVI u32 shl_fma(u32 x) { u32 d; asm("mul.lo.u32 %0, %1, %2;" : "=r"(d) : "r"(x), "n"(1u << R)); return d; }
+template <int R> DEVI u32 shr_fma(u32 x) { u32 d; asm("mul.hi.u32 %0, %1, %2;" : "=r"(d) : "r"(x), "n"(1u << (32 - R))); return d; }""")
+rep("""_POS = [  # per A register (o) and half (h): bit positions of (sign, m2, m1, m0) in the packed word
+    [(15, 8, 7, 6), (31, 24, 23, 22)],     # q & M
+    [(11, 4, 3, 2), (27, 20, 19, 18)],     # rotl(q, 4) & M
+    [(5, 30, 29, 28), (21, 14, 13, 12)],   # rotl(q, 10) & M
+    [(9, 26, 1, 0), (25, 10, 17, 16)],     # rotl(q, 6) & 0x80C080C0 | rotl(q, 14) & 0x01000100
+]""", """_POS = [  # per A register (o) and half (h): bit positions of (sign, m2, m1, m0) in the packed word
+    [(15, 8, 7, 6), (31, 24, 23, 22)],     # q & M
+    [(12, 5, 4, 3), (28, 21, 20, 19)],     # (q << 3) & M
+    [(9, 2, 1, 0), (25, 18, 17, 16)],      # (q << 6) & M
+    [(11, 14, 13, 10), (27, 30, 29, 26)],  # (q >> 6) & 0x01800180 | (q >> 4) & 0x00400040 | (q << 4) & 0x80008000
+]""")
+open(p, "w").write(s)
+print("ok")
+EOF
+sed -i 's/^import moe_v7 as M  # noqa: E402/import moe_v8 as M  # noqa: E402/' dev/abl.py; dev/sync.sh dev/moe_v8.py dev/abl.py >/dev/null && timeout 1500 dev/remote.sh "python3 dev/bench.py dev/abl.py --tests-only --no-base 2>&1 | grep -E 'test|rror' ; python3 dev/sass.py moe_v8 moe_2_1_2_4_1 0 fast 2>&1 | grep hot; python3 dev/timing.py 1,8,32,256 2>&1 | grep -E 'compute per|rror'; python3 dev/bench.py dev/abl.py --reps 20 --no-tests 2>&1 | grep -E '^(decode|verify|geomean)|rror'"
+----- output
+ok
+[cmd-hzhz8]
+test {'bs': 4}: PASS relative L2 error 2.523e-03 (worst row 2.577e-03)
+test {'bs': 33}: PASS relative L2 error 2.550e-03 (worst row 2.776e-03)
+test {'bs': 257}: PASS relative L2 error 2.545e-03 (worst row 2.759e-03)
+test {'bs': 128, 'dist': 'skewed'}: PASS relative L2 error 2.546e-03 (worst row 2.723e-03)
+test {'bs': 1}: PASS relative L2 error 2.473e-03 (worst row 2.473e-03)
+hot region 614 [('LOP3', 199), ('IMAD', 147), ('HMUL2', 128), ('SHF', 34), ('HMMA', 32), ('LDS', 21), ('LEA', 19), ('PRMT', 16), ('IADD3', 5), ('WARPSYNC', 4), ('BRA', 2), ('ISETP', 2), ('SYNCS', 1), ('BSYNC', 1), ('MOV', 1), ('VIADD', 1), ('UMOV', 1)]
+        compute per stage (warp 0): 1254 ns over 2304 stages
+        compute per stage (warp 0): 1228 ns over 7680 stages
+        compute per stage (warp 0): 2018 ns over 10752 stages
+        compute per stage (warp 0): 2129 ns over 20736 stages
+decode 1   bs   1  experts   2.6 pairs    2.6  sub     50.0 us (  1471 GB/s)  base     94.9 us  speedup 1.914x
+decode 16  bs  16  experts  11.8 pairs   25.2  sub    151.7 us (  2211 GB/s)  base    222.4 us  speedup 1.478x
+decode 32  bs  32  experts  16.2 pairs   50.1  sub    260.3 us (  1762 GB/s)  base    260.1 us  speedup 0.984x
+verify 1   bs   8  experts   9.1 pairs   13.8  sub    119.4 us (  2158 GB/s)  base    180.4 us  speedup 1.514x
+verify 16  bs 128  experts  22.9 pairs  206.7  sub    376.0 us (  1728 GB/s)  base    580.6 us  speedup 1.527x
+verify 32  bs 256  experts  24.9 pairs  383.6  sub    462.5 us (  1524 GB/s)  base    763.6 us  speedup 1.656x
+geomean speedup 1.484x over 6 loads
+cmd-hzhz8  exited  0     2026-10-23T08:25:01.961307+00:00
+
+===== [2026-10-23T08:27:15.705Z UTC] Build v9 with tile-count specialization and benchmark
+$ cd muse-opt/muse_moe_w4a16 && cp dev/moe_v7.py dev/moe_v9.py && python3 - <<'EOF'
+p = "dev/moe_v9.py"
+s = open(p).read()
+def rep(old, new, cnt=1):
+    global s
+    assert s.count(old) == cnt, (s.count(old), old[:100])
+    s = s.replace(old, new)
+
+start = s.index("""    // The whole stage's weight words and scales go to registers first, so their shared-memory""")
+end = s.index("""    __syncwarp();
+#ifdef MOE_TIMING
+    if (tid == 0) { tdbg[9] += gtimer() - tc0; tdbg[10] += 1; }""")
+s = s[:start] + """    switch (ntl) {
+      case 1: stage_compute<NT, 1>(acc, wbase, sclb, xbase, XP); break;
+      case 2: if constexpr (NT >= 2) stage_compute<NT, 2>(acc, wbase, sclb, xbase, XP); break;
+      case 3: if constexpr (NT >= 3) stage_compute<NT, 3>(acc, wbase, sclb, xbase, XP); break;
+      default: if constexpr (NT >= 4) stage_compute<NT, NT>(acc, wbase, sclb, xbase, XP); break;
+    }
+""" + s[end:]
+
+rep("""struct Params {""", r'''// One stage of one consumer warp: 2 row groups x 256 k of weights against NTL token tiles. The
+// stage's weight words and scales go to registers first, so their shared-memory latency overlaps;
+// activation fragments are fetched one 64-k chunk ahead.
+template <int NT, int NTL>
+DEVI void stage_compute(float (&acc)[2][NT][4], const unsigned char* wbase, const unsigned char* sclb,
+                        const unsigned char* xbase, int XP) {
+  uint4 qw[2][4];
+#pragma unroll
+  for (int kk = 0; kk < 4; ++kk) {
+    qw[0][kk] = *reinterpret_cast<const uint4*>(wbase + kk * 512);
+    qw[1][kk] = *reinterpret_cast<const uint4*>(wbase + 2048 + kk * 512);
+  }
+  const uint2 sv0 = *reinterpret_cast<const uint2*>(sclb);
+  const uint2 sv1 = *reinterpret_cast<const uint2*>(sclb + 256);
+  uint4 bx[2][NTL][2];
+#pragma unroll
+  for (int nt = 0; nt < NTL; ++nt) {
+    const unsigned char* xp = xbase + nt * 8 * XP;
+    bx[0][nt][0] = *reinterpret_cast<const uint4*>(xp);
+    bx[0][nt][1] = *reinterpret_cast<const uint4*>(xp + 16);
+  }
+#pragma unroll
+  for (int kk = 0; kk < 4; ++kk) {
+    if (kk < 3) {
+#pragma unroll
+      for (int nt = 0; nt < NTL; ++nt) {
+        const unsigned char* xp = xbase + nt * 8 * XP + (kk + 1) * 128;
+        bx[(kk + 1) & 1][nt][0] = *reinterpret_cast<const uint4*>(xp);
+        bx[(kk + 1) & 1][nt][1] = *reinterpret_cast<const uint4*>(xp + 16);
+      }
+    }
+    const uint4 q0 = qw[0][kk], q1 = qw[1][kk];
+    const u32 sw0 = kk < 2 ? sv0.x : sv0.y, sw1 = kk < 2 ? sv1.x : sv1.y;
+    const u32 sg0 = (kk & 1) ? scale_of<2>(sw0) : scale_of<0>(sw0);
+    const u32 sg80 = (kk & 1) ? scale_of<3>(sw0) : scale_of<1>(sw0);
+    const u32 sg1 = (kk & 1) ? scale_of<2>(sw1) : scale_of<0>(sw1);
+    const u32 sg81 = (kk & 1) ? scale_of<3>(sw1) : scale_of<1>(sw1);
+    u32 A[2][4][4];
+    dequant(q0.x, sg0, sg80, A[0][0][0], A[0][0][1], A[0][0][2], A[0][0][3]);
+    dequant(q0.y, sg0, sg80, A[0][1][0], A[0][1][1], A[0][1][2], A[0][1][3]);
+    dequant(q0.z, sg0, sg80, A[0][2][0], A[0][2][1], A[0][2][2], A[0][2][3]);
+    dequant(q0.w, sg0, sg80, A[0][3][0], A[0][3][1], A[0][3][2], A[0][3][3]);
+    dequant(q1.x, sg1, sg81, A[1][0][0], A[1][0][1], A[1][0][2], A[1][0][3]);
+    dequant(q1.y, sg1, sg81, A[1][1][0], A[1][1][1], A[1][1][2], A[1][1][3]);
+    dequant(q1.z, sg1, sg81, A[1][2][0], A[1][2][1], A[1][2][2], A[1][2][3]);
+    dequant(q1.w, sg1, sg81, A[1][3][0], A[1][3][1], A[1][3][2], A[1][3][3]);
+#pragma unroll
+    for (int nt = 0; nt < NTL; ++nt) {
+      const uint4 b0 = bx[kk & 1][nt][0], b1 = bx[kk & 1][nt][1];
+      const u32 B[8] = {b0.x, b0.y, b0.z, b0.w, b1.x, b1.y, b1.z, b1.w};
+#pragma unroll
+      for (int jj = 0; jj < 4; ++jj)
+#pragma unroll
+        for (int r = 0; r < 2; ++r)
+#ifdef MOE_NO_MMA
+          acc[r][nt][jj] += u2f(A[r][jj][0] ^ A[r][jj][1] ^ A[r][jj][2] ^ A[r][jj][3] ^ B[2 * jj] ^ B[2 * jj + 1]);
+#else
+          mma16816(acc[r][nt], A[r][jj][0], A[r][jj][1], A[r][jj][2], A[r][jj][3], B[2 * jj], B[2 * jj + 1]);
+#endif
+    }
+  }
+}
+
+struct Params {''')
+open(p, "w").write(s)
+print("ok")
+EOF
+sed -i 's/^import moe_v8 as M  # noqa: E402/import moe_v9 as M  # noqa: E402/' dev/abl.py; dev/sync.sh dev/moe_v9.py dev/abl.py >/dev/null && timeout 1500 dev/remote.sh "python3 dev/bench.py dev/abl.py --tests-only --no-base 2>&1 | grep -E 'test|rror' ; python3 dev/timing.py 1,8,32,256 2>&1 | grep -E 'compute per|rror'; python3 dev/bench.py dev/abl.py --reps 20 --no-tests 2>&1 | grep -E '^(decode|verify|geomean)|rror'"
+----- output
+ok
+[cmd-m9k8b]
+test {'bs': 4}: PASS relative L2 error 2.523e-03 (worst row 2.577e-03)
+test {'bs': 33}: PASS relative L2 error 2.550e-03 (worst row 2.776e-03)
+test {'bs': 257}: PASS relative L2 error 2.545e-03 (worst row 2.759e-03)
+test {'bs': 128, 'dist': 'skewed'}: PASS relative L2 error 2.546e-03 (worst row 2.723e-03)
+test {'bs': 1}: PASS relative L2 error 2.473e-03 (worst row 2.473e-03)
+        compute per stage (warp 0): 1110 ns over 2304 stages
+        compute per stage (warp 0): 1102 ns over 7680 stages
+        compute per stage (warp 0): 1186 ns over 10752 stages
+        compute per stage (warp 0): 1415 ns over 20736 stages
+decode 1   bs   1  experts   2.6 pairs    2.6  sub     46.2 us (  1592 GB/s)  base     94.7 us  speedup 2.080x
+decode 16  bs  16  experts  11.8 pairs   25.2  sub    136.3 us (  2461 GB/s)  base    221.7 us  speedup 1.628x
+decode 32  bs  32  experts  16.2 pairs   50.1  sub    184.4 us (  2487 GB/s)  base    259.3 us  speedup 1.398x
+verify 1   bs   8  experts   9.1 pairs   13.8  sub    108.2 us (  2380 GB/s)  base    181.2 us  speedup 1.671x
+verify 16  bs 128  experts  22.9 pairs  206.7  sub    278.8 us (  2330 GB/s)  base    580.1 us  speedup 2.048x
+verify 32  bs 256  experts  24.9 pairs  383.6  sub    364.4 us (  1934 GB/s)  base    756.4 us  speedup 2.072x
+geomean speedup 1.796x over 6 loads
+cmd-m9k8b  exited  0     2026-10-23T08:27:19.963090+00:00
+
+===== [2026-10-23T08:28:14.209Z UTC] Submit v9 as an official scored run
+$ cp dev/moe_v9.py submission.py && head -1 submission.py && export PATH="$HOME/.okc/bin:$PATH" && okc submit submission.py --json > dev/submit_v9.json 2>&1; python3 -c "
+import json; d=json.load(open('dev/submit_v9.json')); r=d.get('result',{})
+print('job', d.get('id'), 'status', d.get('status'), 'passed', r.get('passed'), 'speedup', r.get('speedup'), r.get('speedup_ci'), 'error', r.get('error'))
+"; sed -n 9,20p profiles/submission.$(python3 -c "import json; print(json.load(open('dev/submit_v9.json'))['id'])").txt 2>/dev/null
+----- output
+Command running in background with ID: be7bryyqy. Output is being written to: <scratch>/tasks/be7bryyqy.output. You will be notified when it completes — do not poll that file or sleep while waiting. Read the file only if the user asks for progress, or if you need a line it prints before you can go on, such as a server's ready line or port.
+

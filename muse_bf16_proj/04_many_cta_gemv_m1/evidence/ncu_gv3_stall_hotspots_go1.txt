@@ -1,0 +1,117 @@
+===== Stall hotspots for go1 =====
+Total distinct (file, line) entries: 28
+
+Rank      Total File                            Line  Breakdown (stall: count)
+------------------------------------------------------------------------------------------------------------------------------------------------------
+   0        118 gv3.cu                            81  long_scoreboard: 118
+   1        106 gv3.cu                            28  long_scoreboard: 100, not_selected: 2, selected: 2, wait: 1, math_pipe_throttle: 1
+   2         59 gv3.cu                           109  barrier: 55, wait: 4
+   3         36 gv3.cu                            76  long_scoreboard: 35, wait: 1
+   4         30 gv3.cu                           100  not_selected: 12, selected: 10, wait: 6, short_scoreboard: 2
+   5         29 gv3.cu                            26  long_scoreboard: 14, wait: 5, selected: 5, not_selected: 3, math_pipe_throttle: 2
+   6         25 gv3.cu                           222  no_instructions: 18, drain: 3, wait: 2, branch_resolving: 2
+   7         20 gv3.cu                            31  long_scoreboard: 20
+   8         14 gv3.cu                           112  wait: 5, branch_resolving: 4, short_scoreboard: 2, drain: 1, misc: 1, dispatch_stall: 1
+   9         11 gv3.cu                            32  long_scoreboard: 11
+  10         11 gv3.cu                            59  short_scoreboard: 10, selected: 1
+  11         10 gv3.cu                            29  wait: 3, selected: 3, math_pipe_throttle: 2, not_selected: 2
+  12          9 gv3.cu                            61  wait: 4, short_scoreboard: 2, math_pipe_throttle: 2, not_selected: 1
+  13          9 gv3.cu                            83  selected: 6, dispatch_stall: 2, wait: 1
+  14          8 gv3.cu                            84  wait: 4, selected: 3, not_selected: 1
+  15          6 gv3.cu                            86  selected: 4, math_pipe_throttle: 1, not_selected: 1
+  16          5 gv3.cu                            47  wait: 2, math_pipe_throttle: 1, no_instructions: 1, selected: 1
+  17          4 gv3.cu                           104  selected: 3, not_selected: 1
+  18          3 gv3.cu                            56  not_selected: 2, wait: 1
+  19          3 gv3.cu                            63  wait: 1, not_selected: 1, no_instructions: 1
+  20          3 gv3.cu                            55  selected: 3
+  21          2 gv3.cu                           114  wait: 2
+  22          2 gv3.cu                            85  not_selected: 1, selected: 1
+  23          2 gv3.cu                            77  not_selected: 1, selected: 1
+  24          2 gv3.cu                            94  not_selected: 2
+  25          1 gv3.cu                            91  wait: 1
+  26          1 gv3.cu                           113  not_selected: 1
+  27          1 gv3.cu                           108  selected: 1
+
+
+===== Per-stall-type top lines =====
+
+--- long_scoreboard ---
+       118  gv3.cu:81
+       100  gv3.cu:28
+        35  gv3.cu:76
+        20  gv3.cu:31
+        14  gv3.cu:26
+        11  gv3.cu:32
+
+--- short_scoreboard ---
+        10  gv3.cu:59
+         2  gv3.cu:61
+         2  gv3.cu:100
+         2  gv3.cu:112
+
+--- wait ---
+         6  gv3.cu:100
+         5  gv3.cu:26
+         5  gv3.cu:112
+         4  gv3.cu:61
+         4  gv3.cu:84
+         4  gv3.cu:109
+         3  gv3.cu:29
+         2  gv3.cu:47
+         2  gv3.cu:114
+         2  gv3.cu:222
+
+--- math_pipe_throttle ---
+         2  gv3.cu:26
+         2  gv3.cu:61
+         2  gv3.cu:29
+         1  gv3.cu:28
+         1  gv3.cu:47
+         1  gv3.cu:86
+
+--- not_selected ---
+        12  gv3.cu:100
+         3  gv3.cu:26
+         2  gv3.cu:28
+         2  gv3.cu:56
+         2  gv3.cu:29
+         2  gv3.cu:94
+         1  gv3.cu:61
+         1  gv3.cu:63
+         1  gv3.cu:84
+         1  gv3.cu:86
+
+--- dispatch_stall ---
+         2  gv3.cu:83
+         1  gv3.cu:112
+
+--- drain ---
+         3  gv3.cu:222
+         1  gv3.cu:112
+
+--- no_instructions ---
+        18  gv3.cu:222
+         1  gv3.cu:47
+         1  gv3.cu:63
+
+--- selected ---
+        10  gv3.cu:100
+         6  gv3.cu:83
+         5  gv3.cu:26
+         4  gv3.cu:86
+         3  gv3.cu:84
+         3  gv3.cu:29
+         3  gv3.cu:104
+         3  gv3.cu:55
+         2  gv3.cu:28
+         1  gv3.cu:59
+
+--- branch_resolving ---
+         4  gv3.cu:112
+         2  gv3.cu:222
+
+--- barrier ---
+        55  gv3.cu:109
+
+--- misc ---
+         1  gv3.cu:112

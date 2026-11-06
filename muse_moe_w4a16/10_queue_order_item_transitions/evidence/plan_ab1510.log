@@ -1,0 +1,36 @@
+[modal_gate] slot 0 acquired at 08:02:09 (0 okc containers running)
+✓ Initialized. View run at 
+<modal-run-url>
+✓ Created objects.
+├── 🔨 Created mount 
+│   muse-opt/muse_moe_w4a16/dev/modal_run.py
+├── 🔨 Created mount muse-opt/muse_moe_w4a16
+└── 🔨 Created function run.
+GPU_BEFORE NVIDIA H200, 345 MHz, 3201 MHz, 80.60 W, 32, 0 %, 4 MiB
+STEP bench all shapes, 100 reps: fA|dev/moe_v1510.py|;fA2|dev/moe_v1504.py|;a1|dev/moe_v1504.py|;b1|dev/moe_v1510.py|;a2|dev/moe_v1504.py|;b2|dev/moe_v1510.py|;a3|dev/moe_v1504.py|;b3|dev/moe_v1510.py|;a4|dev/moe_v1504.py|;b4|dev/moe_v1510.py|;fB2|dev/moe_v1510.py|;fB|dev/moe_v1504.py|
+geomean fA: x2.6463 over 6 shapes
+geomean fA2: x2.6336 over 6 shapes
+geomean a1: x2.6286 over 6 shapes
+geomean b1: x2.6480 over 6 shapes
+geomean a2: x2.6325 over 6 shapes
+geomean b2: x2.6479 over 6 shapes
+geomean a3: x2.6333 over 6 shapes
+geomean b3: x2.6367 over 6 shapes
+geomean a4: x2.6305 over 6 shapes
+geomean b4: x2.6449 over 6 shapes
+geomean fB2: x2.6468 over 6 shapes
+geomean fB: x2.6352 over 6 shapes
+bs1: v1510 vs v1504 (mean of 4 copies each) +0.53%   (b_i vs a1: +0.77 +0.38 +0.22 +0.77)
+bs8: v1510 vs v1504 (mean of 4 copies each) +1.14%   (b_i vs a1: +1.30 +1.03 +0.87 +0.84)
+bs16: v1510 vs v1504 (mean of 4 copies each) +0.94%   (b_i vs a1: +0.88 +0.71 +0.77 +1.01)
+bs32: v1510 vs v1504 (mean of 4 copies each) +0.59%   (b_i vs a1: +0.82 +0.84 +0.40 +0.74)
+bs128: v1510 vs v1504 (mean of 4 copies each) +0.46%   (b_i vs a1: +0.50 +0.41 +0.53 +0.57)
+bs256: v1510 vs v1504 (mean of 4 copies each) +0.27%   (b_i vs a1: +0.50 +0.47 +0.36 +0.40)
+geomean v1510 vs v1504: +0.65%
+GPU_AFTER NVIDIA H200, 1980 MHz, 3201 MHz, 129.06 W, 35, 100 %, 4 MiB
+STEP done
+
+fetched into muse-opt/muse_moe_w4a16/dev/remote_out: 63643 bytes
+Stopping app - local entrypoint completed.
+✓ App completed. View run at 
+<modal-run-url>

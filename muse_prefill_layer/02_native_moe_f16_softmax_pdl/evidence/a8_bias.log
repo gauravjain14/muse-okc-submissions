@@ -1,0 +1,61 @@
+✓ Initialized. View run at 
+<modal-run-url>
+✓ Created objects.
+├── 🔨 Created mount 
+│   <scratch>
+│   5-ce57afd4da60/scratchpad/snap.qat17C/dev/modal_run.py
+├── 🔨 Created mount 
+│   <scratch>
+│   5-ce57afd4da60/scratchpad/snap.qat17C
+└── 🔨 Created function run.
+[gpu-health] [WARN] GPU-<id>: XID: NVRM: Xid (PCI:0000:d8:00): 31, pid=3398735, name=3, channel 0x00000002, intr 00000000. MMU Fault: ENGINE GRAPHICS GPC1 GPCCLIENT_T1_4 faulted @ 0x0_0747e000. Fault is of type FAULT_PDE ACCESS_TYPE_VIRT_READ
+
+compiled
+1 {'batch': 1, 'ctx': 80000, 'layer': 'full', 'q_len': 753, 'page': 1, 'dist': 'soft'}
+   cache vs sglang: k 1.60e-02 v 0.00e+00;  out vs sglang 8.269e-02
+   vs fp32 ref (fp8 q): mine 8.340e-02 sglang 4.538e-02;  vs bf16-q ref: mine 6.971e-02 sglang 7.130e-02; ref fp8-vs-bf16 6.921e-02
+   time: mine    490.7 us  sglang    441.2 us  x0.899
+   post            7.4 us
+   pack           25.0 us
+   attn_fwd      467.8 us
+   nobias     vs mine 9.60e-03
+   nobias        381.1 us
+4 {'batch': 1, 'ctx': 0, 'layer': 'full', 'q_len': 16384, 'page': 1, 'dist': 'soft'}
+   cache vs sglang: k 1.63e-02 v 0.00e+00;  out vs sglang 2.570e-02
+   vs fp32 ref (fp8 q): mine 2.770e-02 sglang 1.857e-02;  vs bf16-q ref: mine 2.410e-02 sglang 2.484e-02; ref fp8-vs-bf16 2.068e-02
+   time: mine   1130.6 us  sglang    989.9 us  x0.876
+   post           20.6 us
+   pack           11.0 us
+   attn_fwd     1108.5 us
+   nobias     vs mine 1.46e-03
+   nobias        897.3 us
+6 {'batch': 1, 'ctx': 32768, 'layer': 'full', 'q_len': 16384, 'page': 1, 'dist': 'soft'}
+   cache vs sglang: k 1.62e-02 v 0.00e+00;  out vs sglang 7.632e-02
+   vs fp32 ref (fp8 q): mine 7.760e-02 sglang 4.137e-02;  vs bf16-q ref: mine 6.590e-02 sglang 6.481e-02; ref fp8-vs-bf16 6.240e-02
+   time: mine   4721.1 us  sglang   4543.4 us  x0.962
+   post           20.5 us
+   pack           17.6 us
+   attn_fwd     4715.1 us
+   nobias     vs mine 8.56e-03
+   nobias       3812.6 us
+9 {'batch': 1, 'ctx': 3000, 'layer': 'full', 'q_len': 753, 'page': 1}
+   cache vs sglang: k 1.62e-02 v 0.00e+00;  out vs sglang 9.570e-02
+   vs fp32 ref (fp8 q): mine 9.717e-02 sglang 5.050e-02;  vs bf16-q ref: mine 8.068e-02 sglang 8.072e-02; ref fp8-vs-bf16 8.018e-02
+   time: mine     64.9 us  sglang     55.2 us  x0.850
+   post            7.3 us
+   pack            9.4 us
+   attn_fwd       55.6 us
+   nobias     vs mine 7.73e-03
+   nobias         51.0 us
+13 {'batch': 2, 'ctx': 1000, 'layer': 'full', 'q_len': 200, 'page': 64}
+   cache vs sglang: k 1.59e-02 v 0.00e+00;  out vs sglang 9.205e-02
+   vs fp32 ref (fp8 q): mine 9.394e-02 sglang 4.848e-02;  vs bf16-q ref: mine 7.826e-02 sglang 7.952e-02; ref fp8-vs-bf16 7.800e-02
+   time: mine     51.8 us  sglang     36.0 us  x0.695
+   post            7.4 us
+   pack            9.0 us
+   attn_fwd       44.2 us
+   nobias     vs mine 5.59e-03
+   nobias         44.5 us
+Stopping app - local entrypoint completed.
+✓ App completed. View run at 
+<modal-run-url>

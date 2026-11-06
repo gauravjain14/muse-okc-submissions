@@ -1,0 +1,18 @@
+# python3 dev/w4/rejudge.py --ovh 4.15 <judge JSONs>  (run 2026-11-06 in ../autoresearch-kernels/attn; no GPU)
+# common replay overhead 4.15 us for every shape instead of each run's noisy per-shape estimate (dev/w4/NOTES.md sec 1)
+k55_submit.945f42a6df2 judge x2.9266 (reported 2.9266)  common-ovh 4.15 x2.9524
+   d1s:3.50 d1f:10.89 d16s:6.89 d16f:83.37 d32s:10.10 d32f:158.64 v1s:4.55 v1f:12.39 v16s:10.02 v16f:92.93 v32s:14.03 v32f:170.41
+k55_recheck.489b863dea judge x2.8712 (reported 2.8712)  common-ovh 4.15 x2.8571
+   d1s:3.63 d1f:10.91 d16s:7.02 d16f:86.82 d32s:10.26 d32f:165.12 v1s:4.68 v1f:12.60 v16s:10.00 v16f:96.07 v32s:14.18 v32f:176.07
+k70s_submit.a1d0fb5659 judge x2.9061 (reported 2.9061)  common-ovh 4.15 x2.9432
+   d1s:3.49 d1f:10.24 d16s:6.49 d16f:86.62 d32s:10.00 d32f:165.19 v1s:4.25 v1f:12.04 v16s:9.11 v16f:93.57 v32s:13.36 v32f:173.86
+k71s_check.a2f46a01d25 judge x2.9266 (reported 2.9266)  common-ovh 4.15 x2.9302
+   d1s:3.66 d1f:10.38 d16s:6.60 d16f:86.73 d32s:10.14 d32f:165.59 v1s:4.36 v1f:12.25 v16s:9.29 v16f:93.26 v32s:13.12 v32f:174.04
+k71s_submit.7c7b9bc91a judge x2.9046 (reported 2.9046)  common-ovh 4.15 x2.9428
+   d1s:3.53 d1f:10.32 d16s:6.44 d16f:86.49 d32s:10.10 d32f:164.77 v1s:4.50 v1f:11.98 v16s:9.47 v16f:92.87 v32s:12.83 v32f:172.94
+k72s_check.c4f2a37a72e judge x2.8832 (reported 2.8832)  common-ovh 4.15 x2.8952
+   d1s:3.76 d1f:10.71 d16s:6.69 d16f:87.05 d32s:10.31 d32f:165.20 v1s:4.53 v1f:12.37 v16s:9.61 v16f:93.18 v32s:13.13 v32f:174.11
+k72s_submit.cea2501043 judge x2.9033 (reported 2.9033)  common-ovh 4.15 x2.9492
+   d1s:3.45 d1f:10.34 d16s:6.46 d16f:86.56 d32s:10.10 d32f:165.23 v1s:4.14 v1f:12.15 v16s:9.26 v16f:93.40 v32s:13.03 v32f:173.31
+k72s.8cfd4f01ff7d4b03. judge x2.8620 (reported 2.8620)  common-ovh 4.15 x2.9210
+   d1s:3.54 d1f:10.27 d16s:6.46 d16f:86.84 d32s:10.19 d32f:165.02 v1s:4.25 v1f:12.14 v16s:9.31 v16f:93.18 v32s:13.10 v32f:173.11

@@ -1,0 +1,56 @@
+FIXED_US 4.672 (one 5.488 two 6.304)
+DRAW fields_seed=11 router_seed=7595436449497252824
+PREPARE sglang 0.2s
+PREPARE b23 2.1s
+PREPARE b26 1.6s
+PREPARE b14 1.5s
+RESULT case=0 turn 1     sliding b1 ctx80000 q753 sglang=1085.9 b23=543.7us x1.9975 b26=542.9us x2.0004 b14=550.0us x1.9745
+RESULT case=1 turn 1     full    b1 ctx80000 q753 sglang=1444.4 b23=718.0us x2.0118 b26=716.6us x2.0157 b14=725.3us x1.9915
+RESULT case=2 turn 4     sliding b4 ctx80000 q753 sglang=3379.5 b23=1777.9us x1.9009 b26=1777.8us x1.9009 b14=1782.7us x1.8957
+RESULT case=3 turn 4     full    b4 ctx80000 q753 sglang=4925.9 b23=2549.6us x1.9320 b26=2547.9us x1.9333 b14=2557.4us x1.9261
+RESULT case=4 first turn full    b1 ctx0 q16384 sglang=17971.9 b23=8963.5us x2.0050 b26=8929.6us x2.0126 b14=8992.4us x1.9986
+RESULT case=5 first turn sliding b1 ctx32768 q16384 sglang=17937.8 b23=8830.2us x2.0314 b26=8827.0us x2.0321 b14=8917.2us x2.0116
+RESULT case=6 first turn full    b1 ctx32768 q16384 sglang=20974.0 b23=10384.4us x2.0198 b26=10425.0us x2.0119 b14=10537.0us x1.9905
+RESULT case=7 first turn full    b1 ctx65536 q16384 sglang=25208.3 b23=12193.9us x2.0673 b26=12101.4us x2.0831 b14=12417.7us x2.0300
+DRAW_SCORE fields_seed=11 b23: x1.9811 (195.548 ms) {"turn 1": 2.002, "turn 4": 1.9112, "first turn": 2.0322}
+DRAW_SCORE fields_seed=11 b26: x1.9830 (195.359 ms) {"turn 1": 2.0052, "turn 4": 1.9117, "first turn": 2.0343}
+DRAW_SCORE fields_seed=11 b14: x1.9649 (197.157 ms) {"turn 1": 1.9799, "turn 4": 1.9059, "first turn": 2.0106}
+DRAW fields_seed=22 router_seed=3225630594405768948
+PREPARE sglang 0.0s
+PREPARE b23 1.2s
+PREPARE b26 1.0s
+PREPARE b14 1.0s
+RESULT case=0 turn 1     sliding b1 ctx80000 q753 sglang=1096.6 b23=549.8us x1.9946 b26=549.5us x1.9958 b14=555.3us x1.9748
+RESULT case=1 turn 1     full    b1 ctx80000 q753 sglang=1544.3 b23=778.0us x1.9849 b26=778.5us x1.9838 b14=782.4us x1.9738
+RESULT case=2 turn 4     sliding b4 ctx80000 q753 sglang=3361.0 b23=1790.4us x1.8773 b26=1793.2us x1.8743 b14=1800.4us x1.8668
+RESULT case=3 turn 4     full    b4 ctx80000 q753 sglang=5161.5 b23=2644.3us x1.9520 b26=2651.3us x1.9467 b14=2654.4us x1.9445
+RESULT case=4 first turn full    b1 ctx0 q16384 sglang=19180.0 b23=9426.6us x2.0347 b26=9415.9us x2.0370 b14=9427.1us x2.0346
+RESULT case=5 first turn sliding b1 ctx32768 q16384 sglang=17156.7 b23=8606.6us x1.9934 b26=8619.0us x1.9906 b14=8811.7us x1.9470
+RESULT case=6 first turn full    b1 ctx32768 q16384 sglang=21936.4 b23=10540.9us x2.0811 b26=10578.4us x2.0737 b14=10785.7us x2.0338
+RESULT case=7 first turn full    b1 ctx65536 q16384 sglang=26986.3 b23=12591.3us x2.1433 b26=12715.4us x2.1223 b14=12879.2us x2.0953
+DRAW_SCORE fields_seed=22 b23: x1.9718 (196.471 ms) {"turn 1": 1.9914, "turn 4": 1.9026, "first turn": 2.0234}
+DRAW_SCORE fields_seed=22 b26: x1.9691 (196.743 ms) {"turn 1": 1.9918, "turn 4": 1.8989, "first turn": 2.0185}
+DRAW_SCORE fields_seed=22 b14: x1.9490 (198.770 ms) {"turn 1": 1.9745, "turn 4": 1.8931, "first turn": 1.9807}
+DRAW fields_seed=33 router_seed=5596721399182424272
+PREPARE sglang 0.1s
+PREPARE b23 1.0s
+PREPARE b26 1.1s
+PREPARE b14 1.0s
+RESULT case=0 turn 1     sliding b1 ctx80000 q753 sglang=1078.4 b23=537.6us x2.0061 b26=538.6us x2.0024 b14=545.4us x1.9774
+RESULT case=1 turn 1     full    b1 ctx80000 q753 sglang=1439.6 b23=724.5us x1.9870 b26=722.4us x1.9929 b14=727.7us x1.9783
+RESULT case=2 turn 4     sliding b4 ctx80000 q753 sglang=3361.3 b23=1775.4us x1.8933 b26=1772.5us x1.8964 b14=1782.7us x1.8855
+RESULT case=3 turn 4     full    b4 ctx80000 q753 sglang=4831.2 b23=2506.3us x1.9276 b26=2508.9us x1.9256 b14=2515.8us x1.9204
+RESULT case=4 first turn full    b1 ctx0 q16384 sglang=18066.3 b23=9044.1us x1.9976 b26=9035.3us x1.9995 b14=9146.7us x1.9752
+RESULT case=5 first turn sliding b1 ctx32768 q16384 sglang=18187.6 b23=8935.5us x2.0354 b26=8882.7us x2.0475 b14=9068.5us x2.0056
+RESULT case=6 first turn full    b1 ctx32768 q16384 sglang=21753.1 b23=10734.5us x2.0265 b26=10803.6us x2.0135 b14=10971.0us x1.9828
+RESULT case=7 first turn full    b1 ctx65536 q16384 sglang=26314.6 b23=12508.7us x2.1037 b26=12471.4us x2.1100 b14=12671.2us x2.0767
+DRAW_SCORE fields_seed=33 b23: x1.9805 (195.614 ms) {"turn 1": 2.0, "turn 4": 1.9046, "first turn": 2.0392}
+DRAW_SCORE fields_seed=33 b26: x1.9834 (195.326 ms) {"turn 1": 1.9994, "turn 4": 1.906, "first turn": 2.0473}
+DRAW_SCORE fields_seed=33 b14: x1.9606 (197.591 ms) {"turn 1": 1.9777, "turn 4": 1.897, "first turn": 2.009}
+PANEL b23: x1.9778 (195.877 ms) draws 1.9811 1.9718 1.9805
+PANEL b26: x1.9785 (195.808 ms) draws 1.9830 1.9691 1.9834
+PANEL b14: x1.9582 (197.838 ms) draws 1.9649 1.9490 1.9606
+RELATIVE b26/b23: 1.0010 0.9986 1.0015 mean 1.0004
+RELATIVE b14/b23: 0.9918 0.9884 0.9900 mean 0.9901
+REPLICA_RC=0
+REMOTE_EXIT 0

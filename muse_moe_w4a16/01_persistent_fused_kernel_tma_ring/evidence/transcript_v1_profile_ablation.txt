@@ -1,0 +1,205 @@
+===== [2026-10-23T07:30:06.455Z UTC] Time the CUDA kernel against SGLang on H100
+$ cd muse-opt/muse_moe_w4a16 && timeout 900 dev/remote.sh "timeout 800 python3 dev/bench.py dev/moe_v1.py --reps 30 --no-tests 2>&1 | tail -12"
+----- output
+[cmd-ch2xi]
+weights generated in 0.7s
+submission prepare 0.4s
+fixed replay cost 5.65 us
+decode 1   bs   1  experts   2.5 pairs    2.5  sub     55.4 us (  1278 GB/s)  base     91.2 us  speedup 1.622x
+decode 16  bs  16  experts  11.9 pairs   24.8  sub    200.8 us (  1673 GB/s)  base    228.8 us  speedup 1.122x
+decode 32  bs  32  experts  16.1 pairs   49.7  sub    258.1 us (  1762 GB/s)  base    259.4 us  speedup 0.978x
+verify 1   bs   8  experts   9.1 pairs   13.8  sub    145.9 us (  1766 GB/s)  base    180.0 us  speedup 1.223x
+verify 16  bs 128  experts  23.0 pairs  204.4  sub   1424.0 us (   458 GB/s)  base    583.7 us  speedup 0.405x
+verify 32  bs 256  experts  25.2 pairs  380.6  sub   1636.7 us (   435 GB/s)  base    755.7 us  speedup 0.464x
+geomean speedup 0.862x over 6 loads
+cmd-ch2xi  exited  0     2026-10-23T07:30:07.002645+00:00
+
+===== [2026-10-23T07:31:17.644Z UTC] Profile per-kernel times of the CUDA kernel
+$ cat > muse-opt/muse_moe_w4a16/dev/prof.py <<'EOF'
+"""Per-kernel CUDA times of a submission, via torch.profiler over a few eager calls."""
+import importlib.util, os, sys
+import torch
+HERE = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, os.path.dirname(HERE))
+import reference as R
+
+spec = importlib.util.spec_from_file_location("sub", sys.argv[1])
+sub = importlib.util.module_from_spec(spec); spec.loader.exec_module(sub)
+weights = R.generate_weights(R.WEIGHTS_SEED)
+state = sub.prepare(weights)
+flush = torch.empty(512 * 1024 * 1024 // 4, device="cuda")
+for bs in [int(b) for b in sys.argv[2].split(",")]:
+    data = R.generate_input(bs, "ep8", 7)
+    for _ in range(3):
+        sub.kernel_fn(data, state)
+    torch.cuda.synchronize()
+    with torch.profiler.profile(activities=[torch.profiler.ProfilerActivity.CUDA]) as prof:
+        for _ in range(5):
+            flush.add_(1)
+            sub.kernel_fn(data, state)
+        torch.cuda.synchronize()
+    tot = {}
+    for ev in prof.events():
+        if ev.device_type == torch.autograd.DeviceType.CUDA:
+            tot.setdefault(ev.name, []).append(ev.device_time_total if hasattr(ev, "device_time_total") else ev.cuda_time_total)
+    print(f"bs {bs}:")
+    for k, v in sorted(tot.items(), key=lambda kv: -sum(kv[1])):
+        print(f"   {sum(v)/len(v):9.1f} us x{len(v):3d}  {k[:90]}")
+EOF
+dev/sync.sh dev/prof.py >/dev/null && timeout 600 dev/remote.sh "python3 dev/prof.py dev/moe_v1.py 1,32,256 2>&1 | grep -v -i warn | tail -30"
+----- output
+[cmd-35xa3]
+USDT:2026-10-23 07:31:23 1244:1244 SyncActivityProfilerHandler.cpp:39] profiler_start
+USDT:2026-10-23 07:31:23 1244:1244 SyncActivityProfilerHandler.cpp:46] profiler_stop
+bs 1:
+       352.6 us x  5  void at::native::vectorized_elementwise_kernel<4, at::native::CUDAFunctorOnSelf_add<float>
+        57.0 us x  5  moe_gemm_1_1_2_3
+        12.3 us x  5  moe_combine
+         3.0 us x  5  moe_route
+USDT:2026-10-23 07:31:23 1244:1244 SyncActivityProfilerHandler.cpp:39] profiler_start
+USDT:2026-10-23 07:31:23 1244:1244 SyncActivityProfilerHandler.cpp:46] profiler_stop
+bs 32:
+       370.3 us x  5  void at::native::vectorized_elementwise_kernel<4, at::native::CUDAFunctorOnSelf_add<float>
+       266.6 us x  5  moe_gemm_4_4_2_3
+        20.2 us x  5  moe_combine
+         3.2 us x  5  moe_route
+USDT:2026-10-23 07:31:23 1244:1244 SyncActivityProfilerHandler.cpp:39] profiler_start
+USDT:2026-10-23 07:31:23 1244:1244 SyncActivityProfilerHandler.cpp:46] profiler_stop
+bs 256:
+      1607.7 us x  5  moe_gemm_8_8_2_3
+       357.2 us x  5  void at::native::vectorized_elementwise_kernel<4, at::native::CUDAFunctorOnSelf_add<float>
+        28.1 us x  5  moe_combine
+         4.0 us x  5  moe_route
+cmd-35xa3  exited  0     2026-10-23T07:31:20.204169+00:00
+
+===== [2026-10-23T07:31:59.181Z UTC] Print register and spill usage per kernel
+$ cat > muse-opt/muse_moe_w4a16/dev/attrs.py <<'EOF'
+"""Registers and local-memory (spill) bytes of each compiled kernel."""
+import importlib.util, sys
+import torch
+spec = importlib.util.spec_from_file_location("sub", sys.argv[1])
+sub = importlib.util.module_from_spec(spec); spec.loader.exec_module(sub)
+torch.zeros(1, device="cuda")
+mod = sub._module()
+d = mod.driver
+names = ["moe_route", "moe_combine"] + [f"moe_gemm_{rw}_{nt}_{ks}_{ns}" for _, (rw, nt, ks, ns), _ in sub.CONFIGS]
+for n in names:
+    f = mod.func(n)
+    regs = d.cuFuncGetAttribute(d.CUfunction_attribute.CU_FUNC_ATTRIBUTE_NUM_REGS, f)[1]
+    local = d.cuFuncGetAttribute(d.CUfunction_attribute.CU_FUNC_ATTRIBUTE_LOCAL_SIZE_BYTES, f)[1]
+    print(f"{n:24s} regs {regs:4d} local {local:6d} B")
+EOF
+dev/sync.sh dev/attrs.py >/dev/null && timeout 300 dev/remote.sh "python3 dev/attrs.py dev/moe_v1.py 2>&1 | tail -8"
+----- output
+[cmd-vhccs]
+moe_route                regs   56 local      0 B
+moe_combine              regs   48 local     16 B
+moe_gemm_1_1_2_3         regs   96 local      0 B
+moe_gemm_2_1_2_4         regs   79 local      0 B
+moe_gemm_2_2_2_3         regs  149 local      0 B
+moe_gemm_4_4_2_3         regs  157 local      0 B
+moe_gemm_8_8_2_3         regs  168 local    520 B
+cmd-vhccs  exited  0     2026-10-23T07:32:01.479009+00:00
+
+===== [2026-10-23T07:33:13.552Z UTC] Add ablation switches and measure each bottleneck
+$ python3 - <<'EOF'
+import re
+p = "dev/moe_v1.py"
+s = open(p).read()
+# ablation switches (default off)
+s = s.replace("""              mma16816(acc[r][nt], A[r][jj][0], A[r][jj][1], A[r][jj][2], A[r][jj][3], B[2 * jj], B[2 * jj + 1]);""",
+"""#ifdef MOE_NO_MMA
+              acc[r][nt][jj] += u2f(A[r][jj][0] ^ A[r][jj][1] ^ A[r][jj][2] ^ A[r][jj][3] ^ B[2 * jj] ^ B[2 * jj + 1]);
+#else
+              mma16816(acc[r][nt], A[r][jj][0], A[r][jj][1], A[r][jj][2], A[r][jj][3], B[2 * jj], B[2 * jj + 1]);
+#endif""")
+s = s.replace("""          mbar_arrive_tx(full, WB + SB + n * KST * 2);""",
+"""#ifdef MOE_NO_X
+          mbar_arrive_tx(full, WB + SB);
+#else
+          mbar_arrive_tx(full, WB + SB + n * KST * 2);
+#endif""")
+s = s.replace("""        for (int r = lane; r < n; r += 32) {
+          const u16* src""", """#ifndef MOE_NO_X
+        for (int r = lane; r < n; r += 32) {
+          const u16* src""")
+s = s.replace("""          bulk_g2s(smem_addr(sbase + WB + SB + r * XP), src, KST * 2, full, pol_x);
+        }""", """          bulk_g2s(smem_addr(sbase + WB + SB + r * XP), src, KST * 2, full, pol_x);
+        }
+#endif""")
+s = s.replace("""DEVI void dequant(u32 q, u32 sg, u32 sg8, u32& a0, u32& a1, u32& a2, u32& a3) {
+  u32 o0""", """DEVI void dequant(u32 q, u32 sg, u32 sg8, u32& a0, u32& a1, u32& a2, u32& a3) {
+#ifdef MOE_NO_DEQ
+  a0 = q; a1 = q ^ sg; a2 = q + sg8; a3 = q; return;
+#endif
+  u32 o0""")
+s = s.replace('''class _Cuda:
+    """NVRTC-compiled module and driver-API launches on torch's current stream."""
+
+    def __init__(self, src):''', '''class _Cuda:
+    """NVRTC-compiled module and driver-API launches on torch's current stream."""
+
+    def __init__(self, src):
+        import os
+        src = "".join(f"#define {d}\\n" for d in os.environ.get("MOE_DEFINES", "").split(",") if d) + src''')
+open(p, "w").write(s)
+print(s.count("MOE_NO_"))
+EOF
+dev/sync.sh dev/moe_v1.py >/dev/null && timeout 1200 dev/remote.sh "for v in none MOE_NO_MMA MOE_NO_X MOE_NO_DEQ MOE_NO_MMA,MOE_NO_X,MOE_NO_DEQ; do echo == \$v; MOE_DEFINES=\$v python3 dev/bench.py dev/moe_v1.py --reps 10 --no-tests --no-base --shapes 1,32,256 2>&1 | grep -E '^(decode|verify)'; done"
+----- output
+4
+[cmd-4sbki]
+== none
+decode 1   bs   1  experts   2.6 pairs    2.6  sub     71.2 us (  1033 GB/s)
+decode 32  bs  32  experts  16.0 pairs   48.2  sub    267.0 us (  1696 GB/s)
+verify 32  bs 256  experts  25.2 pairs  393.1  sub   1688.7 us (   422 GB/s)
+== MOE_NO_MMA
+== MOE_NO_X
+== MOE_NO_DEQ
+== MOE_NO_MMA,MOE_NO_X,MOE_NO_DEQ
+cmd-4sbki  exited  1     2026-10-23T07:33:16.427536+00:00
+
+===== [2026-10-23T07:34:05.091Z UTC] Show the error from one ablation variant
+$ timeout 600 dev/remote.sh "MOE_DEFINES=MOE_NO_X python3 dev/bench.py dev/moe_v1.py --reps 10 --no-tests --no-base --shapes 1 2>&1 | tail -15"
+----- output
+[cmd-nk8ip]
+weights generated in 0.4s
+submission prepare 0.4s
+fixed replay cost 5.54 us
+  bs 1 rep 0: FAIL output contains NaN or Inf
+cmd-nk8ip  exited  0     2026-10-23T07:34:05.526238+00:00
+
+===== [2026-10-23T07:34:25.622Z UTC] Run the ablation variants without correctness checks
+$ python3 - <<'EOF'
+p = "dev/bench.py"
+s = open(p).read()
+s = s.replace('''    ap.add_argument("--shapes", default="")''', '''    ap.add_argument("--shapes", default="")
+    ap.add_argument("--no-check", action="store_true")''')
+s = s.replace('''            if r < 3:''', '''            if r < 3 and not args.no_check:''')
+open(p, "w").write(s)
+EOF
+dev/sync.sh dev/bench.py >/dev/null && timeout 1200 dev/remote.sh "for v in MOE_NO_MMA MOE_NO_X MOE_NO_DEQ MOE_NO_MMA,MOE_NO_DEQ MOE_NO_MMA,MOE_NO_X,MOE_NO_DEQ; do echo == \$v; MOE_DEFINES=\$v python3 dev/bench.py dev/moe_v1.py --reps 10 --no-tests --no-base --no-check --shapes 1,32,256 2>&1 | grep -E '^(decode|verify)'; done"
+----- output
+[cmd-7qxu7]
+== MOE_NO_MMA
+decode 1   bs   1  experts   2.6 pairs    2.6  sub     69.3 us (  1062 GB/s)
+decode 32  bs  32  experts  16.0 pairs   48.2  sub    262.6 us (  1725 GB/s)
+verify 32  bs 256  experts  25.2 pairs  393.1  sub   1659.4 us (   430 GB/s)
+== MOE_NO_X
+decode 1   bs   1  experts   2.6 pairs    2.6  sub     72.5 us (  1015 GB/s)
+decode 32  bs  32  experts  16.0 pairs   48.2  sub    272.8 us (  1661 GB/s)
+verify 32  bs 256  experts  25.2 pairs  393.1  sub   1647.0 us (   433 GB/s)
+== MOE_NO_DEQ
+decode 1   bs   1  experts   2.6 pairs    2.6  sub     64.8 us (  1135 GB/s)
+decode 32  bs  32  experts  16.0 pairs   48.2  sub    224.4 us (  2019 GB/s)
+verify 32  bs 256  experts  25.2 pairs  393.1  sub   1518.6 us (   470 GB/s)
+== MOE_NO_MMA,MOE_NO_DEQ
+decode 1   bs   1  experts   2.6 pairs    2.6  sub     59.1 us (  1246 GB/s)
+decode 32  bs  32  experts  16.0 pairs   48.2  sub    216.9 us (  2088 GB/s)
+verify 32  bs 256  experts  25.2 pairs  393.1  sub   1274.1 us (   560 GB/s)
+== MOE_NO_MMA,MOE_NO_X,MOE_NO_DEQ
+decode 1   bs   1  experts   2.6 pairs    2.6  sub     60.0 us (  1227 GB/s)
+decode 32  bs  32  experts  16.0 pairs   48.2  sub    215.2 us (  2105 GB/s)
+verify 32  bs 256  experts  25.2 pairs  393.1  sub   1245.4 us (   573 GB/s)
+cmd-7qxu7  exited  0     2026-10-23T07:34:28.045702+00:00
+

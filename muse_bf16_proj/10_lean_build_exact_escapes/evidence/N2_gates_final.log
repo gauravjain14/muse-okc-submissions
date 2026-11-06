@@ -1,0 +1,9 @@
+[sbx] waited 128s for a GPU
+[sbx] box 0
+checked 103 cases x 2 seeds + graph: ALL OK
+EXACT ALL OK
+EXACT ALL OK
+n2       qkv_gate  m=1 one-hot mismatches    0 over 202 cols EXACT
+n2       pooler    m=1 one-hot mismatches    0 over 202 cols EXACT
+T_EXACT ALL OK
+REMOTE_EXIT 0

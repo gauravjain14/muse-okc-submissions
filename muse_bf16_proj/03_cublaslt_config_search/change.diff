@@ -1,0 +1,648 @@
+--- 02_f12_register_streaming/build.py
++++ 03_cublaslt_config_search/build.py
+@@ -2555,6 +2555,587 @@
+                             _k1_TRACE.data_ptr() if _k1_TRACE is not None else 0)
+     args += b"\0" * (256 - len(args))
+     mod.launch(_k1_kname(lname, tokb, comp), q * c, 32 * wr * wk, dm["smem"], args)
++
++
++# ======================================================================== component: K1t (M=32)
++"""K1r: register-streaming skinny projection for M <= 16, 12-bit lossless weights (or BF16).
++
++No smem ring: every consumer warp streams its own contiguous slice of weight tiles from global straight into
++registers (D k32-steps in flight), decodes, and runs mma.sync m16n8k16 (A = x from smem, B = W rows, 8-row groups).
++x for the CTA's k range is resident in smem (one 3D TMA copy, 128B swizzle, TOKB rows).
++CTA (cluster q, rank r) owns row groups [q*G/Q, (q+1)*G/Q) and k range [r*KC, r*KC+KC); warp (wr, wk) takes groups
++[wr*GW, wr*GW+GW) x k32 steps [wk*NKT, wk*NKT+NKT). Per warp and k32 step the global block is
++  COMP: [32 lanes x 8*GW B: low bf16 bytes of its GW tiles][32 lanes x 4*GW B: exponent codes]  (12 B/lane/tile)
++  BF16: [32 lanes x 16*GW B]
++Raw tiles (an exponent outside the window) keep exact BF16: bytes 0-7 in the low slot, 8-11 in the code slot, 12-15
++in the CTA overflow area (smem, 128 B per raw tile, bulk-copied at start). Per-warp header [u64 raw mask over its
++tiles (step-major), u32 overflow base]. Partials -> padded smem slices -> sum -> (cluster: push partner's half) -> out.
++"""
++import struct
++
++import torch
++
++_k1t_SRC = r"""
++typedef unsigned long long u64;
++typedef unsigned int u32;
++typedef unsigned short u16;
++typedef unsigned char u8;
++struct __align__(64) TMap { u64 d[16]; };
++struct __align__(64) P {
++  TMap tmx;
++  const u8* w; const u8* ovf; const uint4* hdr; u16* out;
++  long long M, N, G, Q;
++  u32 base2, ovstride, ovoff, pad;
++  unsigned long long* trace;
++};
++__device__ __forceinline__ unsigned long long gtime() { unsigned long long t; asm volatile("mov.u64 %0, %%globaltimer;" : "=l"(t)); return t; }
++#define TR(i) do { if (p.trace) p.trace[blockIdx.x * 16 + (i)] = gtime(); } while (0)
++__device__ __forceinline__ u32 smem_u32(const void* p) { return (u32)__cvta_generic_to_shared(p); }
++__device__ __forceinline__ void mbar_init(u32 b, int n) { asm volatile("mbarrier.init.shared::cta.b64 [%0], %1;" :: "r"(b), "r"(n)); }
++__device__ __forceinline__ void mbar_expect_arrive(u32 b, u32 bytes) {
++  asm volatile("mbarrier.arrive.expect_tx.shared::cta.b64 _, [%0], %1;" :: "r"(b), "r"(bytes) : "memory");
++}
++__device__ __forceinline__ void mbar_wait(u32 b, int ph) {
++  asm volatile("{\n .reg .pred p;\n W: mbarrier.try_wait.parity.shared::cta.b64 p, [%0], %1;\n @!p bra W;\n}\n"
++               :: "r"(b), "r"(ph) : "memory");
++}
++__device__ __forceinline__ void bulk_g2s(u32 dst, const void* src, u32 bytes, u32 bar) {
++  asm volatile("cp.async.bulk.shared::cluster.global.mbarrier::complete_tx::bytes [%0], [%1], %2, [%3];"
++               :: "r"(dst), "l"(src), "r"(bytes), "r"(bar) : "memory");
++}
++__device__ __forceinline__ void tma3d(u32 dst, const void* tmap, int c0, int c1, int c2, u32 bar) {
++  asm volatile("cp.async.bulk.tensor.3d.shared::cluster.global.mbarrier::complete_tx::bytes [%0], [%1, {%2, %3, %4}], [%5];"
++               :: "r"(dst), "l"(tmap), "r"(c0), "r"(c1), "r"(c2), "r"(bar) : "memory");
++}
++__device__ __forceinline__ void ldsm_x4(u32* a, u32 addr) {
++  asm volatile("ldmatrix.sync.aligned.m8n8.x4.shared.b16 {%0,%1,%2,%3}, [%4];"
++               : "=r"(a[0]), "=r"(a[1]), "=r"(a[2]), "=r"(a[3]) : "r"(addr));
++}
++__device__ __forceinline__ u32 lds32(u32 addr) { u32 v; asm volatile("ld.shared.u32 %0, [%1];" : "=r"(v) : "r"(addr)); return v; }
++__device__ __forceinline__ uint4 ldg128(const void* p) {
++  uint4 v; asm volatile("ld.global.nc.L1::no_allocate.v4.u32 {%0,%1,%2,%3}, [%4];" : "=r"(v.x), "=r"(v.y), "=r"(v.z), "=r"(v.w) : "l"(p)); return v;
++}
++__device__ __forceinline__ uint2 ldg64(const void* p) {
++  uint2 v; asm volatile("ld.global.nc.L1::no_allocate.v2.u32 {%0,%1}, [%2];" : "=r"(v.x), "=r"(v.y) : "l"(p)); return v;
++}
++__device__ __forceinline__ u32 ldg32(const void* p) {
++  u32 v; asm volatile("ld.global.nc.L1::no_allocate.u32 %0, [%1];" : "=r"(v) : "l"(p)); return v;
++}
++__device__ __forceinline__ u32 prmt(u32 a, u32 b, u32 s) { u32 r; asm("prmt.b32 %0, %1, %2, %3;" : "=r"(r) : "r"(a), "r"(b), "r"(s)); return r; }
++__device__ __forceinline__ void mma16816(float* c, const u32* a, u32 b0, u32 b1) {
++  asm("mma.sync.aligned.m16n8k16.row.col.f32.bf16.bf16.f32 {%0,%1,%2,%3}, {%4,%5,%6,%7}, {%8,%9}, {%0,%1,%2,%3};"
++      : "+f"(c[0]), "+f"(c[1]), "+f"(c[2]), "+f"(c[3]) : "r"(a[0]), "r"(a[1]), "r"(a[2]), "r"(a[3]), "r"(b0), "r"(b1));
++}
++__device__ __forceinline__ void cluster_sync_all() {
++  asm volatile("barrier.cluster.arrive.release.aligned;\nbarrier.cluster.wait.acquire.aligned;" ::: "memory");
++}
++__device__ __forceinline__ u32 cluster_rank() { u32 r; asm volatile("mov.u32 %0, %%cluster_ctarank;" : "=r"(r)); return r; }
++__device__ __forceinline__ void st_dsmem4(u32 addr, u32 rank, float4 v) {
++  u32 ra; asm("mapa.shared::cluster.u32 %0, %1, %2;" : "=r"(ra) : "r"(addr), "r"(rank));
++  asm volatile("st.shared::cluster.v4.f32 [%0], {%1,%2,%3,%4};" :: "r"(ra), "f"(v.x), "f"(v.y), "f"(v.z), "f"(v.w) : "memory");
++}
++__device__ __forceinline__ u32 pack_bf2(float a, float b) {
++  u32 r; asm("cvt.rn.bf16x2.f32 %0, %2, %1;" : "=r"(r) : "f"(a), "f"(b)); return r;
++}
++__device__ __forceinline__ uint4 decode12(uint2 lo, u32 nw, u32 B4) {
++  const u32 hiA = ((nw << 4) & 0x80808080u) | ((nw & 0x07070707u) + B4);
++  const u32 hiB = (nw & 0x80808080u) | (((nw >> 4) & 0x07070707u) + B4);
++  uint4 o;
++  o.x = prmt(lo.x, hiA, 0x5140); o.y = prmt(lo.x, hiA, 0x7362);
++  o.z = prmt(lo.y, hiB, 0x5140); o.w = prmt(lo.y, hiB, 0x7362);
++  return o;
++}
++
++// per-lane payload of one k32 step for GW tiles
++template <int GW, int COMP> struct Step { uint2 lo[COMP ? GW : 1]; u32 cd[COMP ? GW : 1]; uint4 bf[COMP ? 1 : GW]; };
++
++template <int GW, int COMP>
++__device__ __forceinline__ void load_step(Step<GW, COMP>& s, const u8* blk, int lane, int gc) {
++  if (COMP) {
++    const u8* p = blk;
++#pragma unroll
++    for (int j = 0; j + 1 < GW; j += 2) {
++      if (j < gc) { const uint4 v = ldg128(p + lane * 16); s.lo[j] = make_uint2(v.x, v.y); s.lo[j + 1] = make_uint2(v.z, v.w); }
++      p += 512;
++    }
++    if (GW & 1) { if (GW - 1 < gc) s.lo[GW - 1] = ldg64(p + lane * 8); p += 256; }
++#pragma unroll
++    for (int j = 0; j + 3 < GW; j += 4) {
++      if (j < gc) { const uint4 v = ldg128(p + lane * 16); s.cd[j] = v.x; s.cd[j + 1] = v.y; s.cd[j + 2] = v.z; s.cd[j + 3] = v.w; }
++      p += 512;
++    }
++    constexpr int J0 = GW & ~3;
++    if ((GW & 3) >= 2) { if (J0 < gc) { const uint2 v = ldg64(p + lane * 8); s.cd[J0] = v.x; s.cd[J0 + 1] = v.y; } p += 256; }
++    if (GW & 1) { if (GW - 1 < gc) s.cd[GW - 1] = ldg32(p + lane * 4); }
++  } else {
++#pragma unroll
++    for (int j = 0; j < GW; ++j) if (j < gc) s.bf[j] = ldg128(blk + j * 512 + lane * 16);
++  }
++}
++
++// HALF layout: per step [GW tiles][32 lanes][8 B lo] then [GW tiles][32 lanes][4 B codes]; tile hj loads lanes < 16 only
++template <int GW, int COMP>
++__device__ __forceinline__ void load_step_h(Step<GW, COMP>& s, const u8* blk, int lane, int gc, int hj) {
++#pragma unroll
++  for (int j = 0; j < GW; ++j) {
++    if (j < gc && (j != hj || lane < 16)) {
++      if (COMP) { s.lo[j] = ldg64(blk + j * 256 + lane * 8); s.cd[j] = ldg32(blk + GW * 256 + j * 128 + lane * 4); }
++      else s.bf[j] = ldg128(blk + j * 512 + lane * 16);
++    }
++  }
++}
++
++template <int C, int TOKB, int GW, int WR, int WK, int NKT, int D, int KT, int COMP, int R, int PW, int HALF>
++__device__ __forceinline__ void k1t_body(const P& p) {
++  constexpr int MT = (TOKB + 15) / 16;
++  constexpr int TOKP = MT * 16;
++  constexpr int NCW = WR * WK;
++  constexpr int KC = KT * 32 / C;
++  constexpr int RG = WR * GW;
++  constexpr int RS = RG * 8 + 8;
++  constexpr int SB = COMP ? 32 * 12 * GW : 32 * 16 * GW;   // global bytes per warp step
++  static_assert(NKT * WK * 32 * C == KT * 32, "K split");
++  static_assert(WK % 2 == 0, "x chunks are whole 64-k boxes");
++  static_assert(8 * (1 + 2 * R) + 4 * R <= 1024, "barrier area");
++  extern __shared__ __align__(1024) unsigned char sm[];
++  // barriers: [0] overflow, [1 + j] x slot j full, [1 + R + j] x slot j empty (NCW consumer warps)
++  const u32 bar0 = smem_u32(sm);
++  constexpr u32 CHB = TOKB * WK * 64;               // x chunk bytes (WK k32 steps)
++  const u32 xs = smem_u32(sm) + 1024;
++  const u32 ovs = smem_u32(sm) + p.ovoff;
++
++  const int lane = threadIdx.x & 31, wid = threadIdx.x >> 5;
++  const u32 r = (C > 1) ? cluster_rank() : 0;
++  const int cta = blockIdx.x;
++  const int q = cta / C;
++  const int M = (int)p.M;
++  // rows of this cluster: HALF -> 4-row units [u0, u1) (last 8-row group may be half), else 8-row groups
++  const int u0 = (int)((long long)q * p.G / p.Q), u1 = (int)((long long)(q + 1) * p.G / p.Q);
++  const int r0 = HALF ? 4 * u0 : 8 * u0;
++  const int nrows = HALF ? 4 * (u1 - u0) : 8 * (u1 - u0);
++  const int ng = (nrows + 7) / 8;
++  const int g0 = r0 / 8;   // (only used when !HALF)
++  const int wr = wid / WK, wk = wid % WK;
++  const int gcount = ng - wr * GW;
++  const int hj = (HALF && (nrows & 4)) ? (ng - 1 - wr * GW) : -1;   // this warp's half group index (or -1/out of range)
++  // warp stream: CTA region = (g0*KT + r*ng*(KC/32)) tiles; warp (wr, wk) block = (wr*WK + wk) * NKT steps
++  // CTA regions are padded to RG groups: cta * NCW * NKT steps
++  const u8* ws = p.w + ((size_t)cta * NCW + (size_t)(wr * WK + wk)) * NKT * SB;
++
++  if ((PW ? (wid == NCW) : (wid == 0)) && lane == 0) {
++    TR(0);
++    mbar_init(bar0, 1);
++    for (int j = 0; j < R; ++j) { mbar_init(bar0 + 8 * (1 + j), 1); *(u32*)(sm + 8 * (1 + 2 * R) + 4 * j) = 0u; }
++    asm volatile("fence.mbarrier_init.release.cluster;" ::: "memory");
++#pragma unroll 1
++    for (int i = 0; i < R && i < NKT; ++i) {
++      mbar_expect_arrive(bar0 + 8 * (1 + i), CHB);
++      tma3d(xs + i * CHB, &p.tmx, 0, 0, (int)r * (KC / 64) + i * (WK / 2), bar0 + 8 * (1 + i));
++    }
++    if (COMP && p.ovstride) {
++      mbar_expect_arrive(bar0, p.ovstride);
++      bulk_g2s(ovs, p.ovf + (size_t)cta * p.ovstride, p.ovstride, bar0);
++    }
++  }
++  __syncthreads();
++  float acc[GW][MT][4];
++#pragma unroll
++  for (int j = 0; j < GW; ++j)
++#pragma unroll
++    for (int mt = 0; mt < MT; ++mt)
++#pragma unroll
++      for (int c = 0; c < 4; ++c) acc[j][mt][c] = 0.f;
++  if (PW && wid == NCW) {
++    if (lane == 0) {
++#pragma unroll 1
++      for (int i = R; i < NKT; ++i) {
++        const int j = i % R;
++        mbar_wait(bar0 + 8 * (1 + R + j), ((i / R) - 1) & 1);
++        mbar_expect_arrive(bar0 + 8 * (1 + j), CHB);
++        tma3d(xs + j * CHB, &p.tmx, 0, 0, (int)r * (KC / 64) + i * (WK / 2), bar0 + 8 * (1 + j));
++      }
++    }
++    __syncwarp();
++  } else {
++  Step<GW, COMP> buf[D];
++#pragma unroll
++  for (int d = 0; d < D && d < NKT; ++d) if (HALF) load_step_h<GW, COMP>(buf[d], ws + (size_t)d * SB, lane, gcount, hj); else load_step<GW, COMP>(buf[d], ws + (size_t)d * SB, lane, gcount);
++  uint4 hd = make_uint4(0, 0, 0, 0), hd2 = make_uint4(0, 0, 0, 0);
++  if (COMP) { hd = p.hdr[((size_t)cta * NCW + wid) * 2]; hd2 = p.hdr[((size_t)cta * NCW + wid) * 2 + 1]; }
++  constexpr int MW = (NKT * GW + 31) / 32;                                   // mask words actually used
++  const u32 rw_[4] = {hd.x, MW > 1 ? hd.y : 0u, MW > 2 ? hd.z : 0u, MW > 3 ? hd.w : 0u};
++  const u32 ovbase = hd2.x;
++  bool ovready = false;
++  u32 xrow[MT];
++#pragma unroll
++  for (int mt = 0; mt < MT; ++mt) xrow[mt] = (u32)((mt * 16 + (lane & 7) + ((lane >> 3) & 1) * 8) * 128);
++  const u32 xsw = (u32)(lane & 7);   // row & 7 for every mt
++  const u32 base2 = p.base2;
++  if (threadIdx.x == 0) TR(1);
++
++#pragma unroll
++  for (int i = 0; i < NKT; ++i) {
++    const int slot = i % D;
++    const int kt = i * WK + wk;                  // k32 step within the CTA range (interleaved across warps)
++    const u32 xsl = xs + (i % R) * CHB;          // x slot of chunk i
++    mbar_wait(bar0 + 8 * (1 + i % R), (i / R) & 1);
++    u32 a[MT][2][4];
++#pragma unroll
++    for (int mt = 0; mt < MT; ++mt)
++#pragma unroll
++      for (int stp = 0; stp < 2; ++stp) {
++        const u32 ch = 4 * (kt & 1) + 2 * stp + (lane >> 4);
++        ldsm_x4(a[mt][stp], xsl + (wk >> 1) * TOKB * 128 + xrow[mt] + ((ch ^ xsw) << 4));
++      }
++    if (R < NKT && i + R < NKT) {
++      // the last warp to finish reading chunk i refills its slot with chunk i + R
++      __syncwarp();
++      if (lane == 0) {
++        u32* cnt = (u32*)(sm + 8 * (1 + 2 * R) + 4 * (i % R));
++        __threadfence_block();
++        const u32 old = atomicAdd(cnt, 1u);
++        if (old == NCW - 1) {
++          *cnt = 0;
++          asm volatile("fence.proxy.async.shared::cta;" ::: "memory");
++          const int j = i % R, i2 = i + R;
++          mbar_expect_arrive(bar0 + 8 * (1 + j), CHB);
++          tma3d(xs + j * CHB, &p.tmx, 0, 0, (int)r * (KC / 64) + i2 * (WK / 2), bar0 + 8 * (1 + j));
++        }
++      }
++    }
++    uint4 bt[GW];
++#pragma unroll
++    for (int j = 0; j < GW; ++j) {
++      if (COMP) {
++        const int ti = i * GW + j;
++        const bool israw = ((rw_[ti >> 5] >> (ti & 31)) & 1u) != 0;
++        if (israw) {
++          if (!ovready) { mbar_wait(bar0, 0); ovready = true; }
++          int ov = __popc(rw_[ti >> 5] & ((1u << (ti & 31)) - 1u));
++#pragma unroll
++          for (int wq = 0; wq < MW; ++wq) if (wq < (ti >> 5)) ov += __popc(rw_[wq]);
++          bt[j] = make_uint4(buf[slot].lo[j].x, buf[slot].lo[j].y, buf[slot].cd[j], lds32(ovs + (ovbase + ov) * 128 + lane * 4));
++        } else {
++          bt[j] = decode12(buf[slot].lo[j], buf[slot].cd[j], base2);
++        }
++      } else {
++        bt[j] = buf[slot].bf[j];
++      }
++    }
++    if (i + D < NKT) { if (HALF) load_step_h<GW, COMP>(buf[slot], ws + (size_t)(i + D) * SB, lane, gcount, hj); else load_step<GW, COMP>(buf[slot], ws + (size_t)(i + D) * SB, lane, gcount); }
++#pragma unroll
++    for (int j = 0; j < GW; ++j)
++#pragma unroll
++      for (int mt = 0; mt < MT; ++mt) {
++        mma16816(acc[j][mt], a[mt][0], bt[j].x, bt[j].y);
++        mma16816(acc[j][mt], a[mt][1], bt[j].z, bt[j].w);
++      }
++  }
++  if (threadIdx.x == 0) TR(2);
++  // partial stores happen below, after the barrier; keep acc live
++  }
++  __syncthreads();                                // everyone is done with x
++  if (threadIdx.x == 0) TR(3);
++  if (C > 1) asm volatile("barrier.cluster.arrive.relaxed.aligned;" ::: "memory");  // my x area is free for pushes
++  float* part = (float*)(sm + 1024);
++  float* red2 = part + WK * TOKP * RS;
++  float* recv = red2 + TOKP * RS;
++#pragma unroll
++  for (int j = 0; j < GW; ++j) {
++    if (j < gcount && wid < NCW && (wr * GW + j) * 8 + 2 * (lane & 3) < nrows) {
++      const int n = (wr * GW + j) * 8 + 2 * (lane & 3);
++#pragma unroll
++      for (int mt = 0; mt < MT; ++mt) {
++        const int t0 = mt * 16 + (lane >> 2);
++        *(float2*)&part[(wk * TOKP + t0) * RS + n] = make_float2(acc[j][mt][0], acc[j][mt][1]);
++        *(float2*)&part[(wk * TOKP + t0 + 8) * RS + n] = make_float2(acc[j][mt][2], acc[j][mt][3]);
++      }
++    }
++  }
++  __syncthreads();
++  if (threadIdx.x == 0) TR(6);
++  const int nq = nrows / 4;
++  if (C > 1) asm volatile("barrier.cluster.wait.acquire.aligned;" ::: "memory");
++  const int qa = (int)(r * nq / C), qb = (int)((r + 1) * nq / C);
++  for (int e = threadIdx.x; e < M * nq; e += blockDim.x) {
++    const int t = e / nq, qd = e % nq, n = qd * 4;
++    float4 s = *(const float4*)&part[t * RS + n];
++#pragma unroll
++    for (int w = 1; w < WK; ++w) {
++      const float4 v = *(const float4*)&part[(w * TOKP + t) * RS + n];
++      s.x += v.x; s.y += v.y; s.z += v.z; s.w += v.w;
++    }
++    if (C == 1) {
++      uint2 o; o.x = pack_bf2(s.x, s.y); o.y = pack_bf2(s.z, s.w);
++      *(uint2*)(p.out + (size_t)t * p.N + (size_t)r0 + n) = o;
++    } else if (qd < qa || qd >= qb) {
++      u32 owner = 0;
++#pragma unroll
++      for (int c2 = 1; c2 < C; ++c2) if (qd >= (c2 * nq) / C) owner = (u32)c2;
++      st_dsmem4(smem_u32(&recv[t * RS + n]), owner, s);
++    } else {
++      *(float4*)&red2[t * RS + n] = s;
++    }
++  }
++  if (C > 1) {
++    cluster_sync_all();
++    if (threadIdx.x == 0) TR(4);
++    const int nmy = qb - qa;
++    for (int e = threadIdx.x; e < M * nmy; e += blockDim.x) {
++      const int t = e / nmy, n = (qa + e % nmy) * 4;
++      float4 s = *(const float4*)&red2[t * RS + n];
++      const float4 v = *(const float4*)&recv[t * RS + n];
++      s.x += v.x; s.y += v.y; s.z += v.z; s.w += v.w;
++      uint2 o; o.x = pack_bf2(s.x, s.y); o.y = pack_bf2(s.z, s.w);
++      *(uint2*)(p.out + (size_t)t * p.N + (size_t)r0 + n) = o;
++    }
++  } else if (threadIdx.x == 0) TR(4);
++  if (threadIdx.x == 0) TR(5);
++}
++"""
++
++_k1t_LAYER_K = {"qkv_gate": 8192, "o": 1024, "pooler": 8192, "pooler1": 8192, "unpooler": 4096, "unpslice": 4096,
++           "qkv32": 8192, "pooler32": 8192, "unpooler32": 4096, "o32": 1024}
++# layer -> (C, Q, GW, WR, WK, D)
++_k1t_CFG = {
++    "qkv_gate": (2, 66, 5, 1, 16, 3),
++    "pooler": (2, 66, 4, 2, 8, 4),
++    "pooler1": (1, 132, 4, 1, 16, 4),
++    "o": (1, 132, 4, 2, 8, 4),
++    "unpooler": (1, 132, 4, 2, 8, 4),
++    "unpslice": (1, 128, 1, 1, 16, 4),
++    "qkv32": (2, 66, 5, 1, 16, 3),
++    "pooler32": (2, 66, 4, 2, 8, 3),
++    "unpooler32": (1, 132, 4, 2, 8, 3),
++    "o32": (1, 132, 4, 2, 8, 3),
++}
++_k1t_VARIANT = {("pooler", 8): "pooler1", ("qkv_gate", 32): "qkv32", ("pooler", 32): "pooler32",
++           ("unpooler", 32): "unpooler32", ("o", 32): "o32"}   # (layer, tokb) -> config key
++_k1t_OVMAX = 8192
++_k1t_TOKBS = (8, 16, 32)
++_k1t_SMEM_MAX = 227 * 1024
++
++
++def _k1t_kname(layer, tokb, comp):
++    return f"k1t_{layer}_{tokb}_{comp}"
++
++
++def _k1t__dims(layer, tokb, comp):
++    c, q, gw, wr, wk, d = _k1t_CFG[layer]
++    kc = _k1t_LAYER_K[layer] // c
++    nkt = kc // 32 // wk
++    tokp = (tokb + 15) // 16 * 16
++    chb = tokb * wk * 64
++    epi = (wk + 2) * tokp * (gw * wr * 8 + 8) * 4
++    ovm = _k1t_OVMAX if comp else 0
++    r = nkt
++    while r > 2 and 1024 + max(r * chb + 1024, epi) + ovm > _k1t_SMEM_MAX:
++        r -= 1
++    ovoff = 1024 + (max(r * chb + 1024, epi) + 1023) // 1024 * 1024
++    smem = max(ovoff + ovm, 120 * 1024)  # one CTA per SM
++    if smem > _k1t_SMEM_MAX:
++        smem = 10**9
++    return dict(ovoff=ovoff, smem=smem, nkt=nkt, r=r)
++
++
++def _k1t__needed():
++    out = set()
++    for layer in ("qkv_gate", "o", "pooler", "unpooler", "unpslice"):
++        for tokb in _k1t_TOKBS:
++            if layer == "unpslice" and tokb > 8:
++                continue
++            out.add((_k1t_VARIANT.get((layer, tokb), layer), tokb))
++    return out
++
++
++def _k1t_source(layers=None, tokbs=None, comps=(1,)):
++    s = _k1t_SRC
++    for key, tokb in sorted(_k1t__needed()):
++        if layers and key not in layers:
++            continue
++        if tokbs and tokb not in tokbs:
++            continue
++        c, q, gw, wr, wk, d = _k1t_CFG[key]
++        kt = _k1t_LAYER_K[key] // 32
++        for comp in comps:
++            dm = _k1t__dims(key, tokb, comp)
++            if dm["smem"] > _k1t_SMEM_MAX:
++                continue
++            pw = 0
++            nt = 32 * (wr * wk + pw)
++            cl = f"__cluster_dims__({c},1,1) " if c > 1 else ""
++            s += (f'extern "C" __global__ void {cl}__launch_bounds__({nt},1) {_k1t_kname(key, tokb, comp)}'
++                  f'(const __grid_constant__ P p) {{ k1t_body<{c},{tokb},{gw},{wr},{wk},{dm["nkt"]},{d},{kt},{comp},{dm["r"]},{pw},{1 if key in _k1t_HALF_CFGS else 0}>(p); }}\n')
++    return s
++
++
++def _k1t__frag(t, n, k):
++    return t.contiguous().view(n // 8, 8, k // 32, 2, 2, 4, 2).permute(0, 2, 1, 5, 3, 4, 6).reshape(n // 8, k // 32, 32, 8)
++
++
++def _k1t_compress(w):
++    u = w.contiguous().view(torch.int16).to(torch.int32) & 0xFFFF
++    s, e = u >> 15, (u >> 7) & 0xFF
++    hist = torch.bincount(e.flatten(), minlength=256).cpu()
++    cs = torch.cat([torch.zeros(1, dtype=torch.long), hist.cumsum(0)])
++    best, H = -1, 0
++    for h in range(0, 121):
++        inside = int(cs[2 * h + 16] - cs[2 * h])
++        if inside > best:
++            best, H = inside, h
++    idx = (e >> 1) - H
++    esc = (idx < 0) | (idx > 7)
++    code = torch.where(esc, torch.zeros_like(e), (s << 3) | idx)
++    lo = torch.where(esc, torch.zeros_like(u), u & 0xFF)
++    return code, lo, H, esc
++
++
++_k1t_HALF_CFGS = {"qkv_gate", "qkv32"}
++
++
++def _k1t_prepare_layer(w, layer, comp):
++    c, q, gw, wr, wk, d = _k1t_CFG[layer]
++    half = layer in _k1t_HALF_CFGS
++    unit = 4 if half else 8
++    n, k = w.shape
++    GU = n // unit
++    KT = k // 32
++    kc = k // c
++    nkt = kc // 32 // wk
++    rg = wr * gw
++    dev = w.device
++    if comp:
++        code, lo, H, esc = _k1t_compress(w)
++    parts, ovs = [], []
++    ovstride = 0
++    hdr_all = torch.zeros((q * c, wr * wk, 8), dtype=torch.int64)
++    n_raw, n_tiles = 0, 0
++
++    def take(t, r0, nr):
++        sub = t[r0:r0 + nr]
++        if nr < rg * 8:
++            sub = torch.cat([sub, torch.zeros((rg * 8 - nr,) + tuple(sub.shape[1:]), dtype=sub.dtype, device=sub.device)], 0)
++        return sub.contiguous()
++
++    for qq in range(q):
++        u0, u1 = qq * GU // q, (qq + 1) * GU // q
++        r0, nr = u0 * unit, (u1 - u0) * unit
++        assert nr <= rg * 8, (layer, nr, rg)
++        if comp:
++            cl = _k1t__frag(take(lo, r0, nr), rg * 8, k).to(torch.uint8)                  # [rg, KT, 32, 8]
++            cc = _k1t__frag(take(code, r0, nr), rg * 8, k).to(torch.int32)
++            cw = (cc[..., 0:4] | (cc[..., 4:8] << 4)).to(torch.uint8)               # [rg, KT, 32, 4]
++            rawt = _k1t__frag(take(esc.to(torch.int32), r0, nr), rg * 8, k).reshape(rg, KT, 256).any(-1)
++            rb = _k1t__frag(take(w, r0, nr), rg * 8, k).contiguous().view(torch.uint8).view(rg, KT, 32, 16)
++            cl = torch.where(rawt[..., None, None], rb[..., 0:8], cl)
++            cw = torch.where(rawt[..., None, None], rb[..., 8:12], cw)
++            ov = rb[..., 12:16]
++            n_raw += int(rawt.sum()); n_tiles += rawt.numel()
++            TL = cl.view(wr, gw, c, nkt, wk, 32, 8).permute(2, 0, 4, 3, 1, 5, 6)   # [c,wr,wk,nkt,gw,32,8]
++            TC = cw.view(wr, gw, c, nkt, wk, 32, 4).permute(2, 0, 4, 3, 1, 5, 6)
++            if half:
++                blk = torch.cat([TL.reshape(c, wr, wk, nkt, -1), TC.reshape(c, wr, wk, nkt, -1)], -1)
++            else:
++                subs = []
++                for pp in range(gw // 2):
++                    subs.append(torch.cat([TL[..., 2 * pp, :, :], TL[..., 2 * pp + 1, :, :]], -1))
++                if gw & 1:
++                    subs.append(TL[..., gw - 1, :, :])
++                for qd in range(gw // 4):
++                    subs.append(torch.cat([TC[..., 4 * qd + i, :, :] for i in range(4)], -1))
++                j0 = gw & ~3
++                if (gw & 3) >= 2:
++                    subs.append(torch.cat([TC[..., j0, :, :], TC[..., j0 + 1, :, :]], -1))
++                if gw & 1:
++                    subs.append(TC[..., gw - 1, :, :])
++                blk = torch.cat([t_.reshape(c, wr, wk, nkt, -1) for t_ in subs], -1)
++            R = rawt.to(torch.uint8).view(wr, gw, c, nkt, wk).permute(2, 0, 4, 3, 1).reshape(c, wr * wk, nkt * gw).cpu()
++            O = ov.view(wr, gw, c, nkt, wk, 32, 4).permute(2, 0, 4, 3, 1, 5, 6).reshape(c, wr * wk, nkt * gw, 128)
++            for rr in range(c):
++                cta = qq * c + rr
++                obytes = []
++                base = 0
++                for wi in range(wr * wk):
++                    bits = R[rr, wi]
++                    assert nkt * gw <= 128
++                    m = 0
++                    idx = bits.nonzero().flatten().tolist()
++                    for ti in idx:
++                        m |= 1 << ti
++                    if idx:
++                        obytes.append(O[rr, wi, idx].reshape(-1))
++                    for wq in range(4):
++                        hdr_all[cta, wi, wq] = (m >> (32 * wq)) & 0xFFFFFFFF
++                    hdr_all[cta, wi, 4] = base
++                    base += len(idx)
++                ovs.append(torch.cat(obytes) if obytes else torch.zeros(0, dtype=torch.uint8, device=dev))
++                ovstride = max(ovstride, base * 128)
++        else:
++            B = _k1t__frag(take(w, r0, nr), rg * 8, k).contiguous().view(torch.uint8).view(rg, KT, 32, 16)
++            blk = B.view(wr, gw, c, nkt, wk, 32, 16).permute(2, 0, 4, 3, 1, 5, 6).reshape(c, wr, wk, nkt, 32 * gw * 16)
++        parts.append(blk.reshape(-1))
++    if comp:
++        ovstride = (ovstride + 127) // 128 * 128
++        if ovstride > _k1t_OVMAX:
++            raise RuntimeError(f"{layer}: overflow {ovstride} > OVMAX")
++        ovf_all = torch.zeros((q * c, max(ovstride, 128)), dtype=torch.uint8, device=dev)
++        for i, ob in enumerate(ovs):
++            if ob.numel():
++                ovf_all[i, :ob.numel()] = ob
++        hdr = hdr_all.to(torch.int32).view(-1).to(dev)
++        return {"w": torch.cat(parts), "ovf": ovf_all.view(-1), "hdr": hdr, "ovstride": ovstride,
++                "base2": H * 0x01010101, "n_raw": n_raw, "raw_frac": n_raw / max(n_tiles, 1), "base": 2 * H, "GU": GU}
++    z = torch.zeros(128, dtype=torch.uint8, device=dev)
++    return {"w": torch.cat(parts), "ovf": z, "hdr": torch.zeros(8 * q * c * wr * wk, dtype=torch.int32, device=dev),
++            "ovstride": 0, "base2": 0, "n_raw": 0, "base": None, "GU": GU}
++
++
++_k1t__TM_CACHE = {}
++
++
++def _k1t_x_tmap3(x, m, k, tokb, nb):
++    key = (x.data_ptr(), m, k, tokb, nb)
++    if key in _k1t__TM_CACHE:
++        return _k1t__TM_CACHE[key]
++    from cuda.bindings import driver as d
++    err, tm = d.cuTensorMapEncodeTiled(
++        d.CUtensorMapDataType.CU_TENSOR_MAP_DATA_TYPE_BFLOAT16, d.cuuint32_t(3), x.data_ptr(),
++        [d.cuuint64_t(64), d.cuuint64_t(m), d.cuuint64_t(k // 64)], [d.cuuint64_t(k * 2), d.cuuint64_t(128)],
++        [d.cuuint32_t(64), d.cuuint32_t(tokb), d.cuuint32_t(nb)], [d.cuuint32_t(1)] * 3,
++        d.CUtensorMapInterleave.CU_TENSOR_MAP_INTERLEAVE_NONE, d.CUtensorMapSwizzle.CU_TENSOR_MAP_SWIZZLE_128B,
++        d.CUtensorMapL2promotion.CU_TENSOR_MAP_L2_PROMOTION_L2_128B,
++        d.CUtensorMapFloatOOBfill.CU_TENSOR_MAP_FLOAT_OOB_FILL_NONE)
++    if int(err) != 0:
++        raise RuntimeError(f"cuTensorMapEncodeTiled failed: {err}")
++    b = b"".join(struct.pack("<Q", int(v)) for v in tm.opaque)
++    if len(_k1t__TM_CACHE) > 64:
++        _k1t__TM_CACHE.clear()
++    _k1t__TM_CACHE[key] = b
++    return b
++
++
++_k1t_TRACE = None
++
++
++def _k1t_cfg_key(layer, m, n):
++    lname = "unpslice" if (layer == "unpooler" and n == 1024) else layer
++    tokb = 8 if m <= 8 else (16 if m <= 16 else 32)
++    return _k1t_VARIANT.get((lname, tokb), lname), tokb
++
++
++def _k1t_launch(mod, layer, ent, x, out, m, n, comp):
++    lname, tokb = _k1t_cfg_key(layer, m, n)
++    c, q, gw, wr, wk, d = _k1t_CFG[lname]
++    k = _k1t_LAYER_K[lname]
++    kc = k // c
++    dm = _k1t__dims(lname, tokb, comp)
++    tm = _k1t_x_tmap3(x, m, k, tokb, wk // 2)
++    args = tm + struct.pack("<QQQQqqqqIIIIQ", ent["w"].data_ptr(), ent["ovf"].data_ptr(), ent["hdr"].data_ptr(),
++                            out.data_ptr(), m, n, ent["GU"], q, ent["base2"], ent["ovstride"], dm["ovoff"], 0,
++                            _k1t_TRACE.data_ptr() if _k1t_TRACE is not None else 0)
++    args += b"\0" * (256 - len(args))
++    pw = 0
++    mod.launch(_k1t_kname(lname, tokb, comp), q * c, 32 * (wr * wk + pw), dm["smem"], args)
+ 
+ 
+ # ======================================================================== component: router
+@@ -3925,6 +4506,14 @@
+     "unpooler": lambda m: 9 <= m <= 16,
+     "o": lambda m: False,
+ }
++# library GEMMs that beat Codex's picks (claude/out/lib3.log): flashinfer cuDNN backend, plain torch.mm
++_LIB = {}
++# exhaustive cuBLASLt search winners (claude/lt_tune.py, claude/lt_128_256.json): (m, layer) -> (layout, settings)
++_LT = {(128, 'qkv_gate'): ('tn', [66, 92, 1, 0, 0, 0, 35, 0, 5, 0, 130101]), (128, 'o'): ('tn', [66, 18, 1, 0, 0, 0, 35, 0, 5, 0, 130101]), (128, 'pooler'): ('nn', [66, 16, 1, 0, 0, 1, 35, 0, 2, 0, 130101]), (128, 'unpooler'): ('nn', [66, 18, 1, 0, 0, 0, 35, 0, 5, 0, 130101]), (256, 'qkv_gate'): ('tn', [66, 124, 1, 0, 0, 0, 35, 0, 2, 0, 130101]), (256, 'o'): ('nn', [66, 21, 1, 0, 0, 0, 35, 0, 5, 0, 130101]), (256, 'pooler'): ('nn', [66, 18, 1, 0, 0, 0, 35, 0, 2, 0, 130101]), (256, 'unpooler'): ('nn', [66, 21, 1, 0, 0, 0, 35, 0, 2, 0, 130101])}
++_K1T_USE = {
++    "pooler": lambda m: 17 <= m <= 32,
++    "unpooler": lambda m: 17 <= m <= 32,
++}
+ 
+ 
+ def prepare(weights):
+@@ -3935,8 +4524,23 @@
+     k1["pooler1"] = _k1_prepare_layer(weights["pooler"], "pooler1", 1)
+     st["k1"] = k1
+     st["k1mod"] = _cu_Module(_k1_source(layers=("qkv_gate", "pooler", "pooler1", "unpooler")), "k1s.cu")
++    k1t = {}
++    for v, base in (("pooler32", "pooler"), ("unpooler32", "unpooler")):
++        k1t[v] = _k1t_prepare_layer(weights[base], v, 1)
++    st["k1t"] = k1t
++    st["k1tmod"] = _cu_Module(_k1t_source(layers=("pooler32", "unpooler32"), tokbs=(32,)), "k1t.cu")
++    st["wt"] = {k: weights[k].t() for k in ("qkv_gate", "o", "pooler", "unpooler")}
++    for (layer, m), be in _LIB.items():   # build/cached library plans outside the timed calls
++        xw = torch.randn((m, weights[layer].shape[1]), device=weights[layer].device).to(torch.bfloat16)
++        for _ in range(2):
++            _lib_mm(xw, st, layer, weights[layer].shape[0], be)
+     torch.cuda.synchronize()
+     return st
++
++
++def _lib_mm(x, st, layer, n, be):
++    import flashinfer
++    return flashinfer.mm_bf16(x, st["wt"][layer][:, :n], backend=be)
+ 
+ 
+ def kernel_fn(data, state):
+@@ -3944,8 +4548,18 @@
+     layer, m, n = cfg["layer"], cfg["m"], cfg["n"]
+     if layer == "router":
+         return _rt_run_router(x, state["rt"])
++    be = _LIB.get((layer, m))
++    if be is not None:
++        return _lib_mm(x, state, layer, n, be)
++    lt = _LT.get((m, layer))
++    if lt is not None:
++        return _cx_lt_run(x, state["cx"]["lt"][layer], n, ("lt", lt[0], *lt[1]))
+     if _K1_USE[layer](m) and x.is_contiguous() and x.data_ptr() % 16 == 0:
+         out = torch.empty((m, n), dtype=torch.bfloat16, device=x.device)
+         _k1_launch(state["k1mod"], layer, state["k1"][_k1_cfg_key(layer, m, n)[0]], x, out, m, n, 1)
+         return out
++    if layer in _K1T_USE and _K1T_USE[layer](m) and x.is_contiguous() and x.data_ptr() % 16 == 0:
++        out = torch.empty((m, n), dtype=torch.bfloat16, device=x.device)
++        _k1t_launch(state["k1tmod"], layer, state["k1t"][_k1t_cfg_key(layer, m, n)[0]], x, out, m, n, 1)
++        return out
+     return _cx_kernel_fn(data, state["cx"])

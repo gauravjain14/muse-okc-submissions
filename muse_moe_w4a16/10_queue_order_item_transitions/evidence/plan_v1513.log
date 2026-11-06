@@ -1,0 +1,48 @@
+[modal_gate] slot 0 acquired at 13:11:48 (0 okc containers running)
+✓ Initialized. View run at 
+<modal-run-url>
+✓ Created objects.
+├── 🔨 Created mount 
+│   muse-opt/muse_moe_w4a16/dev/modal_run.py
+├── 🔨 Created mount muse-opt/muse_moe_w4a16
+└── 🔨 Created function run.
+GPU_BEFORE NVIDIA H200, 345 MHz, 3201 MHz, 75.52 W, 27, 0 %, 4 MiB
+STEP smoke
+ok=16 of 16
+STEP check_mt v1513
+FAILURES 0
+STEP interleaved calls
+(MOE_S5R: 5-bit scales on)
+wpmix_calls: 120 calls, FAILURES 0, worst rel-L2 3.29e-03
+IDLE bench: [0% 0% 0% 0% 0% 0% 0% 0% 0% 0% 0% 0% ]
+STEP bench all shapes, 100 reps: fA|dev/moe_v1513.py|;fA2|dev/moe_v1504.py|;a1|dev/moe_v1504.py|;b1|dev/moe_v1513.py|;a2|dev/moe_v1504.py|;b2|dev/moe_v1513.py|;a3|dev/moe_v1504.py|;b3|dev/moe_v1513.py|;a4|dev/moe_v1504.py|;b4|dev/moe_v1513.py|;fB2|dev/moe_v1513.py|;fB|dev/moe_v1504.py|
+geomean fA: x2.6187 over 6 shapes
+geomean fA2: x2.5971 over 6 shapes
+geomean a1: x2.5960 over 6 shapes
+geomean b1: x2.6173 over 6 shapes
+geomean a2: x2.5950 over 6 shapes
+geomean b2: x2.6175 over 6 shapes
+geomean a3: x2.5995 over 6 shapes
+geomean b3: x2.6110 over 6 shapes
+geomean a4: x2.5949 over 6 shapes
+geomean b4: x2.6181 over 6 shapes
+geomean fB2: x2.6168 over 6 shapes
+geomean fB: x2.5988 over 6 shapes
+bs1: v1513 vs v1504 +0.13%  copies +0.93 +0.92 +0.32 +0.94 | v1504 controls +0.48 +0.91 +0.38 +0.59
+bs8: v1513 vs v1504 +1.29%  copies +1.27 +1.37 +1.49 +1.28 | v1504 controls +0.04 +0.34 +0.17 -0.50
+bs16: v1513 vs v1504 +1.01%  copies +1.20 +1.24 +1.01 +1.21 | v1504 controls +0.13 +0.05 +0.05 -0.20
+bs32: v1513 vs v1504 +0.58%  copies +0.60 +0.71 +0.52 +0.69 | v1504 controls -0.01 +0.00 +0.07 +0.05
+bs128: v1513 vs v1504 +1.00%  copies +0.92 +0.81 +1.01 +0.97 | v1504 controls -0.04 +0.01 +0.07 +0.02
+bs256: v1513 vs v1504 +0.91%  copies +1.04 +0.90 +0.94 +1.00 | v1504 controls -0.09 +0.05 -0.05 +0.05
+geomean v1513 vs v1504: +0.82%
+  a4               projected  5160.0 us  rank ~ 6  (bs1:1.0024 bs8:0.9954 bs16:0.9977 bs32:1.0003 bs128:0.9995 bs256:1.0015)
+  b4               projected  5110.3 us  rank ~ 6  (bs1:1.0027 bs8:1.0138 bs16:1.0099 bs32:1.0074 bs128:1.0105 bs256:1.0107)
+  fB2              projected  5112.5 us  rank ~ 6  (bs1:0.9987 bs8:1.0127 bs16:1.0105 bs32:1.0057 bs128:1.0124 bs256:1.0124)
+  fB               projected  5152.4 us  rank ~ 6  (bs1:0.9982 bs8:0.9996 bs16:0.9996 bs32:1.0000 bs128:1.0031 bs256:1.0050)
+GPU_AFTER NVIDIA H200, 1980 MHz, 3201 MHz, 123.92 W, 29, 100 %, 4 MiB
+STEP done
+
+fetched into muse-opt/muse_moe_w4a16/dev/remote_out: 63949 bytes
+Stopping app - local entrypoint completed.
+✓ App completed. View run at 
+<modal-run-url>

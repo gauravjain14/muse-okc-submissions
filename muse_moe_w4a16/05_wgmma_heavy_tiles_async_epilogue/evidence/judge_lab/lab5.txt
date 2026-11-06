@@ -1,0 +1,6 @@
+[
+    {"bs": [256], "variants": [("w3", ["MOE_WGMIN=3"], {}), ("ksx1", ["MOE_WGMIN=3", "MOE_KSX8=1"], {}), ("ksx4", ["MOE_WGMIN=3", "MOE_KSX8=4"], {}),
+                               ("splw05", ["MOE_WGMIN=3", "MOE_SPLW=0.5f"], {}), ("splw2", ["MOE_WGMIN=3", "MOE_SPLW=2.0f"], {}),
+                               ("nowarm", ["MOE_WGMIN=3", "MOE_NO_WARM"], {}), ("deq1", ["MOE_WGMIN=3", "MOE_DEQ_IM=1"], {}),
+                               ("nosort", ["MOE_WGMIN=3", "MOE_NOSORT"], {}), ("w3b", ["MOE_WGMIN=3"], {})], "seeds": 12, "reps": 3},
+]

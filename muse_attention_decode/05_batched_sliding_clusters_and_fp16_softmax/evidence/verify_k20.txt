@@ -1,0 +1,27 @@
+[gate] slot 0 at 05:12:30 (0 running)
+0 failures
+decode 1  sliding w46 sglang    19.31 | k19     3.19 x6.052 | k20     3.25 x5.948 | k19c     3.21 x6.020   sol    0.11
+decode 1  full    w16 sglang    30.19 | k19    14.11 x2.140 | k20    14.14 x2.136 | k19c    14.06 x2.147   sol    4.27
+decode 16 sliding w46 sglang    25.97 | k19     8.70 x2.984 | k20     8.73 x2.973 | k19c     8.66 x3.000   sol    1.65
+decode 16 full    w16 sglang   199.62 | k19    88.36 x2.259 | k20    87.90 x2.271 | k19c    87.89 x2.271   sol   63.18
+decode 32 sliding w46 sglang    30.42 | k19    10.78 x2.821 | k20    10.90 x2.790 | k19c    11.16 x2.726   sol    3.29
+decode 32 full    w16 sglang   384.03 | k19   166.73 x2.303 | k20   166.91 x2.301 | k19c   166.28 x2.310   sol  126.35
+verify 1  sliding w46 sglang    22.13 | k19     5.14 x4.307 | k20     5.12 x4.323 | k19c     5.12 x4.319   sol    0.12
+verify 1  full    w16 sglang    35.42 | k19    18.39 x1.926 | k20    18.11 x1.956 | k19c    18.24 x1.942   sol    4.28
+verify 16 sliding w46 sglang    28.14 | k19    12.17 x2.312 | k20    12.04 x2.337 | k19c    12.03 x2.340   sol    1.86
+verify 16 full    w16 sglang   203.25 | k19   113.34 x1.793 | k20   107.56 x1.890 | k19c   113.24 x1.795   sol   63.39
+verify 32 sliding w46 sglang    33.30 | k19    14.44 x2.306 | k20    14.54 x2.290 | k19c    14.81 x2.248   sol    3.72
+verify 32 full    w16 sglang   387.89 | k19   209.08 x1.855 | k20   197.35 x1.965 | k19c   209.16 x1.854   sol  126.78
+per-load (weighted sums, us):
+  decode 1  sglang    1371.4 | k19     372.5 x3.682 | k20     375.5 x3.652 | k19c     372.5 x3.681
+  decode 16 sglang    4388.4 | k19    1814.1 x2.419 | k20    1808.1 x2.427 | k19c    1804.4 x2.432
+  decode 32 sglang    7543.6 | k19    3163.6 x2.385 | k20    3172.1 x2.378 | k19c    3173.6 x2.377
+  verify 1  sglang    1584.7 | k19     530.6 x2.986 | k20     525.2 x3.018 | k19c     527.5 x3.004
+  verify 16 sglang    4546.6 | k19    2373.4 x1.916 | k20    2275.0 x1.998 | k19c    2365.2 x1.922
+  verify 32 sglang    7737.8 | k19    4009.6 x1.930 | k20    3826.3 x2.022 | k19c    4027.9 x1.921
+GEOMEAN k19: x2.4832 (board time 1486.6 us)   judge-projected (+1.0 us/call) x2.3283 (board 1619.3 us)
+GEOMEAN k20: x2.5215 (board time 1464.0 us)   judge-projected (+1.0 us/call) x2.3639 (board 1594.9 us)
+GEOMEAN k19c: x2.4861 (board time 1484.9 us)   judge-projected (+1.0 us/call) x2.3308 (board 1617.5 us)
+
+fetched into autoresearch-kernels/attn/out/20261028T051444_verify_k20
+[exit 0]

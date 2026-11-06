@@ -1,0 +1,37 @@
+✓ Initialized. View run at 
+<modal-run-url>
+✓ Created objects.
+├── 🔨 Created mount 
+│   <scratch>
+│   5-ce57afd4da60/scratchpad/snap.i8pNPY/dev/modal_run.py
+├── 🔨 Created mount 
+│   <scratch>
+│   5-ce57afd4da60/scratchpad/snap.i8pNPY
+└── 🔨 Created function run.
+    dram__throughput.avg.pct_of_peak_sustained_elapsed                                    %         2.27
+    gpu__time_duration.sum                                                               us       253.82
+    lts__t_sector_hit_rate.pct                                                            %        93.64
+    sm__inst_executed_pipe_tensor_op_gmma.avg.pct_of_peak_sustained_active                %         5.36
+    sm__pipe_alu_cycles_active.avg.pct_of_peak_sustained_active                           %        50.58
+    sm__pipe_fma_cycles_active.avg.pct_of_peak_sustained_active                           %        23.61
+    sm__pipe_tensor_op_gmma_cycles_active.avg.pct_of_peak_sustained_active                       (!) n/a
+    smsp__average_warps_issue_stalled_barrier_per_issue_active.ratio                   inst         0.19
+    smsp__average_warps_issue_stalled_dispatch_stall_per_issue_active.ratio            inst         0.64
+    smsp__average_warps_issue_stalled_lg_throttle_per_issue_active.ratio               inst         0.02
+    smsp__average_warps_issue_stalled_long_scoreboard_per_issue_active.ratio           inst         0.60
+    smsp__average_warps_issue_stalled_math_pipe_throttle_per_issue_active.ratio        inst         0.79
+    smsp__average_warps_issue_stalled_membar_per_issue_active.ratio                    inst         0.06
+    smsp__average_warps_issue_stalled_mio_throttle_per_issue_active.ratio              inst         0.01
+    smsp__average_warps_issue_stalled_misc_per_issue_active.ratio                      inst         0.02
+    smsp__average_warps_issue_stalled_no_instruction_per_issue_active.ratio            inst         0.15
+    smsp__average_warps_issue_stalled_not_selected_per_issue_active.ratio              inst         0.84
+    smsp__average_warps_issue_stalled_selected_per_issue_active.ratio                  inst         1.00
+    smsp__average_warps_issue_stalled_short_scoreboard_per_issue_active.ratio          inst         0.25
+    smsp__average_warps_issue_stalled_sleeping_per_issue_active.ratio                  inst            0
+    smsp__average_warps_issue_stalled_wait_per_issue_active.ratio                      inst         1.29
+    smsp__issue_active.avg.pct_of_peak_sustained_active                                   %        48.73
+    --------------------------------------------------------------------------- ----------- ------------
+
+Stopping app - local entrypoint completed.
+✓ App completed. View run at 
+<modal-run-url>

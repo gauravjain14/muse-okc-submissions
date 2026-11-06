@@ -1,0 +1,7 @@
+lab: NVIDIA H200, 132 SMs
+lab env: torch 2.14.1+cu130 (cuda 13.0), cuda-python 13.4.3, nvrtc 13.0, driver api 13000
+lab check pair: bs129:2.75e-03 bs129:2.74e-03 bs129:2.72e-03 bs200:2.75e-03 bs200:2.73e-03 bs200:2.72e-03 bs256:2.75e-03 bs256:2.73e-03 bs256:2.73e-03
+lab check nopair: bs129:2.75e-03 bs129:2.74e-03 bs129:2.72e-03 bs200:2.75e-03 bs200:2.73e-03 bs200:2.72e-03 bs256:2.75e-03 bs256:2.73e-03 bs256:2.73e-03
+lab: experiment took 8 s
+lab bs 256: nopair 220.1 us (x1.000)  pair 221.9 us (x0.982)  pairb 222.2 us (x0.985)  nopairb 219.8 us (x1.002)
+lab: experiment took 1 s

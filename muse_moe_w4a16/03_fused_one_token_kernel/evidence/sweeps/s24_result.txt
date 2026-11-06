@@ -1,0 +1,17 @@
+test {'bs': 4}: PASS relative L2 error 2.524e-03 (worst row 2.577e-03)
+test {'bs': 33}: PASS relative L2 error 2.550e-03 (worst row 2.777e-03)
+test {'bs': 257}: PASS relative L2 error 2.545e-03 (worst row 2.758e-03)
+test {'bs': 128, 'dist': 'skewed'}: PASS relative L2 error 2.546e-03 (worst row 
+test {'bs': 1}: PASS relative L2 error 2.472e-03 (worst row 2.472e-03)
+=== bs 32: 4092 events
+  last epilogue: min 95.7 med 98.5 max 101.0; combine start med 98.8 max 101.3; end max 105.8 us
+  comb-end     median 100.32  max 105.79 us
+=== bs 256: 5820 events
+  last epilogue: min 203.8 med 207.1 max 209.4; combine start med 207.5 max 209.8; end max 217.3 us
+  comb-end     median 213.23  max 217.31 us
+v66                           : 1:30.0(2.476x) 16:90.2(2.064x) 32:119.8(1.712x) 8:69.1(2.148x) 128:183.2(2.537x) 256:223.9(2.748x) 2.254x
+v69 dyncomb                   : 1:31.1(2.412x) 16:90.5(2.059x) 32:119.4(1.718x) 8:70.4(2.124x) 128:182.3(2.542x) 256:222.2(2.755x) 2.242x
+v66                           : 1:30.4(2.445x) 16:90.0(2.075x) 32:120.0(1.710x) 8:69.0(2.156x) 128:182.7(2.548x) 256:222.4(2.749x) 2.254x
+v69 dyncomb                   : 1:31.6(2.422x) 16:90.5(2.072x) 32:119.5(1.726x) 8:69.2(2.129x) 128:182.8(2.528x) 256:222.0(2.762x) 2.247x
+v66                           : 1:30.6(2.446x) 16:90.9(2.059x) 32:119.5(1.713x) 8:69.5(2.144x) 128:182.8(2.558x) 256:223.0(2.736x) 2.249x
+v69 dyncomb                   : 1:30.8(2.419x) 16:90.4(2.058x) 32:118.8(1.726x) 8:69.6(2.128x) 128:183.6(2.536x) 256:222.2(2.754x) 2.244x

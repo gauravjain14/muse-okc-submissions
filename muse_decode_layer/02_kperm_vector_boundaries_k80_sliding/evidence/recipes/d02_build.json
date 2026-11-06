@@ -1,0 +1,6 @@
+{
+  "source": "muse-opt-codex/muse_decode_layer/variants/d01_dense21.py",
+  "output": "muse-opt-codex/muse_decode_layer/variants/d02_precomputed_gates.py",
+  "sha256": "c7c3b849afa2ea8f68ef0a70a86e541bad45106247b3b8dad66d47bbb3bbfa03",
+  "change": "Precompute only weight-derived alpha/beta; remove overridden tuning choices."
+}

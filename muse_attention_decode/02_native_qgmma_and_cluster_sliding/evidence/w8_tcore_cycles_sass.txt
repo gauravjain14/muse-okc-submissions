@@ -1,0 +1,52 @@
+ptxas info    : Compiling entry function 't_cyc_k2_512m' for 'sm_90a'
+ptxas         .     0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 128 registers, used 16 barriers
+ptxas info    : Compiling entry function 't_cyc_k2_512' for 'sm_90a'
+ptxas         .     0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 126 registers, used 16 barriers
+ptxas info    : Compiling entry function 't_cyc_k2_256' for 'sm_90a'
+ptxas         .     0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 131 registers, used 16 barriers
+ptxas info    : Compiling entry function 't_cyc_w2_512m' for 'sm_90a'
+ptxas         .     0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 120 registers, used 16 barriers
+ptxas info    : Compiling entry function 't_cyc_w2_512' for 'sm_90a'
+ptxas         .     0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 116 registers, used 16 barriers
+ptxas info    : Compiling entry function 't_cyc_w2_256' for 'sm_90a'
+ptxas         .     0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 116 registers, used 16 barriers
+ptxas info    : Compiling entry function 't_cyc_w1_512m' for 'sm_90a'
+ptxas         .     0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 113 registers, used 16 barriers
+ptxas info    : Compiling entry function 't_cyc_w1_512' for 'sm_90a'
+ptxas         .     0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 107 registers, used 16 barriers
+ptxas info    : Compiling entry function 't_cyc_w1_256' for 'sm_90a'
+ptxas         .     0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 107 registers, used 16 barriers
+ptxas info    : Compiling entry function 't_core2' for 'sm_90a'
+ptxas         .     0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 224 registers, used 16 barriers
+ptxas info    : Compiling entry function 't_core1' for 'sm_90a'
+ptxas         .     0 bytes stack frame, 0 bytes spill stores, 0 bytes spill loads
+ptxas info    : Used 144 registers, used 16 barriers
+NB=1 NT=  6 q*1.5: S rel 1.81e-04 | m 0.0e+00 | P flips 0.0e+00 (max 0) | O rel L2 1.09e-04 | l rel 3.29e-04 | O/l vs fp64(P_kernel) 1.90e-04 | e2e vs exact softmax 1.61e-02  ok
+NB=1 NT=  5 q*3.0: S rel 1.90e-04 | m 0.0e+00 | P flips 0.0e+00 (max 0) | O rel L2 1.61e-04 | l rel 8.26e-04 | O/l vs fp64(P_kernel) 4.96e-04 | e2e vs exact softmax 8.33e-03  ok
+NB=1 NT=512 q*1.5: S rel 4.06e-04 | m 0.0e+00 | P flips 0.0e+00 (max 0) | O rel L2 1.21e-04 | l rel 8.88e-05 | O/l vs fp64(P_kernel) 1.53e-04 | e2e vs exact softmax 2.13e-02  ok
+NB=2 NT=  6 q*1.5: S rel 2.07e-04 | m 0.0e+00 | P flips 0.0e+00 (max 0) | O rel L2 1.55e-04 | l rel 5.02e-04 | O/l vs fp64(P_kernel) 2.94e-04 | e2e vs exact softmax 1.80e-02  ok
+NB=2 NT=  5 q*3.0: S rel 1.83e-04 | m 0.0e+00 | P flips 0.0e+00 (max 0) | O rel L2 2.20e-04 | l rel 1.37e-03 | O/l vs fp64(P_kernel) 8.39e-04 | e2e vs exact softmax 9.45e-03  ok
+NB=2 NT=256 q*1.5: S rel 3.74e-04 | m 0.0e+00 | P flips 0.0e+00 (max 0) | O rel L2 1.68e-04 | l rel 1.49e-04 | O/l vs fp64(P_kernel) 2.10e-04 | e2e vs exact softmax 2.13e-02  ok
+CORE PASS
+t_cyc_w1_256   cycles per 32 tokens per lane (both heads):   828.1   828.1   -> per SM per 32-token tile:  828.1
+t_cyc_w2_256   cycles per 32 tokens per lane (both heads):   614.4   614.3   -> per SM per 32-token tile:  614.4
+t_cyc_k2_256   cycles per 32 tokens per lane (both heads):  1273.1  1273.1   -> per SM per 32-token tile: 1273.1
+t_cyc_w1_512   cycles per 32 tokens per lane (both heads):  1081.6  1081.6  1081.5  1081.5   -> per SM per 32-token tile:  540.8
+t_cyc_w2_512   cycles per 32 tokens per lane (both heads):   833.3   833.3   833.1   833.1   -> per SM per 32-token tile:  416.7
+t_cyc_k2_512   cycles per 32 tokens per lane (both heads):  2166.1  2166.2  2161.5  2161.4   -> per SM per 32-token tile: 1083.1
+t_cyc_w1_512m  cycles per 32 tokens per lane (both heads):  1131.8  1131.8  1130.9  1130.9   -> per SM per 32-token tile:  565.9
+t_cyc_w2_512m  cycles per 32 tokens per lane (both heads):   859.2   859.2   859.0   859.0   -> per SM per 32-token tile:  429.6
+t_cyc_k2_512m  cycles per 32 tokens per lane (both heads):  2174.5  2174.4  2158.0  2157.9   -> per SM per 32-token tile: 1087.2
+t_cyc_w1_512 total 680 {'BAR.SYNC.DEFER_BLOCKING': 3, 'F2FP.SATFINITE.E4M3.F32.PACK_AB_MERGE_C': 8, 'FENCE.VIEW.ASYNC.S': 3, 'LDSM.16.MT88.4': 1, 'MEMBAR.ALL.CTA': 3, 'MUFU.EX2': 18, 'QGMMA.64': 3, 'STS.128': 11, 'STSM.16.M88.4': 1, 'WARPGROUP.ARRIVE': 2, 'WARPGROUP.DEPBAR.LE': 2}
+t_cyc_w2_512 total 752 {'BAR.SYNC.DEFER_BLOCKING': 3, 'F2FP.SATFINITE.E4M3.F32.PACK_AB_MERGE_C': 16, 'FENCE.VIEW.ASYNC.S': 3, 'LDSM.16.MT88.4': 2, 'MEMBAR.ALL.CTA': 3, 'MUFU.EX2': 34, 'QGMMA.64': 4, 'STS.128': 11, 'STSM.16.M88.4': 2, 'WARPGROUP.ARRIVE': 2, 'WARPGROUP.DEPBAR.LE': 2}
+t_cyc_k2_512 total 696 {'BAR.SYNC.DEFER_BLOCKING': 2, 'F2FP.F16.E4M3.UNPACK_B': 89, 'F2FP.SATFINITE.E4M3.F32.PACK_AB_MERGE_C': 8, 'HMMA.16816.F32': 34, 'LDS.128': 4, 'LDS.64': 8, 'MUFU.EX2': 18, 'STS.128': 5}

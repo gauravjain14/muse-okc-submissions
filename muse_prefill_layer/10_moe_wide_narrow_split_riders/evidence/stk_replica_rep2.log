@@ -1,0 +1,103 @@
+FIXED_US 4.000 (one 5.088 two 6.176)
+DRAW fields_seed=44 router_seed=728034927264493832
+RESULT case=0 turn 1     sliding b1 ctx80000 q753 sglang=1011.0 base=497.4us x2.0294 a=497.3us x2.0349 b=498.0us x2.0393 ab=495.5us x2.0404
+RESULT case=1 turn 1     full    b1 ctx80000 q753 sglang=1407.6 base=694.8us x2.0284 a=693.4us x2.0293 b=693.2us x2.0288 ab=694.6us x2.0241
+RESULT case=2 turn 4     sliding b4 ctx80000 q753 sglang=3346.0 base=1735.2us x1.9321 a=1719.3us x1.9236 b=1718.3us x1.9351 ab=1730.0us x1.9421
+RESULT case=3 turn 4     full    b4 ctx80000 q753 sglang=4876.8 base=2496.7us x1.9621 a=2469.6us x1.9621 b=2464.4us x1.9678 ab=2458.4us x1.9699
+DRAW_SCORE fields_seed=44 base: x1.9851 (195.156 ms) {"turn 1": 2.0291, "turn 4": 1.9421}
+DRAW_SCORE fields_seed=44 a: x1.9841 (195.250 ms) {"turn 1": 2.0331, "turn 4": 1.9364}
+DRAW_SCORE fields_seed=44 b: x1.9904 (194.635 ms) {"turn 1": 2.0359, "turn 4": 1.946}
+DRAW_SCORE fields_seed=44 ab: x1.9927 (194.408 ms) {"turn 1": 2.035, "turn 4": 1.9513}
+DRAW fields_seed=55 router_seed=5453499955158644779
+RESULT case=0 turn 1     sliding b1 ctx80000 q753 sglang=1106.5 base=535.5us x2.0657 a=535.3us x2.0692 b=535.8us x2.0658 ab=534.8us x2.0662
+RESULT case=1 turn 1     full    b1 ctx80000 q753 sglang=1496.3 base=742.3us x2.0151 a=742.7us x2.0166 b=740.3us x2.0186 ab=742.1us x2.0157
+RESULT case=2 turn 4     sliding b4 ctx80000 q753 sglang=3502.2 base=1780.7us x1.9650 a=1788.8us x1.9559 b=1775.5us x1.9728 ab=1783.2us x1.9680
+RESULT case=3 turn 4     full    b4 ctx80000 q753 sglang=4970.0 base=2514.0us x1.9773 a=2508.9us x1.9793 b=2505.1us x1.9813 ab=2509.2us x1.9868
+DRAW_SCORE fields_seed=55 base: x2.0088 (192.855 ms) {"turn 1": 2.0493, "turn 4": 1.9691}
+DRAW_SCORE fields_seed=55 a: x2.0073 (192.994 ms) {"turn 1": 2.0521, "turn 4": 1.9636}
+DRAW_SCORE fields_seed=55 b: x2.0127 (192.483 ms) {"turn 1": 2.0504, "turn 4": 1.9756}
+DRAW_SCORE fields_seed=55 ab: x2.0116 (192.583 ms) {"turn 1": 2.0498, "turn 4": 1.9742}
+DRAW fields_seed=66 router_seed=4118769255173739512
+RESULT case=0 turn 1     sliding b1 ctx80000 q753 sglang=1059.6 base=515.0us x2.0579 a=515.7us x2.0614 b=515.9us x2.0519 ab=514.3us x2.0593
+RESULT case=1 turn 1     full    b1 ctx80000 q753 sglang=1437.0 base=714.8us x2.0076 a=714.2us x2.0143 b=718.3us x2.0013 ab=715.6us x2.0079
+RESULT case=2 turn 4     sliding b4 ctx80000 q753 sglang=3413.6 base=1750.5us x1.9446 a=1753.0us x1.9481 b=1754.7us x1.9411 ab=1749.7us x1.9554
+RESULT case=3 turn 4     full    b4 ctx80000 q753 sglang=4884.0 base=2487.7us x1.9657 a=2473.6us x1.9712 b=2465.0us x1.9805 ab=2480.4us x1.9704
+DRAW_SCORE fields_seed=66 base: x1.9960 (194.088 ms) {"turn 1": 2.0415, "turn 4": 1.9516}
+DRAW_SCORE fields_seed=66 a: x2.0004 (193.666 ms) {"turn 1": 2.0461, "turn 4": 1.9557}
+DRAW_SCORE fields_seed=66 b: x1.9943 (194.258 ms) {"turn 1": 2.0353, "turn 4": 1.954}
+DRAW_SCORE fields_seed=66 ab: x2.0010 (193.602 ms) {"turn 1": 2.0426, "turn 4": 1.9603}
+PANEL base: x1.9966 (194.031 ms) draws 1.9851 2.0088 1.9960 (INCOMPLETE: not all 8 shapes)
+PANEL a: x1.9973 (193.968 ms) draws 1.9841 2.0073 2.0004 (INCOMPLETE: not all 8 shapes)
+PANEL b: x1.9991 (193.790 ms) draws 1.9904 2.0127 1.9943 (INCOMPLETE: not all 8 shapes)
+PANEL ab: x2.0018 (193.529 ms) draws 1.9927 2.0116 2.0010 (INCOMPLETE: not all 8 shapes)
+RELATIVE a/base: 0.9995 0.9993 1.0022 mean 1.0003
+RELATIVE b/base: 1.0027 1.0019 0.9991 mean 1.0012
+RELATIVE ab/base: 1.0038 1.0014 1.0025 mean 1.0026
+REPLICA_RC=0
+PASS tests/00 replay=0 {'batch': 1, 'ctx': 0, 'layer': 'sliding', 'q_len': 300, 'page': 1}: update relative L2 error 3.309e-02 (worst row 5.864e-02) [bound 0.068]; attention input relative L2 error 2.176e-02 (worst row 4.060e-02) [bound 0.045]
+PASS tests/00 replay=1 {'batch': 1, 'ctx': 0, 'layer': 'sliding', 'q_len': 300, 'page': 1}: update relative L2 error 3.242e-02 (worst row 5.945e-02) [bound 0.067]; attention input relative L2 error 2.135e-02 (worst row 4.343e-02) [bound 0.044]
+PASS tests/01 replay=0 {'batch': 1, 'ctx': 3000, 'layer': 'full', 'q_len': 753, 'page': 1}: update relative L2 error 6.942e-02 (worst row 1.231e-01) [bound 0.150]; attention input relative L2 error 4.553e-02 (worst row 8.576e-02) [bound 0.110]
+PASS tests/01 replay=1 {'batch': 1, 'ctx': 3000, 'layer': 'full', 'q_len': 753, 'page': 1}: update relative L2 error 7.058e-02 (worst row 1.245e-01) [bound 0.150]; attention input relative L2 error 4.555e-02 (worst row 8.427e-02) [bound 0.112]
+PASS tests/02 replay=0 {'batch': 2, 'ctx': 2500, 'layer': 'sliding', 'q_len': 753, 'page': 1}: update relative L2 error 6.828e-02 (worst row 1.222e-01) [bound 0.150]; attention input relative L2 error 4.452e-02 (worst row 9.083e-02) [bound 0.108]
+PASS tests/02 replay=1 {'batch': 2, 'ctx': 2500, 'layer': 'sliding', 'q_len': 753, 'page': 1}: update relative L2 error 6.820e-02 (worst row 1.394e-01) [bound 0.150]; attention input relative L2 error 4.444e-02 (worst row 8.963e-02) [bound 0.108]
+PASS tests/03 replay=0 {'batch': 3, 'ctx': 5000, 'layer': 'full', 'q_len': 200, 'dist': 'outliers'}: update relative L2 error 6.391e-02 (worst row 1.053e-01) [bound 0.150]; attention input relative L2 error 3.316e-02 (worst row 6.134e-02) [bound 0.081]
+PASS tests/03 replay=1 {'batch': 3, 'ctx': 5000, 'layer': 'full', 'q_len': 200, 'dist': 'outliers'}: update relative L2 error 6.563e-02 (worst row 1.369e-01) [bound 0.150]; attention input relative L2 error 3.308e-02 (worst row 5.850e-02) [bound 0.080]
+PASS tests/04 replay=0 {'batch': 1, 'ctx': 4096, 'layer': 'sliding', 'q_len': 4096, 'page': 1}: update relative L2 error 4.861e-02 (worst row 1.297e-01) [bound 0.114]; attention input relative L2 error 3.191e-02 (worst row 8.135e-02) [bound 0.075]
+PASS tests/04 replay=1 {'batch': 1, 'ctx': 4096, 'layer': 'sliding', 'q_len': 4096, 'page': 1}: update relative L2 error 4.878e-02 (worst row 1.268e-01) [bound 0.114]; attention input relative L2 error 3.202e-02 (worst row 9.801e-02) [bound 0.075]
+PASS scored/00 replay=0 {'batch': 1, 'ctx': 80000, 'layer': 'sliding', 'q_len': 753, 'page': 1, 'dist': 'soft', 'spread': 'fixed'}: update relative L2 error 5.157e-02 (worst row 9.354e-02) [bound 0.120]; attention input relative L2 error 3.381e-02 (worst row 6.304e-02) [bound 0.079]
+PASS scored/00 replay=1 {'batch': 1, 'ctx': 80000, 'layer': 'sliding', 'q_len': 753, 'page': 1, 'dist': 'soft', 'spread': 'fixed'}: update relative L2 error 5.402e-02 (worst row 9.665e-02) [bound 0.128]; attention input relative L2 error 3.544e-02 (worst row 6.140e-02) [bound 0.084]
+PASS scored/01 replay=0 {'batch': 1, 'ctx': 80000, 'layer': 'full', 'q_len': 753, 'page': 1, 'dist': 'soft', 'spread': 'fixed'}: update relative L2 error 6.512e-02 (worst row 1.133e-01) [bound 0.150]; attention input relative L2 error 4.254e-02 (worst row 7.711e-02) [bound 0.099]
+PASS scored/01 replay=1 {'batch': 1, 'ctx': 80000, 'layer': 'full', 'q_len': 753, 'page': 1, 'dist': 'soft', 'spread': 'fixed'}: update relative L2 error 6.446e-02 (worst row 1.043e-01) [bound 0.150]; attention input relative L2 error 4.198e-02 (worst row 7.224e-02) [bound 0.099]
+PASS scored/02 replay=0 {'batch': 4, 'ctx': 80000, 'layer': 'sliding', 'q_len': 753, 'page': 1, 'dist': 'soft', 'spread': 'agentic'}: update relative L2 error 5.288e-02 (worst row 1.090e-01) [bound 0.123]; attention input relative L2 error 3.480e-02 (worst row 7.419e-02) [bound 0.081]
+PASS scored/02 replay=1 {'batch': 4, 'ctx': 80000, 'layer': 'sliding', 'q_len': 753, 'page': 1, 'dist': 'soft', 'spread': 'agentic'}: update relative L2 error 5.375e-02 (worst row 1.022e-01) [bound 0.124]; attention input relative L2 error 3.492e-02 (worst row 7.081e-02) [bound 0.081]
+PASS scored/03 replay=0 {'batch': 4, 'ctx': 80000, 'layer': 'full', 'q_len': 753, 'page': 1, 'dist': 'soft', 'spread': 'agentic'}: update relative L2 error 6.559e-02 (worst row 1.115e-01) [bound 0.150]; attention input relative L2 error 4.277e-02 (worst row 8.360e-02) [bound 0.101]
+PASS scored/03 replay=1 {'batch': 4, 'ctx': 80000, 'layer': 'full', 'q_len': 753, 'page': 1, 'dist': 'soft', 'spread': 'agentic'}: update relative L2 error 6.162e-02 (worst row 1.143e-01) [bound 0.144]; attention input relative L2 error 4.036e-02 (worst row 7.994e-02) [bound 0.094]
+PASS scored/04 replay=0 {'batch': 1, 'ctx': 0, 'layer': 'full', 'q_len': 16384, 'page': 1, 'dist': 'soft', 'spread': 'fixed'}: update relative L2 error 2.122e-02 (worst row 6.004e-02) [bound 0.044]; attention input relative L2 error 1.406e-02 (worst row 3.340e-02) [bound 0.030]
+PASS scored/04 replay=1 {'batch': 1, 'ctx': 0, 'layer': 'full', 'q_len': 16384, 'page': 1, 'dist': 'soft', 'spread': 'fixed'}: update relative L2 error 2.111e-02 (worst row 6.714e-02) [bound 0.044]; attention input relative L2 error 1.398e-02 (worst row 4.712e-02) [bound 0.030]
+PASS scored/05 replay=0 {'batch': 1, 'ctx': 32768, 'layer': 'sliding', 'q_len': 16384, 'page': 1, 'dist': 'soft', 'spread': 'fixed'}: update relative L2 error 3.219e-02 (worst row 1.114e-01) [bound 0.069]; attention input relative L2 error 2.126e-02 (worst row 6.751e-02) [bound 0.046]
+PASS scored/05 replay=1 {'batch': 1, 'ctx': 32768, 'layer': 'sliding', 'q_len': 16384, 'page': 1, 'dist': 'soft', 'spread': 'fixed'}: update relative L2 error 3.202e-02 (worst row 1.028e-01) [bound 0.069]; attention input relative L2 error 2.116e-02 (worst row 7.437e-02) [bound 0.046]
+PASS scored/06 replay=0 {'batch': 1, 'ctx': 32768, 'layer': 'full', 'q_len': 16384, 'page': 1, 'dist': 'soft', 'spread': 'fixed'}: update relative L2 error 5.379e-02 (worst row 1.292e-01) [bound 0.123]; attention input relative L2 error 3.505e-02 (worst row 7.916e-02) [bound 0.080]
+PASS scored/06 replay=1 {'batch': 1, 'ctx': 32768, 'layer': 'full', 'q_len': 16384, 'page': 1, 'dist': 'soft', 'spread': 'fixed'}: update relative L2 error 5.760e-02 (worst row 1.304e-01) [bound 0.132]; attention input relative L2 error 3.747e-02 (worst row 8.427e-02) [bound 0.086]
+PASS scored/07 replay=0 {'batch': 1, 'ctx': 65536, 'layer': 'full', 'q_len': 16384, 'page': 1, 'dist': 'soft', 'spread': 'fixed'}: update relative L2 error 6.140e-02 (worst row 1.174e-01) [bound 0.142]; attention input relative L2 error 4.019e-02 (worst row 8.448e-02) [bound 0.093]
+PASS scored/07 replay=1 {'batch': 1, 'ctx': 65536, 'layer': 'full', 'q_len': 16384, 'page': 1, 'dist': 'soft', 'spread': 'fixed'}: update relative L2 error 5.835e-02 (worst row 1.190e-01) [bound 0.135]; attention input relative L2 error 3.825e-02 (worst row 8.435e-02) [bound 0.088]
+PASS edges/00 replay=0 {'batch': 1, 'ctx': 4096, 'layer': 'sliding', 'q_len': 300, 'page': 64}: update relative L2 error 6.914e-02 (worst row 1.094e-01) [bound 0.150]; attention input relative L2 error 4.473e-02 (worst row 7.591e-02) [bound 0.109]
+PASS edges/00 replay=1 {'batch': 1, 'ctx': 4096, 'layer': 'sliding', 'q_len': 300, 'page': 64}: update relative L2 error 6.778e-02 (worst row 1.209e-01) [bound 0.150]; attention input relative L2 error 4.418e-02 (worst row 7.679e-02) [bound 0.107]
+PASS edges/01 replay=0 {'batch': 2, 'ctx': 3000, 'layer': 'full', 'q_len': 301, 'page': 64}: update relative L2 error 6.906e-02 (worst row 1.236e-01) [bound 0.150]; attention input relative L2 error 4.494e-02 (worst row 9.126e-02) [bound 0.110]
+PASS edges/01 replay=1 {'batch': 2, 'ctx': 3000, 'layer': 'full', 'q_len': 301, 'page': 64}: update relative L2 error 7.050e-02 (worst row 1.399e-01) [bound 0.150]; attention input relative L2 error 4.596e-02 (worst row 9.065e-02) [bound 0.111]
+PASS edges/02 replay=0 {'batch': 1, 'ctx': 8096, 'layer': 'sliding', 'q_len': 754, 'page': 1}: update relative L2 error 6.798e-02 (worst row 1.171e-01) [bound 0.150]; attention input relative L2 error 4.408e-02 (worst row 8.301e-02) [bound 0.108]
+PASS edges/02 replay=1 {'batch': 1, 'ctx': 8096, 'layer': 'sliding', 'q_len': 754, 'page': 1}: update relative L2 error 6.792e-02 (worst row 1.095e-01) [bound 0.150]; attention input relative L2 error 4.421e-02 (worst row 8.379e-02) [bound 0.108]
+PASS edges/03 replay=0 {'batch': 3, 'ctx': 5000, 'layer': 'full', 'q_len': 201, 'page': 1}: update relative L2 error 7.169e-02 (worst row 1.164e-01) [bound 0.150]; attention input relative L2 error 4.719e-02 (worst row 8.505e-02) [bound 0.115]
+PASS edges/03 replay=1 {'batch': 3, 'ctx': 5000, 'layer': 'full', 'q_len': 201, 'page': 1}: update relative L2 error 7.139e-02 (worst row 1.247e-01) [bound 0.150]; attention input relative L2 error 4.672e-02 (worst row 8.661e-02) [bound 0.112]
+PASS edges/04 replay=0 {'batch': 4, 'ctx': 70000, 'layer': 'sliding', 'q_len': 760, 'page': 1}: update relative L2 error 6.812e-02 (worst row 1.268e-01) [bound 0.150]; attention input relative L2 error 4.450e-02 (worst row 9.269e-02) [bound 0.107]
+PASS edges/04 replay=1 {'batch': 4, 'ctx': 70000, 'layer': 'sliding', 'q_len': 760, 'page': 1}: update relative L2 error 6.851e-02 (worst row 1.339e-01) [bound 0.150]; attention input relative L2 error 4.471e-02 (worst row 9.357e-02) [bound 0.108]
+PASS edges/05 replay=0 {'batch': 5, 'ctx': 20000, 'layer': 'full', 'q_len': 600, 'page': 1}: update relative L2 error 7.534e-02 (worst row 1.398e-01) [bound 0.150]; attention input relative L2 error 4.910e-02 (worst row 9.241e-02) [bound 0.119]
+PASS edges/05 replay=1 {'batch': 5, 'ctx': 20000, 'layer': 'full', 'q_len': 600, 'page': 1}: update relative L2 error 7.479e-02 (worst row 1.376e-01) [bound 0.150]; attention input relative L2 error 4.859e-02 (worst row 9.456e-02) [bound 0.118]
+PASS edges/06 replay=0 {'batch': 1, 'ctx': 16384, 'layer': 'sliding', 'q_len': 15000, 'page': 1}: update relative L2 error 3.591e-02 (worst row 1.206e-01) [bound 0.080]; attention input relative L2 error 2.370e-02 (worst row 8.759e-02) [bound 0.053]
+PASS edges/06 replay=1 {'batch': 1, 'ctx': 16384, 'layer': 'sliding', 'q_len': 15000, 'page': 1}: update relative L2 error 3.601e-02 (worst row 1.309e-01) [bound 0.080]; attention input relative L2 error 2.375e-02 (worst row 8.877e-02) [bound 0.053]
+PASS edges/07 replay=0 {'batch': 2, 'ctx': 1000, 'layer': 'full', 'q_len': 512, 'page': 64}: update relative L2 error 6.740e-02 (worst row 1.238e-01) [bound 0.150]; attention input relative L2 error 4.369e-02 (worst row 8.347e-02) [bound 0.106]
+PASS edges/07 replay=1 {'batch': 2, 'ctx': 1000, 'layer': 'full', 'q_len': 512, 'page': 64}: update relative L2 error 6.559e-02 (worst row 1.277e-01) [bound 0.150]; attention input relative L2 error 4.267e-02 (worst row 7.938e-02) [bound 0.106]
+CHECK_RC=0 PASS=42 CASES=21
+NEAR {'batch': 4, 'ctx': 70000, 'layer': 'sliding', 'q_len': 760, 'page': 1} T=3040: c0=1783.1 (paired d +0.0) c1=1784.4 (paired d -2.7)
+NEAR {'batch': 4, 'ctx': 70000, 'layer': 'full', 'q_len': 700, 'page': 1} T=2800: c0=2279.6 (paired d +0.0) c1=2274.2 (paired d -4.5)
+NEAR {'batch': 5, 'ctx': 20000, 'layer': 'full', 'q_len': 600, 'page': 1} T=3000: c0=1981.7 (paired d +0.0) c1=1973.2 (paired d -6.4)
+NEAR {'batch': 3, 'ctx': 60000, 'layer': 'sliding', 'q_len': 753, 'page': 1} T=2259: c0=1350.4 (paired d +0.0) c1=1344.0 (paired d -4.9)
+NEAR {'batch': 1, 'ctx': 4096, 'layer': 'sliding', 'q_len': 4096, 'page': 1} T=4096: c0=2383.0 (paired d +0.0) c1=2379.8 (paired d -2.3)
+NEAR {'batch': 1, 'ctx': 30000, 'layer': 'sliding', 'q_len': 2048, 'page': 1} T=2048: c0=1249.1 (paired d +0.0) c1=1247.1 (paired d -2.1)
+NEAR {'batch': 1, 'ctx': 80000, 'layer': 'sliding', 'q_len': 760, 'page': 1} T=760: c0=534.8 (paired d +0.0) c1=536.4 (paired d -0.4)
+NEAR {'batch': 2, 'ctx': 40000, 'layer': 'full', 'q_len': 753, 'page': 1} T=1506: c0=1131.2 (paired d +0.0) c1=1130.4 (paired d +0.2)
+NEAR {'batch': 1, 'ctx': 80000, 'layer': 'sliding', 'q_len': 1500, 'page': 1} T=1500: c0=949.8 (paired d +0.0) c1=949.3 (paired d +0.1)
+NEAR_RC=0
+CMP case2 rep0 A/A vs base: next_attn_input:DIFF 39108B rel 1.62e-04 stream:DIFF 261408B rel 1.17e-04 topk_ids:exact k_cache:exact v_cache:exact
+CMP case2 rep0 research/claude/stk/Bf.py vs base: next_attn_input:DIFF 46024B rel 1.75e-04 stream:DIFF 306338B rel 1.27e-04 topk_ids:exact k_cache:exact v_cache:exact
+CMP case2 rep1 A/A vs base: next_attn_input:DIFF 32500B rel 1.50e-04 stream:DIFF 221681B rel 1.08e-04 topk_ids:exact k_cache:exact v_cache:exact
+CMP case2 rep1 research/claude/stk/Bf.py vs base: next_attn_input:DIFF 46474B rel 1.77e-04 stream:DIFF 315230B rel 1.29e-04 topk_ids:exact k_cache:exact v_cache:exact
+CMP case3 rep0 A/A vs base: next_attn_input:DIFF 5251B rel 5.90e-05 stream:DIFF 36098B rel 4.39e-05 topk_ids:exact k_cache:exact v_cache:exact
+CMP case3 rep0 research/claude/stk/Bf.py vs base: next_attn_input:DIFF 7230B rel 7.12e-05 stream:DIFF 49507B rel 5.15e-05 topk_ids:exact k_cache:exact v_cache:exact
+CMP case3 rep1 A/A vs base: next_attn_input:DIFF 23009B rel 1.26e-04 stream:DIFF 150899B rel 9.16e-05 topk_ids:exact k_cache:exact v_cache:exact
+CMP case3 rep1 research/claude/stk/Bf.py vs base: next_attn_input:DIFF 27563B rel 1.37e-04 stream:DIFF 181144B rel 9.98e-05 topk_ids:exact k_cache:exact v_cache:exact
+CMP case5 rep0 A/A vs base: next_attn_input:DIFF 22241B rel 5.20e-05 stream:DIFF 149117B rel 3.76e-05 topk_ids:exact k_cache:exact v_cache:exact
+CMP case5 rep0 research/claude/stk/Bf.py vs base: next_attn_input:DIFF 28375B rel 5.85e-05 stream:DIFF 186957B rel 4.21e-05 topk_ids:exact k_cache:exact v_cache:exact
+CMP case5 rep1 A/A vs base: next_attn_input:DIFF 9644B rel 3.37e-05 stream:DIFF 65188B rel 2.52e-05 topk_ids:exact k_cache:exact v_cache:exact
+CMP case5 rep1 research/claude/stk/Bf.py vs base: next_attn_input:DIFF 6975B rel 2.87e-05 stream:DIFF 45581B rel 2.16e-05 topk_ids:exact k_cache:exact v_cache:exact
+CMP_RC=0 BAD=12
+REMOTE_EXIT 0

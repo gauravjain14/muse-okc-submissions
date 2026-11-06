@@ -1,0 +1,12 @@
+muse_moe_w4a16 improvements log (judge H200 times, lower is better)
+
+A line is added for every further 5% drop in time below the last line's time.
+Times are judge measurements: scored runs, or the median of check runs of the same code.
+
+2026-10-24  v119  5817.0 us  (2.312x)  scored run, board entry (rank 11 at 21:30 UTC)
+2026-10-24  v148  5741   us  (2.343x)  median of 5 check runs (5712.6-5768.6); baseline for the 5% steps
+            next line due at <= 5454 us (5% below 5741); submission bar 5100 us
+2026-10-26  v600  5496.0 us  (2.447x)  okc check 2dbd0bc9df2b440e (off board): v450 post-MMA scale (MOE_PS/PS2/PS1) + WBLK
+2026-10-27  v475  5570.6 us  (2.414x)  okc check b4d51e906b364d48 (off board), first BF16-only build (6-bit S6O scales)
+2026-10-27  v567  5523.8 us  (2.435x)  okc check 69f9e304b58c4b56 (off board), BF16-only + two-phase one-token kernel
+2026-10-27  v655  5427.8 us  (2.478x)  okc check d17dc36e69514230 (off board; >=5% below the v177 5633.5 log line), BF16-only + moe1t + WP-K KRED/XDIR/XREL

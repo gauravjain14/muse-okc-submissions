@@ -1,0 +1,86 @@
+[modal_gate] slot 0 acquired at 22:44:57 (0 okc containers running)
+✓ Initialized. View run at 
+<modal-run-url>
+✓ Created objects.
+├── 🔨 Created mount 
+│   muse-opt/muse_moe_w4a16/dev/modal_run.py
+├── 🔨 Created mount muse-opt/muse_moe_w4a16
+└── 🔨 Created function run.
+GPU_BEFORE NVIDIA H200, 345 MHz, 3201 MHz, 81.08 W, 40, 0 %, 4 MiB
+STEP smoke
+bs 32: finished in 0.00 s
+bs 32: ok relative L2 error 3.077e-03 (worst row 3.399e-03)
+bs 33: finished in 0.00 s
+bs 33: ok relative L2 error 3.095e-03 (worst row 3.312e-03)
+bs 64: finished in 0.00 s
+bs 64: ok relative L2 error 3.097e-03 (worst row 3.398e-03)
+bs 65: finished in 0.00 s
+bs 65: ok relative L2 error 3.175e-03 (worst row 3.398e-03)
+bs 128: finished in 0.00 s
+bs 128: ok relative L2 error 3.206e-03 (worst row 3.398e-03)
+bs 129: finished in 0.00 s
+bs 129: ok relative L2 error 3.206e-03 (worst row 3.398e-03)
+bs 256: finished in 0.00 s
+bs 256: ok relative L2 error 3.217e-03 (worst row 3.427e-03)
+bs 257: finished in 0.01 s
+bs 257: ok relative L2 error 3.217e-03 (worst row 3.427e-03)
+STEP check_mt
+M 257 skewed seed 1 call 1: ok  relative L2 error 3.043e-03 (worst row 3.348e-03)
+M 257 skewed seed 2 call 0: ok  relative L2 error 2.990e-03 (worst row 3.439e-03)
+M 257 skewed seed 2 call 1: ok  relative L2 error 2.990e-03 (worst row 3.439e-03)
+M 257 skewed seed 3 call 0: ok  relative L2 error 3.016e-03 (worst row 3.414e-03)
+M 257 skewed seed 3 call 1: ok  relative L2 error 3.016e-03 (worst row 3.414e-03)
+FAILURES 0
+STEP bench all shapes, 80 reps: v969|/tmp/v969s.py|;v969b|/tmp/v969s.py|;v1500|dev/moe_v1500.py|;v1500b|dev/moe_v1500.py|
+decode 1   bs   1 experts  2.86 (|2..3|) max_tok med 1.0
+   v969                24.5 us  x3.259  e=2:x4.042(29)  e=3:x3.239(37)  e=4:x2.962(10)  e=5:x2.719(4)  vs v969: x1.0000
+   v969b               24.5 us  x3.265  e=2:x4.062(29)  e=3:x3.236(37)  e=4:x2.936(10)  e=5:x2.683(4)  vs v969: x0.9981
+   v1500               24.0 us  x3.330  e=2:x4.105(29)  e=3:x3.315(37)  e=4:x2.959(10)  e=5:x2.750(4)  vs v969: x1.0139
+   v1500b              24.1 us  x3.328  e=2:x3.998(29)  e=3:x3.296(37)  e=4:x2.973(10)  e=5:x2.735(4)  vs v969: x1.0159
+   sglang              79.3 us
+decode 16  bs  16 experts 12.21 (|11..13|) max_tok med 9.0
+   v969                84.7 us  x2.218  e<=11:x2.344(30)  e>13:x2.121(23)  hot>9:x2.302(30)  vs v969: x1.0000
+   v969b               84.9 us  x2.204  e<=11:x2.345(30)  e>13:x2.108(23)  hot>9:x2.297(30)  vs v969: x0.9959
+   v1500               85.0 us  x2.242  e<=11:x2.381(30)  e>13:x2.115(23)  hot>9:x2.302(30)  vs v969: x1.0040
+   v1500b              84.6 us  x2.228  e<=11:x2.360(30)  e>13:x2.122(23)  hot>9:x2.320(30)  vs v969: x1.0044
+   sglang             192.4 us
+decode 32  bs  32 experts 16.40 (|15..17|) max_tok med 19.0
+   v969               111.6 us  x1.910  e<=15:x1.924(30)  e>17:x1.895(26)  hot>19:x1.928(36)  vs v969: x1.0000
+   v969b              112.4 us  x1.909  e<=15:x1.923(30)  e>17:x1.903(26)  hot>19:x1.924(36)  vs v969: x0.9993
+   v1500              112.0 us  x1.922  e<=15:x1.928(30)  e>17:x1.918(26)  hot>19:x1.936(36)  vs v969: x1.0057
+   v1500b             111.5 us  x1.923  e<=15:x1.937(30)  e>17:x1.911(26)  hot>19:x1.939(36)  vs v969: x1.0071
+   sglang             211.8 us
+verify 1   bs   8 experts  8.88 (|8..10|) max_tok med 4.5
+   v969                62.9 us  x2.351  e=5:x2.763(2)  e=6:x2.599(7)  e=7:x2.506(10)  e=8:x2.386(15)  e=9:x2.346(17)  e=10:x2.275(15)  e=11:x2.185(7)  e=12:x2.174(4)  e=13:x2.167(2)  e=14:x2.108(1)  vs v969: x1.0000
+   v969b               63.4 us  x2.342  e=5:x2.734(2)  e=6:x2.513(7)  e=7:x2.506(10)  e=8:x2.414(15)  e=9:x2.337(17)  e=10:x2.285(15)  e=11:x2.208(7)  e=12:x2.168(4)  e=13:x2.162(2)  e=14:x2.110(1)  vs v969: x0.9975
+   v1500               63.3 us  x2.343  e=5:x2.746(2)  e=6:x2.553(7)  e=7:x2.500(10)  e=8:x2.414(15)  e=9:x2.322(17)  e=10:x2.278(15)  e=11:x2.187(7)  e=12:x2.171(4)  e=13:x2.162(2)  e=14:x2.091(1)  vs v969: x1.0013
+   v1500b              63.4 us  x2.338  e=5:x2.698(2)  e=6:x2.535(7)  e=7:x2.505(10)  e=8:x2.414(15)  e=9:x2.331(17)  e=10:x2.271(15)  e=11:x2.218(7)  e=12:x2.159(4)  e=13:x2.169(2)  e=14:x2.120(1)  vs v969: x1.0021
+   sglang             148.3 us
+verify 16  bs 128 experts 23.05 (|22..24|) max_tok med 45.5
+   v969               165.2 us  x2.808  e<=22:x2.775(33)  e>24:x2.859(24)  hot>45:x2.785(40)  vs v969: x1.0000
+   v969b              164.4 us  x2.805  e<=22:x2.765(33)  e>24:x2.843(24)  hot>45:x2.782(40)  vs v969: x1.0000
+   v1500              165.4 us  x2.820  e<=22:x2.798(33)  e>24:x2.861(24)  hot>45:x2.843(40)  vs v969: x1.0082
+   v1500b             164.9 us  x2.829  e<=22:x2.810(33)  e>24:x2.852(24)  hot>45:x2.846(40)  vs v969: x1.0089
+   sglang             466.7 us
+verify 32  bs 256 experts 24.84 (|24..26|) max_tok med 102.0
+   v969               197.8 us  x3.108  e<=24:x3.079(35)  e>26:x3.184(20)  hot>102:x3.088(40)  vs v969: x1.0000
+   v969b              198.4 us  x3.095  e<=24:x3.061(35)  e>26:x3.189(20)  hot>102:x3.076(40)  vs v969: x0.9954
+   v1500              198.1 us  x3.100  e<=24:x3.060(35)  e>26:x3.200(20)  hot>102:x3.065(40)  vs v969: x0.9989
+   v1500b             197.0 us  x3.106  e<=24:x3.077(35)  e>26:x3.208(20)  hot>102:x3.089(40)  vs v969: x1.0008
+   sglang             622.7 us
+geomean v969: x2.5627 over 6 shapes
+geomean v969b: x2.5568 over 6 shapes
+geomean v1500: x2.5786 over 6 shapes
+geomean v1500b: x2.5770 over 6 shapes
+anchor v969 = v969 scored: 5263.1 us   (c = 0.0 us)
+  v969             projected  5263.1 us  rank ~ 6  (bs1:1.0000 bs8:1.0000 bs16:1.0000 bs32:1.0000 bs128:1.0000 bs256:1.0000)
+  v969b            projected  5275.2 us  rank ~ 6  (bs1:0.9981 bs8:0.9975 bs16:0.9959 bs32:0.9993 bs128:1.0000 bs256:0.9954)
+  v1500            projected  5235.3 us  rank ~ 6  (bs1:1.0139 bs8:1.0013 bs16:1.0040 bs32:1.0057 bs128:1.0082 bs256:0.9989)
+  v1500b           projected  5228.9 us  rank ~ 6  (bs1:1.0159 bs8:1.0021 bs16:1.0044 bs32:1.0071 bs128:1.0089 bs256:1.0008)
+GPU_AFTER NVIDIA H200, 1980 MHz, 3201 MHz, 128.83 W, 43, 44 %, 4 MiB
+STEP done
+
+fetched into muse-opt/muse_moe_w4a16/dev/remote_out: 24878 bytes
+Stopping app - local entrypoint completed.
+✓ App completed. View run at 
+<modal-run-url>

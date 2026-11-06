@@ -1,0 +1,28 @@
+[gate] slot 1 at 07:40:56 (1 running)
+0 failures
+0 failures
+decode 1  sliding w46 sglang    19.66 | k26     3.24 x6.069 | k27     3.28 x5.990 | k26c     3.19 x6.159   sol    0.11
+decode 1  full    w16 sglang    30.24 | k26    12.69 x2.383 | k27    12.63 x2.395 | k26c    12.80 x2.363   sol    4.27
+decode 16 sliding w46 sglang    25.81 | k26     6.83 x3.779 | k27     6.78 x3.804 | k26c     6.64 x3.885   sol    1.65
+decode 16 full    w16 sglang   198.53 | k26    87.41 x2.271 | k27    87.55 x2.268 | k26c    87.28 x2.275   sol   63.18
+decode 32 sliding w46 sglang    29.74 | k26     8.65 x3.437 | k27     8.75 x3.401 | k26c     8.65 x3.439   sol    3.29
+decode 32 full    w16 sglang   382.96 | k26   166.77 x2.296 | k27   166.15 x2.305 | k26c   166.54 x2.299   sol  126.35
+verify 1  sliding w46 sglang    21.86 | k26     5.14 x4.255 | k27     5.09 x4.293 | k26c     4.94 x4.423   sol    0.12
+verify 1  full    w16 sglang    35.42 | k26    17.58 x2.016 | k27    17.31 x2.046 | k26c    17.53 x2.021   sol    4.28
+verify 16 sliding w46 sglang    28.18 | k26    11.99 x2.349 | k27    10.43 x2.703 | k26c    11.89 x2.369   sol    1.86
+verify 16 full    w16 sglang   202.75 | k26   105.60 x1.920 | k27   105.42 x1.923 | k26c   105.63 x1.919   sol   63.39
+verify 32 sliding w46 sglang    33.47 | k26    14.52 x2.305 | k27    13.82 x2.422 | k26c    14.67 x2.281   sol    3.72
+verify 32 full    w16 sglang   387.17 | k26   194.18 x1.994 | k27   192.01 x2.016 | k26c   193.18 x2.004   sol  126.78
+per-load (weighted sums, us):
+  decode 1  sglang    1388.4 | k26     352.1 x3.943 | k27     353.1 x3.932 | k26c     351.6 x3.949
+  decode 16 sglang    4363.6 | k26    1712.8 x2.548 | k27    1712.8 x2.548 | k26c    1702.0 x2.564
+  decode 32 sglang    7495.6 | k26    3066.4 x2.444 | k27    3060.7 x2.449 | k26c    3062.5 x2.448
+  verify 1  sglang    1572.2 | k26     517.5 x3.038 | k27     511.1 x3.076 | k26c     507.8 x3.096
+  verify 16 sglang    4540.1 | k26    2241.3 x2.026 | k27    2166.3 x2.096 | k26c    2237.3 x2.029
+  verify 32 sglang    7734.4 | k26    3774.8 x2.049 | k27    3707.8 x2.086 | k26c    3766.0 x2.054
+GEOMEAN k26: x2.6010 (board time 1417.1 us)   judge-projected (+1.0 us/call) x2.4315 (board 1548.1 us)
+GEOMEAN k27: x2.6287 (board time 1402.1 us)   judge-projected (+1.0 us/call) x2.4559 (board 1532.7 us)
+GEOMEAN k26c: x2.6149 (board time 1409.5 us)   judge-projected (+1.0 us/call) x2.4434 (board 1540.5 us)
+
+fetched into autoresearch-kernels/attn/out/20261028T074346_verify_k27
+[exit 0]

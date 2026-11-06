@@ -1,0 +1,39 @@
+===== [2026-10-24T02:07:31.554Z UTC] Build lab1 and dry-run it on the H100
+$ mkdir -p dev/labs && cat > dev/labs/lab1.txt <<'EOF'
+[
+    {"bs": [8, 16], "variants": [("bulk", [], {}), ("tmap", ["MOE_TMAP_MAIN"], {})], "seeds": 16, "reps": 3},
+    {"bs": [1], "variants": [("fused5", [], {}), ("fused4", [], {"NS1": 4}), ("old", [], {"ONE_TOKEN": False})], "seeds": 24, "reps": 3},
+    {"trace1": [9000, 9001, 9002, 9003], "variants": [("fused5", [], {})]},
+    {"bs": [32, 128, 256], "variants": [("bulk", [], {}), ("tmap", ["MOE_TMAP_MAIN"], {})], "seeds": 8, "reps": 2},
+]
+EOF
+python3 dev/make_lab.py dev/moe_v84.py dev/checks/lab1.py dev/labs/lab1.txt 230 && python3 -c "import ast; ast.parse(open('dev/checks/lab1.py').read()); print('syntax ok')" && head -1 dev/checks/lab1.py && timeout 250 autor cp dev/checks/lab1.py okc-sglang:~/okc/dev/lab1.py 2>&1 | tail -1 && timeout 1500 sh dev/h100_run.sh "cd dev && python3 -c \"
+import sys, time; sys.path.insert(0, '..'); sys.path.insert(0, '.')
+import torch, reference as R
+import lab1 as L
+t = time.time(); st = L.prepare(R.generate_weights(R.WEIGHTS_SEED)); print('prepare took', time.time() - t)
+d = R.generate_input(1, 'ep8', 3); o = L.kernel_fn(d, st); print('ok', o.shape, float((o.float() - R.ref_kernel(d, R.generate_weights(R.WEIGHTS_SEED)).float()).norm()))
+\"" 2>&1 | grep -a -E "lab|prepare|ok|rror|Trace" | cut -c1-400
+----- output
+wrote dev/checks/lab1.py
+syntax ok
+# okc: problem=muse_moe_w4a16
+dev/checks/lab1.py -> okc-sglang:okc/dev/lab1.py (122473 B, sha256 verified on the node)
+lab: NVIDIA H100 80GB HBM3, 132 SMs
+lab bs   8: bulk 99.8 us (x1.000)  tmap 100.1 us (x1.000)
+lab bs  16: bulk 124.5 us (x1.000)  tmap 125.6 us (x0.999)
+lab: experiment took 4 s
+lab bs   1: fused5 33.0 us (x1.000)  fused4 33.5 us (x0.988)  old 39.2 us (x0.850)
+lab: experiment took 2 s
+lab trace1 seed 9000 (2 experts): start 0.1/0.1 x 0.5/0.6 u0g1 11.0/12.1 u0in 11.2/12.3 u0 14.7/16.2 u1g1 19.9/21.1 u1in 20.0/21.3 u1 23.1/24.3 u2 25.7/25.7 atom 24.2/25.6 | last: atom 25.60 flag 25.66 loads 26.59 red 27.20 end 27.58
+lab trace1 seed 9001 (2 experts): start 0.1/0.1 x 0.5/0.5 u0g1 9.9/10.9 u0in 10.1/11.0 u0 13.6/15.2 u1g1 18.9/20.3 u1in 19.1/20.4 u1 22.2/23.5 u2 24.8/24.8 atom 23.3/24.7 | last: atom 24.74 flag 24.83 loads 25.76 red 26.37 end 26.78
+lab trace1 seed 9002 (2 experts): start 0.1/0.1 x 0.5/0.6 u0g1 9.7/11.2 u0in 9.9/11.4 u0 13.5/15.7 u1g1 18.9/20.9 u1in 19.1/21.1 u1 22.1/24.1 u2 25.4/25.4 atom 23.3/25.3 | last: atom 25.28 flag 25.38 loads 26.27 red 26.94 end 27.36
+lab trace1 seed 9003 (2 experts): start 0.1/0.1 x 0.5/0.6 u0g1 10.0/11.0 u0in 10.2/11.2 u0 13.8/15.2 u1g1 19.0/20.2 u1in 19.2/20.4 u1 22.2/23.5 u2 24.7/24.7 atom 23.3/24.7 | last: atom 24.64 flag 24.74 loads 25.73 red 26.34 end 26.72
+lab: experiment took 1 s
+lab bs  32: bulk 156.7 us (x1.000)  tmap 156.9 us (x1.004)
+lab bs 128: bulk 245.6 us (x1.000)  tmap 244.4 us (x1.002)
+lab bs 256: bulk 285.4 us (x1.000)  tmap 284.9 us (x1.001)
+lab: experiment took 13 s
+prepare took 32.691365003585815
+ok torch.Size([1, 4096]) 0.03528682887554169
+

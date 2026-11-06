@@ -1,0 +1,26 @@
+✓ Initialized. View run at 
+<modal-run-url>
+✓ Created objects.
+├── 🔨 Created mount 
+│   <scratch>
+│   5-ce57afd4da60/scratchpad/snap.SRqFtb/dev/modal_run.py
+├── 🔨 Created mount 
+│   <scratch>
+│   5-ce57afd4da60/scratchpad/snap.SRqFtb
+└── 🔨 Created function run.
+1 {'batch': 1, 'ctx': 80000, 'layer': 'full', 'q_len': 753, 'page': 1, 'dist': 'soft'}
+   attn_fwd      246.5 us
+   nocomb     vs mine 1.17e+00
+   nocomb        218.8 us
+   rt         vs mine 1.17e+00
+   rt            239.6 us
+3 {'batch': 4, 'ctx': 80000, 'layer': 'full', 'q_len': 753, 'page': 1, 'dist': 'soft', 'spread': 'agentic'}
+   attn_fwd      943.4 us
+   nocomb     vs mine 1.14e+00
+   nocomb        839.6 us
+   rt         vs mine 1.14e+00
+   rt            911.8 us
+Stopping app - local entrypoint completed.
+✓ App completed. View run at 
+<modal-run-url>
+done

@@ -1,0 +1,45 @@
+✓ Initialized. View run at 
+<modal-run-url>
+✓ Created objects.
+├── 🔨 Created mount 
+│   <scratch>
+│   5-ce57afd4da60/scratchpad/snap.ey6Wr4/dev/modal_run.py
+├── 🔨 Created mount 
+│   <scratch>
+│   5-ce57afd4da60/scratchpad/snap.ey6Wr4
+└── 🔨 Created function run.
+compiled
+1 {'batch': 1, 'ctx': 80000, 'layer': 'full', 'q_len': 753, 'page': 1, 'dist': 'soft'}
+   cache vs sglang: k 1.60e-02 v 0.00e+00;  out vs sglang 8.258e-02
+   time: mine    403.6 us  sglang    437.7 us  x1.084
+   post            7.4 us
+   pack           24.5 us
+   attn_fwd      380.9 us
+   pp2        vs mine 0.00e+00
+   pp2           378.6 us
+   pp0        vs mine 0.00e+00
+   pp0           388.4 us
+4 {'batch': 1, 'ctx': 0, 'layer': 'full', 'q_len': 16384, 'page': 1, 'dist': 'soft'}
+   cache vs sglang: k 1.63e-02 v 0.00e+00;  out vs sglang 2.570e-02
+   time: mine    918.8 us  sglang    984.8 us  x1.072
+   post           20.6 us
+   pack           11.0 us
+   attn_fwd      898.1 us
+   pp2        vs mine 0.00e+00
+   pp2           895.6 us
+   pp0        vs mine 0.00e+00
+   pp0           937.5 us
+6 {'batch': 1, 'ctx': 32768, 'layer': 'full', 'q_len': 16384, 'page': 1, 'dist': 'soft'}
+   cache vs sglang: k 1.62e-02 v 0.00e+00;  out vs sglang 7.625e-02
+   time: mine   3872.4 us  sglang   4581.0 us  x1.183
+   post           20.6 us
+   pack           17.4 us
+   attn_fwd     3847.2 us
+   pp2        vs mine 0.00e+00
+   pp2          3813.9 us
+   pp0        vs mine 0.00e+00
+   pp0          4175.9 us
+Stopping app - local entrypoint completed.
+Runner terminated.
+✓ App completed. View run at 
+<modal-run-url>

@@ -1,0 +1,89 @@
+✓ Initialized. View run at 
+<modal-run-url>
+✓ Created objects.
+├── ✓ Uploaded 
+│   muse-opt/muse_moe_w4a16/dev/modal_run.py
+├── ✓ Uploaded muse-opt/muse_moe_w4a16
+└── ✓ Created Function run.
+== bs 1
+region             samples%   inst%    Minst  top stalls (% of all samples)
+helpers/decode         43.6    61.8     6.44  membar:21.3 selected:10.9 short_sb:10.4 math:8.4
+stage compute           6.5     8.2     0.86  selected:2.5 wait:1.2 not_selected:0.8 dispatch:0.6
+routing                 8.5     1.2     0.13  barrier:4.4 wait:1.2 long_sb:1.1 selected:0.6
+pair list/gather        4.1     0.4     0.04  barrier:3.0 short_sb:0.5 no_inst:0.3 wait:0.2
+producer                5.4     5.5     0.57  wait:1.2 not_selected:0.9 branch_resolving:0.8 math:0.8
+signaler                4.0    11.5     1.20  long_sb:3.4 wait:0.2 branch_resolving:0.1 no_inst:0.1
+consumer loop          10.7     7.5     0.78  wait:3.0 branch_resolving:2.4 selected:1.9 not_selected:0.8
+epilogue                3.9     3.0     0.31  wait:1.6 no_inst:1.1 selected:0.5 barrier:0.5
+combine                10.8     0.7     0.07  barrier:7.7 long_sb:2.1 branch_resolving:0.6 selected:0.1
+reset                   0.6     0.0     0.00  misc:1.1 membar:1.1 imc:0.5 wait:0.1
+INST                    1.8     0.1     0.01  short_sb:1.1 no_inst:0.5 imc:0.3 barrier:0.0
+== bs 8
+region             samples%   inst%    Minst  top stalls (% of all samples)
+helpers/decode         52.5    65.7    20.45  membar:17.1 wait:16.5 selected:15.3 tex:11.2
+stage compute           8.2     8.2     2.55  wait:2.4 selected:2.2 not_selected:1.7 branch_resolving:0.6
+routing                 4.0     0.4     0.13  barrier:2.1 wait:0.5 long_sb:0.4 selected:0.3
+pair list/gather        1.8     0.1     0.04  barrier:1.3 wait:0.2 short_sb:0.1 branch_resolving:0.1
+producer                8.0     6.3     1.97  long_sb:1.7 wait:1.4 not_selected:1.4 branch_resolving:1.1
+signaler                7.1    11.4     3.54  long_sb:6.8 wait:0.1 branch_resolving:0.1 selected:0.1
+consumer loop           8.1     6.0     1.87  wait:3.3 selected:2.2 not_selected:0.6 dispatch:0.6
+epilogue                8.5     1.6     0.49  barrier:6.0 wait:1.1 selected:0.5 no_inst:0.4
+combine                 0.4     0.2     0.05  barrier:0.1 wait:0.1 long_sb:0.1 selected:0.0
+reset                   0.2     0.0     0.00  membar:0.4 misc:0.4 wait:0.1 branch_resolving:0.0
+INST                    1.1     0.0     0.01  short_sb:0.6 no_inst:0.3 imc:0.2 wait:0.0
+== bs 16
+region             samples%   inst%    Minst  top stalls (% of all samples)
+helpers/decode         52.9    65.7    24.59  selected:16.3 wait:16.1 membar:14.1 tex:11.0
+stage compute           8.8     8.2     3.06  selected:2.5 wait:2.5 not_selected:1.8 math:0.6
+routing                 3.5     0.3     0.13  barrier:2.0 wait:0.5 long_sb:0.3 selected:0.2
+pair list/gather        1.6     0.1     0.05  barrier:1.0 wait:0.2 short_sb:0.1 selected:0.1
+producer                7.4     6.3     2.37  wait:1.7 branch_resolving:1.2 not_selected:1.1 long_sb:0.9
+signaler                7.1    11.4     4.28  long_sb:6.6 no_inst:0.2 branch_resolving:0.1 selected:0.1
+consumer loop           7.8     6.0     2.24  wait:3.3 selected:1.8 not_selected:0.7 dispatch:0.6
+epilogue                9.2     1.6     0.60  barrier:7.1 wait:0.9 selected:0.4 no_inst:0.3
+combine                 0.5     0.2     0.08  long_sb:0.1 not_selected:0.1 no_inst:0.1 barrier:0.1
+reset                   0.1     0.0     0.00  membar:0.3 misc:0.3 wait:0.1 imc:0.1
+INST                    1.0     0.0     0.01  short_sb:0.4 imc:0.3 no_inst:0.3 selected:0.0
+== bs 32
+region             samples%   inst%    Minst  top stalls (% of all samples)
+helpers/decode         54.2    65.8    36.32  selected:15.6 wait:12.8 not_selected:9.5 math:9.2
+stage compute           8.6     9.8     5.42  selected:2.6 wait:1.6 not_selected:1.3 math:0.9
+routing                 2.6     0.2     0.13  barrier:1.5 long_sb:0.4 wait:0.3 short_sb:0.2
+pair list/gather        1.6     0.3     0.17  barrier:0.6 wait:0.4 short_sb:0.2 no_inst:0.1
+producer                6.9     5.3     2.91  branch_resolving:2.0 wait:1.4 not_selected:0.8 math:0.7
+signaler                3.0     9.8     5.38  long_sb:2.9 wait:0.0 branch_resolving:0.0 no_inst:0.0
+consumer loop          14.5     6.5     3.60  wait:4.9 short_sb:2.7 branch_resolving:2.4 selected:1.9
+epilogue                6.6     2.0     1.13  barrier:3.6 wait:1.1 selected:0.7 mio:0.5
+combine                 1.0     0.3     0.14  long_sb:0.3 barrier:0.2 short_sb:0.1 wait:0.1
+reset                   0.1     0.0     0.00  membar:0.3 misc:0.2 wait:0.1 barrier:0.0
+INST                    0.9     0.0     0.01  imc:0.4 short_sb:0.3 no_inst:0.3 barrier:0.0
+== bs 128
+region             samples%   inst%    Minst  top stalls (% of all samples)
+helpers/decode         54.0    64.8    49.95  wait:15.8 selected:15.5 not_selected:11.3 tex:11.1
+stage compute           8.1     8.2     6.34  selected:2.7 wait:2.5 not_selected:1.2 math:0.6
+routing                 2.0     0.3     0.27  barrier:0.5 long_sb:0.5 wait:0.4 selected:0.3
+pair list/gather        2.3     0.5     0.35  barrier:0.7 wait:0.5 short_sb:0.4 long_sb:0.3
+producer                8.4     6.8     5.25  branch_resolving:2.4 wait:1.7 not_selected:1.2 math:0.7
+signaler                4.0    11.9     9.18  long_sb:3.7 branch_resolving:0.1 not_selected:0.1 selected:0.0
+consumer loop           8.4     4.9     3.81  wait:2.8 selected:1.5 not_selected:1.0 no_inst:0.9
+epilogue                9.7     1.8     1.36  barrier:6.1 wait:1.0 no_inst:0.7 selected:0.6
+combine                 2.7     0.7     0.56  long_sb:0.7 no_inst:0.5 wait:0.4 selected:0.3
+reset                   0.0     0.0     0.00  misc:0.4 membar:0.1 wait:0.0 selected:0.0
+INST                    0.4     0.0     0.01  no_inst:0.2 short_sb:0.2 imc:0.0 selected:0.0
+== bs 256
+region             samples%   inst%    Minst  top stalls (% of all samples)
+helpers/decode         52.8    62.1    54.80  wait:15.6 selected:12.7 not_selected:11.2 long_sb:11.1
+stage compute           8.7     8.0     7.04  wait:2.3 selected:2.3 not_selected:1.4 no_inst:0.9
+routing                 2.3     0.5     0.45  barrier:0.9 long_sb:0.5 wait:0.3 selected:0.2
+pair list/gather        2.3     0.7     0.63  wait:0.6 short_sb:0.5 long_sb:0.4 no_inst:0.3
+producer                8.0     6.4     5.66  branch_resolving:2.5 wait:1.8 not_selected:1.1 selected:0.6
+signaler                3.3    12.4    10.91  long_sb:3.0 wait:0.1 branch_resolving:0.1 no_inst:0.0
+consumer loop           8.7     5.9     5.20  wait:2.6 selected:1.8 no_inst:1.1 not_selected:1.0
+epilogue                9.1     2.7     2.38  barrier:3.5 wait:1.6 no_inst:1.1 mio:0.9
+combine                 4.3     1.3     1.13  long_sb:1.4 no_inst:0.7 wait:0.5 selected:0.5
+reset                   0.0     0.0     0.00  misc:0.3 membar:0.2 branch_resolving:0.0 wait:0.0
+INST                    0.3     0.0     0.01  no_inst:0.2 imc:0.1 short_sb:0.0 not_selected:0.0
+
+Stopping app - local entrypoint completed.
+✓ App completed. View run at 
+<modal-run-url>

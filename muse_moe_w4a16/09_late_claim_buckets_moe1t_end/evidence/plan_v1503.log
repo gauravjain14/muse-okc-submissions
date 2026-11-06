@@ -1,0 +1,36 @@
+[modal_gate] slot 0 acquired at 01:00:46 (0 okc containers running)
+✓ Initialized. View run at 
+<modal-run-url>
+✓ Created objects.
+├── 🔨 Created mount 
+│   muse-opt/muse_moe_w4a16/dev/modal_run.py
+├── 🔨 Created mount muse-opt/muse_moe_w4a16
+└── 🔨 Created function run.
+GPU_BEFORE NVIDIA H200, 345 MHz, 3201 MHz, 80.86 W, 34, 0 %, 4 MiB
+STEP smoke
+16
+STEP check_mt v1503
+FAILURES 0
+STEP bench all shapes, 60 reps (controls in the middle): fillA|dev/moe_v1503.py|;v969|/tmp/v969s.py|;v1502|dev/moe_v1502.py|;v1503|dev/moe_v1503.py|;v1502b|dev/moe_v1502.py|;v1503b|dev/moe_v1503.py|;fillB|dev/moe_v1502.py|
+geomean fillA: x2.5928 over 6 shapes
+geomean v969: x2.5621 over 6 shapes
+geomean v1502: x2.5840 over 6 shapes
+geomean v1503: x2.5752 over 6 shapes
+geomean v1502b: x2.5815 over 6 shapes
+geomean v1503b: x2.5826 over 6 shapes
+geomean fillB: x2.5822 over 6 shapes
+anchor v969 = v969 scored: 5263.1 us   (c = 0.0 us)
+  fillA            projected  5202.7 us  rank ~ 6  (bs1:1.0232 bs8:1.0157 bs16:1.0039 bs32:1.0069 bs128:1.0136 bs256:1.0065)
+  v969             projected  5263.1 us  rank ~ 6  (bs1:1.0000 bs8:1.0000 bs16:1.0000 bs32:1.0000 bs128:1.0000 bs256:1.0000)
+  v1502            projected  5229.0 us  rank ~ 6  (bs1:1.0167 bs8:1.0029 bs16:1.0043 bs32:1.0045 bs128:1.0089 bs256:1.0018)
+  v1503            projected  5218.7 us  rank ~ 6  (bs1:1.0190 bs8:1.0124 bs16:1.0034 bs32:1.0054 bs128:1.0083 bs256:1.0025)
+  v1502b           projected  5231.7 us  rank ~ 6  (bs1:1.0210 bs8:0.9963 bs16:1.0054 bs32:1.0039 bs128:1.0060 bs256:1.0036)
+  v1503b           projected  5218.8 us  rank ~ 6  (bs1:1.0219 bs8:1.0065 bs16:1.0043 bs32:1.0046 bs128:1.0082 bs256:1.0055)
+  fillB            projected  5220.0 us  rank ~ 6  (bs1:1.0165 bs8:1.0021 bs16:1.0078 bs32:1.0040 bs128:1.0110 bs256:1.0082)
+GPU_AFTER NVIDIA H200, 1980 MHz, 3201 MHz, 132.48 W, 35, 1 %, 4 MiB
+STEP done
+
+fetched into muse-opt/muse_moe_w4a16/dev/remote_out: 28137 bytes
+Stopping app - local entrypoint completed.
+✓ App completed. View run at 
+<modal-run-url>

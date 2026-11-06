@@ -1,0 +1,7 @@
+full|moe_v72e|||1,16
+no-epilogue|moe_v72e|MOE_NO_EPI||1,16
+no-combine|moe_v72e|MOE_NO_COMBINE||1,16
+no-epi no-combine|moe_v72e|MOE_NO_EPI,MOE_NO_COMBINE||1,16
+no-compute|moe_v72e|MOE_NO_COMPUTE||1,16
+no-compute no-epi no-combine|moe_v72e|MOE_NO_COMPUTE,MOE_NO_EPI,MOE_NO_COMBINE||1,16
+full|moe_v72e|||1,16

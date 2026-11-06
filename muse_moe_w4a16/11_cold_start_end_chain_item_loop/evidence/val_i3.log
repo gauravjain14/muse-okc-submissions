@@ -1,0 +1,33 @@
+[sbx] box 1
+GPU_BEFORE NVIDIA H200, 345 MHz, 74.34 W, 26, 0 %, 118 MiB
+hang1 ok=16 of 16
+M 512 skewed seed 2 call 1: ok  relative L2 error 3.079e-03 (worst row 3.493e-03)
+M 512 skewed seed 3 call 0: ok  relative L2 error 3.095e-03 (worst row 3.461e-03)
+M 512 skewed seed 3 call 1: ok  relative L2 error 3.095e-03 (worst row 3.461e-03)
+FAILURES 0
+geomean fA: x2.6414 over 6 shapes
+geomean a1: x2.5889 over 6 shapes
+geomean b1: x2.6227 over 6 shapes
+geomean c1: x2.6351 over 6 shapes
+geomean b2: x2.6221 over 6 shapes
+geomean c2: x2.6298 over 6 shapes
+geomean a2: x2.5934 over 6 shapes
+geomean fB: x2.6302 over 6 shapes
+bs1: i3 vs i2 +1.53%  copies +2.89 +1.75 | i2 ctl -0.04 +0.04
+bs8: i3 vs i2 -0.19%  copies -0.45 +0.24 | i2 ctl -0.07 +0.07
+bs16: i3 vs i2 +0.25%  copies +0.54 -0.16 | i2 ctl -0.06 +0.06
+bs32: i3 vs i2 +0.12%  copies +0.20 +0.09 | i2 ctl -0.10 +0.10
+bs128: i3 vs i2 +0.11%  copies +0.20 +0.09 | i2 ctl -0.08 +0.08
+bs256: i3 vs i2 +0.00%  copies +0.04 +0.09 | i2 ctl -0.02 +0.02
+geomean i3 vs i2: +0.30%
+anchor a1 = v1504 scored: 5157.1 us   (c = 0.0 us)
+  fA               projected  5052.3 us  rank ~ 5  (bs1:1.0384 bs8:1.0278 bs16:1.0250 bs32:1.0079 bs128:1.0140 bs256:1.0118)
+  a1               projected  5157.1 us  rank ~ 6  (bs1:1.0000 bs8:1.0000 bs16:1.0000 bs32:1.0000 bs128:1.0000 bs256:1.0000)
+  b1               projected  5083.1 us  rank ~ 5  (bs1:1.0146 bs8:1.0275 bs16:1.0210 bs32:1.0076 bs128:1.0093 bs256:1.0075)
+  c1               projected  5059.6 us  rank ~ 5  (bs1:1.0402 bs8:1.0209 bs16:1.0256 bs32:1.0104 bs128:1.0105 bs256:1.0084)
+  b2               projected  5081.5 us  rank ~ 5  (bs1:1.0125 bs8:1.0256 bs16:1.0232 bs32:1.0096 bs128:1.0101 bs256:1.0084)
+  c2               projected  5066.2 us  rank ~ 5  (bs1:1.0306 bs8:1.0277 bs16:1.0212 bs32:1.0094 bs128:1.0097 bs256:1.0091)
+  a2               projected  5151.3 us  rank ~ 6  (bs1:1.0073 bs8:0.9954 bs16:1.0011 bs32:1.0003 bs128:1.0014 bs256:1.0012)
+  fB               projected  5069.7 us  rank ~ 5  (bs1:1.0178 bs8:1.0252 bs16:1.0244 bs32:1.0102 bs128:1.0147 bs256:1.0113)
+GPU_AFTER NVIDIA H200, 1980 MHz, 127.51 W, 32, 100 %, 118 MiB
+REMOTE_EXIT 0

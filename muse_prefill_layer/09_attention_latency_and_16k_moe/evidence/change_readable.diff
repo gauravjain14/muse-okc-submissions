@@ -1,0 +1,1489 @@
+# Readable form of change.diff for 09 (m16), in the three steps the lanes made: s1 -> attn1 (attn lane), attn1 -> c2
+# (lat lane), c2 -> m16 (moe16 lane). Long string constants are diffed with their newlines expanded.
+# readable diff: s1.py -> attn1.py
+# part 1: Python skeleton (long string literals replaced by placeholders)
+--- s1.py
++++ attn1.py
+@@ -1556,13 +1556,13 @@
+ ATT_QB_DEF = 16
+ ATT_NS_DEF = 8
+ ATT_LOG2E = 1.4426950408889634
+-ATT_CUDA_SRC = <<string ATT_CUDA_SRC: 82351 chars, md5 54a8059c>>
++ATT_CUDA_SRC = <<string ATT_CUDA_SRC: 84556 chars, md5 d15bd39b>>
+ def _att_derive(base, parts):
+     """A variant of an attention source: base's lines [i, j) for each (i, j) in parts, literal text otherwise."""
+     lines = base.splitlines(keepends=True)
+     return "".join("".join(lines[p[0]:p[1]]) if isinstance(p, tuple) else p for p in parts)
+-ATT_EXPQ_CACHE_CUDA_SRC = _att_derive(ATT_CUDA_SRC, ['#if ATT_EXPQ != 1 || ATT_F16S != 1 || ATT_BIAS\n#error Cached EXPQ bias requires the existing F16S1/EXPQ1 unbiased path\n#endif\n', (0, 857), "      // The running maxima change only in softmax_h's existing rescale branch.\n      u32 expq_bias_a,expq_bias_b;\n      float rescale_threshold_a,rescale_threshold_b;\n      auto refresh_expq_bias = [&]() {\n          const float ca = 1080.f - 8.f * fminf(fmaxf(ma, -1000.f), 1000.f), cb = 1080.f - 8.f * fminf(fmaxf(mb, -1000.f), 1000.f);\n          const u32 cha = f2_to_h2(ca, ca), chb = f2_to_h2(cb, cb);\n        expq_bias_a=cha; expq_bias_b=chb;\n        rescale_threshold_a=ma+8.f; rescale_threshold_b=mb+8.f;\n      };\n      refresh_expq_bias();\n", (857, 956), '      auto softmax_h = [&](u32 (&hs)[16][2], int jt, const bool first_zero = false) {\n', (957, 982), '        resc = __any_sync(0xffffffff, ta > rescale_threshold_a || tb > rescale_threshold_b);\n', (983, 986), '          const bool na = ta > rescale_threshold_a, nb = tb > rescale_threshold_b;\n', (987, 991), '        const bool na = ta > rescale_threshold_a, nb = tb > rescale_threshold_b;\n', (992, 999), '          if (!first_zero) { sca = ex2_mufu(ma - ma2); scb = ex2_mufu(mb - mb2); }\n', (1000, 1001), '          refresh_expq_bias();\n', (1001, 1017), '          const u32 cha=expq_bias_a,chb=expq_bias_b;\n', (1019, 1282), '        softmax_h(hs, 0, true);\n        // No PV has issued: O is +0, and the first rescale factors are 0 or 1.\n        resc = false;\n', (1284, 1719)])
+-ATT_EMPTY_EXPQ_CACHE_CUDA_SRC = _att_derive(ATT_CUDA_SRC, ['#if ATT_EXPQ != 1 || ATT_F16S != 1 || ATT_BIAS\n#error Cached EXPQ bias requires the existing F16S1/EXPQ1 unbiased path\n#endif\n', (0, 735), '  p.window=0; p.unit=0; // Guaranteed by the full-only module dispatch.\n\n', (735, 857), "      // The running maxima change only in softmax_h's existing rescale branch.\n      u32 expq_bias_a,expq_bias_b;\n#ifdef ATT_VOTEMAX\n      float rescale_threshold_a,rescale_threshold_b;\n#endif\n      auto refresh_expq_bias = [&]() {\n          const float ca = 1080.f - 8.f * fminf(fmaxf(ma, -1000.f), 1000.f), cb = 1080.f - 8.f * fminf(fmaxf(mb, -1000.f), 1000.f);\n          const u32 cha = f2_to_h2(ca, ca), chb = f2_to_h2(cb, cb);\n        expq_bias_a=cha; expq_bias_b=chb;\n#ifdef ATT_VOTEMAX\n        rescale_threshold_a=ma+8.f; rescale_threshold_b=mb+8.f;\n#endif\n      };\n      refresh_expq_bias();\n", (857, 956), '      auto softmax_h = [&](u32 (&hs)[16][2], int jt, const bool first_zero = false) {\n', (957, 960), '          // Full-only causal tail: these signed integer differences are small\n          // and exactly representable in FP16. Each packed compare yields the\n          // identical 0xffff/0 halfword mask used by the integer path.\n          const float da=float(pa-k0-2*tq),db=float(pb-k0-2*tq);\n          const u32 dha=f2_to_h2(da,da-1.f),dhb=f2_to_h2(db,db-1.f);\n', (960, 961), '          for (int n8=0;n8<16;++n8) {\n            const u32 offset=f2_to_h2(float(8*n8),float(8*n8));\n            u32 m0,m1;\n            asm("set.ge.u32.f16x2 %0, %1, %2;" : "=r"(m0) : "r"(dha), "r"(offset));\n            asm("set.ge.u32.f16x2 %0, %1, %2;" : "=r"(m1) : "r"(dhb), "r"(offset));\n            hs[n8][0]=(hs[n8][0]&m0)|(0xFC00FC00u&~m0);\n            hs[n8][1]=(hs[n8][1]&m1)|(0xFC00FC00u&~m1);\n', (967, 982), '        resc = __any_sync(0xffffffff, ta > rescale_threshold_a || tb > rescale_threshold_b);\n', (983, 986), '          const bool na = ta > rescale_threshold_a, nb = tb > rescale_threshold_b;\n', (987, 999), '          if (!first_zero) { sca = ex2_mufu(ma - ma2); scb = ex2_mufu(mb - mb2); }\n', (1000, 1001), '          refresh_expq_bias();\n', (1001, 1017), '          const u32 cha=expq_bias_a,chb=expq_bias_b;\n', (1019, 1282), '        softmax_h(hs, 0, true);\n        // No PV has issued: O is +0, and the first rescale factors are 0 or 1.\n        resc = false;\n', (1284, 1643), '  p.window=0; p.unit=0; // Guaranteed by the full-only module dispatch.\n\n', (1643, 1719)])
++ATT_EXPQ_CACHE_CUDA_SRC = _att_derive(ATT_CUDA_SRC, ['#if ATT_EXPQ != 1 || ATT_F16S != 1 || ATT_BIAS\n#error Cached EXPQ bias requires the existing F16S1/EXPQ1 unbiased path\n#endif\n', (0, 857), "      // The running maxima change only in softmax_h's existing rescale branch.\n      u32 expq_bias_a,expq_bias_b;\n      float rescale_threshold_a,rescale_threshold_b;\n      auto refresh_expq_bias = [&]() {\n          const float ca = 1080.f - 8.f * fminf(fmaxf(ma, -1000.f), 1000.f), cb = 1080.f - 8.f * fminf(fmaxf(mb, -1000.f), 1000.f);\n          const u32 cha = f2_to_h2(ca, ca), chb = f2_to_h2(cb, cb);\n        expq_bias_a=cha; expq_bias_b=chb;\n        rescale_threshold_a=ma+(8.f+ATT_RESC_TRIG); rescale_threshold_b=mb+(8.f+ATT_RESC_TRIG);\n      };\n      refresh_expq_bias();\n", (857, 956), '      auto softmax_h = [&](u32 (&hs)[16][2], int jt, const bool first_zero = false) {\n', (957, 982), '        resc = __any_sync(0xffffffff, ta > rescale_threshold_a || tb > rescale_threshold_b);\n', (983, 986), '          const bool na = ta > rescale_threshold_a, nb = tb > rescale_threshold_b;\n', (987, 991), '        const bool na = ta > rescale_threshold_a, nb = tb > rescale_threshold_b;\n', (992, 999), '          if (!first_zero) { sca = ex2_mufu(ma - ma2); scb = ex2_mufu(mb - mb2); }\n', (1000, 1001), '          refresh_expq_bias();\n', (1001, 1017), '          const u32 cha=expq_bias_a,chb=expq_bias_b;\n', (1019, 1282), '        softmax_h(hs, 0, true);\n        // No PV has issued: O is +0, and the first rescale factors are 0 or 1.\n        resc = false;\n', (1284, 1719)])
++ATT_EMPTY_EXPQ_CACHE_CUDA_SRC = _att_derive(ATT_CUDA_SRC, ['#if ATT_EXPQ != 1 || ATT_F16S != 1 || ATT_BIAS\n#error Cached EXPQ bias requires the existing F16S1/EXPQ1 unbiased path\n#endif\n', (0, 735), '  p.window=0; p.unit=0; // Guaranteed by the full-only module dispatch.\n\n', (735, 857), "      // The running maxima change only in softmax_h's existing rescale branch.\n      u32 expq_bias_a,expq_bias_b;\n#ifdef ATT_VOTEMAX\n      float rescale_threshold_a,rescale_threshold_b;\n#endif\n      auto refresh_expq_bias = [&]() {\n          const float ca = 1080.f - 8.f * fminf(fmaxf(ma, -1000.f), 1000.f), cb = 1080.f - 8.f * fminf(fmaxf(mb, -1000.f), 1000.f);\n          const u32 cha = f2_to_h2(ca, ca), chb = f2_to_h2(cb, cb);\n        expq_bias_a=cha; expq_bias_b=chb;\n#ifdef ATT_VOTEMAX\n        rescale_threshold_a=ma+(8.f+ATT_RESC_TRIG); rescale_threshold_b=mb+(8.f+ATT_RESC_TRIG);\n#endif\n      };\n      refresh_expq_bias();\n", (857, 956), '      auto softmax_h = [&](u32 (&hs)[16][2], int jt, const bool first_zero = false) {\n', (957, 960), '          // Full-only causal tail: these signed integer differences are small\n          // and exactly representable in FP16. Each packed compare yields the\n          // identical 0xffff/0 halfword mask used by the integer path.\n          const float da=float(pa-k0-2*tq),db=float(pb-k0-2*tq);\n          const u32 dha=f2_to_h2(da,da-1.f),dhb=f2_to_h2(db,db-1.f);\n', (960, 961), '          for (int n8=0;n8<16;++n8) {\n            const u32 offset=f2_to_h2(float(8*n8),float(8*n8));\n            u32 m0,m1;\n            asm("set.ge.u32.f16x2 %0, %1, %2;" : "=r"(m0) : "r"(dha), "r"(offset));\n            asm("set.ge.u32.f16x2 %0, %1, %2;" : "=r"(m1) : "r"(dhb), "r"(offset));\n            hs[n8][0]=(hs[n8][0]&m0)|(0xFC00FC00u&~m0);\n            hs[n8][1]=(hs[n8][1]&m1)|(0xFC00FC00u&~m1);\n', (967, 982), '        resc = __any_sync(0xffffffff, ta > rescale_threshold_a || tb > rescale_threshold_b);\n', (983, 986), '          const bool na = ta > rescale_threshold_a, nb = tb > rescale_threshold_b;\n', (987, 999), '          if (!first_zero) { sca = ex2_mufu(ma - ma2); scb = ex2_mufu(mb - mb2); }\n', (1000, 1001), '          refresh_expq_bias();\n', (1001, 1017), '          const u32 cha=expq_bias_a,chb=expq_bias_b;\n', (1019, 1282), '        softmax_h(hs, 0, true);\n        // No PV has issued: O is +0, and the first rescale factors are 0 or 1.\n        resc = false;\n', (1284, 1643), '  p.window=0; p.unit=0; // Guaranteed by the full-only module dispatch.\n\n', (1643, 1719)])
+ 
+ class _AttCuda:
+     """NVRTC-compiled module and driver-API launches on torch's current stream."""
+@@ -1570,6 +1570,7 @@
+     def __init__(self, src, defines=()):
+         from cuda.bindings import driver, nvrtc
+         self.driver = driver
++        defines = list(defines) + [x + ' 0.0f' for x in ('ATT_RESC_TRIG', 'ATT_HEADROOM') if not any((d.startswith(x + ' ') for d in defines))]
+         src = ''.join((f'#define {d}\n' for d in defines)) + src
+         err, prog = nvrtc.nvrtcCreateProgram(src.encode(), b'attn.cu', 0, [], [])
+         major, minor = torch.cuda.get_device_capability()
+@@ -1623,7 +1624,7 @@
+             raise RuntimeError(f'launch {name} failed: {err}')
+ 
+ class _AttP(ctypes.Structure):
+-    _fields_ = [(n, ctypes.c_void_p) for n in ('qkv', 'q8', 'k_cache', 'v_cache', 'cache_loc', 'page_table', 'seq_lens', 'k_scale', 'v_scale', 'inv_freq', 'kp', 'vp', 'ctab', 'out', 'oacc', 'lacc', 'cnt')] + [(n, ctypes.c_int) for n in ('B', 'L', 'window', 'rope', 'page', 'max_pages', 'nta', 'nqb')] + [('qscale', ctypes.c_float), ('part', ctypes.c_int), ('rope_tab', ctypes.c_void_p), ('npos', ctypes.c_int), ('unit', ctypes.c_int), ('direct_new', ctypes.c_int), ('hacc', ctypes.c_void_p), ('hl', ctypes.c_void_p), ('pslot', ctypes.c_void_p), ('agrid', ctypes.c_int)]
++    _fields_ = [(n, ctypes.c_void_p) for n in ('qkv', 'q8', 'k_cache', 'v_cache', 'cache_loc', 'page_table', 'seq_lens', 'k_scale', 'v_scale', 'inv_freq', 'kp', 'vp', 'ctab', 'out', 'oacc', 'lacc', 'cnt')] + [(n, ctypes.c_int) for n in ('B', 'L', 'window', 'rope', 'page', 'max_pages', 'nta', 'nqb')] + [('qscale', ctypes.c_float), ('part', ctypes.c_int), ('rope_tab', ctypes.c_void_p), ('npos', ctypes.c_int), ('unit', ctypes.c_int), ('direct_new', ctypes.c_int), ('hacc', ctypes.c_void_p), ('hl', ctypes.c_void_p), ('pslot', ctypes.c_void_p), ('agrid', ctypes.c_int), ('sktab', ctypes.c_void_p)]
+ ATT_MAX_T = 16384
+ QKV_POST2 = True
+ UNIT_SLIDING = True
+@@ -1654,10 +1655,10 @@
+             self.mod_sk = _AttCuda(ATT_EXPQ_CACHE_CUDA_SRC, list(defines) + ['ATT_COMB 3', 'ATT_SK_ONLY 1'] + (['ATT_INCOMB 1'] if INCOMB else []))
+             self.mod_sk.comb3 = True
+             self.mod_sk.incomb = INCOMB
+-            self.mod_sk_vote = _AttCuda(ATT_EXPQ_CACHE_CUDA_SRC, list(defines) + ['ATT_COMB 3', 'ATT_SK_ONLY 1', 'ATT_VOTEMAX 1'] + (['ATT_INCOMB 1'] if INCOMB else []))
++            self.mod_sk_vote = _AttCuda(ATT_EXPQ_CACHE_CUDA_SRC, list(defines) + ['ATT_COMB 3', 'ATT_SK_ONLY 1', 'ATT_VOTEMAX 1', 'ATT_RESC_TRIG 0.7500f', 'ATT_HEADROOM 0.0000f'] + (['ATT_INCOMB 1'] if INCOMB else []))
+             self.mod_sk_vote.comb3 = True
+             self.mod_sk_vote.incomb = INCOMB
+-            self.mod_sk_empty = _AttCuda(ATT_EMPTY_EXPQ_CACHE_CUDA_SRC, list(defines) + ['ATT_COMB 3', 'ATT_SK_ONLY 1', 'ATT_VOTEMAX 1'] + (['ATT_INCOMB 1'] if INCOMB else []))
++            self.mod_sk_empty = _AttCuda(ATT_EMPTY_EXPQ_CACHE_CUDA_SRC, list(defines) + ['ATT_COMB 3', 'ATT_SK_ONLY 1', 'ATT_VOTEMAX 1', 'ATT_RESC_TRIG 0.7500f', 'ATT_HEADROOM 0.0000f'] + (['ATT_INCOMB 1'] if INCOMB else []))
+             self.mod_sk_empty.comb3 = True
+             self.mod_sk_empty.incomb = INCOMB
+             self.mod = _AttCuda(ATT_CUDA_SRC, list(defines) + ['ATT_UNIT_ONLY 1'])
+@@ -1680,6 +1681,7 @@
+         self.grid = grid or torch.cuda.get_device_properties(device).multi_processor_count
+         self.oacc = torch.zeros((ATT_MAX_T, ATT_HQ, ATT_HD), dtype=torch.float32, device=device)
+         self.lacc = torch.zeros((ATT_MAX_T, ATT_HQ), dtype=torch.float32, device=device)
++        self.sktab = torch.zeros((1 << 16,), dtype=torch.int32, device=device)
+         self.cnt = torch.zeros((4 * 2 * 1024 * 4,), dtype=torch.int32, device=device)
+         self.hacc = torch.empty((2048, ATT_HQ, ATT_HD), dtype=torch.float32, device=device)
+         self.hl = torch.empty((2048, ATT_HQ), dtype=torch.float32, device=device)
+@@ -1815,13 +1817,15 @@
+         prm.part = 0
+         prm.rope_tab, prm.npos = (self.rope_tab.data_ptr(), self.npos)
+         prm.unit = 0
++        prm.agrid = self.grid
++        prm.sktab = self.sktab.data_ptr() if (not cfg['window'] and B * (self.grid + 1 + 6 * bf['nqb']) <= self.sktab.numel() and bf['nqb'] < 128 * 17) else 0
+         if cfg['window'] and UNIT_SLIDING:
+             units = B * 2 * ((L + self.qb - 1) // self.qb)
+             prm.unit = max(1, min(UNIT_SPLIT_MAX, self.grid // units)) if UNIT_SPLIT_MAX > 1 else 1
+             if prm.unit > 1 and T > self.hacc.shape[0]:
+                 prm.unit = 1
+         return (prm, bf)
+-ATT_DEFINES = ['ATT_CW 3', 'ATT_POLY 0', 'ATT_PP 0', 'ATT_F16S 1', 'ATT_EXPQ 1', 'ATT_USHIFT 1', 'KVP_ILP 1']
++ATT_DEFINES = ['ATT_SK_BETA 12', 'ATT_CW 3', 'ATT_POLY 0', 'ATT_PP 0', 'ATT_F16S 1', 'ATT_EXPQ 1', 'ATT_USHIFT 1', 'KVP_ILP 1']
+ ATT_SLIDING_MIN = 0
+ _att_base_prepare = prepare
+ 
+
+# part 2: string ATT_CUDA_SRC (82351 -> 84556 chars)
+--- s1.py:ATT_CUDA_SRC
++++ attn1.py:ATT_CUDA_SRC
+@@ -281,7 +281,7 @@
+   int direct_new;              // qkv_post2 also writes the new keys into kp / vp (kv_pack part 3 does the rest)                // sm_scale * qk_scale_factor * log2(e)
+   float* hacc; float* hl;      // split-unit handoff scratch [2048][16][64], [2048][16] (never needs zeroing)
+   float* pslot;                // ATT_COMB 2: stream-K partials [B][G][first|last][CW][128 thr x 34] (null: atomics)
+-  int agrid;                   // ATT_COMB 3: attn_fwd's grid (attn_comb finds a block's parts from it)
++  int agrid; int* sktab;       // ATT_COMB 3: attn_fwd's grid (attn_comb finds a block's parts from it); cost-aware split tables
+ };
+ 
+ // ---------------------------------------------------------------------------------------------
+@@ -332,17 +332,12 @@
+ extern "C" __global__ void __launch_bounds__(256) qkv_post2(Params p) {
+   // PDL: the projection (previous grid) must be complete; attn_fwd may launch now (its prologue
+   // overlaps this grid; it waits for us before reading q8 / the packed tiles)
+-  asm volatile("griddepcontrol.wait;" ::: "memory");
+   asm volatile("griddepcontrol.launch_dependents;" ::: "memory");
+   const int t = blockIdx.x * 8 + (threadIdx.x >> 5), lane = threadIdx.x & 31;
+   if (t >= p.B * p.L) return;
+   const int b = t / p.L, i = t % p.L;
+   const int pos = p.seq_lens[b] + i;
+   const int sub = lane & 7, hvl = lane >> 3;
+-  const __nv_bfloat16* row = p.qkv + (size_t)t * 2304;
+-  uint4 raw[5];
+-#pragma unroll
+-  for (int ps = 0; ps < 5; ++ps) raw[ps] = *reinterpret_cast<const uint4*>(row + (4 * ps + hvl) * 64 + 8 * sub);
+   float cs[4], sn[4];
+   if (p.rope) {
+     if (pos < p.npos) {
+@@ -356,6 +351,11 @@
+   }
+   const long long rowi = p.cache_loc[t];
+   const float cq = p.qscale * p.k_scale[0], ik = 1.f / p.k_scale[0], iv = 1.f / p.v_scale[0];
++  asm volatile("griddepcontrol.wait;" ::: "memory");
++  const __nv_bfloat16* row = p.qkv + (size_t)t * 2304;
++  uint4 raw[5];
++#pragma unroll
++  for (int ps = 0; ps < 5; ++ps) raw[ps] = *reinterpret_cast<const uint4*>(row + (4 * ps + hvl) * 64 + 8 * sub);
+ #pragma unroll
+   for (int ps = 0; ps < 5; ++ps) {
+     const int hv = 4 * ps + hvl;
+@@ -441,9 +441,9 @@
+   u8 (&vs)[128][68] = *reinterpret_cast<u8 (*)[128][68]>(vsw);
+   const int nblk = p.B * 2 * p.nta;
+   const int tid = threadIdx.x;
+-  if ((int)blockIdx.x >= nblk) {
++  if ((int)blockIdx.x < p.B) {   // the ctab / split-table blocks come first
+     if (p.part == 2) return;
+-    const int b = blockIdx.x - nblk;
++    const int b = blockIdx.x; (void)nblk;
+     const int L0 = p.seq_lens[b];
+     const int bt = base_tile(p, L0);
+     // prefix over query blocks (sequential per 256-wide chunk with a block scan)
+@@ -465,15 +465,15 @@
+         part[tid] += v;
+         __syncthreads();
+       }
+-      if (qi < p.nqb) p.ctab[b * (p.nqb + 1) + qi + 1] = carry + part[tid];
++      if (qi < p.nqb) { p.ctab[b * (p.nqb + 1) + qi + 1] = carry + part[tid]; if (qi + 1 < 128 * 17) vsw[qi + 1] = (u32)(carry + part[tid]); }
+       carry += part[255];
+       __syncthreads();
+     }
+     if (tid == 0) p.ctab[b * (p.nqb + 1)] = 0;
+-    (void)bt;
++    (void)bt; if (p.sktab && !p.window) { if (tid == 0) vsw[0] = 0u; __syncthreads(); const int G = p.agrid, nq = p.nqb; const int* cs = reinterpret_cast<const int*>(vsw); const int wh = cs[nq]; const long long C = 2LL * wh + (long long)ATT_SK_BETA * 2 * nq; int* tb = p.sktab + (size_t)b * (G + 1 + 6 * p.nqb); for (int k = tid; k <= G; k += 256) { int s = 0; if (k >= G) s = 2 * wh; else if (k > 0) { const long long T = (C * k + G - 1) / G; int lo = 0, hi = 2 * nq - 1; while (lo < hi) { const int mid = (lo + hi) >> 1; const int mh = mid >= nq; const int X1 = mh * wh + cs[mid - mh * nq + 1]; if ((long long)X1 - 1 + (long long)ATT_SK_BETA * mid >= T) hi = mid; else lo = mid + 1; } const int lh = lo >= nq; const int X0 = lh * wh + cs[lo - lh * nq]; s = (int)min((long long)(2 * wh), max((long long)X0, T - (long long)ATT_SK_BETA * lo)); } tb[k] = s; } for (int u = tid; u < 2 * nq; u += 256) { const int hh = u >= nq, qq = u - hh * nq; const int X0 = hh * wh + cs[qq], X1 = hh * wh + cs[qq + 1]; const int c0 = (int)(((long long)X0 + (long long)ATT_SK_BETA * u) * G / C), c1 = (int)(((long long)X1 - 1 + (long long)ATT_SK_BETA * u) * G / C); const int fl = (X0 > 0 && (int)(((long long)X0 - 1 + (long long)ATT_SK_BETA * (u - 1)) * G / C) == c0) ? 1 : 0; tb[G + 1 + 3 * u] = c0; tb[G + 1 + 3 * u + 1] = c1; tb[G + 1 + 3 * u + 2] = fl; } }
+     return;
+   }
+-  const int tile = blockIdx.x % p.nta, h = (blockIdx.x / p.nta) & 1, b = blockIdx.x / (2 * p.nta);
++  const int bx_ = (int)blockIdx.x - p.B; const int tile = bx_ % p.nta, h = (bx_ / p.nta) & 1, b = bx_ / (2 * p.nta);
+   const int L0 = p.seq_lens[b];
+   const int total = L0 + p.L;
+   const int lo_req = p.window ? max(0, L0 - (p.window - 1)) : 0;
+@@ -651,7 +651,7 @@
+   }
+   for (int b = 0; b < p.B; ++b) {
+     const int W = 2 * p.ctab[b * (p.nqb + 1) + p.nqb];
+-    const int s = (int)((long long)W * cta / G), e = (int)((long long)W * (cta + 1) / G);
++    const int* tb_ = p.sktab + (size_t)b * (G + 1 + 6 * p.nqb); const int s = p.sktab ? tb_[cta] : (int)((long long)W * cta / G), e = p.sktab ? tb_[cta + 1] : (int)((long long)W * (cta + 1) / G);
+     for (int x = s; x < e;) {
+       Seg sg;
+       seg_at(p, b, x, e, sg);
+@@ -679,7 +679,7 @@
+ #pragma unroll
+   for (int j = 0; j < 8; ++j) o[j][0] = o[j][1] = o[j][2] = o[j][3] = 0.f;
+   for (int k = c0; k <= c1; ++k) {
+-    const int kind = (int)((long long)W * k / G) >= X0 ? 0 : 1;
++    const int kind = W < 0 ? ((k == c0 && X0) ? 1 : 0) : ((int)((long long)W * k / G) >= X0 ? 0 : 1);   // W < 0: X0 is the table's first-part flag
+     const float* sk = pslot + ((((size_t)b * G + k) * 2 + kind) * ATT_CW + c) * (128 * 34);
+ #pragma unroll
+     for (int j = 0; j < 8; ++j) {
+@@ -828,7 +828,7 @@
+       const int ia = sg.qb * ATT_QB + tok_a, ib = sg.qb * ATT_QB + tok_b;   // token index in the request
+       const bool va = ia < p.L, vb = ib < p.L;
+       const int pa = L0 + ia, pb = L0 + ib;                          // query positions
+-      const int hg = sg.h * 8 + head;                                // global q head
++      const int hg = sg.h * 8 + head; const int* kp_ = p.sktab + (size_t)b * (G + 1 + 6 * p.nqb) + G + 1 + 3 * (sg.h * p.nqb + sg.qi); const int kpf_ = p.sktab ? ((cta == kp_[0] && kp_[2]) ? 1 : 0) : 0;   // global q head; slot kind from the split table
+       // Q fragments: rows (tok_a, head), (tok_b, head); k = 32 ks + {4tq..4tq+3, 16+4tq..}
+       u32 qa[2][4];
+       {
+@@ -980,19 +980,19 @@
+         const u32 pa2 = h2max(h2max(xa[0], xa[1]), h2max(xa[2], xa[3])), pb2 = h2max(h2max(xb[0], xb[1]), h2max(xb[2], xb[3]));
+         float ta = fmaxf(h2_lo_f(pa2), h2_hi_f(pa2)), tb = fmaxf(h2_lo_f(pb2), h2_hi_f(pb2));
+ #ifdef ATT_VOTEMAX
+-        resc = __any_sync(0xffffffff, ta > ma + 8.f || tb > mb + 8.f);
++        resc = __any_sync(0xffffffff, ta > ma + (8.f + ATT_RESC_TRIG) || tb > mb + (8.f + ATT_RESC_TRIG));
+         if (resc) {
+           ta = fmaxf(ta, __shfl_xor_sync(0xffffffff, ta, 1)); ta = fmaxf(ta, __shfl_xor_sync(0xffffffff, ta, 2));
+           tb = fmaxf(tb, __shfl_xor_sync(0xffffffff, tb, 1)); tb = fmaxf(tb, __shfl_xor_sync(0xffffffff, tb, 2));
+-          const bool na = ta > ma + 8.f, nb = tb > mb + 8.f;
+-          float ma2 = na ? ta - 8.f : ma, mb2 = nb ? tb - 8.f : mb;
++          const bool na = ta > ma + (8.f + ATT_RESC_TRIG), nb = tb > mb + (8.f + ATT_RESC_TRIG);
++          float ma2 = na ? ta - (8.f - ATT_HEADROOM) : ma, mb2 = nb ? tb - (8.f - ATT_HEADROOM) : mb;
+ #else
+         ta = fmaxf(ta, __shfl_xor_sync(0xffffffff, ta, 1)); ta = fmaxf(ta, __shfl_xor_sync(0xffffffff, ta, 2));
+         tb = fmaxf(tb, __shfl_xor_sync(0xffffffff, tb, 1)); tb = fmaxf(tb, __shfl_xor_sync(0xffffffff, tb, 2));
+-        const bool na = ta > ma + 8.f, nb = tb > mb + 8.f;
++        const bool na = ta > ma + (8.f + ATT_RESC_TRIG), nb = tb > mb + (8.f + ATT_RESC_TRIG);
+         resc = __any_sync(0xffffffff, na || nb);
+         if (resc) {
+-          float ma2 = na ? ta - 8.f : ma, mb2 = nb ? tb - 8.f : mb;
++          float ma2 = na ? ta - (8.f - ATT_HEADROOM) : ma, mb2 = nb ? tb - (8.f - ATT_HEADROOM) : mb;
+ #endif
+ #if ATT_EXPQ
+           ma2 = rintf(ma2 * 8.f) * 0.125f; mb2 = rintf(mb2 * 8.f) * 0.125f;   // 8 m integer: the code offset is exact
+@@ -1459,7 +1459,7 @@
+         const int* ctb = p.ctab + b * (p.nqb + 1);
+         const int wh = ctb[p.nqb], W = 2 * wh;
+         const int X0 = sg.h * wh + ctb[sg.qi];
+-        const int kind = (int)((long long)W * blockIdx.x / G) >= X0 ? 0 : 1;
++        const int kind = p.sktab ? kpf_ : ((int)((long long)W * blockIdx.x / G) >= X0 ? 0 : 1);
+         float* sl = p.pslot + ((((size_t)b * G + blockIdx.x) * 2 + kind) * ATT_CW + c) * (128 * 34);
+ #pragma unroll
+         for (int j = 0; j < 8; ++j) __stcg(reinterpret_cast<float4*>(sl) + j * 128 + lt, make_float4(o[j][0], o[j][1], o[j][2], o[j][3]));
+@@ -1641,7 +1641,6 @@
+ // attn_comb: one 128-thread block per (request, kv head, query block, consumer warpgroup); a block split
+ // over CTAs c0..c1 of attn_fwd's stream-K partition sums their slots, then the epilogue as attn_fwd's
+ extern "C" __global__ void __launch_bounds__(128) attn_comb(Params p) {
+-  asm volatile("griddepcontrol.wait;" ::: "memory");   // PDL: attn_fwd's slots
+   asm volatile("griddepcontrol.launch_dependents;" ::: "memory");
+   const int c = blockIdx.x % ATT_CW, r = blockIdx.x / ATT_CW;
+   const int qi = r % p.nqb, h = (r / p.nqb) & 1, b = r / (2 * p.nqb);
+@@ -1651,11 +1650,12 @@
+   const int wh = ctb[p.nqb], W = 2 * wh;
+   const int X0 = h * wh + ctb[qi], X1 = X0 + ctb[qi + 1] - ctb[qi];
+   if (X1 <= X0) return;
+-  const int c0 = (int)(((long long)(X0 + 1) * G + W - 1) / W) - 1;
+-  const int c1 = (int)(((long long)X1 * G + W - 1) / W) - 1;
++  const int* tu_ = p.sktab + (size_t)b * (G + 1 + 6 * p.nqb) + G + 1 + 3 * (h * p.nqb + qi); const int c0 = p.sktab ? tu_[0] : (int)(((long long)(X0 + 1) * G + W - 1) / W) - 1;
++  const int c1 = p.sktab ? tu_[1] : (int)(((long long)X1 * G + W - 1) / W) - 1;
+   if (c0 == c1) return;   // whole in one CTA: attn_fwd finished it
++  asm volatile("griddepcontrol.wait;" ::: "memory");   // PDL: attn_fwd's slots
+ #if 1
+-  comb_block(p.pslot, p.ctab, p.qkv, p.out, p.v_scale[0], G, p.nqb, p.L, b, h, qi, c, c0, c1, X0, W);
++  comb_block(p.pslot, p.ctab, p.qkv, p.out, p.v_scale[0], G, p.nqb, p.L, b, h, qi, c, c0, c1, p.sktab ? tu_[2] : X0, p.sktab ? -1 : W);
+ }
+ #else
+   const int lt = threadIdx.x, warp = lt >> 5, lane = lt & 31, g = lane >> 2, tq = lane & 3;
+# readable diff: attn1.py -> c2.py
+# part 1: Python skeleton (long string literals replaced by placeholders)
+--- attn1.py
++++ c2.py
+@@ -3038,3 +3038,190 @@
+             state['router512_plans'][m] = (plan, 0)
+     torch.cuda.synchronize()
+     return state
++
++# ---- sla: sliding-window attention for short blocks (2-CTA clusters, DSMEM handoff, fused qkv_post2) ----
++SLA_SRC = <<string SLA_SRC: 38971 chars, md5 a42e8fc8>>
++SLA_FUSED = 1
++SLA_FLAGJOIN = 1
++SLA_DEFINES = ['SLA_SPLIT 0', 'SLA_TRIG', 'SLA_CACHE_C 2', 'SLA_PP 1', 'SLA_GPRE 0']
++SLA_MAX_GRID = 128
++SLA_TRACE = False
++
++
++class _SlaP(ctypes.Structure):
++    _fields_ = [(n, ctypes.c_void_p) for n in ('qkv', 'q8', 'k_cache', 'v_cache', 'cache_loc', 'page_table', 'seq_lens',
++                                               'k_scale', 'v_scale', 'inv_freq', 'rope_tab', 'kp', 'vp', 'out', 'sync',
++                                               'trace')] + \
++        [(n, ctypes.c_int) for n in ('B', 'L', 'window', 'rope', 'page', 'max_pages', 'nta', 'nqb', 'npos', 'nblk_pack',
++                                     'flagjoin', 'fused')] + [('qscale', ctypes.c_float)]
++
++
++def _sla_smem(ns):
++    # must match sla.cu: stages | Q 12 KB | gates BF16 12 KB | sigmoid gates FP32 24 KB | exchange 24 KB + 1.5 KB | barriers
++    return ns * 18432 + 12288 + 12288 + 24576 + 384 * 64 + 384 * 4 + 16 * ns + 64
++
++
++class _Sla:
++    def __init__(self, att, device):
++        self.mod = _AttCuda(SLA_SRC, list(SLA_DEFINES))
++        self.ns = 8
++        for d in SLA_DEFINES:
++            if d.startswith('SLA_NS '):
++                self.ns = int(d.split()[1])
++        self.smem = _sla_smem(self.ns)
++        self.sync = torch.zeros(2 + 2 * 64, dtype=torch.int32, device=device)
++        self.trace = torch.zeros(132 * 64, dtype=torch.int64, device=device)
++        # The new-key ready counter and the sla_pack done count are spin-waited: every cluster must be co-resident and
++        # a few SMs must stay free for the side-stream pack. Otherwise the shape takes the base attention path.
++        self.nsm = torch.cuda.get_device_properties(device).multi_processor_count
++        self.max_clusters = self._max_clusters()
++        print(f'sla: {self.nsm} SMs, {self.max_clusters} co-resident 2-CTA clusters of sla_fwd', flush=True)
++
++    def _max_clusters(self):
++        try:
++            d = self.mod.driver
++            f = self.mod.func('sla_fwd', self.smem)
++            cfg = d.CUlaunchConfig()
++            cfg.gridDimX, cfg.gridDimY, cfg.gridDimZ = (128, 1, 1)
++            cfg.blockDimX, cfg.blockDimY, cfg.blockDimZ = (512, 1, 1)
++            cfg.sharedMemBytes = self.smem
++            at = d.CUlaunchAttribute()
++            at.id = d.CUlaunchAttributeID.CU_LAUNCH_ATTRIBUTE_CLUSTER_DIMENSION
++            at.value.clusterDim.x, at.value.clusterDim.y, at.value.clusterDim.z = (2, 1, 1)
++            cfg.attrs = [at]
++            cfg.numAttrs = 1
++            err, n = d.cuOccupancyMaxActiveClusters(f, cfg)
++            if int(err):
++                cfg.attrs = []
++                cfg.numAttrs = 0
++                err, n = d.cuOccupancyMaxActiveClusters(f, cfg)
++            return int(n) if not int(err) else 0
++        except Exception as e:
++            print('sla: cluster occupancy query failed:', e, flush=True)
++            return 0
++
++    def ok(self, cfg):
++        if not cfg['window'] or cfg['rope_theta'] not in (0.0, 500000.0):
++            return False
++        B, L = cfg['batch'], cfg['q_len']
++        nqb = (L + 23) // 24
++        clusters = 2 * B * nqb
++        return 4 * B * nqb <= SLA_MAX_GRID and B <= 64 and clusters <= self.max_clusters and 2 * clusters <= self.nsm - 4
++
++    def params(self, att, data, qkv, bf):
++        cfg = data['config']
++        B, L = cfg['batch'], cfg['q_len']
++        pt = data['page_table']
++        p = _SlaP()
++        p.qkv = qkv.data_ptr() if qkv is not None else 0
++        p.q8 = bf['q8'].data_ptr()
++        p.k_cache, p.v_cache = data['k_cache'].data_ptr(), data['v_cache'].data_ptr()
++        p.cache_loc, p.page_table, p.seq_lens = data['cache_loc'].data_ptr(), pt.data_ptr(), data['seq_lens'].data_ptr()
++        p.k_scale, p.v_scale = data['k_scale'].data_ptr(), data['v_scale'].data_ptr()
++        p.inv_freq, p.rope_tab = att.inv_freq.data_ptr(), att.rope_tab.data_ptr()
++        p.kp, p.vp, p.out = bf['kp'].data_ptr(), bf['vp'].data_ptr(), bf['out'].data_ptr()
++        p.sync, p.trace = self.sync.data_ptr(), self.trace.data_ptr()
++        p.B, p.L, p.window, p.rope = B, L, cfg['window'], 1 if cfg['rope_theta'] else 0
++        p.page, p.max_pages, p.nta, p.nqb = cfg['page_size'], pt.shape[1], bf['nta'], (L + 23) // 24
++        p.npos = att.npos
++        p.nblk_pack = B * 2 * bf['nta'] + B
++        p.flagjoin, p.fused = SLA_FLAGJOIN, SLA_FUSED
++        p.qscale = float(cfg['sm_scale'] * cfg['qk_scale_factor'] * ATT_LOG2E)
++        return p
++
++
++_sla_pa_fork = PrefillAttention.fork
++_sla_pa_pre = PrefillAttention.pre
++_sla_pa_call = PrefillAttention.__call__
++
++
++def _sla_use(self, data):
++    sla = getattr(self, 'sla', None)
++    return sla is not None and sla.ok(data['config'])
++
++
++def _sla_fork(self, data=None):
++    self.sla_mode = data is not None and _sla_use(self, data)
++    return _sla_pa_fork(self, data)
++
++
++def _sla_pre(self, data):
++    if not getattr(self, 'sla_mode', False):
++        return _sla_pa_pre(self, data)
++    if getattr(self, 'fork_ev', None) is None:
++        _sla_pa_fork(self, data)
++    self.side.wait_event(self.fork_ev)
++    self.fork_ev = None
++    cfg = data['config']
++    bf = self._bufs(cfg, data['page_table'].shape[1], cfg['page_size'], data['k_cache'].device)
++    p = self.sla.params(self, data, None, bf)
++    with torch.cuda.stream(self.side):
++        self.sla.mod.launch('sla_pack', p.nblk_pack, 256, 0, p)
++    self.sla_pre_done = True
++
++
++def _sla_call(self, data, qkv):
++    if not (getattr(self, 'sla_mode', False) and getattr(self, 'sla_pre_done', False)):
++        return _sla_pa_call(self, data, qkv)
++    self.sla_pre_done = False
++    self.sla_mode = False
++    cfg = data['config']
++    bf = self._bufs(cfg, data['page_table'].shape[1], cfg['page_size'], data['k_cache'].device)
++    p = self.sla.params(self, data, qkv, bf)
++    if not SLA_FUSED:
++        prm, _ = self._params(data, qkv)
++        prm.direct_new = 1
++        self.mod.launch('qkv_post2', (prm.B * prm.L + 7) // 8, 256, 0, prm, pdl=True)
++    if SLA_FLAGJOIN:
++        self.sla_join = True
++    else:
++        torch.cuda.current_stream().wait_stream(self.side)
++    self.sla.mod.launch('sla_fwd', 4 * p.B * p.nqb, 512, self.sla.smem, p, pdl=True)
++    return bf['out']
++
++
++def _sla_join(att):
++    if att is not None and getattr(att, 'sla_join', False):
++        torch.cuda.current_stream().wait_stream(att.side)
++        att.sla_join = False
++
++
++PrefillAttention.fork = _sla_fork
++PrefillAttention.pre = _sla_pre
++PrefillAttention.__call__ = _sla_call
++_sla_prev_kernel_fn = kernel_fn
++
++
++def kernel_fn(data, state):
++    r = _sla_prev_kernel_fn(data, state)
++    _sla_join(state.get('att'))
++    return r
++
++
++def _front(data, state):
++    """front-of-layer probe hook (research/claude/attn/front.py): s1's front + the deferred join."""
++    cfg = data['config']
++    dense = state['dense']
++    state['att'].fork(data)
++    smt = None if cfg['window'] else state.get('qkv_smt', {}).get(data['attn_input'].shape[0])
++    qkv = smt[0].run(data['attn_input'], dense['qkv_gate'], smt[1]) if smt is not None else _gemm(data['attn_input'], dense['qkv_gate'])
++    state['att'].pre(data)
++    o = state['att'](data, qkv)
++    if cfg['tokens'] in state.get('d6_plans', {}):
++        _sla_join(state['att'])
++        return o
++    r = _gemm(o, dense['o'])
++    _sla_join(state['att'])
++    return r
++
++
++_sla_prev_prepare = prepare
++
++
++def prepare(weights):
++    state = _sla_prev_prepare(weights)
++    att = state.get('att')
++    if att is not None:
++        att.sla = _Sla(att, weights['qkv_gate'].device)
++    torch.cuda.synchronize()
++    return state
+
+# part 2: string SLA_SRC (0 -> 38971 chars)
+--- attn1.py:SLA_SRC
++++ c2.py:SLA_SRC
+@@ -0,0 +1,850 @@
++// sla: sliding-window prefill attention for short blocks (B * 2 * nqb * 2 CTAs <= 128), one 2-CTA cluster per
++// (request, kv head, 24-token query block). Rank r attends to its half of the unit's key tiles; the halves meet at
++// the absolute scale 2^m through distributed shared memory (st.async) and each rank finishes 12 of the 24 tokens.
++// SLA_FUSED: the CTAs also do qkv_post2's work (QK-norm, RoPE, FP8 Q into shared memory, the new keys' cache rows
++// and packed tiles); new-key tiles are loaded once every producer of that head has published (ready counter).
++// flagjoin: the cached-key packing (sla_pack, side stream) is awaited through a done counter, not a graph edge.
++typedef unsigned int u32;
++typedef unsigned short u16;
++typedef unsigned long long u64;
++typedef unsigned char u8;
++#define DEVI __device__ __forceinline__
++#include <cuda_bf16.h>
++#include <cuda_fp16.h>
++
++#ifndef SLA_NS
++#define SLA_NS 8
++#endif
++#define CW 3
++#define QB 24
++#ifndef SLA_CREG
++#define SLA_CREG 160
++#endif
++#ifndef SLA_PREG
++#define SLA_PREG 32
++#endif
++#ifndef SLA_PREP
++#define SLA_PREP 0           // 1: exponent codes before the PV wait; 2: also P packed before it (double-buffered P)
++#endif
++#ifndef SLA_PUB
++#define SLA_PUB 1            // 0: fence + release on the Q path; 1: writers fence, warp 1 releases; 2: warp 1 fences too
++#endif
++#ifndef SLA_GPRE
++#define SLA_GPRE 1           // producer-warpgroup warps 2-3 turn the prefetched gates into FP32 sigmoids during the main loop
++#endif
++#ifndef SLA_FMASK
++#define SLA_FMASK 1          // masked tiles: f16 key-offset compare (sign of min(k - lo, hi - k)) instead of integer selects
++#endif
++#ifndef SLA_CACHE_C
++#define SLA_CACHE_C 1        // the EXPQ bias 1080 - 8 m kept in registers, recomputed only on a rescale (same bits)
++#endif
++#ifndef SLA_PP
++#define SLA_PP 0             // 1: consumer warpgroups issue their wgmmas round robin
++#endif
++#ifndef SLA_SPLIT
++#define SLA_SPLIT 0          // 0: s1's split (rank 0 gets max(1, (nt - 1) / 2) tiles); 1: rank 0 gets nt / 2; 2: (nt + 1) / 2
++#endif
++
++DEVI u32 smem_addr(const void* p) {
++  u32 r;
++  asm volatile("{ .reg .u64 t; cvta.to.shared.u64 t, %1; cvt.u32.u64 %0, t; }" : "=r"(r) : "l"(p));
++  return r;
++}
++DEVI void mbar_init(u32 bar, u32 count) {
++  asm volatile("mbarrier.init.shared::cta.b64 [%0], %1;" :: "r"(bar), "r"(count) : "memory");
++}
++DEVI void mbar_arrive_tx(u32 bar, u32 bytes) {
++  asm volatile("mbarrier.arrive.expect_tx.shared::cta.b64 _, [%0], %1;" :: "r"(bar), "r"(bytes) : "memory");
++}
++DEVI void mbar_wait(u32 bar, u32 parity) {
++  asm volatile("{ .reg .pred P1; WAIT_%=: mbarrier.try_wait.parity.shared::cta.b64 P1, [%0], %1; @P1 bra DONE_%=; bra WAIT_%=; DONE_%=: }"
++               :: "r"(bar), "r"(parity) : "memory");
++}
++DEVI void mbar_wait_cl(u32 bar, u32 parity) {
++  asm volatile("{ .reg .pred P1; WAIT_%=: mbarrier.try_wait.parity.acquire.cluster.shared::cta.b64 P1, [%0], %1; @P1 bra DONE_%=; bra WAIT_%=; DONE_%=: }"
++               :: "r"(bar), "r"(parity) : "memory");
++}
++DEVI void mbar_arrive_if(u32 bar, int pred) {
++  asm volatile("{ .reg .pred P1; setp.ne.b32 P1, %1, 0; @P1 mbarrier.arrive.shared::cta.b64 _, [%0]; }"
++               :: "r"(bar), "r"(pred) : "memory");
++}
++DEVI void bulk_g2s(u32 dst, const void* src, u32 bytes, u32 bar) {
++  asm volatile("cp.async.bulk.shared::cluster.global.mbarrier::complete_tx::bytes [%0], [%1], %2, [%3];"
++               :: "r"(dst), "l"(src), "r"(bytes), "r"(bar) : "memory");
++}
++DEVI void wg_fence() { asm volatile("wgmma.fence.sync.aligned;" ::: "memory"); }
++DEVI void wg_commit() { asm volatile("wgmma.commit_group.sync.aligned;" ::: "memory"); }
++template <int N> DEVI void wg_wait() { asm volatile("wgmma.wait_group.sync.aligned %0;" :: "n"(N) : "memory"); }
++DEVI void named_sync(int id, int n) { asm volatile("bar.sync %0, %1;" :: "r"(id), "r"(n) : "memory"); }
++DEVI u32 mapa(u32 a, u32 rank) { u32 r; asm volatile("mapa.shared::cluster.u32 %0, %1, %2;" : "=r"(r) : "r"(a), "r"(rank)); return r; }
++DEVI void st_async4(u32 a, float x, float y, float z, float w, u32 bar) {
++  asm volatile("st.async.shared::cluster.mbarrier::complete_tx::bytes.v4.f32 [%0], {%1, %2, %3, %4}, [%5];"
++               :: "r"(a), "f"(x), "f"(y), "f"(z), "f"(w), "r"(bar) : "memory");
++}
++DEVI void st_async1(u32 a, float x, u32 bar) {
++  asm volatile("st.async.shared::cluster.mbarrier::complete_tx::bytes.f32 [%0], %1, [%2];" :: "r"(a), "f"(x), "r"(bar) : "memory");
++}
++DEVI int ld_acquire(const int* p) { int v; asm volatile("ld.acquire.gpu.global.b32 %0, [%1];" : "=r"(v) : "l"(p) : "memory"); return v; }
++DEVI void red_release_add(int* p, int v) { asm volatile("red.release.gpu.global.add.s32 [%0], %1;" :: "l"(p), "r"(v) : "memory"); }
++
++DEVI u64 desc_k(u32 saddr) {
++  return (u64)((saddr & 0x3FFFF) >> 4) | ((u64)1 << 16) | ((u64)(512 >> 4) << 32) | ((u64)2 << 62);
++}
++DEVI u64 desc_v(u32 saddr) {
++  return (u64)((saddr & 0x3FFFF) >> 4) | ((u64)1 << 16) | ((u64)(1024 >> 4) << 32) | ((u64)1 << 62);
++}
++DEVI void wgmma_qk_h(u32 (&h)[16][2], u32 a0, u32 a1, u32 a2, u32 a3, u64 desc, int accumulate) {
++  asm volatile("{ .reg .pred p; setp.ne.b32 p, %36, 0; wgmma.mma_async.sync.aligned.m64n128k32.f16.e4m3.e4m3 "
++               "{%0,%1,%2,%3,%4,%5,%6,%7,%8,%9,%10,%11,%12,%13,%14,%15,%16,%17,%18,%19,%20,%21,%22,%23,%24,%25,%26,%27,%28,%29,%30,%31},"
++               " {%32,%33,%34,%35}, %37, p, 1, 1; }"
++               : "+r"(h[0][0]), "+r"(h[0][1]), "+r"(h[1][0]), "+r"(h[1][1]), "+r"(h[2][0]), "+r"(h[2][1]), "+r"(h[3][0]), "+r"(h[3][1]),
++                 "+r"(h[4][0]), "+r"(h[4][1]), "+r"(h[5][0]), "+r"(h[5][1]), "+r"(h[6][0]), "+r"(h[6][1]), "+r"(h[7][0]), "+r"(h[7][1]),
++                 "+r"(h[8][0]), "+r"(h[8][1]), "+r"(h[9][0]), "+r"(h[9][1]), "+r"(h[10][0]), "+r"(h[10][1]), "+r"(h[11][0]), "+r"(h[11][1]),
++                 "+r"(h[12][0]), "+r"(h[12][1]), "+r"(h[13][0]), "+r"(h[13][1]), "+r"(h[14][0]), "+r"(h[14][1]), "+r"(h[15][0]), "+r"(h[15][1])
++               : "r"(a0), "r"(a1), "r"(a2), "r"(a3), "r"(accumulate), "l"(desc));
++}
++DEVI void wgmma_pv(float (&o)[9][4], u32 a0, u32 a1, u32 a2, u32 a3, u64 desc) {
++  asm volatile("{ .reg .pred p; setp.ne.b32 p, 1, 0; wgmma.mma_async.sync.aligned.m64n72k32.f32.e4m3.e4m3 "
++               "{%0,%1,%2,%3,%4,%5,%6,%7,%8,%9,%10,%11,%12,%13,%14,%15,%16,%17,%18,%19,%20,%21,%22,%23,%24,%25,%26,%27,%28,%29,%30,%31,%32,%33,%34,%35},"
++               " {%36,%37,%38,%39}, %40, p, 1, 1; }"
++               : "+f"(o[0][0]), "+f"(o[0][1]), "+f"(o[0][2]), "+f"(o[0][3]), "+f"(o[1][0]), "+f"(o[1][1]), "+f"(o[1][2]), "+f"(o[1][3]),
++                 "+f"(o[2][0]), "+f"(o[2][1]), "+f"(o[2][2]), "+f"(o[2][3]), "+f"(o[3][0]), "+f"(o[3][1]), "+f"(o[3][2]), "+f"(o[3][3]),
++                 "+f"(o[4][0]), "+f"(o[4][1]), "+f"(o[4][2]), "+f"(o[4][3]), "+f"(o[5][0]), "+f"(o[5][1]), "+f"(o[5][2]), "+f"(o[5][3]),
++                 "+f"(o[6][0]), "+f"(o[6][1]), "+f"(o[6][2]), "+f"(o[6][3]), "+f"(o[7][0]), "+f"(o[7][1]), "+f"(o[7][2]), "+f"(o[7][3]),
++                 "+f"(o[8][0]), "+f"(o[8][1]), "+f"(o[8][2]), "+f"(o[8][3])
++               : "r"(a0), "r"(a1), "r"(a2), "r"(a3), "l"(desc));
++}
++DEVI u32 h2max(u32 a, u32 b) { u32 r; asm("max.f16x2 %0, %1, %2;" : "=r"(r) : "r"(a), "r"(b)); return r; }
++DEVI u32 h2min(u32 a, u32 b) { u32 r; asm("min.f16x2 %0, %1, %2;" : "=r"(r) : "r"(a), "r"(b)); return r; }
++DEVI u32 h2add(u32 a, u32 b) { u32 r; asm("add.rn.f16x2 %0, %1, %2;" : "=r"(r) : "r"(a), "r"(b)); return r; }
++// f16 bits of a small non-negative integer (exact below 2048)
++__host__ __device__ constexpr int ilog2c(int v) { return v >= 2 ? 1 + ilog2c(v >> 1) : 0; }
++__host__ __device__ constexpr u32 h16i(int v) {
++  return v == 0 ? 0u : ((u32)(ilog2c(v) + 15) << 10) | ((u32)(v << (10 - ilog2c(v))) & 0x3FFu);
++}
++DEVI u32 h2fma(u32 a, u32 b, u32 c) { u32 r; asm("fma.rn.f16x2 %0, %1, %2, %3;" : "=r"(r) : "r"(a), "r"(b), "r"(c)); return r; }
++DEVI u32 prmt_b(u32 a, u32 b, u32 sel) { u32 r; asm("prmt.b32 %0, %1, %2, %3;" : "=r"(r) : "r"(a), "r"(b), "r"(sel)); return r; }
++DEVI u32 f2_to_h2(float lo, float hi) { u32 r; asm("cvt.rn.f16x2.f32 %0, %1, %2;" : "=r"(r) : "f"(hi), "f"(lo)); return r; }
++DEVI float h2_hi_f(u32 a) { return __half2float(__ushort_as_half((u16)(a >> 16))); }
++DEVI float h2_lo_f(u32 a) { return __half2float(__ushort_as_half((u16)(a & 0xFFFF))); }
++DEVI float ex2_mufu(float x) { float y; asm("ex2.approx.ftz.f32 %0, %1;" : "=f"(y) : "f"(x)); return y; }
++DEVI float bf_lo_f(u32 x) { return __uint_as_float(x << 16); }
++DEVI float bf_hi_f(u32 x) { return __uint_as_float(x & 0xFFFF0000u); }
++DEVI u16 f2_to_e4m3x2(float lo, float hi) {
++  u16 r;
++  asm("cvt.rn.satfinite.e4m3x2.f32 %0, %1, %2;" : "=h"(r) : "f"(hi), "f"(lo));
++  return r;
++}
++template <int NA> DEVI void pin(float (&a)[NA][4]) {
++#pragma unroll
++  for (int i = 0; i < NA; ++i)
++#pragma unroll
++    for (int j = 0; j < 4; ++j) asm volatile("" : "+f"(a[i][j]) :: "memory");
++}
++#ifdef SLA_TRACE
++DEVI u64 gtimer_ns() { u64 t; asm volatile("mov.u64 %0, %globaltimer;" : "=l"(t)); return t; }
++DEVI u64 clk64() { u64 t; asm volatile("mov.u64 %0, %clock64;" : "=l"(t)); return t; }
++#define STR(k) do { if (threadIdx.x == 128) { p.trace[blockIdx.x * 64 + 2 * (k)] = gtimer_ns(); p.trace[blockIdx.x * 64 + 2 * (k) + 1] = clk64(); } } while (0)
++#define STRT(k) do { if (threadIdx.x == 128 && (k) < 24) { p.trace[blockIdx.x * 64 + 16 + (k)] = gtimer_ns(); } } while (0)
++#else
++#define STR(k) do {} while (0)
++#define STRT(k) do {} while (0)
++#endif
++
++struct SlaP {
++  const __nv_bfloat16* qkv;    // [T][2304]
++  const u8* q8;                // non-fused: [T][16][64] FP8 from qkv_post2
++  u8* k_cache;
++  u8* v_cache;
++  const long long* cache_loc;
++  const int* page_table;
++  const int* seq_lens;
++  const float* k_scale;
++  const float* v_scale;
++  const float* inv_freq;
++  const float* rope_tab;
++  u8* kp;
++  u8* vp;
++  __nv_bfloat16* out;          // [T][1024]
++  int* sync;                   // [0] pack done, [1] exit count, [2 + 2 b + h] new keys published (per request, head)
++  u64* trace;
++  int B, L, window, rope, page, max_pages, nta, nqb, npos, nblk_pack, flagjoin, fused;
++  float qscale;
++};
++
++DEVI int base_tile(const SlaP& p, int L0) { return p.window ? max(0, L0 - (p.window - 1)) / 128 : 0; }
++
++// ---------------------------------------------------------------------------------------------
++// sla_pack: kv_pack part 3 (cached keys' tiles; the cached bytes of the tile where new keys start) + a done count.
++// Blocks [0, B*2*nta) pack one (request, head, tile); the last B blocks reset the request's ready counters.
++DEVI u32 prmt(u32 a, u32 b, u32 sel) { u32 r; asm("prmt.b32 %0, %1, %2, %3;" : "=r"(r) : "r"(a), "r"(b), "r"(sel)); return r; }
++extern "C" __global__ void __launch_bounds__(256) sla_pack(SlaP p) {
++  __shared__ u32 vsw[128 * 17];
++  const int nblk = p.B * 2 * p.nta;
++  const int tid = threadIdx.x;
++  bool work = (int)blockIdx.x < nblk;
++  if (!work) {
++    const int b = blockIdx.x - nblk;
++    if (tid < 2) p.sync[2 + 2 * b + tid] = 0;
++  }
++  int tile = 0, h = 0, b = 0, L0 = 0, total = 0, lo_req = 0, k0 = 0;
++  if (work) {
++    tile = blockIdx.x % p.nta; h = (blockIdx.x / p.nta) & 1; b = blockIdx.x / (2 * p.nta);
++    L0 = p.seq_lens[b];
++    total = L0 + p.L;
++    lo_req = p.window ? max(0, L0 - (p.window - 1)) : 0;
++    k0 = (base_tile(p, L0) + tile) * 128;
++    if (k0 >= total) work = false;
++    if (k0 >= L0 && k0 + 128 <= total) work = false;   // all new keys: the attention CTAs pack them
++  }
++  if (work) {
++    u8* kd = p.kp + ((size_t)(b * 2 + h) * p.nta + tile) * 8192;
++    u8* vd = p.vp + ((size_t)(b * 2 + h) * p.nta + tile) * 8192;
++    const bool mixed = k0 + 128 > L0;
++    int pg[2];
++    bool ok[2];
++#pragma unroll
++    for (int r = 0; r < 2; ++r) {
++      const int pos = k0 + ((tid + 256 * r) >> 2);
++      ok[r] = pos < total && pos >= lo_req;
++      pg[r] = ok[r] ? __ldg(p.page_table + b * p.max_pages + pos / p.page) : 0;
++    }
++    uint4 kv[2], vv[2];
++#pragma unroll
++    for (int r = 0; r < 2; ++r) {
++      const int u = tid + 256 * r, kk = u >> 2, c = u & 3, pos = k0 + kk;
++      kv[r] = vv[r] = make_uint4(0, 0, 0, 0);
++      if (ok[r]) {
++        const long long rowi = (long long)pg[r] * p.page + pos % p.page;
++        kv[r] = __ldg(reinterpret_cast<const uint4*>(p.k_cache + rowi * 128 + h * 64 + c * 16));
++        vv[r] = __ldg(reinterpret_cast<const uint4*>(p.v_cache + rowi * 128 + h * 64 + c * 16));
++      }
++    }
++#pragma unroll
++    for (int r = 0; r < 2; ++r) {
++      const int u = tid + 256 * r, kk = u >> 2, c = u & 3, pos = k0 + kk;
++      if (!(mixed && pos >= L0 && pos < total)) *reinterpret_cast<uint4*>(kd + kk * 64 + ((c ^ ((kk >> 1) & 3)) << 4)) = kv[r];
++      u32* vrow = vsw + kk * 17 + c * 4;
++      vrow[0] = vv[r].x; vrow[1] = vv[r].y; vrow[2] = vv[r].z; vrow[3] = vv[r].w;
++    }
++    __syncthreads();
++    if (tid < 128) {
++      const int w = tid & 15, un = tid >> 4;
++      u32 x[16];
++#pragma unroll
++      for (int e = 0; e < 16; ++e) x[e] = vsw[(16 * un + e) * 17 + w];
++      u32 o[4][4];
++#pragma unroll
++      for (int q = 0; q < 4; ++q) {
++        const u32 t0 = prmt(x[2 * q], x[2 * q + 1], 0x5140), t1 = prmt(x[2 * q], x[2 * q + 1], 0x7362);
++        const u32 t2 = prmt(x[2 * q + 8], x[2 * q + 9], 0x5140), t3 = prmt(x[2 * q + 8], x[2 * q + 9], 0x7362);
++        o[0][q] = prmt(t0, t2, 0x5410); o[1][q] = prmt(t0, t2, 0x7632);
++        o[2][q] = prmt(t1, t3, 0x5410); o[3][q] = prmt(t1, t3, 0x7632);
++      }
++#pragma unroll
++      for (int j = 0; j < 4; ++j) {
++        const int d = 4 * w + j;
++        u8* dst = vd + d * 128 + ((un ^ (d & 7)) << 4);
++        if (!mixed) {
++          *reinterpret_cast<uint4*>(dst) = make_uint4(o[j][0], o[j][1], o[j][2], o[j][3]);
++        } else {
++#pragma unroll
++          for (int e = 0; e < 16; ++e) {
++            const int pos = k0 + 16 * un + 2 * (e >> 2) + (e & 1) + 8 * ((e >> 1) & 1);
++            if (!(pos >= L0 && pos < total)) dst[e] = (u8)(o[j][e >> 2] >> (8 * (e & 3)));
++          }
++        }
++      }
++    }
++  }
++  if (p.flagjoin) {
++    asm volatile("fence.proxy.async.global;" ::: "memory");
++    __syncthreads();
++    if (tid == 0) { __threadfence(); red_release_add(p.sync, 1); }
++  }
++}
++
++// ---------------------------------------------------------------------------------------------
++// qkv_post2's per-warp arithmetic for one pass: 4 head vectors (8 lanes each, 8 elements per lane)
++DEVI void post_vec(const SlaP& p, uint4 raw, int hv, float (&cs)[4], float (&sn)[4], u32& lo, u32& hi, float cq, float ik, float iv) {
++  const __nv_bfloat162* h2 = reinterpret_cast<const __nv_bfloat162*>(&raw);
++  float x[8];
++#pragma unroll
++  for (int k = 0; k < 4; ++k) { x[2 * k] = __low2float(h2[k]); x[2 * k + 1] = __high2float(h2[k]); }
++  // the 8-lane sum runs on every lane (V lanes too: no divergent shuffles); only Q and K use it
++  float ss = 0.f;
++#pragma unroll
++  for (int k = 0; k < 8; ++k) ss += x[k] * x[k];
++  ss += __shfl_xor_sync(0xffffffff, ss, 1);
++  ss += __shfl_xor_sync(0xffffffff, ss, 2);
++  ss += __shfl_xor_sync(0xffffffff, ss, 4);
++  if (hv < 18) {
++    const float r = rsqrtf(ss * (1.f / 64.f) + 1e-5f);
++#pragma unroll
++    for (int k = 0; k < 8; ++k) x[k] *= r;
++    if (p.rope) {
++#pragma unroll
++      for (int k = 0; k < 4; ++k) {
++        const float y0 = x[2 * k] * cs[k] - x[2 * k + 1] * sn[k], y1 = x[2 * k] * sn[k] + x[2 * k + 1] * cs[k];
++        x[2 * k] = y0; x[2 * k + 1] = y1;
++      }
++    }
++  }
++  const float sc = hv < 16 ? cq : (hv < 18 ? ik : iv);
++  lo = (u32)f2_to_e4m3x2(x[0] * sc, x[1] * sc) | ((u32)f2_to_e4m3x2(x[2] * sc, x[3] * sc) << 16);
++  hi = (u32)f2_to_e4m3x2(x[4] * sc, x[5] * sc) | ((u32)f2_to_e4m3x2(x[6] * sc, x[7] * sc) << 16);
++}
++DEVI void rope_cs(const SlaP& p, int pos, int sub, float (&cs)[4], float (&sn)[4]) {
++  if (pos < p.npos) {
++    const float4* tb = reinterpret_cast<const float4*>(p.rope_tab + ((size_t)pos * 32 + 4 * sub) * 2);
++    const float4 a = tb[0], c = tb[1];
++    cs[0] = a.x; sn[0] = a.y; cs[1] = a.z; sn[1] = a.w; cs[2] = c.x; sn[2] = c.y; cs[3] = c.z; sn[3] = c.w;
++  } else {
++#pragma unroll
++    for (int k = 0; k < 4; ++k) sincosf((float)pos * p.inv_freq[4 * sub + k], &sn[k], &cs[k]);
++  }
++}
++
++// ---------------------------------------------------------------------------------------------
++// shared memory layout
++#define OFF_Q (SLA_NS * 18432)
++#define OFF_G (OFF_Q + 12288)
++#define OFF_GF (OFF_G + 12288)
++#define OFF_X (OFF_GF + 24576)
++#define OFF_XL (OFF_X + 384 * 64)
++#define OFF_BAR (OFF_XL + 384 * 4)
++#define SLA_SMEM (OFF_BAR + 16 * SLA_NS + 64)   // barriers: full/empty [NS], gate, exchange, sigmoid
++
++extern "C" __global__ void __cluster_dims__(2, 1, 1) __launch_bounds__(128 * (1 + CW), 1) sla_fwd(SlaP p) {
++  STR(0);
++  extern __shared__ __align__(1024) u8 smem[];
++  const u32 sbase = smem_addr(smem);
++  const u32 bars = sbase + OFF_BAR;
++  const u32 gbar = bars + 16 * SLA_NS, xbar = gbar + 8, sbar = gbar + 16;
++  const int tid = threadIdx.x, wg = tid >> 7, lt = tid & 127;
++  const int rank = blockIdx.x & 1, u = blockIdx.x >> 1;
++  const int b = u / (2 * p.nqb), rr = u % (2 * p.nqb), h = rr / p.nqb, qb = rr % p.nqb;
++  if (tid == 0) {
++    for (int s = 0; s < SLA_NS; ++s) {
++      mbar_init(bars + 16 * s, 1);
++      mbar_init(bars + 16 * s + 8, CW);
++    }
++    mbar_init(gbar, 1);
++    mbar_init(xbar, 1);
++    mbar_init(sbar, 2);
++    asm volatile("fence.mbarrier_init.release.cluster;" ::: "memory");
++  }
++  for (int i = tid; i < SLA_NS * 256; i += blockDim.x)
++    reinterpret_cast<u32*>(smem + (i >> 8) * 18432 + 16384)[i & 255] = 0x38383838u;
++  asm volatile("fence.proxy.async.shared::cta;" ::: "memory");
++  __syncthreads();
++  if (tid == 128) mbar_arrive_tx(xbar, 384 * 68);   // the partner's 384 threads x 68 bytes
++  asm volatile("barrier.cluster.arrive;" ::: "memory");
++  if (!p.fused) asm volatile("griddepcontrol.wait;" ::: "memory");   // PDL: qkv_post2's q8 / new keys
++  // the unit's tiles and this rank's share
++  const int L0 = p.seq_lens[b];
++  const int i0 = qb * QB, i1 = min(i0 + QB, p.L);
++  const int lo = p.window ? max(0, L0 + i0 - (p.window - 1)) : 0, hi = L0 + i1;
++  const int bt = base_tile(p, L0);
++  const int nt = (hi + 127) / 128 - lo / 128;
++#if SLA_SPLIT == 0
++  const int mid = max(1, (nt - 1) / 2);
++#elif SLA_SPLIT == 1
++  const int mid = max(1, nt / 2);
++#else
++  const int mid = max(1, (nt + 1) / 2);
++#endif
++  const int t0 = rank ? mid : 0, n = rank ? nt - mid : mid;
++  const int tfirst = lo / 128 - bt + t0;
++
++  if (wg == 0) {
++    asm volatile("setmaxnreg.dec.sync.aligned.u32 %0;" :: "n"(SLA_PREG) : "memory");
++#if SLA_PUB
++    if (p.fused && (tid >> 5) == 1) {
++      // publisher: once every consumer has stored its new keys, make them visible and count this CTA in
++      asm volatile("bar.sync 2, 416;" ::: "memory");
++      if (tid == 32) {
++#if SLA_PUB == 2
++        asm volatile("fence.proxy.async.global;" ::: "memory");
++#endif
++        __threadfence();
++        red_release_add(p.sync + 2 + 2 * b + h, 1);
++      }
++      return;
++    }
++#endif
++#if SLA_GPRE
++    if ((tid >> 5) >= 2) {
++      // sigmoid(gate) of this rank's 12 tokens x 512 (head group h) in FP32, the epilogue's exact expression
++      mbar_wait(gbar, 0);
++      const u32* g32 = reinterpret_cast<const u32*>(smem + OFF_G);
++      float2* gf = reinterpret_cast<float2*>(smem + OFF_GF);
++      for (int i = tid - 64; i < 12 * 256; i += 64) {
++        const u32 gv = g32[i];
++        gf[i] = make_float2(__fdividef(1.f, 1.f + __expf(-bf_lo_f(gv))), __fdividef(1.f, 1.f + __expf(-bf_hi_f(gv))));
++      }
++      __syncwarp();
++      if ((tid & 31) == 0) asm volatile("mbarrier.arrive.release.cta.shared::cta.b64 _, [%0];" :: "r"(sbar) : "memory");
++      return;
++    }
++#endif
++    if (tid != 0) return;
++    if (p.flagjoin) { while (ld_acquire(p.sync) < p.nblk_pack) { } asm volatile("fence.proxy.async.global;" ::: "memory"); }
++    const int need = 2 * p.nqb;
++    bool rdy = !p.fused, gdc = !p.fused;
++    const size_t tix0 = (size_t)(b * 2 + h) * p.nta + tfirst;
++    // the gates of the tokens this rank finishes (12 even or odd tokens): after the first ring fill
++    auto gates = [&]() {
++      if (!gdc) { asm volatile("griddepcontrol.wait;" ::: "memory"); gdc = true; }
++      int nv = 0;
++      for (int k = 0; k < 12; ++k) nv += (i0 + 2 * k + rank < p.L);
++      mbar_arrive_tx(gbar, nv * 1024);
++      for (int k = 0; k < 12; ++k) {
++        const int ti = i0 + 2 * k + rank;
++        if (ti < p.L) bulk_g2s(sbase + OFF_G + k * 1024, p.qkv + (size_t)(b * p.L + ti) * 2304 + 1280 + h * 512, 1024, gbar);
++      }
++    };
++    if (n <= 0) gates();
++    for (int j = 0; j < n; ++j) {
++      const int st = j % SLA_NS;
++      const bool isnew = (bt + tfirst + j) * 128 + 128 > L0;
++      if (!gdc && (isnew || j >= SLA_NS)) {
++        asm volatile("griddepcontrol.wait;" ::: "memory");
++        gdc = true;
++      }
++      if (isnew && !rdy) {
++        while (ld_acquire(p.sync + 2 + 2 * b + h) < need) { }
++        asm volatile("fence.proxy.async.global;" ::: "memory");
++        rdy = true;
++      }
++      if (j >= SLA_NS) mbar_wait(bars + 16 * st + 8, ((j / SLA_NS) & 1) ^ 1);
++      const u32 full = bars + 16 * st;
++      mbar_arrive_tx(full, 16384);
++      bulk_g2s(sbase + st * 18432, p.kp + (tix0 + j) * 8192, 8192, full);
++      bulk_g2s(sbase + st * 18432 + 8192, p.vp + (tix0 + j) * 8192, 8192, full);
++      if (j == min(n, SLA_NS) - 1) gates();
++    }
++    return;
++  }
++
++  asm volatile("setmaxnreg.inc.sync.aligned.u32 %0;" :: "n"(SLA_CREG) : "memory");
++  const float vsc_epi = p.v_scale[0];
++  const int c = wg - 1, warp = lt >> 5, lane = lt & 31;
++  const int g = lane >> 2, tq = lane & 3;
++  const int tok_a = c * 8 + 2 * warp, tok_b = tok_a + 1;
++  const int head = g;
++  const int ia = i0 + tok_a, ib = i0 + tok_b;
++  const bool va = ia < p.L, vb = ib < p.L;
++  const int pa = L0 + ia, pb = L0 + ib;
++  const int hg = h * 8 + head;
++  u32 qa[2][4];
++  if (p.fused) {
++    // ---- qkv_post2's work for this unit: Q of 24 tokens x 8 heads (both ranks), K and V of 12 tokens (this rank)
++    const int cw = c * 4 + warp, sub = lane & 7, hvl = lane >> 3;
++    const int tq0 = 2 * cw, tq1 = 2 * cw + 1, tp = 12 * rank + cw;      // tokens in the block
++    const int gq0 = i0 + tq0, gq1 = i0 + tq1, gp = i0 + tp;
++    const bool vq0 = gq0 < p.L, vq1 = gq1 < p.L, vp_ = gp < p.L && hvl < 2;
++    float cs0[4], sn0[4], cs1[4], sn1[4], csp[4], snp[4];
++    if (p.rope) {
++      rope_cs(p, L0 + (vq0 ? gq0 : 0), sub, cs0, sn0);
++      rope_cs(p, L0 + (vq1 ? gq1 : 0), sub, cs1, sn1);
++      rope_cs(p, L0 + (gp < p.L ? gp : 0), sub, csp, snp);
++    }
++    const long long rowi = gp < p.L ? p.cache_loc[b * p.L + gp] : 0;
++    const float ks_ = p.k_scale[0], vs_ = p.v_scale[0];
++    const float cq = p.qscale * ks_, ik = 1.f / ks_, iv = 1.f / vs_;
++    asm volatile("griddepcontrol.wait;" ::: "memory");   // PDL: the projection
++    STR(1);
++    uint4 raw[5];
++    const __nv_bfloat16* r0 = p.qkv + (size_t)(b * p.L + (vq0 ? gq0 : 0)) * 2304;
++    const __nv_bfloat16* r1 = p.qkv + (size_t)(b * p.L + (vq1 ? gq1 : 0)) * 2304;
++    const __nv_bfloat16* rp = p.qkv + (size_t)(b * p.L + (gp < p.L ? gp : 0)) * 2304;
++    raw[0] = *reinterpret_cast<const uint4*>(r0 + (h * 8 + hvl) * 64 + 8 * sub);
++    raw[1] = *reinterpret_cast<const uint4*>(r0 + (h * 8 + 4 + hvl) * 64 + 8 * sub);
++    raw[2] = *reinterpret_cast<const uint4*>(r1 + (h * 8 + hvl) * 64 + 8 * sub);
++    raw[3] = *reinterpret_cast<const uint4*>(r1 + (h * 8 + 4 + hvl) * 64 + 8 * sub);
++    // pass 4: lanes 0-7 K of head h, lanes 8-15 V of head h (lanes 16-31 repeat them, unused)
++    const int hvp = (hvl & 1) ? 18 + h : 16 + h;
++    raw[4] = *reinterpret_cast<const uint4*>(rp + hvp * 64 + 8 * sub);
++#ifdef SLA_TRACE
++    if (threadIdx.x == 128) { asm volatile("" :: "r"(raw[0].x), "r"(raw[4].x)); p.trace[blockIdx.x * 64 + 12] = gtimer_ns() + (raw[0].x & raw[4].x & 0); }
++#endif
++    u8* sq = smem + OFF_Q;
++#pragma unroll
++    for (int ps = 0; ps < 4; ++ps) {
++      u32 lo_, hi_;
++      const bool v = ps < 2 ? vq0 : vq1;
++      post_vec(p, raw[ps], h * 8 + 4 * (ps & 1) + hvl, ps < 2 ? cs0 : cs1, ps < 2 ? sn0 : sn1, lo_, hi_, cq, ik, iv);
++      const int tk = ps < 2 ? tq0 : tq1, hd = 4 * (ps & 1) + hvl;
++      *reinterpret_cast<uint2*>(sq + tk * 512 + hd * 64 + 8 * sub) = v ? make_uint2(lo_, hi_) : make_uint2(0u, 0u);
++    }
++    {
++      u32 lo_, hi_;
++      post_vec(p, raw[4], hvp, csp, snp, lo_, hi_, cq, ik, iv);
++      if (vp_) {
++        const bool isk = hvl == 0;
++        u8* dst = (isk ? p.k_cache : p.v_cache) + rowi * 128 + h * 64 + 8 * sub;
++        *reinterpret_cast<uint2*>(dst) = make_uint2(lo_, hi_);
++        const int pos = L0 + gp;
++        const int tl = pos / 128 - bt, kk = pos & 127;
++        const size_t tix = (size_t)(b * 2 + h) * p.nta + tl;
++        if (isk) {
++          *reinterpret_cast<uint2*>(p.kp + tix * 8192 + kk * 64 + ((((sub >> 1) ^ ((kk >> 1) & 3))) << 4) + 8 * (sub & 1)) =
++              make_uint2(lo_, hi_);
++        } else {
++          const int un = kk >> 4, kr = kk & 15;
++          const int e = 4 * ((kr & 7) >> 1) + 2 * (kr >> 3) + (kr & 1);
++          u8* vb_ = p.vp + tix * 8192 + e;
++          const u32 wv[2] = {lo_, hi_};
++#pragma unroll
++          for (int q = 0; q < 8; ++q) {
++            const int d = 8 * sub + q;
++            vb_[d * 128 + ((un ^ (d & 7)) << 4)] = (u8)(wv[q >> 2] >> (8 * (q & 3)));
++          }
++        }
++      }
++    }
++#ifdef SLA_TRACE
++    if (threadIdx.x == 128) p.trace[blockIdx.x * 64 + 14] = gtimer_ns();
++#endif
++#if SLA_PUB
++    // publication off the Q path: arrive (no wait) on barrier 2; warp 1 of the producer warpgroup fences and releases
++#if SLA_PUB == 1
++    asm volatile("fence.proxy.async.global;" ::: "memory");
++#endif
++    asm volatile("bar.arrive 2, 416;" ::: "memory");
++    named_sync(1, 384);
++#else
++    asm volatile("fence.proxy.async.global;" ::: "memory");
++    named_sync(1, 384);
++    if (tid == 128) { __threadfence(); red_release_add(p.sync + 2 + 2 * b + h, 1); }
++#endif
++    // Q fragments from shared memory: rows (tok_a, head), (tok_b, head); k = 32 ks + {4tq..4tq+3, 16+4tq..}
++    const u8* ra = sq + tok_a * 512 + head * 64;
++    const u8* rb = sq + tok_b * 512 + head * 64;
++#pragma unroll
++    for (int ks = 0; ks < 2; ++ks) {
++      qa[ks][0] = *reinterpret_cast<const u32*>(ra + 32 * ks + 4 * tq);
++      qa[ks][1] = *reinterpret_cast<const u32*>(rb + 32 * ks + 4 * tq);
++      qa[ks][2] = *reinterpret_cast<const u32*>(ra + 32 * ks + 16 + 4 * tq);
++      qa[ks][3] = *reinterpret_cast<const u32*>(rb + 32 * ks + 16 + 4 * tq);
++    }
++  } else {
++    STR(1);
++    const u8* ra = p.q8 + ((size_t)(b * p.L + ia) * 16 + hg) * 64;
++    const u8* rb = p.q8 + ((size_t)(b * p.L + ib) * 16 + hg) * 64;
++#pragma unroll
++    for (int ks = 0; ks < 2; ++ks) {
++      qa[ks][0] = va ? *reinterpret_cast<const u32*>(ra + 32 * ks + 4 * tq) : 0u;
++      qa[ks][1] = vb ? *reinterpret_cast<const u32*>(rb + 32 * ks + 4 * tq) : 0u;
++      qa[ks][2] = va ? *reinterpret_cast<const u32*>(ra + 32 * ks + 16 + 4 * tq) : 0u;
++      qa[ks][3] = vb ? *reinterpret_cast<const u32*>(rb + 32 * ks + 16 + 4 * tq) : 0u;
++    }
++  }
++  STR(2);
++#ifdef SLA_TRIG
++  // PDL: the o projection may launch (onto the idle SMs; it waits for this grid's completion before reading)
++  asm volatile("griddepcontrol.launch_dependents;" ::: "memory");
++#endif
++  const u64 dk0 = desc_k(sbase), dv0 = desc_v(sbase + 8192);
++  float o[9][4];
++#pragma unroll
++  for (int j = 0; j < 9; ++j) o[j][0] = o[j][1] = o[j][2] = o[j][3] = 0.f;
++  float la = 0.f, lb = 0.f;
++  float ma = -1e30f, mb = -1e30f;
++  float sca = 1.f, scb = 1.f;
++  bool resc = false;
++#if SLA_CACHE_C
++  u32 cha_c, chb_c;
++  { const float c0 = 1080.f - 8.f * fminf(fmaxf(ma, -1000.f), 1000.f); cha_c = chb_c = f2_to_h2(c0, c0); }
++#endif
++  const int wa_lo = p.window ? pa - (p.window - 1) : 0, wb_lo = p.window ? pb - (p.window - 1) : 0;
++  const int pmin = L0 + i0, pmax = L0 + i1 - 1;
++  u32 pf[4][4];
++  auto issue_qk_h = [&](u32 (&hs)[16][2], int jt) {
++    const u32 st = (u32)jt % SLA_NS;
++    mbar_wait(bars + 16 * st, ((u32)jt / SLA_NS) & 1);
++    const u64 dk = dk0 + (u64)(st * (18432 >> 4));
++    wg_fence();
++    wgmma_qk_h(hs, qa[0][0], qa[0][1], qa[0][2], qa[0][3], dk, 0);
++    wgmma_qk_h(hs, qa[1][0], qa[1][1], qa[1][2], qa[1][3], dk + 2, 1);
++    wg_commit();
++  };
++  auto issue_pv = [&](int jt) {
++    const u64 dv = dv0 + (u64)(((u32)jt % SLA_NS) * (18432 >> 4));
++#pragma unroll
++    for (int kc = 0; kc < 4; ++kc)
++      wgmma_pv(o, pf[kc][0], pf[kc][1], pf[kc][2], pf[kc][3], dv + 2 * kc);
++    wg_commit();
++  };
++  auto softmax_h = [&](u32 (&hs)[16][2], int jt) {
++#ifdef SLA_ABL_SOFT
++    return;   // ablation (timing only, wrong output): no softmax at all
++#endif
++    const int k0 = (bt + tfirst + jt) * 128;
++#ifdef SLA_ABL_MASK
++    const bool masked = false;   // ablation (timing only)
++#else
++    const bool masked = (k0 + 127 > pmin) || (p.window && k0 < pmax - (p.window - 1));
++#endif
++    if (masked) {
++#if SLA_FMASK
++      // key offset o = 8 n8 + e (relative to k0 + 2 tq) is visible iff lo <= o <= hi: min(o - lo, hi - o) >= 0 in f16
++      // (exact small integers); the sign of each half, replicated by PRMT, selects -inf
++      const int ba = k0 + 2 * tq;
++      const float loa = (float)min(max(wa_lo - ba, -4), 132), hia = (float)min(max(pa - ba, -4), 132);
++      const float lob = (float)min(max(wb_lo - ba, -4), 132), hib = (float)min(max(pb - ba, -4), 132);
++      const u32 nla = f2_to_h2(-loa, -loa), ha2 = f2_to_h2(hia, hia), nlb = f2_to_h2(-lob, -lob), hb2 = f2_to_h2(hib, hib);
++#pragma unroll
++      for (int n8 = 0; n8 < 16; ++n8) {
++        const u32 ko = h16i(8 * n8) | (h16i(8 * n8 + 1) << 16), nko = ko ^ 0x80008000u;
++        const u32 va = h2min(h2add(ko, nla), h2add(ha2, nko)), vb = h2min(h2add(ko, nlb), h2add(hb2, nko));
++        const u32 sa = prmt_b(va, 0u, 0xBB99), sb = prmt_b(vb, 0u, 0xBB99);
++        hs[n8][0] = (hs[n8][0] & ~sa) | (0xFC00FC00u & sa);
++        hs[n8][1] = (hs[n8][1] & ~sb) | (0xFC00FC00u & sb);
++      }
++#else
++#pragma unroll
++      for (int n8 = 0; n8 < 16; ++n8) {
++        const int kc = k0 + n8 * 8 + 2 * tq;
++        const u32 m0 = ((kc <= pa && kc >= wa_lo) ? 0x0000FFFFu : 0u) | ((kc + 1 <= pa && kc + 1 >= wa_lo) ? 0xFFFF0000u : 0u);
++        const u32 m1 = ((kc <= pb && kc >= wb_lo) ? 0x0000FFFFu : 0u) | ((kc + 1 <= pb && kc + 1 >= wb_lo) ? 0xFFFF0000u : 0u);
++        hs[n8][0] = (hs[n8][0] & m0) | (0xFC00FC00u & ~m0);
++        hs[n8][1] = (hs[n8][1] & m1) | (0xFC00FC00u & ~m1);
++      }
++#endif
++    }
++    {
++      u32 xa[4], xb[4];
++#pragma unroll
++      for (int k = 0; k < 4; ++k) { xa[k] = hs[k][0]; xb[k] = hs[k][1]; }
++#pragma unroll
++      for (int n8 = 4; n8 < 16; ++n8) { xa[n8 & 3] = h2max(xa[n8 & 3], hs[n8][0]); xb[n8 & 3] = h2max(xb[n8 & 3], hs[n8][1]); }
++      const u32 pa2 = h2max(h2max(xa[0], xa[1]), h2max(xa[2], xa[3])), pb2 = h2max(h2max(xb[0], xb[1]), h2max(xb[2], xb[3]));
++      float ta = fmaxf(h2_lo_f(pa2), h2_hi_f(pa2)), tb = fmaxf(h2_lo_f(pb2), h2_hi_f(pb2));
++      ta = fmaxf(ta, __shfl_xor_sync(0xffffffff, ta, 1)); ta = fmaxf(ta, __shfl_xor_sync(0xffffffff, ta, 2));
++      tb = fmaxf(tb, __shfl_xor_sync(0xffffffff, tb, 1)); tb = fmaxf(tb, __shfl_xor_sync(0xffffffff, tb, 2));
++      const bool na = ta > ma + 8.f, nb = tb > mb + 8.f;
++      resc = __any_sync(0xffffffff, na || nb);
++#ifdef SLA_ABL_RESC
++      if (jt > 0) resc = false;   // ablation (timing only): rescale on the first tile only
++#endif
++      if (resc) {
++#if SLA_CACHE_C == 2
++        // ta is an f16 value (|ta| < 128): 8 rint(8 (ta - 8)) / 8 = rint(8 ta) - 64 exactly, so the bias
++        // 1080 - 8 m' = 1144 - rint(8 ta) comes straight from the tile max (same f32 value as s1's chain)
++        const float ra = rintf(ta * 8.f), rb = rintf(tb * 8.f);
++        if (na) cha_c = f2_to_h2(1144.f - ra, 1144.f - ra);
++        if (nb) chb_c = f2_to_h2(1144.f - rb, 1144.f - rb);
++        const float ma2 = na ? (ra - 64.f) * 0.125f : ma, mb2 = nb ? (rb - 64.f) * 0.125f : mb;
++        sca = ex2_mufu(ma - ma2); scb = ex2_mufu(mb - mb2);
++        ma = ma2; mb = mb2;
++#else
++        float ma2 = na ? ta - 8.f : ma, mb2 = nb ? tb - 8.f : mb;
++        ma2 = rintf(ma2 * 8.f) * 0.125f; mb2 = rintf(mb2 * 8.f) * 0.125f;
++        sca = ex2_mufu(ma - ma2); scb = ex2_mufu(mb - mb2);
++        ma = ma2; mb = mb2;
++#endif
++#if SLA_CACHE_C == 1
++        { const float ca = 1080.f - 8.f * fminf(fmaxf(ma, -1000.f), 1000.f), cb = 1080.f - 8.f * fminf(fmaxf(mb, -1000.f), 1000.f);
++          cha_c = f2_to_h2(ca, ca); chb_c = f2_to_h2(cb, cb); }
++#endif
++      }
++    }
++    {
++#if SLA_CACHE_C
++      const u32 cha = cha_c, chb = chb_c;
++#else
++      const float ca = 1080.f - 8.f * fminf(fmaxf(ma, -1000.f), 1000.f), cb = 1080.f - 8.f * fminf(fmaxf(mb, -1000.f), 1000.f);
++      const u32 cha = f2_to_h2(ca, ca), chb = f2_to_h2(cb, cb);
++#endif
++#pragma unroll
++      for (int n8 = 0; n8 < 16; ++n8) {
++        hs[n8][0] = h2max(h2fma(hs[n8][0], 0x48004800u, cha), 0x64006400u);
++        hs[n8][1] = h2max(h2fma(hs[n8][1], 0x48004800u, chb), 0x64006400u);
++      }
++    }
++  };
++  auto to_p_h = [&](u32 (&hs)[16][2]) {
++#pragma unroll
++    for (int kc = 0; kc < 4; ++kc) {
++      pf[kc][0] = prmt_b(hs[4 * kc][0], hs[4 * kc + 1][0], 0x6420);
++      pf[kc][1] = prmt_b(hs[4 * kc][1], hs[4 * kc + 1][1], 0x6420);
++      pf[kc][2] = prmt_b(hs[4 * kc + 2][0], hs[4 * kc + 3][0], 0x6420);
++      pf[kc][3] = prmt_b(hs[4 * kc + 2][1], hs[4 * kc + 3][1], 0x6420);
++    }
++  };
++  auto pin_h = [&](u32 (&hs)[16][2]) {
++#pragma unroll
++    for (int i = 0; i < 16; ++i) { asm volatile("" : "+r"(hs[i][0]) :: "memory"); asm volatile("" : "+r"(hs[i][1]) :: "memory"); }
++  };
++  auto pin_p = [&]() {
++#pragma unroll
++    for (int i = 0; i < 4; ++i)
++#pragma unroll
++      for (int k = 0; k < 4; ++k) asm volatile("" : "+r"(pf[i][k]) :: "memory");
++  };
++  auto rescale_o = [&]() {
++    if (resc) {
++#pragma unroll
++      for (int j = 0; j < 9; ++j) { o[j][0] *= sca; o[j][1] *= sca; o[j][2] *= scb; o[j][3] *= scb; }
++      resc = false;
++    }
++  };
++#if SLA_PP
++  // ping-pong: the consumer warpgroups issue their wgmmas in turn (named barriers 8 + c)
++  if (c == CW - 1) asm volatile("bar.arrive 8, 256;" ::: "memory");
++  auto turn_b = [&]() { named_sync(8 + c, 256); };
++  auto turn_e = [&]() { asm volatile("bar.arrive %0, 256;" :: "r"(8 + (c + 1) % CW) : "memory"); };
++#else
++  auto turn_b = [&]() {};
++  auto turn_e = [&]() {};
++#endif
++  if (n > 0) {
++    u32 hs[16][2];
++    turn_b();
++    issue_qk_h(hs, 0);
++    turn_e();
++    wg_wait<0>();
++    pin_h(hs);
++    softmax_h(hs, 0);
++    rescale_o();
++    to_p_h(hs);
++    STRT(0);
++#if SLA_PREP == 2
++    // P double-buffered: P(j) is packed while PV(j - 1) still reads P(j - 1); only the O rescale waits for PV
++    u32 pg[4][4];
++    auto swap_p = [&]() {
++#pragma unroll
++      for (int i = 0; i < 4; ++i)
++#pragma unroll
++        for (int k = 0; k < 4; ++k) { const u32 t = pf[i][k]; pf[i][k] = pg[i][k]; pg[i][k] = t; }
++    };
++    for (int j = 1; j < n; ++j) {
++      issue_qk_h(hs, j);
++      wg_fence();
++      issue_pv(j - 1);
++      wg_wait<1>();
++      pin_h(hs);
++      softmax_h(hs, j);
++      swap_p();          // pf: free buffer (register renaming: no moves after unrolling)
++      to_p_h(hs);
++      pin_p();
++      wg_wait<0>();
++      pin(o);
++      mbar_arrive_if(bars + 16 * ((u32)(j - 1) % SLA_NS) + 8, lt == 0);
++      rescale_o();
++      STRT(j);
++    }
++#else
++    for (int j = 1; j < n; ++j) {
++      turn_b();
++      issue_qk_h(hs, j);
++      wg_fence();
++      issue_pv(j - 1);
++      turn_e();
++      wg_wait<1>();
++      pin_h(hs);
++      softmax_h(hs, j);
++#if SLA_PREP == 1
++      pin_h(hs);         // the exponent codes before the PV wait (the compiler sinks them below it otherwise)
++#endif
++      wg_wait<0>();
++      pin(o);
++      pin_p();
++      mbar_arrive_if(bars + 16 * ((u32)(j - 1) % SLA_NS) + 8, lt == 0);
++      rescale_o();
++      to_p_h(hs);
++      STRT(j);
++    }
++#endif
++    turn_b();
++    wg_fence();
++    issue_pv(n - 1);
++    turn_e();
++    wg_wait<0>();
++    pin(o);
++    pin_p();
++    mbar_arrive_if(bars + 16 * ((u32)(n - 1) % SLA_NS) + 8, lt == 0);
++  }
++  STR(3);
++  la = o[8][0]; lb = o[8][2];
++  {
++    const float fa = ex2_mufu(ma), fb = ex2_mufu(mb);
++#pragma unroll
++    for (int j = 0; j < 8; ++j) { o[j][0] *= fa; o[j][1] *= fa; o[j][2] *= fb; o[j][3] *= fb; }
++    la *= fa; lb *= fb;
++  }
++  // ---- exchange: rank 0 keeps token a (rows g), rank 1 token b (rows g + 8); send the other to the partner
++  float ok[8][2], lk;
++  {
++    asm volatile("barrier.cluster.wait;" ::: "memory");
++    const u32 peer = rank ^ 1;
++    const u32 rx = mapa(sbase + OFF_X, peer), rl = mapa(sbase + OFF_XL, peer), rbar = mapa(xbar, peer);
++    const int slot = c * 128 + lt;
++#pragma unroll
++    for (int q = 0; q < 4; ++q) {
++      if (rank == 0) st_async4(rx + (q * 384 + slot) * 16, o[2 * q][2], o[2 * q][3], o[2 * q + 1][2], o[2 * q + 1][3], rbar);
++      else st_async4(rx + (q * 384 + slot) * 16, o[2 * q][0], o[2 * q][1], o[2 * q + 1][0], o[2 * q + 1][1], rbar);
++    }
++    st_async1(rl + slot * 4, rank == 0 ? lb : la, rbar);
++#pragma unroll
++    for (int j = 0; j < 8; ++j) { ok[j][0] = rank == 0 ? o[j][0] : o[j][2]; ok[j][1] = rank == 0 ? o[j][1] : o[j][3]; }
++    lk = rank == 0 ? la : lb;
++    mbar_wait_cl(xbar, 0);
++    STR(4);
++    const float4* xs = reinterpret_cast<const float4*>(smem + OFF_X);
++#pragma unroll
++    for (int q = 0; q < 4; ++q) {
++      const float4 v = xs[q * 384 + slot];
++      // s1's handoff: the high half adds the low half's partial: o(half 1) + o(half 0) (commutative: same bits)
++      ok[2 * q][0] += v.x; ok[2 * q][1] += v.y; ok[2 * q + 1][0] += v.z; ok[2 * q + 1][1] += v.w;
++    }
++    lk += reinterpret_cast<const float*>(smem + OFF_XL)[slot];
++  }
++  // ---- epilogue for the kept token: per-head RMSNorm (the 1 / l scale folded into epsilon) x sigmoid(gate)
++  {
++    const int tk = rank == 0 ? tok_a : tok_b;
++    const int ik = i0 + tk;
++    const bool vk = ik < p.L;
++    const float rk = lk / vsc_epi;
++    float s = 0.f;
++#pragma unroll
++    for (int j = 0; j < 8; ++j) s += ok[j][0] * ok[j][0] + ok[j][1] * ok[j][1];
++    s += __shfl_xor_sync(0xffffffff, s, 1); s += __shfl_xor_sync(0xffffffff, s, 2);
++    const float nk = copysignf(rsqrtf(s * (1.f / 64.f) + 1e-5f * rk * rk), rk);
++    __nv_bfloat16* ou = p.out + (size_t)(b * p.L + ik) * 1024 + hg * 64;
++#if SLA_GPRE
++    mbar_wait(sbar, 0);
++    const float* gfs = reinterpret_cast<const float*>(smem + OFF_GF) + (tk >> 1) * 512 + head * 64;
++    if (vk) {
++#pragma unroll
++      for (int j = 0; j < 8; ++j) {
++        const int d = j * 8 + 2 * tq;
++        const float2 gg = *reinterpret_cast<const float2*>(gfs + d);
++        *reinterpret_cast<__nv_bfloat162*>(ou + d) = __floats2bfloat162_rn(ok[j][0] * nk * gg.x, ok[j][1] * nk * gg.y);
++      }
++    }
++#else
++    mbar_wait(gbar, 0);
++    const u8* gs = smem + OFF_G + (tk >> 1) * 1024 + head * 128;
++    if (vk) {
++#pragma unroll
++      for (int j = 0; j < 8; ++j) {
++        const int d = j * 8 + 2 * tq;
++        const u32 gv = *reinterpret_cast<const u32*>(gs + 2 * d);
++        const float g0 = __fdividef(1.f, 1.f + __expf(-bf_lo_f(gv))), g1 = __fdividef(1.f, 1.f + __expf(-bf_hi_f(gv)));
++        *reinterpret_cast<__nv_bfloat162*>(ou + d) = __floats2bfloat162_rn(ok[j][0] * nk * g0, ok[j][1] * nk * g1);
++      }
++    }
++#endif
++  }
++  STR(5);
++  if (p.flagjoin) {
++    named_sync(1, 384);
++    if (tid == 128) {
++      const int old = atomicAdd(p.sync + 1, 1);
++      if (old == (int)gridDim.x - 1) { p.sync[1] = 0; p.sync[0] = 0; }
++    }
++  }
++}
+# readable diff: c2.py -> m16.py
+# part 1: Python skeleton (long string literals replaced by placeholders)
+--- c2.py
++++ m16.py
+@@ -2812,8 +2812,8 @@
+     name = 'okc_prefill_moe_' + hashlib.sha1((src + _pm_CPP + arch).encode()).hexdigest()[:16]
+     return load_inline(name, cpp_sources=_pm_CPP, cuda_sources=src, functions=['qk_prep', 'moe_route', 'moe_plan', 'moe_gather', 'moe_gather_plan', 'moe_combine', 'moe_gemm', 'moe_init', 'moe_gemm_p', 'moe_fused', 'boundary', 'boundary_rc', 'kv_gather', 'attn_prep', 'attn_fwd', 'attn_init', 'attn_set_prof', 'moe_fused_pg', 'moe_pg_metadata'], extra_cuda_cflags=['-O3', f'-gencode=arch=compute_{arch},code=sm_{arch}', '-std=c++20', '--use_fast_math'])
+ _pm_CPP = <<string _pm_CPP: 14894 chars, md5 38d3453f>>
+-_pm_GLUE = <<string _pm_GLUE: 18005 chars, md5 11329f18>>
+-_pm__CUDA_SRC = <<string _pm__CUDA_SRC: 207151 chars, md5 adc04785>>
++_pm_GLUE = <<string _pm_GLUE: 18333 chars, md5 a108b925>>
++_pm__CUDA_SRC = <<string _pm__CUDA_SRC: 212175 chars, md5 ad23dd80>>
+ 
+ @triton.jit
+ def _pm__mopt_public_bucket(IDS, LID, POS, CNT, N: tl.constexpr, START: tl.constexpr, B: tl.constexpr):
+
+# part 2: string _pm_GLUE (18005 -> 18333 chars)
+--- c2.py:_pm_GLUE
++++ m16.py:_pm_GLUE
+@@ -139,6 +139,7 @@
+   cudaFuncSetAttribute(moe_gemm_kernel<false>, cudaFuncAttributeMaxDynamicSharedMemorySize, smem);
+   cudaFuncSetAttribute(moe_fused_persistent<0,true>, cudaFuncAttributeMaxDynamicSharedMemorySize, smem);
+   cudaFuncSetAttribute(moe_fused_persistent<1,true>, cudaFuncAttributeMaxDynamicSharedMemorySize, smem);
++  cudaFuncSetAttribute(moe_fused_persistent<1,true,false,true>, cudaFuncAttributeMaxDynamicSharedMemorySize, smem);
+ }
+ // ---- attention ----
+ #define ATTN_HALF_MAX 640  // per-head prep grids below this use half-tile blocks
+@@ -226,7 +227,9 @@
+   fa.g2.flags = flags;
+   fa.done = done;
+   fa.pg_slots=pg_slots; fa.pg_offsets=pg_offsets; fa.pg_kmax=pg_kmax; fa.pg_tail=(const uint8_t*)pg_tail;
+-  if ((fa.flags >> 8) & 1)  // bit 8: fine remainder tiles (the plan used the same flag)
++  if (T >= 8192 && ((fa.flags >> 8) & 1))  // moe16: the 16K-only instantiation
++    okc_launch(moe_fused_persistent<1,true,false,true>, dim3((unsigned)nctas), dim3(MOE_FUSED_THREADS), (size_t)smem, st, fa);
++  else if ((fa.flags >> 8) & 1)  // bit 8: fine remainder tiles (the plan used the same flag)
+     okc_launch(moe_fused_persistent<1,true>, dim3((unsigned)nctas), dim3(MOE_FUSED_THREADS), (size_t)smem, st, fa);
+   else
+     okc_launch(moe_fused_persistent<0,true>, dim3((unsigned)nctas), dim3(MOE_FUSED_THREADS), (size_t)smem, st, fa);
+
+# part 2: string _pm__CUDA_SRC (207151 -> 212175 chars)
+--- c2.py:_pm__CUDA_SRC
++++ m16.py:_pm__CUDA_SRC
+@@ -516,10 +516,11 @@
+ #define MOE_CB (MOE_CONS_FIRST ? 0 : 128)  // first consumer thread
+ #define MOE_PB (MOE_CONS_FIRST ? 256 : 0)  // first producer thread
+ #define MOE_FUSED_THREADS (MOE_CONS_FIRST ? 320 : 384)
+-template <int N, int CB = 128, bool EP_REMAT = false, bool MAT_SMALL = false>
++struct NoPre { DEVI void operator()() const {} };
++template <int N, int CB = 128, bool EP_REMAT = false, bool MAT_SMALL = false, bool BIG = false, class PRE = NoPre>
+ DEVI void consumer_item(const Args& p, uint8_t* ring, uint8_t* stg, uint32_t bars, int& slot, uint32_t& ph,
+                         int e, int row0, int ntile, bool GATED, int* done = nullptr, unsigned long long* t_mid = nullptr,
+-                        volatile long long* pubq = nullptr, int nreal = 256) {
++                        volatile long long* pubq = nullptr, int nreal = 256, const PRE& pre = PRE()) {
+ #define MOE_IMAD_MAXN 64  // IMAD shifts only for small token tiles (N=128 measured 2-3% slower with them)
+   const uint32_t zz_ = N <= MOE_IMAD_MAXN ? opaque_zero() : 0u;
+   // small tiles: multipliers ptxas cannot see (host values), so the shifts run as IMAD on the FMA-heavy pipe
+@@ -748,6 +749,7 @@
+   rel_sync();
+   if (MOE_ALLLANE_RELEASE || lane == 0) mbar_arrive(bars + 8 * NSLOT + 8 * prev);
+   }  // !TRI
++  pre();  // moe16 (BIG): the next item's fetch, overlapping this item's epilogue
+   if (t_mid) {
+     unsigned long long t;
+     asm volatile("mov.u64 %0, %%globaltimer;" : "=l"(t));
+@@ -1262,7 +1264,7 @@
+   }
+ }
+ 
+-template <int FINE, bool DIRECT_PG = false, bool MAT_SMALL = false>
++template <int FINE, bool DIRECT_PG = false, bool MAT_SMALL = false, bool BIG = false>
+ #define MOE_EARLY_INIT 0  // 1: shared-memory barrier setup before the PDL wait (overlaps the gather's tail)
+ __global__ void __launch_bounds__(MOE_FUSED_THREADS, 1) moe_fused_persistent(FusedArgs fa) {
+   if constexpr (!MOE_EARLY_INIT) pdl_enter();
+@@ -1305,6 +1307,18 @@
+       while (true) {
+         mbar_wait(ibar + 16 + 8 * k, iph ^ 1);
+         const int item = atomicAdd(fa.g1.counter, 1);
++        if constexpr (BIG) {  // moe16: tile entry for the consumers' fetch (read before they release iring slot k)
++          if (item < nitems) {
++            const bool sec_ = item >= n1;
++            const Args& p_ = sec_ ? fa.g2 : fa.g1;
++            const int it_ = sec_ ? item - n1 : item;
++            const int tl_ = it_ / p_.NT;
++            const int4 ti_ = p_.tiles[tl_];
++            const uint32_t ba = smem_u32(base + 576 + 32 * k);
++            asm volatile("st.shared.v4.s32 [%0], {%1, %2, %3, %4};" ::"r"(ba), "r"(ti_.x), "r"(ti_.y), "r"(ti_.z), "r"(ti_.w) : "memory");
++            asm volatile("st.shared.v2.s32 [%0], {%1, %2};" ::"r"(ba + 16), "r"(it_ - tl_ * p_.NT), "r"(tl_) : "memory");
++          }
++        }
+         iring[k] = item;
+         mbar_arrive(ibar + 8 * k);
+         if (item >= nitems) break;
+@@ -1340,7 +1354,7 @@
+         const uint8_t* xsrc = direct_pg ? (n==256 ? p.xt + (size_t)pg_slot_id * 2097152
+                                                : fa.pg_tail + (size_t)e*2097152 + (size_t)(pg_pos&255)*8192)
+                                       : p.xt + (size_t)row0 * 8192;
+-        const bool pf = MOE_L2PF > 0 && (MOE_L2PF_ALL || kps >= 2);
++        const bool pf = !BIG && MOE_L2PF > 0 && (MOE_L2PF_ALL || kps >= 2);
+         if (pf) {  // the item's first stages: a head start while the previous item's last stages are consumed
+           for (int j = 0; j < MOE_L2PF && j < KS / kps; ++j) prefetch_l2(wsrc + (size_t)j * kps * WBLK, kps * WBLK);
+         }
+@@ -1424,6 +1438,63 @@
+     int k = 0;
+     uint32_t iph = 0;
+     volatile long long* pq = pubq;
++    if constexpr (BIG) {  // moe16: software-pipelined item fetch
++      int item = 0, ftile = 0, fntile = 0;
++      int4 fti = make_int4(0, 0, 0, 0);
++      int kcur = 0;
++      auto fetch = [&]() {  // before the epilogue: the next item's index
++        mbar_wait(ibar + 8 * k, iph);
++        item = iring[k];
++        kcur = k;
++        k ^= 1;
++        if (k == 0) iph ^= 1;
++      };
++      auto fetch_b = [&]() {  // at the item start: its tile entry, then the hand-off slot goes back to the producer
++        const uint32_t ba = smem_u32(base + 576 + 32 * kcur);
++        asm volatile("ld.shared.v4.s32 {%0, %1, %2, %3}, [%4];" : "=r"(fti.x), "=r"(fti.y), "=r"(fti.z), "=r"(fti.w) : "r"(ba) : "memory");
++        asm volatile("ld.shared.v2.s32 {%0, %1}, [%2];" : "=r"(fntile), "=r"(ftile) : "r"(ba + 16) : "memory");
++        fti.x = __shfl_sync(0xffffffffu, fti.x, 0); fti.y = __shfl_sync(0xffffffffu, fti.y, 0);
++        fti.z = __shfl_sync(0xffffffffu, fti.z, 0); fti.w = __shfl_sync(0xffffffffu, fti.w, 0);
++        fntile = __shfl_sync(0xffffffffu, fntile, 0); ftile = __shfl_sync(0xffffffffu, ftile, 0);
++        if (MOE_ALLLANE_RELEASE || threadIdx.x == MOE_CB) mbar_arrive(ibar + 16 + 8 * kcur);  // all: each reader orders its own read
++      };
++      fetch();
++      while (item < nitems) {
++        fetch_b();
++        const int4 ti = fti;
++        const int tile = ftile, ntile = fntile;
++        const bool first = item < n1;
++        const Args& p = first ? fa.g1 : fa.g2;
++        int* dn = first ? fa.done + tile : ((MOE_CIT && fa.cit != nullptr) ? fa.cit + tile : nullptr);
++        unsigned long long* tm = nullptr;
++      switch (ti.z) {
++        case 32: consumer_item<32, MOE_CB, !DIRECT_PG, MAT_SMALL, BIG>(p, ring, stg, bars, slot, ph, ti.x, ti.y, ntile, first, dn, tm, pq, ti.w, fetch); break;
++        case 64: consumer_item<64, MOE_CB, !DIRECT_PG, MAT_SMALL, BIG>(p, ring, stg, bars, slot, ph, ti.x, ti.y, ntile, first, dn, tm, pq, ti.w, fetch); break;
++        case 16: consumer_item<16, MOE_CB, !DIRECT_PG, MAT_SMALL, BIG>(p, ring, stg, bars, slot, ph, ti.x, ti.y, ntile, first, dn, tm, pq, ti.w, fetch); break;
++        case 8: consumer_item<8, MOE_CB, !DIRECT_PG, MAT_SMALL, BIG>(p, ring, stg, bars, slot, ph, ti.x, ti.y, ntile, first, dn, tm, pq, ti.w, fetch); break;
++        case 128: consumer_item<128, MOE_CB, !DIRECT_PG, MAT_SMALL, BIG>(p, ring, stg, bars, slot, ph, ti.x, ti.y, ntile, first, dn, tm, pq, ti.w, fetch); break;
++        case 160:
++          if constexpr (FINE != 0) {
++            if constexpr (MOE_FINE_NOINLINE) consumer_item_ni<160>(p, ring, stg, bars, slot, ph, ti.x, ti.y, ntile, first, dn, tm, pq, ti.w);
++            else consumer_item<160, MOE_CB, !DIRECT_PG, MAT_SMALL, BIG>(p, ring, stg, bars, slot, ph, ti.x, ti.y, ntile, first, dn, tm, pq, ti.w, fetch);
++          }
++          break;
++        case 192:
++          if constexpr (FINE != 0) {
++            if constexpr (MOE_FINE_NOINLINE) consumer_item_ni<192>(p, ring, stg, bars, slot, ph, ti.x, ti.y, ntile, first, dn, tm, pq, ti.w);
++            else consumer_item<192, MOE_CB, !DIRECT_PG, MAT_SMALL, BIG>(p, ring, stg, bars, slot, ph, ti.x, ti.y, ntile, first, dn, tm, pq, ti.w, fetch);
++          }
++          break;
++        case 96: if constexpr(FINE != 0) consumer_item<96, MOE_CB, !DIRECT_PG, MAT_SMALL, BIG>(p, ring, stg, bars, slot, ph, ti.x, ti.y, ntile, first, dn, tm, pq, ti.w, fetch); break;
++        case 224: if constexpr(FINE != 0) consumer_item<224, MOE_CB, !DIRECT_PG, MAT_SMALL, BIG>(p, ring, stg, bars, slot, ph, ti.x, ti.y, ntile, first, dn, tm, pq, ti.w, fetch); break;
++        default: consumer_item<256, MOE_CB, !DIRECT_PG, MAT_SMALL, BIG>(p, ring, stg, bars, slot, ph, ti.x, ti.y, ntile, first, dn, tm, pq, ti.w, fetch); break;
++      }
++      }
++      if (threadIdx.x == MOE_CB) {  // the publisher drains the queue and exits
++        const int pubn = *reinterpret_cast<volatile int*>(base + 244);
++        asm volatile("st.release.cta.shared.b32 [%0], %1;" ::"r"(smem_u32(base + 240)), "r"(-(pubn + 1)) : "memory");
++      }
++    } else
+     while (true) {
+       mbar_wait(ibar + 8 * k, iph);
+       const int item = iring[k];
+@@ -1459,26 +1530,26 @@
+       unsigned long long* tm = (false /* item tracing disabled */) ? &t_mid : nullptr;
+       if constexpr (DIRECT_PG) {
+       switch (ti.z) {
+-        case 32: consumer_item<32, MOE_CB, !DIRECT_PG, MAT_SMALL>(p, ring, stg, bars, slot, ph, ti.x, ti.y, ntile, first, dn, tm, pq, ti.w); break;
+-        case 64: consumer_item<64, MOE_CB, !DIRECT_PG, MAT_SMALL>(p, ring, stg, bars, slot, ph, ti.x, ti.y, ntile, first, dn, tm, pq, ti.w); break;
+-        case 16: consumer_item<16, MOE_CB, !DIRECT_PG, MAT_SMALL>(p, ring, stg, bars, slot, ph, ti.x, ti.y, ntile, first, dn, tm, pq, ti.w); break;
+-        case 8: consumer_item<8, MOE_CB, !DIRECT_PG, MAT_SMALL>(p, ring, stg, bars, slot, ph, ti.x, ti.y, ntile, first, dn, tm, pq, ti.w); break;
+-        case 128: consumer_item<128, MOE_CB, !DIRECT_PG, MAT_SMALL>(p, ring, stg, bars, slot, ph, ti.x, ti.y, ntile, first, dn, tm, pq, ti.w); break;
++        case 32: consumer_item<32, MOE_CB, !DIRECT_PG, MAT_SMALL, BIG>(p, ring, stg, bars, slot, ph, ti.x, ti.y, ntile, first, dn, tm, pq, ti.w); break;
++        case 64: consumer_item<64, MOE_CB, !DIRECT_PG, MAT_SMALL, BIG>(p, ring, stg, bars, slot, ph, ti.x, ti.y, ntile, first, dn, tm, pq, ti.w); break;
++        case 16: consumer_item<16, MOE_CB, !DIRECT_PG, MAT_SMALL, BIG>(p, ring, stg, bars, slot, ph, ti.x, ti.y, ntile, first, dn, tm, pq, ti.w); break;
++        case 8: consumer_item<8, MOE_CB, !DIRECT_PG, MAT_SMALL, BIG>(p, ring, stg, bars, slot, ph, ti.x, ti.y, ntile, first, dn, tm, pq, ti.w); break;
++        case 128: consumer_item<128, MOE_CB, !DIRECT_PG, MAT_SMALL, BIG>(p, ring, stg, bars, slot, ph, ti.x, ti.y, ntile, first, dn, tm, pq, ti.w); break;
+         case 160:
+           if constexpr (FINE != 0) {
+             if constexpr (MOE_FINE_NOINLINE) consumer_item_ni<160>(p, ring, stg, bars, slot, ph, ti.x, ti.y, ntile, first, dn, tm, pq, ti.w);
+-            else consumer_item<160, MOE_CB, !DIRECT_PG, MAT_SMALL>(p, ring, stg, bars, slot, ph, ti.x, ti.y, ntile, first, dn, tm, pq, ti.w);
++            else consumer_item<160, MOE_CB, !DIRECT_PG, MAT_SMALL, BIG>(p, ring, stg, bars, slot, ph, ti.x, ti.y, ntile, first, dn, tm, pq, ti.w);
+           }
+           break;
+         case 192:
+           if constexpr (FINE != 0) {
+             if constexpr (MOE_FINE_NOINLINE) consumer_item_ni<192>(p, ring, stg, bars, slot, ph, ti.x, ti.y, ntile, first, dn, tm, pq, ti.w);
+-            else consumer_item<192, MOE_CB, !DIRECT_PG, MAT_SMALL>(p, ring, stg, bars, slot, ph, ti.x, ti.y, ntile, first, dn, tm, pq, ti.w);
++            else consumer_item<192, MOE_CB, !DIRECT_PG, MAT_SMALL, BIG>(p, ring, stg, bars, slot, ph, ti.x, ti.y, ntile, first, dn, tm, pq, ti.w);
+           }
+           break;
+-        case 96: if constexpr(FINE != 0) consumer_item<96, MOE_CB, !DIRECT_PG, MAT_SMALL>(p, ring, stg, bars, slot, ph, ti.x, ti.y, ntile, first, dn, tm, pq, ti.w); break;
+-        case 224: if constexpr(FINE != 0) consumer_item<224, MOE_CB, !DIRECT_PG, MAT_SMALL>(p, ring, stg, bars, slot, ph, ti.x, ti.y, ntile, first, dn, tm, pq, ti.w); break;
+-        default: consumer_item<256, MOE_CB, !DIRECT_PG, MAT_SMALL>(p, ring, stg, bars, slot, ph, ti.x, ti.y, ntile, first, dn, tm, pq, ti.w); break;
++        case 96: if constexpr(FINE != 0) consumer_item<96, MOE_CB, !DIRECT_PG, MAT_SMALL, BIG>(p, ring, stg, bars, slot, ph, ti.x, ti.y, ntile, first, dn, tm, pq, ti.w); break;
++        case 224: if constexpr(FINE != 0) consumer_item<224, MOE_CB, !DIRECT_PG, MAT_SMALL, BIG>(p, ring, stg, bars, slot, ph, ti.x, ti.y, ntile, first, dn, tm, pq, ti.w); break;
++        default: consumer_item<256, MOE_CB, !DIRECT_PG, MAT_SMALL, BIG>(p, ring, stg, bars, slot, ph, ti.x, ti.y, ntile, first, dn, tm, pq, ti.w); break;
+       }
+       } else {
+       switch (ti.z) {

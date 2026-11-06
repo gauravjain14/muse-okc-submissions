@@ -1,0 +1,8 @@
+[sbx] waited 96s for a GPU
+[sbx] box 0
+checked 51 cases x 2 seeds + graph: ALL OK
+EXACT ALL OK
+EXACT ALL OK
+nesc 3000: escapes 3708, max per CTA 45 (cap 252), owned m [32]
+m=32: one-hot on injected columns, mismatches 0 of 262144
+REMOTE_EXIT 0

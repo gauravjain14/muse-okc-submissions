@@ -1,0 +1,12 @@
+[sbx] waited 12s for a GPU
+[sbx] box 1
+xp_1_12_6 {'NUM_REGS': 138, 'LOCAL_SIZE_BYTES': 0} smem 112640
+  xp_0_9_0:  16.91 us  (94 GB/s per SM incl. start)
+  xp_2_9_0:   9.18 us  (64 GB/s per SM incl. start)
+  xp_2_16_0:   9.09 us  (65 GB/s per SM incl. start)
+  xp_1_9_4:  26.75 us  (59 GB/s per SM incl. start)
+  xp_1_16_4:  26.80 us  (59 GB/s per SM incl. start)
+  xp_1_16_8:  29.68 us  (54 GB/s per SM incl. start)
+  xp_1_20_8:  29.63 us  (54 GB/s per SM incl. start)
+  xp_1_12_6:  30.91 us  (51 GB/s per SM incl. start)
+REMOTE_EXIT 0

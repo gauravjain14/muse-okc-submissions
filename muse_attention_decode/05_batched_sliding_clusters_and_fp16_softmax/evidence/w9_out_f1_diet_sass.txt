@@ -1,0 +1,35 @@
+[gate] slot 0 at 04:33:20 (0 running)
+✓ Initialized. View run at 
+<modal-run-url>
+✓ Created objects.
+├── 🔨 Created mount 
+│   autoresearch-kernels/attn/tools/modal_run.py
+├── 🔨 Created mount autoresearch-kernels/attn
+└── 🔨 Created function run.
+[gpu-before]
+NVIDIA H200, 0 %, 4 MiB, 345 MHz, 1980 MHz, 78.22 W
+0
+attn_8_0_0_0     k17.py     regs 128 spill st140/ld228         loop 664 instr MUFU 39 F2FP 16 PRMT 8 LDL 0 STL 0
+attn_8_0_0_0     k18f.py    regs 128 spill st132/ld148         loop 576 instr MUFU 39 F2FP 16 PRMT 8 LDL 0 STL 0
+attn_8_0_1_0     k17.py     regs 128 spill st0/ld0             loop 475 instr MUFU 34 F2FP 16 PRMT 8 LDL 0 STL 0
+attn_8_0_1_0     k18f.py    regs 128 spill st0/ld0             loop 415 instr MUFU 34 F2FP 16 PRMT 8 LDL 0 STL 0
+PASS [batch 32, ctx 80000, heads tp8, layer full, page 1, dist coherent, q_len 8, spread agentic] seed 0 call 1: relative L2 error 2.743e-02 (worst row 7.941e-02) [bound 0.083: 2.5 x the reference's 0.027 with FP8 E4M3 queries + 0.015]
+
+0 failures
+[k17a] import 25.0s
+[fa] import 0.8s
+[fpt0] import 24.0s
+[fwin] import 20.6s
+[k17b] import 0.5s
+[fb] import 0.5s
+fixed graph cost 5.12 us
+verify 16 full    w16 | k17a   112.69 (min 107.17) | fa   110.99 (min 106.53) | fpt0   109.66 (min 104.45) | fwin   111.60 (min 107.07) | k17b   112.72 (min 108.35) | fb   111.30 (min 106.59)   sol   63.39
+verify 32 full    w16 | k17a   209.33 (min 205.50) | fa   205.06 (min 202.11) | fpt0   202.02 (min 199.62) | fwin   205.30 (min 201.95) | k17b   209.09 (min 206.02) | fb   205.33 (min 202.56)   sol  126.78
+[gpu-after]
+NVIDIA H200, 0 %, 4 MiB, 1980 MHz, 1980 MHz, 295.93 W
+0
+
+[exit 0]
+Stopping app - local entrypoint completed.
+✓ App completed. View run at 
+<modal-run-url>

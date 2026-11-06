@@ -1,0 +1,25 @@
+[gate] slot 0 at 17:46:49 (0 running)
+✓ Initialized. View run at 
+<modal-run-url>
+✓ Created objects.
+├── 🔨 Created mount 
+│   autoresearch-kernels/attn/tools/modal_run.py
+├── 🔨 Created mount autoresearch-kernels/attn
+└── 🔨 Created function run.
+[gpu-before]
+NVIDIA H200, 0 %, 4 MiB, 345 MHz, 1980 MHz, 80.68 W
+0
+== JT tlbcold 1
+one 5.31 two 6.88 us -> subtracted fixed cost 3.74 us (judge); tlbcold 1
+verify 16 sliding w46 sglang    30.99 | k63    11.87 x2.611 | k64    11.15 x2.781 | k63b    11.39 x2.722 | k64b    11.12 x2.786   sol    1.86
+== JT tlbcold 0
+one 5.33 two 6.88 us -> subtracted fixed cost 3.78 us (judge); tlbcold 0
+verify 16 sliding w46 sglang    29.47 | k63    10.37 x2.841 | k64    10.61 x2.778 | k63b    10.32 x2.857 | k64b    10.59 x2.782   sol    1.86
+[gpu-after]
+NVIDIA H200, 0 %, 4 MiB, 1980 MHz, 1980 MHz, 135.10 W
+0
+
+[exit 0]
+Stopping app - local entrypoint completed.
+✓ App completed. View run at 
+<modal-run-url>

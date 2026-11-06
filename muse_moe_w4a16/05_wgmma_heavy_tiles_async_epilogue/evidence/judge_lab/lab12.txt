@@ -1,0 +1,4 @@
+[
+    {"check": [33, 64, 128], "variants": [("v148", [], {})], "seeds": 2},
+    {"bs": [1, 8, 16, 32, 128, 256], "variants": [("v142eq", ["MOE_NO_WG4", "MOE_AEPI_NT=8"], {"WG4": False}), ("v148", [], {}), ("v148b", [], {}), ("v142eqb", ["MOE_NO_WG4", "MOE_AEPI_NT=8"], {"WG4": False})], "seeds": 16, "reps": 3},
+]

@@ -1,0 +1,26 @@
+✓ Initialized. View run at 
+<modal-run-url>
+✓ Created objects.
+├── 🔨 Created mount 
+│   <scratch>
+│   5-ce57afd4da60/scratchpad/snap.L1xe7J/dev/modal_run.py
+├── 🔨 Created mount 
+│   <scratch>
+│   5-ce57afd4da60/scratchpad/snap.L1xe7J
+└── 🔨 Created function run.
+router seed 728034927264498030 (3 s)
+prepared moe1 (cand_moe_on_att8d_v1.py) in 58.6 s
+prepared full1 (cand_full1.py) in 53.9 s
+0 turn 1     b1 ctx80000 sliding q753  sglang    1091.2  moe1     636.3 x1.717  full1     626.6 x1.747 (vs moe1 x1.0053)
+1 turn 1     b1 ctx80000 full    q753  sglang    1524.9  moe1    1003.6 x1.506  full1     996.7 x1.521 (vs moe1 x1.0070)
+2 turn 4     b4 ctx80000 sliding q753  sglang    3444.4  moe1    1964.0 x1.756  full1    1959.0 x1.762 (vs moe1 x1.0021)
+3 turn 4     b4 ctx80000 full    q753  sglang    5013.4  moe1    3473.6 x1.448  full1    3455.6 x1.452 (vs moe1 x1.0034)
+4 first turn b1 ctx0 full    q16384  sglang   19683.4  moe1   10787.2 x1.814  full1   10760.0 x1.830 (vs moe1 x0.9988)
+5 first turn b1 ctx32768 sliding q16384  sglang   18800.1  moe1   10101.0 x1.876  full1   10008.3 x1.873 (vs moe1 x0.9985)
+6 first turn b1 ctx32768 full    q16384  sglang   23350.3  moe1   13979.3 x1.672  full1   13909.9 x1.682 (vs moe1 x1.0042)
+7 first turn b1 ctx65536 full    q16384  sglang   27319.3  moe1   17173.9 x1.611  full1   17064.7 x1.601 (vs moe1 x0.9963)
+moe1: turn 1 x1.642  turn 4 x1.639  first turn x1.813  geomean x1.6959
+full1: turn 1 x1.666  turn 4 x1.644  first turn x1.813  geomean x1.7060
+Stopping app - local entrypoint completed.
+✓ App completed. View run at 
+<modal-run-url>

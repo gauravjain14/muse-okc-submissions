@@ -1,0 +1,8 @@
+{
+  "base": "muse-opt-codex/muse_decode_layer/variants/d12_full_verify.py",
+  "donor": "muse-opt-codex/muse_decode_layer/variants/d13_eight_pool_router.py",
+  "output": "muse-opt-codex/muse_decode_layer/variants/d16_stack.py",
+  "sha256": "8f8d0b2da9dcd061c8a77413edbeb3aef8642425c7ca735dc43edcb3dcae2b34",
+  "bytes": 980634,
+  "change": "Stack d10 one-token pool/router union, d12 XD/XC full verify attention and d13 eight-token pool/router union. No provisional release or norm changes."
+}

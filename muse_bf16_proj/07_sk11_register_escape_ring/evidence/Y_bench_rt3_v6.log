@@ -1,0 +1,12 @@
+[sbx] box 0
+checked 52 cases x 2 seeds + graph: ALL OK
+EXACT ROUTER ALL OK
+decode 1  m=1    router    sglang    9.34 | bo1    2.64 x3.537 | rt3    2.59 x3.601   sol   1.75
+decode 16 m=16   router    sglang   14.26 | bo1    3.66 x3.891 | rt3    3.15 x4.531   sol   1.81
+decode 32 m=32   router    sglang   14.62 | bo1    4.26 x3.432 | rt3    3.44 x4.256   sol   1.86
+verify 1  m=8    router    sglang   25.22 | bo1    3.28 x7.683 | rt3    3.09 x8.171   sol   1.78
+verify 16 m=128  router    sglang   15.62 | bo1    5.13 x3.045 | rt3    5.05 x3.090   sol   2.21
+verify 32 m=256  router    sglang   16.80 | bo1    6.08 x2.762 | rt3    6.06 x2.773   sol   2.68
+GEOMEAN bo1: x3.8085 over 6 loads   judge-projected (+1.0 us/shape) x3.2373
+GEOMEAN rt3: x4.1160 over 6 loads   judge-projected (+1.0 us/shape) x3.4396
+REMOTE_EXIT 0

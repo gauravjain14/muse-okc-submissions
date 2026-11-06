@@ -1,0 +1,8 @@
+lab: NVIDIA H200, 132 SMs
+lab env: torch 2.14.1+cu130 (cuda 13.0), cuda-python 13.4.3, nvrtc 13.0, driver api 13000
+lab check m1: bs200:2.74e-03 bs200:2.72e-03 bs256:2.75e-03 bs256:2.73e-03
+lab check m2: bs200:2.74e-03 bs200:2.72e-03 bs256:2.75e-03 bs256:2.73e-03
+lab check sacc: bs200:2.74e-03 bs200:2.72e-03 bs256:2.75e-03 bs256:2.73e-03
+lab: experiment took 11 s
+lab bs 256: v144 221.1 us (x1.000)  m1 223.1 us (x0.997)  m2 224.7 us (x0.992)  sacc 222.0 us (x1.000)  m1b 222.0 us (x0.997)  v144b 221.7 us (x0.998)
+lab: experiment took 4 s

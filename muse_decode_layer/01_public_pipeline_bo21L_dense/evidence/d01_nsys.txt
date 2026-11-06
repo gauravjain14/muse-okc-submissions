@@ -1,0 +1,132 @@
+CASE 0: span 75.568 us, 6 samples
+    25.424 us  moe_fused #1
+    12.672 us  n2_pooler #1
+     8.320 us  n2_qkv_gate #1
+     5.216 us  _boundary1 #1
+     4.832 us  _boundary2 #1
+     4.640 us  attn_kernel #1
+     4.544 us  nk_o1_16_1_1_1_2_2_0_1 #1
+     4.368 us  _route_split #1
+     3.936 us  _router_fp32_exact #1
+     3.488 us  sm5_cgemv #1
+CASE 1: span 81.312 us, 6 samples
+    25.184 us  moe_fused #1
+    12.672 us  n2_pooler #1
+    10.720 us  attn_kernel #1
+     8.448 us  n2_qkv_gate #1
+     5.280 us  _boundary1 #1
+     4.768 us  _boundary2 #1
+     4.352 us  nk_o1_16_1_1_1_2_2_0_1 #1
+     4.208 us  _route_split #1
+     3.952 us  _router_fp32_exact #1
+     3.232 us  sm5_cgemv #1
+CASE 2: span 120.720 us, 6 samples
+    53.840 us  moe_fused #1
+    14.640 us  pu5_pooler_16 #1
+    13.919 us  pu5_unpooler_16 #1
+     8.928 us  qkvb_qkv_gate_16 #1
+     7.888 us  attn_kernel #1
+     5.264 us  sk11_o_16 #1
+     4.992 us  _boundary2 #1
+     4.592 us  _boundary1 #1
+     4.384 us  _route_split #1
+     4.272 us  ya_1_8_2_17_0 #1
+CASE 3: span 213.264 us, 6 samples
+    86.591 us  attn_kernel #1
+    67.104 us  moe_fused #1
+    14.528 us  pu5_pooler_16 #1
+    13.920 us  pu5_unpooler_16 #1
+     8.848 us  qkvb_qkv_gate_16 #1
+     5.472 us  sk11_o_16 #1
+     4.912 us  _boundary2 #1
+     4.800 us  _boundary1 #1
+     4.400 us  _route_split #1
+     4.256 us  ya_1_8_2_17_0 #1
+CASE 4: span 145.615 us, 6 samples
+    73.424 us  moe_fused #1
+    15.472 us  skh_unpooler_32 #1
+    15.168 us  pu5_pooler_32 #1
+     9.616 us  attn_kernel #1
+     9.440 us  sk11_qkv_gate_32 #1
+     5.504 us  o3_o_32 #1
+     4.976 us  _boundary2 #1
+     4.576 us  _boundary1 #1
+     4.544 us  ya_1_8_4_17_0 #1
+     4.448 us  _route_split #1
+CASE 5: span 313.743 us, 6 samples
+   166.816 us  attn_kernel #1
+    84.128 us  moe_fused #1
+    16.048 us  skh_unpooler_32 #1
+    15.136 us  pu5_pooler_32 #1
+     9.600 us  sk11_qkv_gate_32 #1
+     5.648 us  o3_o_32 #1
+     4.912 us  _boundary2 #1
+     4.608 us  ya_1_8_4_17_0 #1
+     4.576 us  _boundary1 #1
+     4.224 us  _route_split #1
+CASE 6: span 124.431 us, 6 samples
+    64.272 us  moe_fused #1
+    13.200 us  m8_pooler #1
+     8.944 us  _router_fp32_exact #1
+     8.688 us  qkvb_qkv_gate_8 #1
+     7.104 us  attn_kernel #1
+     5.344 us  _boundary1 #1
+     5.104 us  _boundary2 #1
+     5.040 us  nk_o8_16_1_1_0_2_2_0_8 #1
+     4.384 us  _route_split #1
+     3.984 us  unps_8_1_32_1 #1
+CASE 7: span 118.368 us, 6 samples
+    52.160 us  moe_fused #1
+    14.240 us  attn_kernel #1
+    13.088 us  m8_pooler #1
+     8.912 us  _router_fp32_exact #1
+     8.528 us  qkvb_qkv_gate_8 #1
+     5.232 us  _boundary1 #1
+     5.008 us  _boundary2 #1
+     4.944 us  nk_o8_16_1_1_0_2_2_0_8 #1
+     4.256 us  _route_split #1
+     3.904 us  unps_8_1_32_1 #1
+CASE 8: span 222.703 us, 6 samples
+   129.200 us  moe_fused #1
+    20.447 us  kg_pooler_64_64_2_1_14_0_0_0_0_15... #1
+    19.376 us  u128_unpooler #1
+    13.600 us  kg_qkv_gate_64_72_2_2_12_0_9_0_14... #1
+    11.632 us  attn_kernel #1
+     6.544 us  q5_o #1
+     5.856 us  _boundary2 #1
+     5.407 us  r5_32_8_2_5 #1
+     5.392 us  _boundary1 #1
+     4.336 us  _route_split #1
+CASE 9: span 341.791 us, 6 samples
+   159.952 us  moe_fused #1
+   100.128 us  attn_kernel #1
+    20.352 us  kg_pooler_64_64_2_1_14_0_0_0_0_15... #1
+    18.816 us  u128_unpooler #1
+    12.992 us  kg_qkv_gate_64_72_2_2_12_0_9_0_14... #1
+     6.608 us  q5_o #1
+     5.824 us  _boundary2 #1
+     5.488 us  _boundary1 #1
+     5.328 us  r5_32_8_2_5 #1
+     4.368 us  _route_split #1
+CASE 10: span 309.151 us, 6 samples
+   188.816 us  moe_fused #1
+    26.608 us  kg_pooler_64_128_1_1_9_0_0_0_0_20... #1
+    24.672 us  kg_unpooler_128_128_0_1_6_0_0__21... #1
+    16.080 us  ph_qkv_9_64_1_0_0_0_0_0_0_0_1__18... #1
+    14.736 us  attn_kernel #1
+     9.600 us  _boundary1 #1
+     8.416 us  kg_o_128_128_0_1_6_0_0_0_0_0_0_19... #1
+     8.000 us  _boundary2 #1
+     6.672 us  r4_64_1_8_8_1_4_1_0_0_1_0_0_3 #1
+     5.280 us  _route_split #1
+CASE 11: span 495.615 us, 6 samples
+   205.024 us  moe_fused #1
+   184.480 us  attn_kernel #1
+    26.207 us  kg_pooler_64_128_1_1_9_0_0_0_0_20... #1
+    24.767 us  kg_unpooler_128_128_0_1_6_0_0__21... #1
+    16.048 us  ph_qkv_9_64_1_0_0_0_0_0_0_0_1__18... #1
+     9.503 us  _boundary1 #1
+     8.655 us  kg_o_128_128_0_1_6_0_0_0_0_0_0_19... #1
+     7.968 us  _boundary2 #1
+     6.463 us  r4_64_1_8_8_1_4_1_0_0_1_0_0_3 #1
+     5.024 us  _route_split #1

@@ -1,0 +1,88 @@
+{
+  "updated": "2026-10-30T00:33:02.999377+00:00",
+  "official": {
+    "best_check_us": 196176.47564631957,
+    "best_submitted_us": 198669.7421560565,
+    "last_submission": {
+      "job": "46b2d9100c8049d0",
+      "path": "research/integrated/bundle14_fast_normalize.py",
+      "sha256": "ff4f9363395462c6ea4a749a54170ae37c950f57d096fa3347b9f2a7f509bb1f",
+      "explicit_user_authorization": "while youyou are at it, do one judge official score with the best local solution",
+      "override_of_prior_194ms_gate": true,
+      "status": "done",
+      "result_file": "research/bundle14_official_submit_final.json",
+      "passed": true,
+      "score_us": 198928.46403621498,
+      "speedup": 1.9474533314120046,
+      "flags": [],
+      "rank": 9,
+      "improved_best": false
+    }
+  },
+  "local": {
+    "checkpoint": "research/integrated/bundle16_coalesced_gather.py",
+    "sha256": "6638f9d21a1f3182987a141dccf3bcc80639ff3e1ae8471a526c9f6cd4babd6e",
+    "relative_to_bundle14": 1.0039336389692044,
+    "absolute_judge_score": null
+  },
+  "evidence": {
+    "all_stage_counters": "research/bundle14_component_counters.json",
+    "source_pcs": "research/bundle14_stall_pcs.json",
+    "coalescing_comparison": "research/gather_coalescing_counter_comparison.json"
+  },
+  "components": [
+    {
+      "component": "non-PG gather",
+      "identified_bottleneck": "Two vector loads per lane use alternating half sectors; almost half transferred sectors were excessive.",
+      "causal_change": "Contiguous per-warp vector addresses with matching shared-memory permutation.",
+      "evidence": "Excess sectors small560832->448, medium2269617->1713; all output vector mappings identical.",
+      "status": "Transaction amplification removed; full-layer validated and retained in16. Whole kernel not declared optimal."
+    },
+    {
+      "component": "non-PG expert tail",
+      "identified_bottleneck": "Rows beyond192 rounded to224; adding208 avoids some useless MMA rows.",
+      "causal_change": "208 width only on non-PG, original PG planner/fused binary preserved.",
+      "evidence": "Full48 paired aggregate1.000756186 vs14, all8x2+18hard pass. PG208 variant spills and regresses46.65us; PG specialization prevents regression.",
+      "status": "Retained in15 and16."
+    },
+    {
+      "component": "PG metadata",
+      "identified_bottleneck": "Dependent vector loads/stores with only8 tail-copy CTAs per expert. Source PC long-scoreboard stalls and low issue utilization.",
+      "causal_change": "32 copy CTAs per expert; testing64 and eliminating unused tail-block prefix scan.",
+      "evidence": "Two fresh inputs save17.696/18.440us; all32 paired samples positive each, all output buffers bit exact.",
+      "status": "Component proven; best variant and full-layer validation pending."
+    },
+    {
+      "component": "combine",
+      "identified_bottleneck": "Dependent routing-ID, row-address and expert-value loads; measured long-scoreboard PCs.",
+      "causal_change": "Testing metadata cache retention during vector-value streaming.",
+      "status": "Source variants prepared; GPU probe pending."
+    },
+    {
+      "component": "large QKV and pooler",
+      "measured_limits": "Tensor pipeline about94%/94.5% at actual1.61/1.58GHz.",
+      "status": "Near tensor-pipeline ceiling; quantify actual issued math and clock-adjusted floor. Not declared physically closed."
+    },
+    {
+      "component": "large fused output/unpooler boundaries",
+      "measured_limits": "O55%tensor61%DRAM76%L2; UB77%tensor47%DRAM74%L2. Source-PC long-scoreboard samples include polling branches.",
+      "status": "Need separate phase attribution for matrix work, boundary memory work and producer-consumer waiting; pipeline percentages alone do not prove removable gap."
+    },
+    {
+      "component": "attention",
+      "measured_limits": "Sliding19.7/35.3/42.2%tensor; large full73.8/77%. Strided scalar32-bit loads generate excess sectors.",
+      "status": "Need map PCs to source and controlled layout change; stalls are observed but specific fix not validated."
+    }
+  ],
+  "pending": [
+    "Finish metadata64/skip-scan component comparison.",
+    "Validate winning metadata candidate full8cases+18hard.",
+    "Probe combine metadata cache policy."
+  ],
+  "constraints": [
+    "One existing Modal H200 only.",
+    "Original194ms gate remains for unsolicited leaderboard submission.",
+    "Do not report component measurements or chained relative gains as an absolute judge score.",
+    "No additional worker attempts after usage-limit response."
+  ]
+}

@@ -1,0 +1,24 @@
+==== [2026-10-23T22:21:16.364Z] Build v72 lean producer, test, and A/B against v71
+CMD: cp dev/moe_v71.py dev/moe_v72.py && python3 - <<'EOF'
+p = "dev/moe_v72.py"
+s = open(p).read()
+def rep(a, b, cnt=1):
+    global s
+    assert s.count(a) == cnt, (s.count(a), a[:80])
+    s = s.replace(a, b)
+# per-item copy plan, computed once
+rep("""      u32 rmask = 0;
+      for (int st = 0; st < nst; ++st, ++it) {""", """      u32 rmask = 0;
+      // This lane's piece of every stage (the weights or
+   test {'bs': 4}: PASS relative L2 error 2.524e-03 (worst row 2.577e-03)
+   test {'bs': 33}: PASS relative L2 error 2.550e-03 (worst row 2.777e-03)
+   test {'bs': 257}: PASS relative L2 error 2.545e-03 (worst row 2.758e-03)
+   test {'bs': 128, 'dist': 'skewed'}: PASS relative L2 error 2.546e-03 (worst row 
+   test {'bs': 1}: PASS relative L2 error 2.472e-03 (worst row 2.472e-03)
+   moe_v71 : 1:30.9(2.529x) 16:91.2(2.061x) 32:119.9(1.710x) 8:69.4(2.121x) 128:183.5(2.521x) 256:222.5(2.756x) geomean speedup 2.254x over 6 loads
+   moe_v72 : 1:30.3(2.526x) 16:90.1(2.075x) 32:119.9(1.716x) 8:68.7(2.151x) 128:184.2(2.523x) 256:222.1(2.775x) geomean speedup 2.266x over 6 loads
+   moe_v71 : 1:31.4(2.475x) 16:90.6(2.068x) 32:119.0(1.717x) 8:68.6(2.145x) 128:183.2(2.514x) 256:224.0(2.755x) geomean speedup 2.252x over 6 loads
+   moe_v72 : 1:29.9(2.495x) 16:90.6(2.065x) 32:119.5(1.715x) 8:68.7(2.151x) 128:184.0(2.528x) 256:221.8(2.765x) geomean speedup 2.259x over 6 loads
+   moe_v71 : 1:30.4(2.482x) 16:91.3(2.050x) 32:119.3(1.715x) 8:68.9(2.137x) 128:184.6(2.517x) 256:223.5(2.759x) geomean speedup 2.249x over 6 loads
+   moe_v72 : 1:29.9(2.511x) 16:90.0(2.063x) 32:120.0(1.721x) 8:69.0(2.135x) 128:184.3(2.533x) 256:221.8(2.765x) geomean speedup 2.260x over 6 loads
+

@@ -1,0 +1,4 @@
+lab: NVIDIA H200, 132 SMs
+lab env: torch 2.14.1+cu130 (cuda 13.0), cuda-python 13.4.3, nvrtc 13.0, driver api 13000
+lab bs 256: w3 221.1 us (x1.000)  ksx1 220.8 us (x1.009)  ksx4 223.5 us (x0.987)  splw05 223.6 us (x0.994)  splw2 224.1 us (x0.991)  nowarm 224.1 us (x0.988)  deq1 224.5 us (x0.988)  nosort 226.5 us (x0.980)  w3b 220.5 us (x1.000)
+lab: experiment took 32 s

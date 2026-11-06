@@ -1,0 +1,72 @@
+{
+  "source": "research/narrow_memory_counters.csv",
+  "component_only": true,
+  "profiler_timings_not_score": true,
+  "counts": [
+    0,
+    0,
+    1,
+    0,
+    2,
+    1,
+    0,
+    0,
+    0,
+    3,
+    0,
+    0,
+    1,
+    10,
+    0,
+    6,
+    1,
+    0,
+    23,
+    0,
+    16,
+    2,
+    0,
+    0,
+    0,
+    0,
+    13,
+    0,
+    0,
+    0,
+    0,
+    0
+  ],
+  "active_experts": 12,
+  "required_weight_bytes": 339738624,
+  "weight_only_4_8_TBps_floor_us": 70.77888,
+  "kernels": [
+    {
+      "name": "void moe_fused_persistent<1, 0, 1>(FusedArgs)",
+      "profile_duration_us": 103.2,
+      "observed_dram_bytes": 347566557.6,
+      "dram_TBps": 3.367893,
+      "tensor_percent": 18.46831,
+      "l2_throughput_percent": 86.282163,
+      "l2_sector_percent": 68.348996,
+      "l2_sector_min_percent": 67.572318,
+      "l2_sector_max_percent": 69.016592
+    },
+    {
+      "name": "void moe_fused_persistent<1>(FusedArgs)",
+      "profile_duration_us": 103.712,
+      "observed_dram_bytes": 349333233.31200004,
+      "dram_TBps": 3.368301,
+      "tensor_percent": 15.246035,
+      "l2_throughput_percent": 88.982143,
+      "l2_sector_percent": 73.787104,
+      "l2_sector_min_percent": 73.239606,
+      "l2_sector_max_percent": 74.689193
+    }
+  ],
+  "conclusions": [
+    "Narrow experts are limited primarily by weight/data movement, not tensor math. Two blocks/SM do not materially improve bandwidth.",
+    "L2 sector activity is uniform across slices; the measurements do not support a partition-camping hypothesis.",
+    "The weight-only floor excludes activation traffic, writes, pipeline fill/drain and actual sustainable bandwidth. It is not an achievable full-layer score.",
+    "Next tested mechanism is mixing memory-heavy tiny jobs with compute-heavy large jobs within the existing queue."
+  ]
+}

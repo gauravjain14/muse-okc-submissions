@@ -1,0 +1,18 @@
+moe_8_8_1_3_16: 12248 instructions; HMMA:320 HGMMA:192 LOP3:1930 IMAD:2141 SHF:949 HMUL2:1
+moe_8_8_1_3_8: 12216 instructions; HMMA:320 HGMMA:192 LOP3:1932 IMAD:2132 SHF:949 HMUL2:12
+moe_8_4_2_4_1: 6600 instructions; HMMA:320 HGMMA:0 LOP3:782 IMAD:1027 SHF:446 HMUL2:512 LD
+moe_8_4_1_4_4: 6752 instructions; HMMA:320 HGMMA:0 LOP3:784 IMAD:1062 SHF:463 HMUL2:512 LD
+moe_8_4_1_4_2: 6736 instructions; HMMA:320 HGMMA:0 LOP3:784 IMAD:1057 SHF:463 HMUL2:512 LD
+moe_4_1_1_4_1: 5016 instructions; HMMA:64 HGMMA:0 LOP3:446 IMAD:893 SHF:273 HMUL2:256 LDS:
+moe_2_1_1_4_1: 4576 instructions; HMMA:64 HGMMA:0 LOP3:446 IMAD:725 SHF:269 HMUL2:256 LDS:
+test {'bs': 4}: PASS relative L2 error 2.524e-03 (worst row 2.577e-03)
+test {'bs': 33}: PASS relative L2 error 2.550e-03 (worst row 2.777e-03)
+test {'bs': 257}: PASS relative L2 error 2.545e-03 (worst row 2.758e-03)
+test {'bs': 128, 'dist': 'skewed'}: PASS relative L2 error 2.546e-03 (worst row 
+test {'bs': 1}: PASS relative L2 error 2.472e-03 (worst row 2.472e-03)
+v59                           : 1:30.7(2.464x) 16:91.0(2.052x) 32:125.4(1.647x) 8:69.9(2.123x) 128:187.7(2.470x) 256:231.2(2.662x) 2.209x
+v66                           : 1:30.3(2.477x) 16:90.1(2.066x) 32:120.7(1.711x) 8:69.3(2.128x) 128:183.3(2.519x) 256:224.1(2.734x) 2.246x
+v59                           : 1:30.0(2.486x) 16:90.8(2.056x) 32:125.6(1.652x) 8:69.2(2.126x) 128:187.5(2.476x) 256:229.1(2.643x) 2.213x
+v66                           : 1:30.7(2.426x) 16:90.6(2.054x) 32:120.5(1.712x) 8:69.4(2.124x) 128:183.2(2.519x) 256:223.8(2.734x) 2.235x
+v59                           : 1:30.7(2.462x) 16:90.6(2.069x) 32:125.1(1.645x) 8:69.3(2.126x) 128:188.6(2.466x) 256:230.5(2.666x) 2.212x
+v66                           : 1:31.7(2.423x) 16:91.2(2.052x) 32:120.4(1.706x) 8:69.2(2.139x) 128:183.1(2.533x) 256:223.3(2.745x) 2.240x

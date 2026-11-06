@@ -1,0 +1,28 @@
+weights_seed=5353 router_seed=728034927264498030
+PREPARE control 1.92s
+PREPARE bk4 1.01s
+PREPARE d5 2.20s
+FIXED_US 5.4400
+CHECK PASS case=4 rep=0 control: update relative L2 error 2.119e-02 (worst row 5.979e-02) [bound 0.044]; attention input relative L2 error 1.404e-02 (worst row 3.340e-02) [bound 0.030]
+CHECK PASS case=4 rep=0 bk4: update relative L2 error 2.119e-02 (worst row 5.979e-02) [bound 0.044]; attention input relative L2 error 1.404e-02 (worst row 3.340e-02) [bound 0.030]
+CHECK PASS case=4 rep=0 control: update relative L2 error 2.119e-02 (worst row 5.979e-02) [bound 0.044]; attention input relative L2 error 1.404e-02 (worst row 3.340e-02) [bound 0.030]
+CHECK PASS case=4 rep=0 d5: update relative L2 error 2.119e-02 (worst row 5.979e-02) [bound 0.044]; attention input relative L2 error 1.404e-02 (worst row 3.340e-02) [bound 0.030]
+CHECK PASS case=4 rep=1 control: update relative L2 error 2.108e-02 (worst row 6.714e-02) [bound 0.044]; attention input relative L2 error 1.396e-02 (worst row 4.712e-02) [bound 0.030]
+CHECK PASS case=4 rep=1 bk4: update relative L2 error 2.108e-02 (worst row 6.714e-02) [bound 0.044]; attention input relative L2 error 1.396e-02 (worst row 4.712e-02) [bound 0.030]
+CHECK PASS case=4 rep=1 control: update relative L2 error 2.108e-02 (worst row 6.714e-02) [bound 0.044]; attention input relative L2 error 1.396e-02 (worst row 4.712e-02) [bound 0.030]
+CHECK PASS case=4 rep=1 d5: update relative L2 error 2.108e-02 (worst row 6.714e-02) [bound 0.044]; attention input relative L2 error 1.396e-02 (worst row 4.712e-02) [bound 0.030]
+RESULT case=4 first turn {'batch': 1, 'ctx': 0, 'layer': 'full', 'q_len': 16384, 'page': 1, 'dist': 'soft', 'spread': 'fixed'} control=9579.264us bk4=9552.866us speedup=1.002763 pairs=[1.0019653636640968, 0.9989745566758096, 1.0034356593214953, 1.004850993518923, 1.0027633604014237]
+RESULT case=4 first turn {'batch': 1, 'ctx': 0, 'layer': 'full', 'q_len': 16384, 'page': 1, 'dist': 'soft', 'spread': 'fixed'} control=9579.264us d5=9601.594us speedup=0.997674 pairs=[0.9976743368584265, 0.9890811068147066, 0.9917838688605063, 0.9990594515968354, 1.0008906360937289]
+CHECK PASS case=5 rep=0 control: update relative L2 error 3.219e-02 (worst row 1.114e-01) [bound 0.069]; attention input relative L2 error 2.126e-02 (worst row 6.751e-02) [bound 0.046]
+CHECK PASS case=5 rep=0 bk4: update relative L2 error 3.219e-02 (worst row 1.114e-01) [bound 0.069]; attention input relative L2 error 2.126e-02 (worst row 6.751e-02) [bound 0.046]
+CHECK PASS case=5 rep=0 control: update relative L2 error 3.219e-02 (worst row 1.114e-01) [bound 0.069]; attention input relative L2 error 2.126e-02 (worst row 6.751e-02) [bound 0.046]
+CHECK PASS case=5 rep=0 d5: update relative L2 error 3.219e-02 (worst row 1.114e-01) [bound 0.069]; attention input relative L2 error 2.126e-02 (worst row 6.751e-02) [bound 0.046]
+CHECK PASS case=5 rep=1 control: update relative L2 error 3.202e-02 (worst row 1.028e-01) [bound 0.069]; attention input relative L2 error 2.116e-02 (worst row 7.437e-02) [bound 0.046]
+CHECK PASS case=5 rep=1 bk4: update relative L2 error 3.202e-02 (worst row 1.028e-01) [bound 0.069]; attention input relative L2 error 2.116e-02 (worst row 7.437e-02) [bound 0.046]
+CHECK PASS case=5 rep=1 control: update relative L2 error 3.202e-02 (worst row 1.028e-01) [bound 0.069]; attention input relative L2 error 2.116e-02 (worst row 7.437e-02) [bound 0.046]
+CHECK PASS case=5 rep=1 d5: update relative L2 error 3.202e-02 (worst row 1.028e-01) [bound 0.069]; attention input relative L2 error 2.116e-02 (worst row 7.437e-02) [bound 0.046]
+RESULT case=5 first turn {'batch': 1, 'ctx': 32768, 'layer': 'sliding', 'q_len': 16384, 'page': 1, 'dist': 'soft', 'spread': 'fixed'} control=9163.392us bk4=9141.057us speedup=1.002443 pairs=[1.0018648351057482, 1.0024433574108738, 1.0033848890336496, 1.006670250750258, 1.0007302624306398]
+RESULT case=5 first turn {'batch': 1, 'ctx': 32768, 'layer': 'sliding', 'q_len': 16384, 'page': 1, 'dist': 'soft', 'spread': 'fixed'} control=9163.392us d5=9155.301us speedup=1.000884 pairs=[1.0008837366517367, 1.0390493081095593, 1.0206220317852872, 0.9978689616276877, 0.9839303016917459]
+SUMMARY {"complete_score": false, "loads_us": {"first turn": {"bk4": 1414311.7145054797, "control": 1417816.2946449593, "d5": 1417057.035066026}}, "relative_speedup": {"bk4": 1.0024779404027668, "control": 1.0, "d5": 1.0005358002960678}}
+BENCH_RC=0
+REMOTE_EXIT 0

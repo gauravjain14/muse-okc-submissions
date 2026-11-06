@@ -1,0 +1,252 @@
+==== [2026-10-24T07:24:44.776Z] Read the v83 vs v103 comparison
+CMD: cat <scratch>/tasks/bngrf4fen.output
+   decode 1   bs   1 experts  2.46 (|2..3|) max_tok med 1.0
+      warm                22.4 us  x3.353 vs warm: x1.0000
+      v83                 22.4 us  x3.327 vs warm: x0.9876
+      v103                22.1 us  x3.389 vs warm: x1.0217
+      v83b                22.7 us  x3.302 vs warm: x0.9718
+      v103b               22.0 us  x3.390 vs warm: x1.0332
+   decode 16  bs  16 experts 12.12 (|11..13|) max_tok med 6.0
+      warm                87.7 us  x2.073 vs warm: x1.0000
+      v83                 86.5 us  x2.103 vs warm: x1.0164
+      v103                87.5 us  x2.076 vs warm: x1.0010
+      v83b                86.3 us  x2.108 vs warm: x1.0169
+      v103b               87.5 us  x2.074 vs warm: x1.0014
+   decode 32  bs  32 experts 16.79 (|16..18|) max_tok med 10.0
+      warm               125.4 us  x1.702 vs warm: x1.0000
+      v83                123.8 us  x1.717 vs warm: x1.0104
+      v103               125.1 us  x1.697 vs warm: x1.0000
+      v83b               123.9 us  x1.713 vs warm: x1.0083
+      v103b              124.9 us  x1.702 vs warm: x1.0027
+   verify 1   bs   8 experts  8.53 (|8..9|) max_tok med 3.0
+      warm                68.4 us  x2.152 vs warm: x1.0000
+      v83                 67.1 us  x2.201 vs warm: x1.0253
+      v103                68.4 us  x2.142 vs warm: x0.9977
+      v83b                66.9 us  x2.195 vs warm: x1.0215
+      v103b               68.4 us  x2.149 vs warm: x1.0000
+   geomean warm: x2.2460 over 4 shapes
+   geomean v83: x2.2676 over 4 shapes
+   geomean v103: x2.2491 over 4 shapes
+   geomean v83b: x2.2618 over 4 shapes
+   geomean v103b: x2.2518 over 4 shapes
+
+==== [2026-10-24T07:29:22.383Z] Read the bisect results
+CMD: cat <scratch>/tasks/bwolg15o1.output
+   decode 16  bs  16 experts 12.12 (|11..13|) max_tok med 6.0
+      v103                88.2 us  x2.057 vs v103: x1.0000
+      v83                 87.0 us  x2.092 vs v103: x1.0142
+      v85                 90.9 us  x2.000 vs v103: x0.9711
+      v87                 90.0 us  x2.021 vs v103: x0.9823
+      v90                 89.2 us  x2.038 vs v103: x0.9848
+      v92                 89.4 us  x2.034 vs v103: x0.9847
+      v103noE             89.7 us  x2.031 vs v103: x0.9839
+      v103b               88.0 us  x2.074 vs v103: x1.0021
+   decode 32  bs  32 experts 16.79 (|16..18|) max_tok med 10.0
+      v103               126.1 us  x1.689 vs v103: x1.0000
+      v83                125.5 us  x1.703 vs v103: x1.0065
+      v85                125.6 us  x1.694 vs v103: x1.0033
+      v87                125.4 us  x1.696 vs v103: x1.0042
+      v90                125.7 us  x1.690 vs v103: x1.0004
+      v92                125.5 us  x1.692 vs v103: x1.0022
+      v103noE            125.8 us  x1.685 vs v103: x1.0000
+      v103b              125.7 us  x1.689 vs v103: x0.9990
+   verify 1   bs   8 experts  8.53 (|8..9|) max_tok med 3.0
+      v103                68.1 us  x2.151 vs v103: x1.0000
+      v83                 67.4 us  x2.180 vs v103: x1.0156
+      v85                 70.9 us  x2.062 vs v103: x0.9607
+      v87                 70.0 us  x2.102 vs v103: x0.9774
+      v90                 69.5 us  x2.116 vs v103: x0.9870
+      v92                 69.5 us  x2.107 vs v103: x0.9878
+      v103noE             70.0 us  x2.089 vs v103: x0.9775
+      v103b               68.6 us  x2.141 vs v103: x0.9936
+   geomean v103: x1.9553 over 3 shapes
+   geomean v83: x1.9802 over 3 shapes
+   geomean v85: x1.9114 over 3 shapes
+   geomean v87: x1.9315 over 3 shapes
+   geomean v90: x1.9390 over 3 shapes
+   geomean v92: x1.9357 over 3 shapes
+   geomean v103noE: x1.9265 over 3 shapes
+   geomean v103b: x1.9571 over 3 shapes
+
+==== [2026-10-24T07:30:45.675Z] Test the restored gap and a size-only control at bs8/16
+CMD: python3 - <<'EOF'
+p = "dev/moe_v109.py"
+s = open(p).read()
+a = """    return (1024 + route + (2 * red + 127) // 128 * 128 + 1023) // 1024 * 1024 + ns * _stage_bytes(rw, nt)"""
+assert s.count(a) == 1
+s = s.replace(a, a + " + (SMEM_EXTRA if kw > 1 else 0)")
+a = "NS_MAX = 4 "
+assert s.count(a) == 1
+s = s.replace(a, "SMEM_EXTRA = 0       # (experiments) extra dynamic shared memory requested by the two
+   test {'bs': 4}: PASS relative L2 error 3.273e-03 (worst row 3.311e-03)
+   test {'bs': 33}: PASS relative L2 error 3.026e-03 (worst row 3.560e-03)
+   test {'bs': 257}: PASS relative L2 error 3.195e-03 (worst row 3.491e-03)
+   test {'bs': 128, 'dist': 'skewed'}: PASS relative L2 error 2.647e-03 (worst row 3.400e-03)
+   test {'bs': 1}: PASS relative L2 error 2.472e-03 (worst row 2.472e-03)
+   decode 16  bs  16 experts 12.05 (|11..13|) max_tok med 6.0
+      v103                87.7 us  x2.083 vs v103: x1.0000
+      v109                87.6 us  x2.080 vs v103: x0.9994
+      v83                 86.3 us  x2.114 vs v103: x1.0125
+      sizeonly            87.4 us  x2.081 vs v103: x0.9994
+      v109noE             89.2 us  x2.041 vs v103: x0.9812
+      v109b               87.9 us  x2.077 vs v103: x0.9967
+      v103b               87.9 us  x2.072 vs v103: x0.9983
+   verify 1   bs   8 experts  8.37 (|8..9|) max_tok med 4.0
+      v103                62.7 us  x2.144 vs v103: x1.0000
+      v109                62.8 us  x2.154 vs v103: x1.0005
+      v83                 61.1 us  x2.197 vs v103: x1.0179
+      sizeonly            62.6 us  x2.153 vs v103: x1.0016
+      v109noE             64.1 us  x2.098 vs v103: x0.9784
+      v109b               62.9 us  x2.152 vs v103: x1.0018
+      v103b               62.3 us  x2.150 vs v103: x1.0014
+   geomean v103: x2.1135 over 2 shapes
+   geomean v109: x2.1164 over 2 shapes
+   geomean v83: x2.1551 over 2 shapes
+   geomean sizeonly: x2.1165 over 2 shapes
+   geomean v109noE: x2.0693 over 2 shapes
+   geomean v109b: x2.1141 over 2 shapes
+   geomean v103b: x2.1108 over 2 shapes
+
+==== [2026-10-24T07:37:30.961Z] Test v110 and A/B it against v103 and v83 on all main-kernel shapes
+CMD: M=<scratch>/modal-venv/bin/modal && timeout 3500 $M run dev/modal_run.py --cmd "sh dev/setv.sh moe_v110 >/dev/null; timeout 400 python3 dev/kern_sass.py /tmp/k 2>&1 | grep -a -E 'C7511|rror'; timeout 400 python3 dev/bench.py dev/abl.py --tests-only --no-base 2>&1 | grep -a -E 'test|rror' | cut -c1-120; B2_S
+   test {'bs': 4}: PASS relative L2 error 3.273e-03 (worst row 3.311e-03)
+   test {'bs': 33}: PASS relative L2 error 3.026e-03 (worst row 3.560e-03)
+   test {'bs': 257}: PASS relative L2 error 3.195e-03 (worst row 3.491e-03)
+   test {'bs': 128, 'dist': 'skewed'}: PASS relative L2 error 2.647e-03 (worst row 3.400e-03)
+   test {'bs': 1}: PASS relative L2 error 2.472e-03 (worst row 2.472e-03)
+   decode 16  bs  16 experts 12.05 (|11..13|) max_tok med 6.0
+      v103                87.7 us  x2.075 vs v103: x1.0000
+      v110                87.4 us  x2.078 vs v103: x1.0012
+      v83                 86.4 us  x2.102 vs v103: x1.0138
+      v110b               87.4 us  x2.084 vs v103: x1.0057
+      v103b               87.5 us  x2.073 vs v103: x1.0008
+   decode 32  bs  32 experts 16.66 (|16..18|) max_tok med 10.0
+      v103               124.9 us  x1.689 vs v103: x1.0000
+      v110               124.2 us  x1.699 vs v103: x1.0048
+      v83                124.0 us  x1.699 vs v103: x1.0068
+      v110b              124.5 us  x1.697 vs v103: x1.0049
+      v103b              125.2 us  x1.688 vs v103: x1.0001
+   verify 1   bs   8 experts  8.37 (|8..9|) max_tok med 4.0
+      v103                62.4 us  x2.147 vs v103: x1.0000
+      v110                62.3 us  x2.170 vs v103: x1.0046
+      v83                 61.5 us  x2.206 vs v103: x1.0186
+      v110b               62.6 us  x2.167 vs v103: x1.0062
+      v103b               62.6 us  x2.154 vs v103: x1.0000
+   verify 16  bs 128 experts 22.29 (|21..24|) max_tok med 55.0
+      v103               181.8 us  x2.523 vs v103: x1.0000
+      v110               181.0 us  x2.536 vs v103: x1.0050
+      v83                181.6 us  x2.516 vs v103: x1.0000
+      v110b              180.7 us  x2.543 vs v103: x1.0051
+      v103b              181.9 us  x2.519 vs v103: x0.9996
+   verify 32  bs 256 experts 24.82 (|24..26|) max_tok med 97.0
+      v103               226.3 us  x2.721 vs v103: x1.0000
+      v110               226.3 us  x2.727 vs v103: x1.0008
+      v83                228.6 us  x2.698 vs v103: x0.9925
+      v110b              226.4 us  x2.723 vs v103: x1.0021
+      v103b              227.6 us  x2.717 vs v103: x0.9998
+   geomean v103: x2.2013 over 5 shapes
+   geomean v110: x2.2123 over 5 shapes
+   geomean v83: x2.2164 over 5 shapes
+   geomean v110b: x2.2130 over 5 shapes
+   geomean v103b: x2.2005 over 5 shapes
+
+==== [2026-10-24T07:43:20.634Z] Test v83's exact layout on top of v103 at bs8/16
+CMD: cp dev/moe_v110.py dev/moe_v111.py && python3 - <<'EOF'
+p = "dev/moe_v111.py"
+s = open(p).read()
+def rep(a, b, cnt=1):
+    global s
+    assert s.count(a) == cnt, (s.count(a), a[:100])
+    s = s.replace(a, b)
+rep("""  unsigned char* stages = smem + (1024 + ROUTE_BYTES + 1023) / 1024 * 1024;""",
+    """  // (and the ring past an 8 KB gap in the two-k-warp configs: v83's layout exactly)
+#ifndef MOE_N
+   test {'bs': 4}: PASS relative L2 error 3.273e-03 (worst row 3.311e-03)
+   test {'bs': 33}: PASS relative L2 error 3.026e-03 (worst row 3.560e-03)
+   test {'bs': 257}: PASS relative L2 error 3.195e-03 (worst row 3.491e-03)
+   test {'bs': 128, 'dist': 'skewed'}: PASS relative L2 error 2.647e-03 (worst row 3.400e-03)
+   test {'bs': 1}: PASS relative L2 error 2.472e-03 (worst row 2.472e-03)
+   decode 16  bs  16 experts 12.05 (|11..13|) max_tok med 6.0
+      v103                88.0 us  x2.076 vs v103: x1.0000
+      v111                87.6 us  x2.079 vs v103: x1.0052
+      v110                87.8 us  x2.074 vs v103: x1.0021
+      v83                 86.7 us  x2.106 vs v103: x1.0151
+      v111noE             86.8 us  x2.101 vs v103: x1.0173
+      v111b               87.5 us  x2.090 vs v103: x1.0056
+      v83b                87.1 us  x2.103 vs v103: x1.0147
+   verify 1   bs   8 experts  8.37 (|8..9|) max_tok med 4.0
+      v103                63.0 us  x2.173 vs v103: x1.0000
+      v111                61.7 us  x2.186 vs v103: x1.0060
+      v110                62.5 us  x2.180 vs v103: x1.0055
+      v83                 61.8 us  x2.215 vs v103: x1.0186
+      v111noE             60.9 us  x2.211 vs v103: x1.0206
+      v111b               61.9 us  x2.182 vs v103: x1.0082
+      v83b                61.3 us  x2.219 vs v103: x1.0170
+   geomean v103: x2.1240 over 2 shapes
+   geomean v111: x2.1318 over 2 shapes
+   geomean v110: x2.1265 over 2 shapes
+   geomean v83: x2.1598 over 2 shapes
+   geomean v111noE: x2.1554 over 2 shapes
+   geomean v111b: x2.1352 over 2 shapes
+   geomean v83b: x2.1599 over 2 shapes
+
+==== [2026-10-24T07:50:19.769Z] Validate v112 against v103 and v83 on all six shapes
+CMD: cp dev/moe_v111.py dev/moe_v112.py && python3 - <<'EOF'
+p = "dev/moe_v112.py"
+s = open(p).read()
+a = """#ifndef MOE_NO_EARLY_ALL
+  constexpr bool EARLY = NT == 1 && MW == 1;
+#else"""
+assert s.count(a) == 1
+s = s.replace(a, """  // (not at bs 8-16: with this header layout their early start measured 1.3-1.5% slower)
+#ifdef MOE_EARLY_ALL
+  constexpr bool EARLY = NT == 1 && MW == 1;
+#else""")
+open(p, 
+   test {'bs': 4}: PASS relative L2 error 3.273e-03 (worst row 3.311e-03)
+   test {'bs': 33}: PASS relative L2 error 3.026e-03 (worst row 3.560e-03)
+   test {'bs': 257}: PASS relative L2 error 3.195e-03 (worst row 3.491e-03)
+   test {'bs': 128, 'dist': 'skewed'}: PASS relative L2 error 2.647e-03 (worst row 3.400e-03)
+   test {'bs': 1}: PASS relative L2 error 2.472e-03 (worst row 2.472e-03)
+   decode 1   bs   1 experts  2.52 (|2..3|) max_tok med 1.0
+      v103                22.7 us  x3.257 vs v103: x1.0000
+      v112                22.7 us  x3.279 vs v103: x1.0253
+      v83                 24.1 us  x3.072 vs v103: x0.9412
+      v112b               23.0 us  x3.260 vs v103: x1.0152
+      v103b               22.6 us  x3.307 vs v103: x1.0208
+   decode 16  bs  16 experts 12.05 (|11..13|) max_tok med 6.0
+      v103                87.7 us  x2.064 vs v103: x1.0000
+      v112                86.0 us  x2.102 vs v103: x1.0173
+      v83                 86.5 us  x2.085 vs v103: x1.0118
+      v112b               86.1 us  x2.100 vs v103: x1.0158
+      v103b               87.1 us  x2.072 vs v103: x1.0020
+   decode 32  bs  32 experts 16.54 (|15..18|) max_tok med 10.0
+      v103               123.9 us  x1.683 vs v103: x1.0000
+      v112               123.1 us  x1.693 vs v103: x1.0047
+      v83                123.0 us  x1.691 vs v103: x1.0045
+      v112b              123.1 us  x1.691 vs v103: x1.0049
+      v103b              124.1 us  x1.681 vs v103: x0.9987
+   verify 1   bs   8 experts  8.28 (|7..9|) max_tok med 3.0
+      v103                61.9 us  x2.141 vs v103: x1.0000
+      v112                60.7 us  x2.201 vs v103: x1.0224
+      v83                 61.6 us  x2.196 vs v103: x1.0164
+      v112b               61.1 us  x2.199 vs v103: x1.0188
+      v103b               62.1 us  x2.150 vs v103: x0.9998
+   verify 16  bs 128 experts 22.43 (|21..24|) max_tok med 52.5
+      v103               182.4 us  x2.518 vs v103: x1.0000
+      v112               182.3 us  x2.535 vs v103: x1.0031
+      v83                183.1 us  x2.520 vs v103: x0.9984
+      v112b              181.9 us  x2.533 vs v103: x1.0047
+      v103b              183.5 us  x2.523 vs v103: x0.9991
+   verify 32  bs 256 experts 24.70 (|24..26|) max_tok med 97.0
+      v103               225.9 us  x2.712 vs v103: x1.0000
+      v112               226.1 us  x2.713 vs v103: x1.0028
+      v83                227.6 us  x2.686 vs v103: x0.9933
+      v112b              225.6 us  x2.711 vs v103: x1.0023
+      v103b              225.9 us  x2.709 vs v103: x0.9997
+   geomean v103: x2.3428 over 6 shapes
+   geomean v112: x2.3686 over 6 shapes
+   geomean v83: x2.3323 over 6 shapes
+   geomean v112b: x2.3647 over 6 shapes
+   geomean v103b: x2.3522 over 6 shapes
+

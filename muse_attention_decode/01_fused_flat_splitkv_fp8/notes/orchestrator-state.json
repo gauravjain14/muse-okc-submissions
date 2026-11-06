@@ -1,0 +1,567 @@
+{
+ "goal": "muse_attention_decode kernel in the top 2 of the okc leaderboard",
+ "archetype": "optimize-metric",
+ "mode": "loop",
+ "predicate": {
+  "command": "okc leaderboard muse_attention_decode --json | python3 -c \"import json,sys; d=json.load(sys.stdin); print((d.get('you') or {}).get('rank'))\"",
+  "expected": "rank <= 2"
+ },
+ "working_signal": "python3 tools/bench.py (Modal H200, judge-mirroring) -> GEOMEAN judge-projected board us",
+ "holdout": "okc check (off-board, 20/day)",
+ "terminal_choice": "stop-at-verified; scored okc submit only with explicit user approval",
+ "units_remaining_history": [
+  {
+   "t": "2026-10-27T22:30",
+   "version": "k1",
+   "board_us_local": 6461.4
+  },
+  {
+   "t": "2026-10-27T22:52",
+   "version": "k2",
+   "board_us_local": 2965.2
+  },
+  {
+   "t": "2026-10-27T23:35",
+   "version": "k3",
+   "board_us_local": 3034.3,
+   "note": "k2 2997.4 same job"
+  },
+  {
+   "t": "2026-10-28T00:02",
+   "version": "k4 (= W8 k3w)",
+   "board_us_local": 2282.1,
+   "judge_projected_us": 2358.0,
+   "note": "k3 3008.6 same job"
+  },
+  {
+   "t": "2026-10-28T00:25",
+   "version": "k4",
+   "judge_us": 2395.3,
+   "judge_speedup": 1.5724
+  },
+  {
+   "t": "2026-10-28T00:30",
+   "version": "k5 (= WD k4d)",
+   "board_us_local": 2070.7,
+   "judge_projected_us": 2149.1
+  },
+  {
+   "t": "2026-10-28T01:20",
+   "version": "k6",
+   "board_us_local": 1913.1,
+   "judge_projected_us": 1995.2
+  },
+  {
+   "t": "2026-10-28T01:45",
+   "version": "k6",
+   "judge_us": 2045.6,
+   "judge_speedup": 1.8412
+  },
+  {
+   "t": "2026-10-28T02:00",
+   "version": "k7 (= WB k7v)",
+   "geomean_local": 2.0054,
+   "judge_projected_x": 1.9596,
+   "note": "WB-reported same-job vs k6 x1.9117; independent verify at k8"
+  },
+  {
+   "t": "2026-10-28T02:10",
+   "version": "k8",
+   "board_us_local": 1751.3,
+   "judge_projected_us": 1832.2
+  },
+  {
+   "t": "2026-10-28T02:25",
+   "version": "k8",
+   "judge_us": 1883.0,
+   "judge_speedup": 2.0001
+  },
+  {
+   "t": "2026-10-28T02:55",
+   "version": "k10",
+   "board_us_local": 1721.3,
+   "judge_projected_us": 1850.1,
+   "note": "k8 1763.6 local same job"
+  },
+  {
+   "t": "2026-10-28T03:10",
+   "version": "k10",
+   "judge_us": 1831.8,
+   "judge_speedup": 2.0561
+  },
+  {
+   "t": "2026-10-28T04:00",
+   "version": "k11",
+   "board_us_local": 1655.3,
+   "judge_projected_us": 1783.7
+  },
+  {
+   "t": "2026-10-28T04:10",
+   "version": "k12",
+   "board_us_local": 1666.7,
+   "judge_projected_us": 1796.6,
+   "note": "k11 1677.9 same job"
+  },
+  {
+   "t": "2026-10-28T04:15",
+   "version": "k11",
+   "judge_us": 1799.6,
+   "judge_speedup": 2.0928
+  },
+  {
+   "t": "2026-10-28T04:40",
+   "version": "k13",
+   "board_us_local": 1659.2,
+   "judge_projected_us": 1786.9
+  },
+  {
+   "t": "2026-10-28T04:55",
+   "version": "k13",
+   "judge_us": 1750.3,
+   "judge_speedup": 2.1518
+  },
+  {
+   "t": "2026-10-28T06:20",
+   "version": "k15",
+   "board_us_local": 1642.6,
+   "judge_projected_us": 1770.5
+  },
+  {
+   "t": "2026-10-28T06:35",
+   "version": "k15",
+   "judge_us": 1762.2,
+   "judge_speedup": 2.1372
+  },
+  {
+   "t": "2026-10-28T06:45",
+   "version": "k16",
+   "board_us_local": 1562.2,
+   "judge_projected_us": 1694.1
+  },
+  {
+   "t": "2026-10-28T07:05",
+   "version": "k16",
+   "judge_us": 1655.8,
+   "judge_speedup": 2.2747
+  },
+  {
+   "t": "2026-10-28T07:15",
+   "version": "k17",
+   "board_us_local": 1555.6,
+   "judge_projected_us": 1687.2
+  },
+  {
+   "t": "2026-10-28T07:35",
+   "version": "k18",
+   "board_us_local": 1549.7,
+   "judge_projected_us": 1681.3
+  },
+  {
+   "t": "2026-10-28T08:05",
+   "version": "k19",
+   "board_us_local": 1465.8,
+   "judge_projected_us": 1597.0
+  },
+  {
+   "t": "2026-10-28T08:25",
+   "version": "k19",
+   "judge_us": 1560.5,
+   "judge_speedup": 2.4136
+  },
+  {
+   "t": "2026-10-28T08:50",
+   "version": "k20",
+   "board_us_local": 1464.0,
+   "judge_projected_us": 1594.9
+  },
+  {
+   "t": "2026-10-28T09:45",
+   "version": "k21",
+   "board_us_local": 1450.0,
+   "judge_projected_us": 1581.7
+  },
+  {
+   "t": "2026-10-28T10:05",
+   "version": "k21",
+   "judge_us": 1577.2,
+   "judge_speedup": 2.3879
+  },
+  {
+   "t": "2026-10-28T10:35",
+   "version": "k22",
+   "board_us_local": 1446.9,
+   "judge_projected_us": 1578.2
+  },
+  {
+   "t": "2026-10-28T11:20",
+   "version": "k23",
+   "board_us_local": 1392.3,
+   "judge_projected_us": 1521.6
+  },
+  {
+   "t": "2026-10-28T11:40",
+   "version": "k23",
+   "judge_us": 1554.2,
+   "judge_speedup": 2.4233
+  },
+  {
+   "t": "2026-10-28T11:55",
+   "version": "k25",
+   "board_us_local": 1430.3,
+   "judge_projected_us": 1560.9
+  },
+  {
+   "t": "2026-10-28T13:40",
+   "version": "k27",
+   "board_us_local": 1402.1,
+   "judge_projected_us": 1532.7
+  },
+  {
+   "t": "2026-10-28T14:00",
+   "version": "k27",
+   "judge_us": 1538.0,
+   "judge_speedup": 2.4488
+  },
+  {
+   "t": "2026-10-28T14:35",
+   "version": "k28",
+   "board_us_local": 1375.4,
+   "judge_projected_us": 1505.3
+  },
+  {
+   "t": "2026-10-28T14:50",
+   "version": "k29",
+   "board_us_local": 1338.0,
+   "judge_projected_us": 1468.7
+  },
+  {
+   "t": "2026-10-28T15:20",
+   "version": "k29",
+   "judge_us": 1546.9,
+   "judge_speedup": 2.4347
+  },
+  {
+   "t": "2026-10-28T15:55",
+   "version": "k29",
+   "judge_us": 1496.0,
+   "judge_speedup": 2.5175,
+   "scored": true,
+   "rank": 90
+  },
+  {
+   "t": "2026-10-28T16:20",
+   "version": "k30",
+   "board_us_local": 1346.4,
+   "judge_projected_us": 1476.1
+  },
+  {
+   "t": "2026-10-28T16:50",
+   "version": "k32",
+   "board_us_local": 1340.4,
+   "judge_projected_us": 1469.8
+  },
+  {
+   "t": "2026-10-28T17:05",
+   "version": "k31",
+   "judge_us": 1520.2,
+   "judge_speedup": 2.4774
+  },
+  {
+   "t": "2026-10-28T19:10",
+   "version": "k32",
+   "judge_us": 1474.5,
+   "judge_speedup": 2.5543,
+   "scored": true
+  }
+ ],
+ "cycle": 34,
+ "pending_verify": false,
+ "incumbent": "dev/k34.py",
+ "pipeline": [
+  {
+   "hop": "research",
+   "outcome": "progressed",
+   "note": "docs/research.md; FP8 mma.sync emulated on sm_90a"
+  },
+  {
+   "hop": "k1",
+   "outcome": "progressed",
+   "note": "all 56 checks pass; 0.57x (serial combine)"
+  },
+  {
+   "hop": "k2",
+   "outcome": "progressed",
+   "note": "parallel combine, aligned mode; 1.236x"
+  },
+  {
+   "hop": "k3",
+   "outcome": "no-op",
+   "note": "latency restructure: full/verify slightly better, sliding b1 worse (spill-serialized early loads, latency-bound single combiner); x1.214 vs k2 x1.229"
+  },
+  {
+   "hop": "workers",
+   "outcome": "running",
+   "note": "W8 wgmma verify, WB full-layer bandwidth, WC small-shape latency, WD decode QGMMA"
+  },
+  {
+   "hop": "okc-check k3",
+   "outcome": "progressed",
+   "note": "judge x1.2010 / 3136 us; local projection x1.2053: calibrated"
+  },
+  {
+   "hop": "W8 wgmma verify",
+   "outcome": "progressed",
+   "note": "QGMMA L=8 path; verify full b32 608->253, b16 316->142; x1.6177 local; 56/56"
+  },
+  {
+   "hop": "okc-check k4",
+   "outcome": "progressed",
+   "note": "judge x1.5724 / 2395 us (target <= 1257)"
+  },
+  {
+   "hop": "WD QGMMA L=1",
+   "outcome": "progressed",
+   "note": "native QGMMA decode; x1.7764 local; 56/56"
+  },
+  {
+   "hop": "WB FLAT j4",
+   "outcome": "progressed",
+   "note": "x1.6930 local; to be merged into k5 by WD"
+  },
+  {
+   "hop": "R2 sibling lessons",
+   "outcome": "progressed",
+   "note": "docs/sibling_lessons.md"
+  },
+  {
+   "hop": "WC k6 merge",
+   "outcome": "progressed",
+   "note": "k5m + runA1 (b1 sliding clusters) + W8 run8; x1.9191 local verified; okc check c763bae8abde4f12 pending"
+  },
+  {
+   "hop": "okc-check k6",
+   "outcome": "progressed",
+   "note": "judge x1.8412 / 2045.6 us"
+  },
+  {
+   "hop": "WB run8v",
+   "outcome": "progressed",
+   "note": "RoPE table + cluster combine in run8; verify-1 sliding 15.5 -> 10.35"
+  },
+  {
+   "hop": "W8 round-3 on k7",
+   "outcome": "progressed",
+   "note": "verify full b16 141->123, b32 254->224; x2.1283 local verified; okc check 336577a148fd4260"
+  },
+  {
+   "hop": "okc-check k8",
+   "outcome": "progressed",
+   "note": "judge x2.0001 / 1883 us; local proj x2.077 (-3.7%)"
+  },
+  {
+   "hop": "k9 (WC) + k9v (WB) -> k10",
+   "outcome": "progressed",
+   "note": "x2.1357 local verified 56/56"
+  },
+  {
+   "hop": "okc-check k10",
+   "outcome": "progressed",
+   "note": "judge x2.0561 / 1831.8 us"
+  },
+  {
+   "hop": "k11 = k10 + k11d + k14s + run1f",
+   "outcome": "progressed",
+   "note": "x2.19-2.23 local, 56/56 x2"
+  },
+  {
+   "hop": "k12 = k11 + WB k10v",
+   "outcome": "progressed",
+   "note": "x2.1813 local 56/56"
+  },
+  {
+   "hop": "okc-check k11",
+   "outcome": "progressed",
+   "note": "judge x2.0928 / 1799.6 us"
+  },
+  {
+   "hop": "k13 = k12 + WF run8 FLAT end chain",
+   "outcome": "progressed",
+   "note": "verify full b16 121.4->114.8, b32 220.2->211.7; x2.219 local"
+  },
+  {
+   "hop": "okc-check k13",
+   "outcome": "progressed",
+   "note": "judge x2.1518 / 1750.3 us"
+  },
+  {
+   "hop": "k14 = k13 + WC run1 + WF k14f; k15 = k14 + WB row-split v1s clusters",
+   "outcome": "progressed",
+   "note": "v1s 9.7->8.9 local; x2.227"
+  },
+  {
+   "hop": "okc-check k15",
+   "outcome": "no-op",
+   "note": "x2.1372 / 1762 us; small shapes improved (v1s -0.87), decode full b32 +6 us node variance"
+  },
+  {
+   "hop": "k16 = k15 + WS runA1h (d1s)",
+   "outcome": "progressed",
+   "note": "d1s 5.75->3.19 local; x2.348"
+  },
+  {
+   "hop": "okc-check k16",
+   "outcome": "progressed",
+   "note": "judge x2.2747 / 1655.8 us"
+  },
+  {
+   "hop": "k17 = k16 + W9 EXPQ",
+   "outcome": "progressed",
+   "note": "v32s -0.75, v16s -0.3, v1f -0.4; x2.370 local"
+  },
+  {
+   "hop": "k18 = k17 + WB merge-as-landed (v16s/v32s)",
+   "outcome": "progressed",
+   "note": "v32s 15.0->14.4, v16s 12.1->11.9"
+  },
+  {
+   "hop": "k19 = k18 + WS runA8h (v1s)",
+   "outcome": "progressed",
+   "note": "v1s 8.8->5.07 local; x2.532"
+  },
+  {
+   "hop": "WF d1f WS-start + C2 end",
+   "outcome": "no-op",
+   "note": "start +7us (cold tile code behind burst); C2 no gain (latency-bound combine)"
+  },
+  {
+   "hop": "okc-check k19",
+   "outcome": "progressed",
+   "note": "judge x2.4136 / 1560.5 us"
+  },
+  {
+   "hop": "k20 = k19 + W9 FLAT diet",
+   "outcome": "progressed",
+   "note": "v16f -5.7, v32f -11.7 local; x2.522"
+  },
+  {
+   "hop": "k21 = k20 + WS run1w (d1f atomic combine)",
+   "outcome": "progressed",
+   "note": "d1f 14.1->13.2; x2.541"
+  },
+  {
+   "hop": "okc-check k21",
+   "outcome": "no-op",
+   "note": "x2.3879 / 1577 us; v16f -5.6, v32f -15.2, d1f -0.9 as expected but d32f +21 us node variance (146->167 identical code)"
+  },
+  {
+   "hop": "k22 = k21 + W9 S3",
+   "outcome": "progressed",
+   "note": "v16f -2.2, v32f -2"
+  },
+  {
+   "hop": "k23 = k22 + WE runE1 (d16s/d32s clusters)",
+   "outcome": "progressed",
+   "note": "d16s -1.8, d32s -2.2; x2.669"
+  },
+  {
+   "hop": "okc-check k23",
+   "outcome": "progressed",
+   "note": "judge x2.4233 / 1554.2 us"
+  },
+  {
+   "hop": "k25 = k23 + W9D + WB_FDA",
+   "outcome": "progressed",
+   "note": "v1f -0.9, d16f/d32f -0.35"
+  },
+  {
+   "hop": "k26 = k25 + W9S (d1f start)",
+   "outcome": "progressed",
+   "note": "d1f -0.3; WB_KSPEC dropped (noise); WE 32-token first stage negative"
+  },
+  {
+   "hop": "k27 = k26 + WH run8w (v16s/v32s)",
+   "outcome": "progressed",
+   "note": "v16s -1.5, v32s -0.75; x2.629"
+  },
+  {
+   "hop": "okc-check k27",
+   "outcome": "progressed",
+   "note": "judge x2.4488 / 1538.0 us"
+  },
+  {
+   "hop": "k28 = k27 + WB sum-only combine (v1f)",
+   "outcome": "progressed",
+   "note": "v1f -0.7; x2.701"
+  },
+  {
+   "hop": "k29 = k28 + WS run1f page-table prefetch",
+   "outcome": "progressed",
+   "note": "d16f -1.3, d32f -0.5; x2.744"
+  },
+  {
+   "hop": "okc-check k29",
+   "outcome": "no-op",
+   "note": "x2.4347 / 1546.9 us; full shapes improved (d16f -1.45, v32f -1.66, d32f -0.74, v1f -0.33) but every small sliding shape +0.2..+0.5 on unchanged code (node: SGLang d1s also +3.6%)"
+  },
+  {
+   "hop": "SCORED submit #1 k29 (user-approved 2 submissions)",
+   "outcome": "pending",
+   "note": "job 446324a044bc4189"
+  },
+  {
+   "hop": "SCORED submit #1 k29",
+   "outcome": "progressed",
+   "note": "x2.5175 / 1496.0 us, rank 90; #2 job 75102e5f32d44ef4"
+  },
+  {
+   "hop": "k30 = k29 + W9 FP16 softmax tile (policy change)",
+   "outcome": "progressed",
+   "note": "local x2.651 -> x2.734 (+3.1%)"
+  },
+  {
+   "hop": "k31 = k30 + WS prefetch mode 10",
+   "outcome": "progressed",
+   "note": "local x2.716; okc check submitted"
+  },
+  {
+   "hop": "k32 = k31 + WB FP16 partial exchange",
+   "outcome": "progressed",
+   "note": "v16s -0.7, v1s -0.1, d16s -0.2; local x2.752"
+  },
+  {
+   "hop": "okc-check k31",
+   "outcome": "progressed",
+   "note": "x2.4774 / 1520.2 us on a slow node; vs k29 check (same-ish node 1546.9) ~1.8% better; k29 scored 1496 was a fast node. User: no scored run now, keep going."
+  },
+  {
+   "hop": "SCORED submit k32 (user-approved)",
+   "outcome": "progressed",
+   "note": "job 820fe9121d5f4e8b; same-job local +3.0% vs k29; x2.5543 / 1474.5 us"
+  },
+  {
+   "hop": "k33 = k32 + W9 k34d (d1f end chain)",
+   "outcome": "progressed",
+   "note": "d1f -0.4 local"
+  },
+  {
+   "hop": "k34 = k33 + WS runA1h producer rewrite",
+   "outcome": "progressed",
+   "note": "d1s -0.05..-0.1; runA8h/runE1/run8w rewrites lost (scheduling side effects)"
+  },
+  {
+   "hop": "USER STOP requested",
+   "outcome": "blocked",
+   "note": "finish WS C16 round, then stop; no new work"
+  },
+  {
+   "hop": "WS C16/C8 b1-full clusters",
+   "outcome": "no-op",
+   "note": "killed; +0.1..+0.3 us"
+  }
+ ],
+ "status": "STOPPED_BY_USER",
+ "final": {
+  "scored_best": "k32 x2.5543 / 1474.5 us, rank 86",
+  "best_local": "dev/k34.py"
+ }
+}

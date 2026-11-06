@@ -1,0 +1,285 @@
+===== [2026-10-23T07:15:43.352Z UTC] Search for a dequant-friendly bit layout; check node status
+$ cat > <scratch>/tile.py <<'EOF'
+# Can 8 translates of S (the bit positions one bf16x2 output needs) tile a 64-bit word pair?
+S = [6, 7, 8, 15, 22, 23, 24, 31]
+best = []
+def rec(used, ds, start):
+    global best
+    if len(ds) > len(best):
+        best = list(ds)
+    if len(ds) == 8:
+        return True
+    # lowest unused bit must be covered by some translate's lowest element
+    free = [b for b in range(64) if not used >> b & 1]
+    b = free[0]
+    for s in S:
+        d = b - s
+        bits = [x + d for x in S]
+        if min(bits) < 0 or max(bits) > 63:
+            continue
+        m = sum(1 << x for x in bits)
+        if used & m:
+            continue
+        ds.append(d)
+        if rec(used | m, ds, d):
+            return True
+        ds.pop()
+    return False
+print("tiling found" if rec(0, [], 0) else "no tiling", "best partial", sorted(best))
+EOF
+python3 <scratch>/tile.py; cat <scratch>/tasks/bkffmo7ml.output
+----- output
+no tiling best partial [-6, -3, 0]
+status: running (idle)
+Usage: autor hold [OPTIONS] <NODE>
+      --until <UNTIL>
+
+[exited with code 0]
+
+===== [2026-10-23T07:18:18.510Z UTC] Search byte-permute layouts for the fourth dequant output
+$ cat > <scratch>/prmt_search.py <<'EOF'
+# Out0..2 = (q << d) & M for d in {0,3,6}; Out3 = PRMT(q, r, sel) & M with r = shifted/rotated q.
+# Find r and byte selections so Out3's 8 bits come from the bits Out0..2 leave free.
+S = [6, 7, 8, 15, 22, 23, 24, 31]
+used = set()
+for d in (0, 3, 6):
+    used |= {b - d for b in S}
+free = set(range(32)) - used
+print("free bits", sorted(free))
+need = {0: [6, 7], 1: [0, 7], 2: [6, 7], 3: [0, 7]}  # dest byte -> local bits needed
+def src_bits(kind, k, j):
+    """q bit index for each local bit i of byte j of the source (q itself is kind 'q')."""
+    out = []
+    for i in range(8):
+        b = 8 * j + i
+        if kind == "q":
+            out.append(b)
+        elif kind == "shr":
+            out.append(b + k if b + k < 32 else None)
+        elif kind == "shl":
+            out.append(b - k if b - k >= 0 else None)
+        else:  # rotate right
+            out.append((b + k) % 32)
+    return out
+sols = []
+for kind in ("shr", "shl", "rot"):
+    for k in range(1, 32):
+        srcs = [("q", j, src_bits("q", 0, j)) for j in range(4)] + [(kind + str(k), j, src_bits(kind, k, j)) for j in range(4)]
+        def rec(dest, taken, choice):
+            if dest == 4:
+                sols.append((kind, k, list(choice)))
+                return
+            for name, j, bits in srcs:
+                qb = [bits[i] for i in need[dest]]
+                if any(b is None or b not in free or b in taken for b in qb):
+                    continue
+                choice.append((name, j))
+                rec(dest + 1, taken | set(qb), choice)
+                choice.pop()
+        rec(0, set(), [])
+print(len(sols), "solutions")
+for s in sols[:10]:
+    print(s)
+EOF
+python3 <scratch>/prmt_search.py
+----- output
+free bits [10, 11, 13, 14, 26, 27, 29, 30]
+0 solutions
+
+===== [2026-10-23T07:18:50.811Z UTC] Search the cheapest extractor set covering all 32 bits
+$ cat > <scratch>/prmt_search2.py <<'EOF'
+# Min-cost way to pull 4 bf16x2 outputs (each needing bits S) out of one 32-bit word.
+# Extractors: rot(q,d)&M (cost 1 if d==0 else 2), PRMT(q, rot(q,k))&M (cost 2 if k==0 else 3).
+import itertools
+S = [6, 7, 8, 15, 22, 23, 24, 31]
+need = {0: [6, 7], 1: [0, 7], 2: [6, 7], 3: [0, 7]}
+ext = {}
+for d in range(32):
+    m = frozenset((b - d) % 32 for b in S)
+    c = 1 if d == 0 else 2
+    if m not in ext or ext[m][0] > c:
+        ext[m] = (c, f"rot{d}")
+for k in range(32):
+    srcs = []
+    for j in range(4):
+        srcs.append((f"q.b{j}", [8 * j + i for i in range(8)]))
+        srcs.append((f"r{k}.b{j}", [(8 * j + i + k) % 32 for i in range(8)]))
+    for pick in itertools.product(range(8), repeat=4):
+        bits = []
+        for dest, si in enumerate(pick):
+            bits += [srcs[si][1][i] for i in need[dest]]
+        if len(set(bits)) < 8:
+            continue
+        m = frozenset(bits)
+        c = 2 if k == 0 else 3
+        if m not in ext or ext[m][0] > c:
+            ext[m] = (c, f"prmt(q,rot{k}) " + ",".join(srcs[s][0] for s in pick))
+items = list(ext.items())
+print(len(items), "distinct extractor bit-sets")
+best = None
+full = frozenset(range(32))
+by_bit = {b: [it for it in items if b in it[0]] for b in range(32)}
+def rec(cov, cost, chosen):
+    global best
+    if best and cost >= best[0]:
+        return
+    if len(chosen) == 4:
+        if cov == full:
+            best = (cost, list(chosen))
+        return
+    b = min(full - cov)
+    for m, (c, name) in by_bit[b]:
+        if m & cov:
+            continue
+        chosen.append(name)
+        rec(cov | m, cost + c, chosen)
+        chosen.pop()
+rec(frozenset(), 0, [])
+print("best:", best)
+EOF
+python3 <scratch>/prmt_search2.py
+----- output
+2144 distinct extractor bit-sets
+best: (10, ['rot6', 'rot12', 'prmt(q,rot6) r6.b1,r6.b0,r6.b3,q.b1', 'prmt(q,rot7) q.b2,r7.b0,r7.b2,q.b3'])
+
+===== [2026-10-23T07:19:29.420Z UTC] Find the minimum-op dequant layout with shared shifts
+$ cat >> <scratch>/prmt_search2.py <<'EOF'
+
+# Exact cost with shared rotations: ops = distinct nonzero rotations + one LOP3 per output + PRMTs.
+import re
+meta = {}
+for m, (c, name) in items:
+    rots = set(int(x) for x in re.findall(r"rot(\d+)", name)) - {0}
+    meta[m] = (rots, name.startswith("prmt"), name)
+best2 = [99, None]
+def rec2(cov, chosen):
+    if len(chosen) == 4:
+        if cov == full:
+            rots = set().union(*(meta[m][0] for m in chosen))
+            cost = len(rots) + 4 + sum(meta[m][1] for m in chosen)
+            if cost < best2[0]:
+                best2[0], best2[1] = cost, [meta[m][2] for m in chosen]
+        return
+    b = min(full - cov)
+    for m, _ in by_bit[b]:
+        if not (m & cov):
+            rec2(cov | m, chosen + [m])
+rec2(frozenset(), [])
+print("best with sharing:", best2)
+EOF
+python3 <scratch>/prmt_search2.py 2>&1 | tail -1
+----- output
+best with sharing: [9, ['rot6', 'rot12', 'prmt(q,rot6) r6.b1,r6.b0,r6.b3,q.b1', 'prmt(q,rot7) q.b2,r7.b0,r7.b2,q.b3']]
+
+===== [2026-10-23T08:24:19.422Z UTC] Search non-wrapping shift layouts with 5 LOP3
+$ cat > <scratch>/shift_search.py <<'EOF'
+# Outputs from pieces (q << d) & mask for d > 0, (q >> -d) & mask for d < 0, q & mask for d = 0
+# (no wrap: source = target - d must be in [0, 31]). Shifts run on the FMA-heavy pipe (IMAD /
+# IMAD.HI); each piece costs one LOP3 on the ALU pipe. Minimize pieces, then distinct shifts.
+S = [6, 7, 8, 15, 22, 23, 24, 31]
+D = range(-31, 32)
+full = {}
+for d in D:
+    src = [t - d for t in S]
+    if all(0 <= x < 32 for x in src):
+        full[d] = frozenset(src)
+best = []
+ds = sorted(full)
+for i, a in enumerate(ds):
+    for j, b in enumerate(ds[i + 1:]):
+        for c in ds[i + j + 2:]:
+            if full[a] & full[b] or full[a] & full[c] or full[b] & full[c]:
+                continue
+            F = set(range(32)) - full[a] - full[b] - full[c]
+            # o3 from two pieces with shifts d3, d4
+            for d3 in D:
+                for d4 in D:
+                    if d4 <= d3:
+                        continue
+                    ok = True
+                    taken = set()
+                    plan = []
+                    for t in S:
+                        opts = [d for d in (d3, d4) if 0 <= t - d < 32 and (t - d) in F and (t - d) not in taken]
+                        if not opts:
+                            ok = False
+                            break
+                        taken.add(t - opts[0])
+                        plan.append(opts[0])
+                    if ok and taken == F and len(set(plan)) == 2:
+                        best.append((a, b, c, d3, d4, plan))
+print(len(best), "5-LOP3 layouts (3 single-piece outputs + one 2-piece)")
+for x in best[:10]:
+    print(x)
+EOF
+python3 <scratch>/shift_search.py
+----- output
+0 5-LOP3 layouts (3 single-piece outputs + one 2-piece)
+
+===== [2026-10-24T08:29:43.134Z UTC] Search FP4 word layouts for the cheapest decode
+$ cat > <scratch>/deq_search.py <<'EOF'
+# Layouts of 8 E2M1 codes in a word such that 4 BF16x2 outputs (code bits at {6,7,8,15} + 16k) come from
+# rotations of the word: 3 outputs with one rotation each, one output with two pieces. Cost model:
+# LOP3 per piece; a shared temporary per distinct nonzero rotation: IMAD (left shift, FMA pipe) if no
+# piece needs wrapped bits, else SHF (ALU).
+import itertools
+M = [6, 7, 8, 15, 22, 23, 24, 31]
+FULL = (1 << 32) - 1
+def srcmask(ps, r):
+    m = 0
+    for p in ps:
+        m |= 1 << ((p - r) % 32)
+    return m
+def wraps(ps, r):
+    return any(p - r < 0 for p in ps)
+best = []
+for r1, r2 in itertools.combinations(range(1, 32), 2):
+    a = srcmask(M, 0); b = srcmask(M, r1); c = srcmask(M, r2)
+    if a & b or a & c or b & c:
+        continue
+    rem = FULL & ~(a | b | c)
+    for u, v in itertools.combinations(range(32), 2):
+        # each p in M goes to u or v, sources exactly rem
+        for bits in range(256):
+            pu = [p for i, p in enumerate(M) if bits >> i & 1]
+            pv = [p for i, p in enumerate(M) if not bits >> i & 1]
+            if not pu or not pv:
+                continue
+            su, sv = srcmask(pu, u), srcmask(pv, v)
+            if su & sv or (su | sv) != rem:
+                continue
+            # temporaries: rotations {r1, r2, u, v} minus 0, realized as IMAD if no wrap anywhere it is used
+            uses = {}
+            for r, ps in ((r1, M), (r2, M), (u, pu), (v, pv)):
+                if r == 0:
+                    continue
+                uses.setdefault(r, []).append(ps)
+            shf = sum(1 for r, L in uses.items() if any(wraps(ps, r) for ps in L))
+            imad = len(uses) - shf
+            lop = 5
+            best.append((lop + shf, imad, (0, r1, r2), (u, v), tuple(pu), tuple(pv)))
+best.sort()
+print(len(best), "layouts")
+seen = set()
+for x in best[:15]:
+    print("ALU", x[0], "IMAD", x[1], "single rotations", x[2], "two-piece", x[3], "pieces", x[4], x[5])
+EOF
+python3 <scratch>/deq_search.py
+----- output
+96 layouts
+ALU 7 IMAD 2 single rotations (0, 4, 10) two-piece (6, 14) pieces (6, 7, 15, 22, 23, 31) (8, 24)
+ALU 7 IMAD 2 single rotations (0, 4, 10) two-piece (6, 14) pieces (6, 22) (7, 8, 15, 23, 24, 31)
+ALU 7 IMAD 2 single rotations (0, 4, 10) two-piece (6, 30) pieces (6, 7, 15, 22, 23, 31) (8, 24)
+ALU 7 IMAD 2 single rotations (0, 4, 10) two-piece (6, 30) pieces (6, 22) (7, 8, 15, 23, 24, 31)
+ALU 7 IMAD 2 single rotations (0, 4, 26) two-piece (6, 14) pieces (6, 7, 15, 22, 23, 31) (8, 24)
+ALU 7 IMAD 2 single rotations (0, 4, 26) two-piece (6, 14) pieces (6, 22) (7, 8, 15, 23, 24, 31)
+ALU 7 IMAD 2 single rotations (0, 4, 26) two-piece (6, 30) pieces (6, 7, 15, 22, 23, 31) (8, 24)
+ALU 7 IMAD 2 single rotations (0, 4, 26) two-piece (6, 30) pieces (6, 22) (7, 8, 15, 23, 24, 31)
+ALU 7 IMAD 2 single rotations (0, 6, 10) two-piece (4, 12) pieces (7, 8, 15, 23, 24, 31) (6, 22)
+ALU 7 IMAD 2 single rotations (0, 6, 10) two-piece (4, 12) pieces (8, 24) (6, 7, 15, 22, 23, 31)
+ALU 7 IMAD 2 single rotations (0, 6, 10) two-piece (4, 28) pieces (7, 8, 15, 23, 24, 31) (6, 22)
+ALU 7 IMAD 2 single rotations (0, 6, 10) two-piece (4, 28) pieces (8, 24) (6, 7, 15, 22, 23, 31)
+ALU 7 IMAD 2 single rotations (0, 6, 12) two-piece (2, 10) pieces (6, 7, 15, 22, 23, 31) (8, 24)
+ALU 7 IMAD 2 single rotations (0, 6, 12) two-piece (2, 10) pieces (6, 22) (7, 8, 15, 23, 24, 31)
+ALU 7 IMAD 2 single rotations (0, 6, 12) two-piece (2, 26) pieces (6, 7, 15, 22, 23, 31) (8, 24)
+
