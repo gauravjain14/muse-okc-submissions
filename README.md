@@ -48,6 +48,6 @@ In those milestones, `build.py` is the judged file with these comment lines adde
 
 ## License
 
-Our code in this repository is licensed under the Apache License, Version 2.0. The full text is in `LICENSES/Apache-2.0.txt`.
+Our code in this repository is licensed under the Apache License, Version 2.0. See `LICENSE`.
 
-Code from other projects keeps its original license. The segments marked in the source are listed in `NOTICE` with their licenses (Apache-2.0, MIT, BSD-3-Clause). Files that come from the challenge's problem starter (each problem's `tools/` folder, and copies of its files) remain under the challenge's terms.
+Code from other projects keeps its original license. The segments marked in the source are listed in `NOTICE` with their licenses, and the license texts are in `LICENSES/` (Apache-2.0, MIT, BSD-3-Clause). Files that come from the challenge's problem starter (each problem's `tools/` folder, and copies of its files) remain under the challenge's terms.
