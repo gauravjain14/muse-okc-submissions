@@ -45,3 +45,9 @@ Judge numbers are single runs of the challenge's judge, which varies by about ±
 Some builds copy or adapt code from other projects. Each such block is marked in place in the source with `SPDX-SnippetBegin` / `SPDX-SnippetEnd` comments that give its source, copyright, license and our changes. `NOTICE` lists the projects and where they are used, and `LICENSES/` holds the full license texts.
 
 In those milestones, `build.py` is the judged file with these comment lines added; the code is unchanged. Each milestone README gives the judged file's md5.
+
+## License
+
+Our code in this repository is licensed under the Apache License, Version 2.0. The full text is in `LICENSES/Apache-2.0.txt`.
+
+Code from other projects keeps its original license. The segments marked in the source are listed in `NOTICE` with their licenses (Apache-2.0, MIT, BSD-3-Clause). Files that come from the challenge's problem starter (each problem's `tools/` folder, and copies of its files) remain under the challenge's terms.
